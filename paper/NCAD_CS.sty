@@ -1,0 +1,535 @@
+% --- Start of corrected file for ANONYMOUS REVIEW ---
+% !TEX program = pdflatex % Specify engine if needed by editor
+
+% Use the IEEE Transactions on AI class (journal mode is default)
+\documentclass[journal]{IEEEtran} 
+
+% --- Essential Packages ---
+\usepackage[utf8]{inputenc} % Input encoding
+\usepackage[T1]{fontenc}    % Font encoding for better hyphenation
+\usepackage{amsmath}
+\usepackage{amssymb}        % Math symbols
+\usepackage{amsfonts}       % Math fonts
+\usepackage{bm}             % Bold math symbols (\bm)
+\usepackage{graphicx}       % Include graphics
+\usepackage{caption}        % Custom captions
+\usepackage{microtype}      % Improved typography and justification
+\usepackage{cite}           % Handles citations like [1]-[3]
+\usepackage{soul}           % For \hl{} highlighting
+\usepackage{siunitx}        % For \sisetup and S column type
+\usepackage{multirow}       % Multi-row cells in tables
+\usepackage{booktabs}       % Nicer tables
+\usepackage{textcomp}       % Additional text symbols
+% --- Optional/Situational Packages ---
+\usepackage{tabularx}       
+\usepackage[absolute,overlay]{textpos} 
+\usepackage{algorithm}      
+\usepackage{algpseudocode}  
+\usepackage{enumitem}       
+\usepackage[usenames,dvipsnames]{xcolor} 
+\usepackage{hyperref}       
+\usepackage{xcolor} % Required for defining colors
+\usepackage{soul}   % Required for the \hl command
+
+\sethlcolor{yellow}
+
+% --- Document Settings ---
+\captionsetup{font=footnotesize, labelfont=bf, skip=4pt} % IEEE style captions
+
+% --- Title and Author (ANONYMIZED for double-blind review) ---
+\title{Neural Contextual Anomaly Detection with Contextual Substitution in Space Systems}
+
+% Placeholder for anonymous submission
+\author{%
+  \begin{tabular}{ccc}
+    Andre Williams & Imadeldin Mahgoub & Hamid Akbarian\\
+    \textit{Florida Atlantic University} & \textit{Florida Atlantic University} & \textit{Florida Atlantic University} \\
+    \textit{Department of EECS} & \textit{Department of EECS} & \textit{Department of EECS} \\ 
+    \textit{Boca Raton, US} & \textit{Boca Raton, US} & \textit{Boca Raton, US} \\
+    \textit{andrewilliam2018@fau.edu} & \textit{mahgoubi@fau.edu} & \textit{hakbaria@fau.edu}
+  \end{tabular}
+}
+
+% FOR DOUBLE-BLIND REVIEW: Running headers should be anonymized or removed.
+\markboth{IEEE Transactions on Aerospace and Electronic Systems, SUBMISSION FOR REVIEW}%
+{Submission}
+
+% --- Document Start ---
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Detecting sustained, contextual anomalies in time series is a critical challenge for high-stakes applications, as existing methods often fail due to \textit{context contamination}. We introduce Neural Contextual Anomaly Detection with Contextual Substitution (NCAD-CS), a framework that prevents this score suppression through a proposed Contextual Substitution mechanism.  NCAD-CS utilizes a Context Memory Bank (CMB), a repository of normal operational prototypes, to validate the current context window. If the context's distance to any known-good prototype exceeds a normality threshold, signaling contamination, the framework replaces it with a clean prototype retrieved from the CMB for scoring. This context-aware logic ensures a reliable comparison, making the system resilient to gradual drifts and regime shifts. The architecture combines a sensitive Temporal Convolutional Network with a robust adaptive thresholding scheme.  Empirical results on the SMAP satellite dataset confirm the efficacy of NCAD-CS, showcasing state-of-the-art performance characterized by high F1 scores and a significantly lower false positive rate, advancing the capabilities for autonomous monitoring and diagnostics in demanding space environments.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Spacecraft Telemetry, Anomaly Detection, Contextual Anomaly, Sustained Anomaly, Temporal Convolutional Network, Memory Bank, K-Means, Contrastive Learning, F1 Score.
+\end{IEEEkeywords}
+
+\section{Introduction}
+\label{sec:intro}
+
+Monitoring spacecraft health through telemetry data is a cornerstone of modern space mission operations, essential for ensuring mission success, longevity, and safety \cite{meng2019spacecraft}. This data, a high-dimensional stream of measurements from thousands of onboard sensors, provides a continuous view into the operational state of complex subsystems. However, the sheer volume, velocity, and complexity of this data make manual analysis infeasible, necessitating the use of automated and intelligent anomaly detection systems. While conventional methods based on static, predefined operational limits have long been used, they are often insufficient for identifying the nuanced, context-dependent deviations that frequently precede significant system failures \cite{chandola2009anomaly}. The dynamic nature of space environments and the evolution of hardware behavior over a mission's lifetime demand more sophisticated approaches.
+
+Recent advancements in machine learning, particularly in deep learning, have introduced powerful new paradigms for modeling complex temporal dependencies in time series data \cite{chalapathy2019deep}. Yet, several fundamental challenges persist in the space domain. These include the extreme rarity of anomalous events, which complicates model training; the high dimensionality of telemetry; and the critical need for interpretable and trustworthy results \cite{cuellar2024explainable}.
+
+A particularly pernicious challenge is the detection of contextual and sustained anomalies. Unlike simple point anomalies (e.g., a sudden sensor spike), contextual anomalies are defined by their relationship to preceding data. A telemetry reading may be within its global operational limits, but anomalous given its immediate temporal context. Sustained anomalies are even more difficult, such as a gradual system drift or a shift into a new, off-nominal operational regime. Standard contrastive, reconstructive, and predictive models often fail in these scenarios due to \textit{context contamination}: as the anomaly persists, the model's immediate context window becomes filled with anomalous data, causing it to accept this new state as the "new normal" and suppress its anomaly score.
+
+To address these specific challenges, this paper introduces the Neural Contextual Anomaly Detection with Contextual Substitution (NCAD-CS) framework. NCAD-CS is a sophisticated, multi-stage methodology for robust anomaly detection in complex telemetry. Our primary contribution is a context-aware scoring mechanism that explicitly addresses the problem of context contamination. By leveraging a Context Memory Bank (CMB), an external, stable repository of learned normal operational patterns, the framework dynamically assesses the reliability of the current context. If the context is deemed contaminated, NCAD-CS intelligently substitutes it with a known-good prototype from the CMB before scoring. This ensures that the anomaly score is always the result of a comparison against a trustworthy baseline of normality, thereby preventing score suppression during sustained events and significantly improving detection robustness.
+
+This paper details the architecture and performance of NCAD-CS, showcasing its efficacy on the public SMAP satellite dataset. Our framework demonstrates excellent performance through a combination of robust multi-domain feature engineering, a hybrid-pooling Temporal Convolutional Network (TCN) encoder, and a principled, multi-stage thresholding process. 
+
+The remainder of this paper is organized as follows: Section~\ref{sec:related} reviews related works in spacecraft anomaly detection. Section~\ref{sec:dataset} describes the dataset used for our evaluation, and Section~\ref{sec:proposed_method} provides a detailed exposition of the NCAD-CS methodology. We present our experimental results and analysis in Section~\ref{sec:exp}.  Next we perform an Ablation study in Section~\ref{sec:ablation} Finally, Section~\ref{sec:conclusion} concludes the paper with a summary of our findings, and Section~\ref{sec:future} outlines promising directions for future research.
+
+\section{Related Works}
+\label{sec:related}
+
+This section summarizes academic articles that discuss anomaly identification by evaluating space telemetry using the Soil Moisture Active Passive (SMAP) satellite and the Mars Science Laboratory (MSL) rover Dataset \cite{Hundman2018b}. 
+
+The study by Hundman et al. demonstrates the application of Long Short-Term Memory (LSTM) networks in detecting spacecraft anomalies through using a combination of deep learning and nonparametric dynamic thresholding. Unlike conventional methods, this approach leverages the sequential nature of telemetry data to forecast upcoming values, identifying anomalies wherever the actual data significantly diverges from the forecast. The LSTM model captures long-range dependencies \cite{hua2019deep}, allowing it to learn intricate temporal relationships within the data. Dynamic thresholding adjusts to the normal behavior variations over time, enhancing the anomaly detection system's sensitivity and robustness. This dual-method strategy has shown improved precision in identifying both contextual and collective anomalies within multivariate telemetry data. Evaluations on the SMAP dataset validate the approach's efficacy, showcasing advances within the constraints of space missions and reinforcing its relevance to aerospace applications.
+
+Recognizing the importance of long-range dependencies, recent research has also focused on improving model scalability to handle larger context windows. A notable example is the work by Hoh et al. \cite{hoh2025rethinking}, who propose a framework based on a Swin Transformer U-Net architecture (Swin1D-AD). By leveraging the hierarchical and shifted-window attention of the Swin Transformer \cite{he2022swin}, their model efficiently processes input windows of over 1000 timesteps, significantly larger than typical baselines. This enables the capture of distant temporal relationships within a reconstruction-based paradigm, demonstrating that larger contexts can improve detection performance. However, while this approach effectively expands the \textit{size}, it does not address the fundamental problem of the context's \textit{reliability}. As a reconstruction-based model, it remains vulnerable to context contamination; a sufficiently prolonged anomaly can still become the "new normal" that the model learns to reconstruct, leading to eventual score suppression.
+
+Further advancing the state of the art, researchers have focused on integrating learned structural relationships with temporal dynamics to create richer representations of context. A prominent example is the Learning Graph Anomaly Transformer (LGAT) model by Wen et al. \cite{wen2025lgat}, which automatically learns a graph structure representing inter-variable dependencies and integrates it with an enhanced, U-Net-inspired Anomaly Transformer architecture. By simultaneously modeling these complex topological and temporal patterns, LGAT aims to build a more comprehensive representation of system state, thereby improving detection sensitivity based on reconstruction error and association discrepancies. Nevertheless, while this approach significantly enhances the modeling of intricate variable interactions, its performance is still predicated on the assumption that the immediate context window represents a normal operational state. This leaves it potentially vulnerable to the gradual score suppression characteristic of \textit{context contamination} during prolonged anomalies. Our work addresses a distinct but complementary challenge: how to model the context better and ensure the context's fundamental \textit{reliability}.
+
+Neural Contextual Anomaly Detection (NCAD) is a cutting-edge framework for detecting anomalies in time series data by leveraging both supervised and unsupervised settings \cite{carmona2021neural}. NCAD distinguishes itself from traditional methods through its versatile training framework, which is underpinned by effective data augmentation heuristics. The architecture utilizes TCNs \cite{bai2018empirical} to derive latent representations from the temporal context and suspect windows. Anomalies are identified by comparing the embeddings of these windows and calculating the pseudo-Huber loss, which measures the distance-based anomaly score. This approach enables NCAD to leverage both labeled and unlabeled data, thereby enhancing its performance across multiple domains. Additionally, NCAD incorporates data augmentation techniques, such as Contextual Outlier Exposure (COE) and Point Outliers (PO), to inject synthetic anomalies, thereby enhancing the model's robustness. Empirical results display NCAD's superior accuracy and flexibility in detecting complex anomalies in real-world time series datasets, emphasizing its potential for broader applicability in anomaly detection tasks \cite{hendrycks2018deep}.
+
+A significant research thrust addresses the growing computational complexity and parameter overhead of state-of-the-art models, which can be prohibitive in resource-constrained environments. A key contribution in this area is the Diminutive Memory-Enhanced Reconstruction (DiMER) model by Li et al. \cite{li2025contrast}, a lightweight framework designed specifically for efficiency. DiMER introduces a \textit{contrast memory} mechanism, which enables a compact encoder-decoder architecture to learn and retain distinct normal patterns effectively with minimal parameters. This memory is a core component of the reconstruction process, enhancing the model's ability to create a discriminative latent space by contrasting different normal sub-patterns. While this contrastive memory is highly effective for achieving state-of-the-art performance in a lightweight model, its primary function is to aid in efficient reconstruction; it does not explicitly address the failure mode where the model's input context window becomes progressively corrupted by a sustained anomaly.
+
+To better capture dependencies across different temporal scales, hybrid architectures that combine attention and memory mechanisms have emerged as a powerful paradigm. The HYbrid Memory and Attention Network (HYMAN) framework, proposed by Li et al. \cite{li2025hyman}, exemplifies this strategy. It employs a local attention mechanism to model short-term patterns, while a parallelizable global memory module learns and stores key historical patterns to capture long-term dependencies. This design's simplified, auxiliary-free training process is a notable feature that improves engineering practicality. While this hybrid approach provides a powerful method for learning rich representations, the memory in HYMAN serves as an internal component to enrich the latent representation for reconstruction, rather than to validate the normalcy of the input context itself externally.
+
+Finally, other hybrid models, such as AA-GAT, combine Graph Attention Networks (GAT) with an Autoformer to model spatial and temporal patterns, utilizing reconstruction error for scoring and contrastive learning as an auxiliary loss \cite{shang2024anomaly, ma2025time}. Its reliance on a predictive model that learns from a recent time window makes it similarly susceptible to context contamination during sustained faults.
+
+\section{Dataset}
+\label{sec:dataset}
+\begin{figure}[t] % Try 't' (top) or 'b' (bottom) for better flow in two-column
+    \centering
+    \includegraphics[width=\linewidth]{telemetry.png}
+    \caption{Visualization of SMAP Dataset features \cite{meng2019spacecraft}. Shows telemetry value (first feature) and one-hot encoded commands (remaining features).}
+    \label{fig:smap_vis}
+\end{figure}
+
+The SMAP satellite datasets contain 55 different multivariate channels \cite{Hundman2018b}. Each channel file contains multivariate data, including the primary telemetry value and one-hot encoded commands (Figure~\ref{fig:smap_vis}). Our current approach focuses on extracting comprehensive temporal features from the primary univariate telemetry value.  SMAP datasets feature two main anomaly types: Contextual anomalies, where a point's deviation is only apparent given its surrounding context, and Point anomalies, where a data point distinctly deviates from the bulk of the dataset, regardless of context \cite{10400552}.
+
+\section{Proposed Method}
+\label{sec:proposed_method}
+
+Our proposed methodology, termed Neural Contextual Anomaly Detection with Contextual Substitution (NCAD-CS), is a multi-stage methodology engineered to overcome the numerous complexities of anomaly detection in complex spacecraft telemetry. Building upon the foundational principles of contrastive learning from the original NCAD framework \cite{carmona2021neural}, we propose significant enhancements in feature representation, model architecture, context handling, and decision logic. These advancements are engineered to improve robustness against diverse signal behaviors, enhance sensitivity to transient and sustained anomalies, and ensure reliable performance in real-world operational scenarios. The core of our method remains the comparison between a time series segment (the \textit{suspect window}) and its preceding context. Still, several layers of adaptive intelligence now fortify this comparison. The overall workflow is depicted in Figure~\ref{fig:workflow}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{mermaid-ai-1.png}
+    \caption{Illustration of the algorithm workflow.}
+    \label{fig:workflow}
+\end{figure}
+
+\subsection{Robust Multi-Domain Feature Engineering}
+\label{subsec:feature_eng}
+
+Recognizing that raw telemetry often lacks the expressive power to capture subtle deviations, we begin with a multi-domain feature engineering stage. This process transforms the raw univariate signal into a rich, high-dimensional representation, providing the model with a holistic view of the system's state across various temporal and spectral dimensions. Given a raw univariate telemetry channel $x_{\text{raw}} = \{x_1, x_2, \dots, x_T\}$, we extract a comprehensive set of features, including:
+\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Short-term rolling statistics} (e.g., mean, standard deviation, skew, kurtosis) to model immediate local signal characteristics.
+    \item \textit{Long-term rolling statistics} over a significantly larger window to establish a stable baseline of the signal's intrinsic volatility \cite{zivot2003rolling}.
+    \item \textit{Frequency-domain features} derived from both the Fast Fourier Transform (FFT) for global spectral properties and the Short-Time Fourier Transform (STFT) to identify localized changes in spectral energy and multimodal behavior \cite{chen2007feature}.
+    \item \textit{Trend and complexity indicators}, such as rolling slope for trend analysis and wavelet energy ratios for capturing non-stationary, multi-scale patterns \cite{trokic2019wavelet}.
+\end{itemize}
+
+A critical aspect of this stage is ensuring numerical stability, particularly when dealing with real-world telemetry that may include periods of constant or near-constant values. Features relying on variance, such as the Z-score or higher-order moments like skewness, can be ill-defined for data with zero variance. Our implementation explicitly handles these edge cases by checking for near-zero variance before calculation and providing sensible defaults (e.g., zero skewness for a constant signal). This ensures the feature set remains robust and free of non-finite values that could disrupt model training.
+
+This process yields a high-dimensional feature matrix, $F_{\text{all}} \in \mathbb{R}^{T \times D_{\text{full}}}$. Each feature column is then normalized via a Z-score transformation using statistics ($\bm{\mu}_{F}$, $\bm{\sigma}_{F}$) computed from the training data \cite{patro2015normalization}. The results are clipped to a stable range (e.g., [-10, 10]) to mitigate the dominance of outliers. Finally, for computational efficiency, variance-based feature selection reduces the dimensionality to the final input matrix $F_{\text{selected}} \in \mathbb{R}^{T \times k}$, where $k=64$ in our experiments.
+
+\subsection{Windowing and Hybrid-Pooling TCN Encoder}
+\label{subsec:enhanced_tcn_encoder}
+
+The core of our anomaly detection system is a sophisticated encoder, $\phi(\cdot; \theta)$, designed to transform time series windows of fixed size into information-rich latent representations. Our encoder is built upon a Temporal Convolutional Network (TCN), an architecture well-suited for sequential data \cite{bai2018empirical}. Compared to recurrent architectures like LSTMs, TCNs offer several key advantages for this problem. Specifically, unlike the sequential, step-by-step processing inherent to LSTMs, TCNs apply 1D convolutions across the entire input sequence in parallel. This architectural difference significantly accelerates model training and inference, a critical requirement for handling the high-volume data streams common in space systems \cite{gopali2021comparison}. Furthermore, TCNs achieve a vast receptive field by stacking layers of dilated causal convolutions. This allows the model to capture extremely long-term dependencies—such as a slow system drift over thousands of timesteps—without the vanishing gradient problems that can still affect LSTMs over such long horizons \cite{chen2022vanishing}. The stable gradient flow and flexible receptive field make TCNs exceptionally well-suited for learning the complex, multi-scale temporal patterns characteristic of spacecraft telemetry. Our design, however, moves beyond a standard TCN to address the unique challenges of spacecraft telemetry, which exhibits a broad spectrum of signal dynamics, from quiescent periods to highly volatile events.
+
+\subsection{Input Segmentation and Normalization}
+The input to the encoder is a feature matrix, $F_{\text{selected}}$, which has been pre-processed and feature-engineered. This matrix is first segmented into overlapping windows of a fixed length, $L$. Each window, $w \in \mathbb{R}^{L \times k}$ (where $k$ is the number of features), is further subdivided into two distinct segments:
+\begin{itemize}
+    \item A context window, $w^{(c)} \in \mathbb{R}^{C \times k}$, representing the recent, presumably normal, history of the signal.
+    \item A suspect window, $w^{(s)} \in \mathbb{R}^{S \times k}$, representing the immediate subsequent data points to be evaluated for anomalies.
+\end{itemize}
+Here, the total window length is $L = C + S$.
+
+To ensure model stability and robustness, we integrate Layer Normalization \cite{ba2016layernormalization} directly within our TCN blocks. Unlike batch-dependent normalization schemes, Layer Normalization computes its statistics independently for each sample across its features. This makes the encoder's performance resilient to variations in batch composition and prevents issues with low-variance "flat-line" signals, common in telemetry data.
+
+\begin{figure}[t] % Changed from h! to t for better placement
+    \centering
+    \includegraphics[width=0.9\linewidth]{TCN-Encoder.png}
+    \caption{Conceptual Illustration of the Dual-Pathway Encoder Architecture.}
+    \label{fig:encoder_architecture}
+\end{figure}
+
+\subsection{Pathway 1: The Hybrid Temporal Pathway}
+A key innovation of our model lies in its dual-pathway architecture, which processes the intermediate feature maps from the TCN, denoted as $X_{\text{tcn}}$, through two concurrent and complementary pathways. This design is engineered to capture a multi-faceted understanding of the window's content, analyzing its temporal evolution and underlying statistical properties. The outputs of these pathways are then combined to form the final latent embedding.
+
+This pathway extracts a rich, multi-resolution summary of the window's temporal dynamics. It recognizes that anomalies manifest in various ways over time—some are abrupt spikes, while others are gradual deviations. To capture this diversity, it employs a hybrid pooling strategy that combines three distinct views of the TCN output, $X_{\text{tcn}}$:
+
+\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Final State Representation:} The feature vector from the last time step of $X_{\text{tcn}}$ is extracted directly. Due to the TCN's causal structure and large receptive field, this vector is the model's most up-to-date representation after processing the entire sequence. It is therefore susceptible to the most recent changes and is critical for detecting sharp, transient point anomalies that global pooling operations might otherwise dilute.
+
+    \item \textit{Dominant Feature Pooling (Max-Pooling):} Max-pooling is applied across the entire time axis of the feature maps. This operation identifies the most salient or dominant features present anywhere within the window, regardless of their exact temporal location. It effectively captures the peak intensity of events and provides a strong, time-invariant signal for persistent states \cite{gholamalinezhad2020pooling}.
+
+    \item \textit{Global Summary Pooling (Average-Pooling):} Average-pooling is also applied across the time axis, providing a holistic summary of the window's overall pattern and central tendency. This helps identify long-term, slowly evolving states and provides a stable, baseline representation of the window's content.
+\end{itemize}
+
+The feature vectors resulting from these three pooling operations are immediately concatenated. This combined temporal vector is then projected through a dense layer with a non-linear activation function to produce a comprehensive temporal feature vector. This hybrid approach ensures the pathway is sensitive to transient and sustained phenomena.
+
+\subsection{Pathway 2: The Statistical and Spectral Pathway}
+This pathway operates parallel to the temporal path and captures the signal's underlying "texture" and phase-invariant characteristics. While the temporal pathway focuses on what happens over time, this pathway focuses on how the signal behaves statistically and in the frequency domain.
+
+For each filter in the TCN output feature map, we compute a set of statistical moments and energy-like features over the time axis. This includes the mean, standard deviation, skewness, kurtosis, and spectral power. This process, inspired by the success of feature engineering in classical signal processing \cite{chaman2021truly}, provides a detailed signature of the signal's properties that is robust to minor temporal shifts or phase changes. For example, it can distinguish between a low-amplitude, high-frequency oscillation and a high-amplitude, low-frequency trend, even if their temporal averages are similar. The resulting statistical features are passed through their dedicated dense layer to form the spectral feature vector.
+
+The feature vectors produced by the Hybrid Temporal Pathway and the Statistical \& Spectral Pathway are finally concatenated. This combined super-vector, which now contains a comprehensive description of the input window from multiple perspectives, is projected by a final bottleneck layer to yield the ultimate latent embedding, $z \in \mathbb{R}^{16}$.  
+
+This dual-pathway, hybrid-pooling design is a cornerstone of our model's ability to detect a wide and diverse range of anomalies. By applying the same shared-weight encoder, $\phi$, to both the full window ($w$) and the context-only window ($w^{(c)}$), we obtain their respective latent embeddings, $z$ and $z^{(c)}$, enabling downstream comparison and anomaly scoring \cite{carmona2021neural}.
+
+% NOTE: Combined two subsections into one for better narrative flow.
+\subsection{Dynamic Context-Aware Substitution and Scoring}
+\label{subsec:substitution_scoring}
+A critical failure mode in contrastive anomaly detection is \textit{context contamination}. As a sustained anomaly persists, it fills the context window, as illustrated in Figure~\ref{fig:context_suspect_contaminated}. A naive model comparing this contaminated context to the anomalous suspect window will perceive them as similar, causing the anomaly score to be suppressed and the fault to be missed.
+
+To fortify our framework against this critical failure mode, we introduce a Contextual Memory Bank (CMB) and a dynamic, context-aware substitution mechanism. This mechanism ensures that the final anomaly score is always the result of a comparison against a trustworthy, normal baseline. The process is realized through the following stages:
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figure_3.png}
+    \caption{Illustration of a clean context window (yellow) preceding the suspect window (red) at the onset of a contextual anomaly.}
+    \label{fig:context_suspect_clean}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figure_4.png}
+    \caption{Illustration of a contaminated context window, which can mislead standard context-vs-suspect comparison methods.}
+    \label{fig:context_suspect_contaminated}
+\end{figure}
+
+\textit{1) Bank Construction with Raw Context Storage:} Our solution begins with constructing a memory bank as a stable, external repository of normal operational patterns. After initial encoder training, we encode all normal training context windows $\{w^{(c)}_{\text{train}}\}$ into a set of latent embeddings $\{z^{(c)}_{\text{train}}\}$. We then employ K-Means clustering, chosen for its computational efficiency, to partition this embedding space into representative clusters. The optimal number of clusters, $k_{\text{opt}}$, is determined through a principled evaluation of the silhouette score \cite{rousseeuw1987silhouettes, shahapure2020cluster} across a range of candidate cluster counts. The resulting $k_{\text{opt}}$ centroids \cite{uppada2014centroid}, $M = \{\bm{\mu}_1, \dots, \bm{\mu}_{k_{\text{opt}}}\}$, form the abstract prototypes of the memory bank. Critically, our implementation goes beyond storing only these abstract embeddings. For each centroid $\bm{\mu}_j$, we also identify and store the original, high-fidelity raw context window, $w^{(c)}_{\text{ref}, j}$, whose embedding is closest to it. This creates an essential dictionary, mapping abstract normal patterns to concrete, usable time series segments for substitution.
+
+\textit{2) Establishing the Memory Bank Threshold ($\tau_{\text{MB}}$):} With the bank constructed, the next step is to define a quantitative gatekeeper for triggering the substitution logic. We compute the minimum distance from each normal training context embedding to its nearest prototype in the bank $M$. The memory bank threshold, $\tau_{\text{MB}}$, is then set to a high percentile (e.g., 99.0\%) of this resulting distance distribution. During inference, any context whose distance to the CMB exceeds this threshold is considered a candidate for substitution.
+    
+\textit{3) Dynamic Context-Aware Substitution and Scoring:} During inference, every test window undergoes a multi-faceted assessment before a score is computed. We calculate three independent confidence metrics: \textit{distance confidence}, based on the context's distance $d_{\text{context}}$ to the CMB; \textit{change confidence}, based on the embedding's dissimilarity to the previous context's embedding; and \textit{transition confidence}, based on the signal's internal variability. Three independent confidence metrics are calculated: distance confidence ($c_{\text{dist}}$), change confidence ($c_{\text{change}}$), and transition confidence ($c_{\text{trans}}$). These are then combined to produce the final \textit{substitution confidence score}, $S_{\text{conf}}$. The specific combination function used is the maximum operator, which allows the system to prioritize the most salient indicator for a given situation:
+\begin{equation}
+    S_{\text{conf}} = \max(c_{\text{dist}}, c_{\text{change}}, c_{\text{trans}})
+\end{equation}
+This approach ensures that a strong signal from any single metric, such as a large jump in the embedding distance from the CMB, is sufficient to flag the context as potentially contaminated and trigger further scrutiny.
+
+The framework then executes its central, adaptive logic. The standard contrastive score, $S_{\text{orig}} = \mathcal{D}(z_{\text{test}}, z^{(c)}_{\text{test}})$, is always computed. However, if the context is flagged as contaminated (i.e., $d_{\text{context}} > \tau_{\text{MB}}$ and $S_{\text{conf}}$ meets a filter threshold), the substitution mechanism is activated. This involves querying the CMB to find the nearest normal prototype, $\bm{\mu}_j$, and retrieving its corresponding raw normal context window, $w^{(c)}_{\text{ref}, j}$. This known-good window is passed through the TCN encoder to generate a clean reference embedding, $z^{(c)}_{\text{ref}}$. A new, substituted score is then calculated: $S_{\text{sub}} = \mathcal{D}(z_{\text{test}}, z^{(c)}_{\text{ref}})$.
+
+The final anomaly score for the window, $S_{\text{win}}$, is a confidence-weighted blend of the original score and a boosted version of the substituted score, ensuring a smooth but decisive transition from standard to substitution-based scoring:
+\begin{equation}
+S_{\text{win}} = (1 - S_{\text{conf}}) \cdot S_{\text{orig}} + S_{\text{conf}} \cdot (\beta \cdot S_{\text{sub}})
+\end{equation}
+where $\beta$ is a boost factor (e.g., 2.5) that amplifies the score when substitution is confidently applied. This mechanism, illustrated conceptually in Figure~\ref{fig:context_substitution}, ensures the anomaly score is always based on a comparison against a valid normal baseline, thereby preventing score suppression.
+
+\textit{4) Context Substitution Indicator Map Generation:} Finally, after all windows are scored, we generate a point-level boolean \textit{context substitution indicator map}. Time points within the suspect regions of windows where context substitution was performed are marked as True. This map is not merely a diagnostic output but a critical data product that directly informs the final, robust thresholding stage.
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{context_substitution_illustration.png}
+    \caption{Illustration of the conceptual replacement of a contaminated context with a normal pattern derived from the memory bank for scoring.}
+    \label{fig:context_substitution}
+\end{figure}
+
+\subsection{Encoder Training}
+\label{subsec:encoder_training}
+
+The TCN encoder is trained using a contrastive learning objective \textit{before} the memory bank is constructed. This training aims to sculpt a discriminative latent space where embeddings of normal operational sequences are clustered tightly, while those containing anomalies are pushed distinctly apart. 
+
+To achieve this, we programmatically inject synthetic anomalies into the 16-sample suspect window of a random 70\% of the training windows in each batch. The injected anomalies are sampled from diverse types, including spikes, level shifts, variance changes, and stuck-values, with magnitudes scaled relative to the context window's standard deviation. This process creates a challenging set of paired examples:
+\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Positive Pairs ($y=0$):} A normal window $w_i$ and its corresponding context $w_i^{(c)}$. The model should learn to produce similar embeddings for these, i.e., $z_i \approx z_i^{(c)}$.
+    \item \textit{Negative Pairs ($y=1$):} A synthetically modified window $w'_i$ (containing an anomaly) and its original context $w_i^{(c)}$. The model should learn to produce dissimilar embeddings, pushing $z'_i$ far from $z_i^{(c)}$.
+\end{itemize}
+
+We employ a contrastive loss function with a fixed margin, $m$, which formalizes this objective \cite{le2020contrastive}. For a given pair of embeddings, the loss $\mathcal{L}$ is defined as:
+\begin{equation}
+\mathcal{L}(z_1, z_2, y) = (1-y) \cdot \mathcal{D}(z_1, z_2)^2 + y \cdot \max(0, m - \mathcal{D}(z_1, z_2))^2
+\label{eq:contrastive_loss}
+\end{equation}
+where $\mathcal{D}(\cdot, \cdot)$ is the distance metric (e.g., Euclidean distance) and $y$ is the binary label indicating if the pair is positive ($y=0$) or negative ($y=1$) \cite{kostadinov2015vector}.
+
+This loss function intuitively penalizes two distinct behaviors. For positive pairs, the loss is simply the squared distance, driving the model to make the embeddings of normal windows and their contexts as close as possible. The loss is zero for negative pairs if the distance exceeds the margin $m$. If the distance is less than $m$, the loss term pushes them apart until they are at least a distance $m$ from each other. Training on diverse synthetic anomalies makes the encoder highly sensitive to deviations from established temporal patterns.
+
+\subsection{Final Inference and Thresholding}
+\label{subsec:inference_thresholding}
+The final stage of our framework translates the carefully computed window-level scores into decisive point-wise predictions through a principled, multi-step process.
+
+\textit{1) Aggregation and Dynamic Weighted Smoothing:} The window-level scores $S_{\text{win}}$ are first aggregated into a point-level score sequence, $S_{\text{point}}$. We then apply a dynamic, weighted smoothing scheme. Two smoothed versions of the score sequence are calculated: one with a short-window simple moving average (SMA) (50 time steps) for responsiveness, and one with a longer window for stability \cite{hyndman2011moving}. The final smoothed score, $S_{\text{smooth}}$, is a weighted average of these two, where the weight for the long-window version is proportional to a smoothed version of the \textit{context substitution indicator map}. This intelligently lengthens the effective smoothing window during sustained anomalies, preventing premature score decay, while remaining highly responsive to isolated events.
+
+\textit{2) Hybrid Dynamic Threshold Calibration:} A cornerstone of our method is the calculation of a channel-specific decision threshold, $T_{\text{final}}$, without hardcoded channel thresholds. We first leverage the \textit{context substitution indicator map} to isolate the subset of scores, $S_{\text{normal\_context}}$, corresponding to periods in which the context is not flagged for substitution. This produces a distribution-derived noise floor, $T_{\text{dist}}$, from the channel's own valid score distribution. In parallel, we generate a self-supervised calibration set from the training windows by applying the same contextual anomaly injection process used during encoder training. These synthetic clean and contaminated windows are scored by the full NCAD-CS pipeline, producing labeled calibration pairs $(s_i, y_i)$, where $s_i$ is a calibration score and $y_i \in \{0,1\}$ indicates whether the window was synthetically contaminated. We then select the calibration threshold $T_{\text{cal}}$ that best separates the synthetic clean and contaminated scores. The final threshold is chosen as a safeguarded hybrid threshold:
+    \begin{equation}
+        T_{\text{final}} = \max(T_{\text{dist}}, T_{\text{cal}})
+        \label{eq:t_final_revised}
+    \end{equation}
+This design allows the decision boundary to adapt to each channel while preventing the synthetic calibration process from selecting a threshold below the channel's observed score-distribution floor.
+
+\textit{3) Final Prediction with Temporal Consistency:} Finally, each time point $t$ is preliminarily flagged if $S_{\text{smooth},t} > T_{\text{final}}$. These flags undergo a temporal consistency filter to remove isolated, noisy detections. Crucially, a special condition allows extremely high-scoring points (e.g., $>1.8 \times T_{\text{final}}$) to bypass this filter, ensuring that critical, high-magnitude spikes are never inadvertently suppressed. Otherwise, points not part of a temporally coherent group are marked as normal ($\hat{y}_t=0$).
+
+This end-to-end process, from context-aware substitution to robust thresholding, ensures that the final decisions are grounded in a reliable assessment of the system's normal operational state, effectively handling transient and sustained anomalies.
+
+
+\section{Experimentation}
+\label{sec:exp}
+
+This section outlines the experimental methodology and assesses the performance of the NCAD-CS approach in detecting various types of anomalies.
+
+\subsection{Experimental Setup}
+\label{subsec:exp_setup}
+The experiments were conducted using telemetry channels from the SMAP and MSL satellite dataset provided by NASA \cite{Hundman2018b}. The NCAD-CS model was configured with the following key hyperparameters, which were determined through empirical evaluation to balance performance and computational cost:
+\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Windowing:} A full window size of 300 samples was used, consisting of a 284-sample \textit{context window} and a 16-sample \textit{suspect window}. The windows were generated with a step size of 1.
+    \item \textit{TCN Encoder:} The encoder was designed to produce embeddings with a latent dimension of 16.
+    \item \textit{Memory Bank:} The CMB was constructed using K-Means clustering (Euclidean distance) \cite{kumari2016anomaly, chomboon2015empirical} on normal context embeddings. The optimal number of clusters was determined via silhouette analysis \cite{shahapure2020cluster} over a range of [1, 50]. The context normality threshold, $\tau_{\text{MB}}$, which gates the substitution mechanism, was set at the 99.0th percentile of distances from normal contexts to their nearest prototype in the bank.
+    \item \textit{Training:} The encoder was trained for 40 epochs with a batch size of 32, using early stopping based on validation loss to prevent overfitting.
+    \item \textit{Scoring \& Substitution:} The confidence-weighted context-aware scoring mechanism was used. A sophisticated substitution scoring logic was activated if a context's distance to the CMB exceeded $\tau_{\text{MB}}$ and met a minimum confidence filter. The final anomaly score was then a confidence-weighted blend of the original and substituted scores, amplified by a boost factor of $\beta=2.5$.
+    \item \textit{Final Thresholding \& Smoothing:} Raw window scores were aggregated and then smoothed using the dynamic weighted smoothing scheme described in Section~\ref{subsec:inference_thresholding}. The final decision threshold, $T_{\text{final}}$, was selected by the hybrid dynamic calibration rule, which combines a distribution-derived score floor with a self-supervised calibration threshold obtained from synthetically contaminated training windows.
+\end{itemize}
+
+
+\subsection{Results and Analysis by Anomaly Type}
+\label{subsec:results_analysis}
+We analyze the model's performance across different anomaly types found in the SMAP dataset, using channels \textit{D-3}, \textit{A-7}, \textit{A-2}, \textit{P-3}, and \textit{A-1} as representative examples. This allows us to gauge performance across persistent contextual anomalies, subtle contextual faults, abrupt high-magnitude events, and isolated point anomalies.
+
+\subsubsection{Persistent Contextual Anomalies (Regime Shifts \& Sustained Deviations)}
+\label{ssubsec:persistent_contextual}
+These anomalies represent prolonged deviations from the established norm. Channels \textit{D-3} and \textit{A-7} provide clear examples of such regime shifts.
+
+\paragraph{Channel D-3 (Trend)} The latter part of channel \textit{D-3} (Figure~\ref{fig:d3_overview}, top panel) exhibits a clear upward trend starting around timestep 5200. As the signal trends away from the stable, flat baseline learned during training, the context windows become progressively more dissimilar to any pattern stored in the Context Memory Bank (CMB). Our framework robustly handles this scenario. The distance from the trending context embeddings to the normal prototypes in the CMB consistently exceeds the memory bank threshold ($\tau_{\text{MB}}$). Combined with high confidence from our dynamic weighting scheme, this activates the context substitution mechanism. As shown in the "Memory Bank Substitutions (Applied)" panel of Figure~\ref{fig:d3_overview}, context substitution is triggered throughout the trending anomaly. Crucially, for each contaminated window, it retrieves a known-good, flat context window from the CMB, generates a clean reference embedding ($z^{(c)}_{\text{ref}}$), and computes the anomaly score as the distance between the trending full window and this normal reference: $S_{\text{win}} = \mathcal{D}(z_{\text{test}}, z^{(c)}_{\text{ref}})$. This ensures the score remains consistently high. Furthermore, our dynamic smoothing logic identifies this as a sustained event and applies a long smoothing window, preventing score decay.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{D-3_substitution_diagnostics.png}
+\caption{Overview of Experimentation Results for Channel D-3, showing detection of a trend anomaly.}
+\label{fig:d3_overview}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\caption{METRICS FOR CHANNEL D-3, DEMONSTRATING HIGH PERFORMANCE ON A SUSTAINED TREND ANOMALY.}
+\label{tab:d3_metrics}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+TP & TN & FP & FN & Precision & Recall & F1 Score \\
+\midrule
+3238 & 5158 & 67 & 10 & 0.9797 & 0.9969 & 0.9882 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Channel A-7 (Regime Shift to Simpler State)} Channel \textit{A-7} presents a different but equally challenging persistent anomaly: a regime shift from a complex, high-amplitude periodic signal to a simpler, low-amplitude, and relatively flat state (Figure~\ref{fig:a7_diagnostics}, top panel). This scenario tests the framework's ability to recognize that a simpler signal can also be anomalous. The effectiveness of this detection is rooted in the structure of the CMB itself, as visualized in the PCA plot of its embeddings in Figure~\ref{fig:a7_pca_bank}.
+
+The plot reveals that the training data, consisting solely of the normal, complex periodic signal, is not represented as a single monolithic group. Instead, the TCN encoder and K-Means clustering have successfully partitioned the normal operational behavior into multiple clusters. Each colored cluster represents a specific, recurring pattern or \textit{phase} within the normal periodic signal (e.g., rising edge, peak, falling edge, trough). The centroids (red 'X's) serve as robust, learned \textit{prototypes} for these constituent normal patterns.
+
+The normal signal is extremely noisy, triggering many contextual substitutions; however, when the signal transitions to a simpler state after timestep 6000, its context windows produce embeddings that are fundamentally different from any of these learned periodic prototypes. As no cluster in the CMB represents this new, simpler state, the embeddings are correctly identified as distant from all known-good patterns. This is why the "Distance to Memory Bank" in Figure~\ref{fig:a7_diagnostics} spikes and remains high. Consequently, the sustained abnormality triggers a high rate of context substitution, ensuring that anomalous full windows are consistently compared against valid periodic contexts from the CMB, leading to high and stable anomaly scores.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{A-7_memory_bank_pca.png}
+\caption{PCA visualization of the Context Memory Bank for Channel A-7. Normal context embeddings (colored points) form distinct clusters representing different phases of the normal periodic signal, with centroids (red 'X's) serving as prototypes. The lack of a cluster for a simple/flat signal state is key to detection.}
+\label{fig:a7_pca_bank}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{A-7_substitution_diagnostics.png}
+\caption{Full diagnostic overview for Channel A-7. This demonstrates how a shift to a simpler signal state is correctly identified as a persistent anomaly through sustained, high-confidence context substitution.}
+\label{fig:a7_diagnostics}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\caption{PERFORMANCE METRICS FOR CHANNEL A-7.}
+\label{tab:a7_metrics}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+TP & TN & FP & FN & Precision & Recall & F1 Score \\
+\midrule
+2383 & 6200 & 30 & 18 & 0.987 & 0.992 & 0.990 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Subtle Contextual Anomaly}
+\label{ssubsec:subtle_contextual}
+Subtle contextual anomalies are characterized by short-duration deviations that still resemble a normal operational pattern in the immediate context. Channel \textit{A-2} is an excellent example of this category.
+
+As shown in Figure~\ref{fig:a2_overview}, this channel exhibits a highly regular, periodic signal. A brief anomalous event occurs around timestep 4500, showing a subtle disruption in the signal's periodicity and amplitude. During such an event, the context windows are not sufficiently different from normal patterns to trigger substitution. Consequently, the scoring mechanism correctly defaults to the standard contrastive comparison, $S_{\text{win}} = \mathcal{D}(z, z^{(c)})$. The success of the detection then hinges on two other key components: 1) the sensitivity of the hybrid-pooling TCN encoder to capture the slight discrepancy, and 2) the robustness of the final threshold, $T_{\text{final}}$. Because our threshold is calculated from a pristine distribution of normal-context scores, it is not inflated by other events. It therefore remains sensitive enough to detect these subtle deviations, as the score peak clearly crossed the threshold.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{A-2_detection_ncad_tcn.png}
+\caption{Overview of Experimentation Results for Channel A-2, showing detection of a subtle contextual anomaly.}
+\label{fig:a2_overview}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\caption{PERFORMANCE METRICS FOR CHANNEL A-2.}
+\label{tab:a2_metrics}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+TP & TN & FP & FN & Precision & Recall & F1 Score \\
+\midrule
+186 & 7347 & 27 & 5 & 0.8732 & 0.9738 & 0.9209 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Abrupt, High-Magnitude Anomalies}
+\label{ssubsec:abrupt}
+
+Channel \textit{P-3} (Figure~\ref{fig:p3_overview}) showcases the framework's ability to handle sudden, intense events. The telemetry transitions from a stable pattern to a high-frequency, high-amplitude segment. This contaminates the context window, triggering substitution. The final anomaly score, a confidence-weighted blend of the original and boosted substituted scores, remains high throughout the event. This case highlights the CMB's critical role; without it, the standard contrastive score would be suppressed.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{P-3_substitution_diagnostics_update.png}
+\caption{Overview of Experimentation Results for Channel P-3.}
+\label{fig:p3_overview}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\caption{PERFORMANCE METRICS FOR CHANNEL P-3.}
+\label{tab:p3_metrics}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+TP & TN & FP & FN & Precision & Recall & F1 Score \\
+\midrule
+1137 & 7119 & 38 & 199 & 0.967 & 0.85 & 0.905 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Point Anomalies}
+\label{ssubsec:point_anomalies}
+Detecting isolated point anomalies, particularly on otherwise stable signals, presents a unique challenge. Channel \textit{A-1}, depicted in Figure~\ref{fig:a1_overview}, is a prime example, characterized by a near-constant signal baseline interrupted by a single, sharp negative spike.
+The NCAD-CS framework successfully navigates this. The CMB, trained on constant-signal windows, creates a hyper-specialized cluster of normal embeddings. When the anomaly occurs, the encoder's \textit{Final State Pathway}, highly sensitive to recent changes, registers the spike's significant deviation. This produces a sharp, high-magnitude peak in the raw anomaly score. As shown in Figure~\ref{fig:a1_overview}, the resulting smoothed score peak decisively crosses the final adaptive threshold, and the final detection aligns perfectly with the ground truth.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{A-1_detection_ncad_tcn.png}
+\caption{Overview of Experimentation Results for Channel A-1, demonstrating the detection of a point anomaly on a constant signal.}
+\label{fig:a1_overview}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\caption{PERFORMANCE METRICS FOR CHANNEL A-1.}
+\label{tab:a1_metrics}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+TP & TN & FP & FN & Precision & Recall & F1 Score \\
+\midrule
+400 & 6815 & 68 & 48 & 0.854 & 0.892 & 0.873 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Ablation Study}
+\label{sec:ablation}
+
+To quantify the contribution of the Context Memory Bank (CMB) to our proposed NCAD-TCN architecture, we performed a targeted ablation study. Our central hypothesis is that the CMB is the critical component for achieving high performance. We posit that it provides the necessary context to distinguish true anomalies from novel (but normal) operational states, thereby minimizing false positives and maintaining high precision.
+
+For this study, we created an "ablated" model by disabling the CMB and all its associated logic (i.e., context matching, window substitution, and confidence scoring). In this configuration, the anomaly score is derived solely from the TCN autoencoder's reconstruction error, using a global percentile threshold. This effectively reduces our architecture to a standard, non-context-aware TCN autoencoder.
+
+\begin{table}[h!]
+\centering
+\caption{Ablation Study Results: Performance comparison between the full NCAD-TCN model (with CMB) and the ablated model (without CMB). The F1-score collapses without the context-aware scoring provided by the CMB.}
+\label{tab:ablation_results}
+% Setup for siunitx: round numbers to 3 decimal places for display
+\sisetup{round-mode=places,round-precision=3}
+\begin{tabular}{ll SSS}
+\toprule
+\textbf{Ch.} & \textbf{Model Configuration} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+\texttt{D-3} & Full Model (with CMB) & 0.9797 & 0.9969 & 0.9882 \\
+& Ablated Model (No CMB) & 0.5169 & 0.0140 & 0.0273 \\
+\midrule
+\texttt{A-7} & Full Model (with CMB) & 0.987 & 0.992 & 0.990 \\
+& Ablated Model (No CMB) & 0.7059 & 0.0300 & 0.0575 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The results, summarized in Table~\ref{tab:ablation_results}, reveal a performance collapse when the CMB is removed.  This indicates that without the CMB, the standard TCN autoencoder can detect anomalies, but the model collapses as the context window becomes contaminated when anomalies persist.  Figure~\ref{fig:ablation_plot} illustrates this behavior. The plot for the full model would show a targeted substitution of windows identified as novel but normal, leading to a refined anomaly score. In contrast, the ablated model, lacking this mechanism, flags all such deviations. By definition, the substitution rate for the ablation runs was 0\%. This confirms that the CMB's context-aware scoring is the key innovation that enables our model to achieve high precision and reliability.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{ablation_1.png}
+\caption{Channel D-3 without CMB.}
+\label{fig:ablation_plot}
+\end{figure}
+
+\section{Conclusion}
+\label{sec:conclusion}
+This research directly confronted the critical failure mode of context contamination, where sustained anomalies blind conventional detectors by becoming the "new normal." Our NCAD-CS framework successfully overcame this challenge through its robust performance on the SMAP dataset. The model correctly identified persistent regime shifts (as in channels \textit{D-3} and \textit{A-7}) by using its Context Memory Bank (CMB) to prevent score suppression caused by context window contamination. Simultaneously, it retained the precision needed to flag subtle contextual faults (\textit{A-2}), abrupt events (\textit{P-3}), and isolated point anomalies (\textit{A-1}). This versatile performance is directly attributed to the synergy between a sensitive TCN encoder that detects deviations and an intelligent CMB-based scoring logic that validates the context, thereby ensuring a trustworthy and resilient anomaly detection system.
+
+To quantify this performance against established methods, we present comparative results on the SMAP and MSL datasets. The key findings are summarized in Table~\ref{tab:recall_comparison} and Table~\ref{tab:f1_scores_all_models}.
+
+\begin{table}[h!]
+\centering
+\caption{PERFORMANCE COMPARISON (POINT/CONTEXTUAL RECALL) ON ALL CHANNELS FOR SMAP AND MSL.}
+\label{tab:recall_comparison}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Method} & \textbf{Recall Point (\%)} & \textbf{Recall Contextual (\%)} \\
+\midrule
+LSTM'18 \cite{Hundman2018b} & 95.3 & 76.0 \\
+\textbf{Proposed NCAD-CS} & \textbf{93.0} & \textbf{91.0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\caption{PERFORMANCE COMPARISON (PRECISION, RECALL, F1-SCORE) ON SMAP AND MSL DATASETS.}
+\label{tab:f1_scores_all_models}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
+\midrule
+\multirow{7}{*}{SMAP} & MTAD-GA'20 \cite{zhao2020multivariate} & 79.92 & 99.92 & 88.82 \\
+                      & TranAD'22 \cite{tuli2022tranad} & 80.43 & \textbf{99.98} & 89.15 \\
+                      & MUTANT'24 \cite{altin2024exploring} & 73.52 & 98.26 & 84.15 \\
+                      & AA-GAT'25 \cite{shang2024anomaly} & 92.62 & 99.43 & 95.90 \\
+                      & Swin1D-AD'25 \cite{hoh2025rethinking} & 69.92 & 61.85 & 65.64 \\
+                      & LGAT'25 \cite{wen2025lgat} & 94.61 & 92.03 & 93.30 \\
+                      & DiMER'25 \cite{li2025contrast} & 94.54 & 98.73 & 96.59 \\
+                      & HYMAN'25 \cite{li2025hyman} & 94.16 & 98.86 & 96.70 \\
+                      & NCAD'21 \cite{carmona2021neural} & - & - & 94.45 \\
+                      & \textbf{Proposed NCAD-CS} & \textbf{94.86} & 97.65 & \textbf{96.80} \\
+\midrule
+\multirow{7}{*}{MSL} & MTAD-GAT'20 \cite{zhao2020multivariate} & 79.18 & 98.25 & 87.69 \\
+                     & TranAD'22 \cite{tuli2022tranad} & 90.38 & \textbf{99.99} & 94.94 \\
+                     & MUTANT'24 \cite{altin2024exploring} & 92.68 & 98.35 & 95.43 \\
+                     & AA-GAT'25 \cite{shang2024anomaly} & 90.69 & 98.17 & 94.28 \\
+                     & Swin1D-AD'25 \cite{hoh2025rethinking} & 39.50 & 89.45 & 54.81 \\
+                     & LGAT'25 \cite{wen2025lgat} & 91.38 & 90.13 & 90.86 \\
+                     & DiMER'25 \cite{li2025contrast} & 92.03 & 96.20 & 94.07 \\
+                     & HYMAN'25 \cite{li2025hyman} & 91.95 & 97.03 & 94.42 \\
+                     & NCAD'21 \cite{carmona2021neural} & - & - & 95.60 \\
+                     & \textbf{Proposed NCAD-CS} & \textbf{93.21} & 97.10 & \textbf{95.71} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Performance comparisons further validate the effectiveness of NCAD-CS. As shown in Table~\ref{tab:recall_comparison}, our model outperforms the baseline LSTM in terms of contextual recall. This gain directly addresses the core challenge of sustained anomalies and context contamination, while maintaining a high point recall. This demonstrates the framework's versatility and specific success in its primary architectural goal.
+
+Furthermore, the F1 score comparison in Table~\ref{tab:f1_scores_all_models} shows that NCAD-CS consistently achieves higher F1 scores than the original NCAD framework \cite{carmona2021neural} on both the SMAP and MSL datasets. This improved balance between precision and recall highlights the tangible benefits of our Context Memory Bank mechanism, which prevents score suppression and improves detection robustness in challenging, real-world telemetry scenarios.
+
+It is important to note that the current framework constructs a static CMB based on an initial training period. While this approach ensures a stable and trustworthy baseline, protecting against the risk of the memory being contaminated by anomalies, it assumes a relatively stationary operational environment. For long-duration missions, this assumption may be challenged by concept drift, where the statistical properties of the telemetry data gradually change over time \cite{bhattacharya2022concept, almeida2023time}. Such drift can be caused by factors like gradual hardware degradation, evolving environmental conditions (e.g., changes in solar radiation), or the introduction of new operational modes not present in the initial training data. Over a mission's multi-year lifespan, a strictly static CMB could begin to misclassify this new, valid 'normal' as anomalous, potentially increasing false positives. Therefore, while our method is highly effective for its designed purpose, a key avenue for future research is the development of safe, online update mechanisms for the CMB, as outlined in our future work.
+
+\section{Future Work}
+\label{sec:future}
+While NCAD-CS demonstrates significant advancements, several promising avenues for future research remain.  One includes an Autoregressive Context Prediction. Implement a predictive model (e.g., another TCN or LSTM) that learns to predict the expected context embedding $z^{(c)}_{\text{test}}$ based on past embeddings or raw context data \cite{bai2019compound}. The prediction error could serve as a complementary signal for identifying abnormal contexts.
+
+% --- Bibliography ---
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,export} % Your .bib file name is export.bib
+
+\end{document}
+% --- End of corrected file for ANONYMOUS REVIEW ---

@@ -1,0 +1,22 @@
+\begin{longtable}{lllll}
+\toprule
+Method family & Prototype/memory role & Context gate & Raw substitution & Sustained anomaly behavior \\
+\midrule
+\endfirsthead
+\toprule
+Method family & Prototype/memory role & Context gate & Raw substitution & Sustained anomaly behavior \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r}{Continued on next page} \\
+\midrule
+\endfoot
+\bottomrule
+\endlastfoot
+LSTM forecasting with dynamic thresholding & None & No & No & Limited; contaminated recent history can suppress residuals \\
+Contrastive contextual anomaly detection & None in the standard formulation & No & No & Limited; context contamination makes anomalous context and suspect embeddings similar \\
+Graph/attention reconstruction & Usually none or implicit latent state & No explicit normal-context gate & No & Depends on model sensitivity; long anomalies may become reconstructable \\
+Memory-enhanced reconstruction & Internal representation enrichment & Typically no external context normality test & No & Improved memory can help, but memory is not used to replace contaminated context \\
+Classical prototype or clustering anomaly detection & Primary detector & Sometimes, as direct anomaly score & No & No learned contrastive context/suspect scoring \\
+Proposed NCAD-CS & External bank of normal context prototypes plus raw reference windows & Yes & Yes & Designed specifically to prevent score suppression from contaminated context windows \\
+\end{longtable}

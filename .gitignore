@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.python-version
+.venv/
+venv/
+.env
+
+# VS Code / Jupyter
+.vscode/
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local datasets and generated artifacts
+data/raw/
+data/interim/
+data/external/
+/models/
+notebooks_v2/results/
+notebooks_v3/results/
+reports/
+
+# Training artifacts
+*.pt
+*.pth
+*.ckpt
+*.npz
+*.npy
+*.csv.tmp
+
+# Logs
+*.log

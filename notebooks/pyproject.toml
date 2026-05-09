@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "research"
+version = "0.1.0"
+description = ""
+authors = ["Andre Williams <Andre.Williams@fpl.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.3"
+numpy = "<2.0.0"
+pywavelets = "^1.8.0"
+scipy = "^1.15.2"
+scikit-learn = "^1.6.1"
+matplotlib = "^3.10.1"
+seaborn = "^0.13.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
