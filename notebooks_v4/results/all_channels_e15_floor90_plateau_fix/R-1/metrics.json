@@ -1,0 +1,77 @@
+{
+  "channel": "R-1",
+  "elapsed_seconds": 53.846808195114136,
+  "training_history": {
+    "train_loss": [
+      0.34224006957900843,
+      0.23836982790203934,
+      0.23883310407785838,
+      0.22812866445910426,
+      0.2367415564702028,
+      0.23996984133234922,
+      0.23699247394788872,
+      0.23586578052603446,
+      0.23419161152489953
+    ],
+    "val_loss": [
+      0.6831254690073807,
+      0.6837540203959097,
+      0.6850266264106513,
+      0.6851595598436051,
+      0.6863809652365599,
+      0.6861266533224499,
+      0.6849364814591316,
+      0.6861441613171351,
+      0.6848211910010312
+    ],
+    "best_val_loss": 0.6831254690073807
+  },
+  "calibration": {
+    "threshold_method": "counterfactual_successor_training_plus_adaptive_elbow",
+    "event_threshold": 34.0,
+    "event_threshold_percentile": 99.0,
+    "successor_score_median": 0.0,
+    "successor_score_iqr": 1e-06,
+    "local_score_median": 0.0,
+    "local_score_iqr": 1e-06,
+    "context_threshold": 0.007365337107330561,
+    "successor_degenerate": false,
+    "context_degenerate": false,
+    "memory_size": 2575,
+    "memory_sampled": false,
+    "training_event_threshold": 20.6611270904541,
+    "score_floor_threshold": 34.0,
+    "score_floor_percentile": null,
+    "score_floor_method": "adaptive_elbow",
+    "score_floor_plateau_adjusted": false,
+    "score_floor_details": {
+      "threshold": 34.0,
+      "method": "adaptive_elbow",
+      "reason": "ok",
+      "plateau_adjusted": false,
+      "plateau_fraction": 0.9984195402298851,
+      "lower_elbow_threshold": 34.0,
+      "upper_elbow_threshold": 34.0,
+      "otsu_threshold": 25.5,
+      "selected_candidate": "upper_elbow",
+      "selected_percentile": 100.0,
+      "effective_count": 6960
+    }
+  },
+  "threshold": {
+    "final_threshold": 34.0,
+    "threshold_method": "counterfactual_successor_training_plus_adaptive_elbow"
+  },
+  "metrics": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "tn": 6880,
+    "fp": 0,
+    "fn": 80
+  },
+  "context_ood_rate_window": 1.0,
+  "context_ood_rate_point": 1.0,
+  "score_mode": "counterfactual_successor_memory"
+}

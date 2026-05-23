@@ -18,9 +18,7 @@ venv/
 Thumbs.db
 
 # Local datasets and generated artifacts
-data/raw/
-data/interim/
-data/external/
+data/
 /models/
 notebooks_v2/results/
 notebooks_v3/results/

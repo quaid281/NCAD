@@ -1,0 +1,18 @@
+\section{Variants and Ablations}
+\label{sec:variants}
+
+This section studies design choices and ablation experiments that inform the final NCAD-CS configuration.
+
+\subsection{Encoder Variants}
+We compare the following encoder variants:
+\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textbf{Standard TCN:} The baseline TCN encoder from NCAD \cite{carmona2021neural}.
+    \item \textbf{Multi-Scale TCN:} A combination of dilated convolutions with different dilation schedules to capture diverse temporal scales simultaneously.
+    \item \textbf{Hybrid-Pooling TCN:} The primary reported encoder, which supplements TCN outputs with pooled statistical and spectral features.
+\end{itemize}
+
+\subsection{Memory Ablations}
+We evaluate the role of the successor memory by ablating it and measuring performance when relying on pure reconstruction or context-only contrastive scoring. Results indicate that the successor memory substantially improves detection robustness for gradual, contextual anomalies that would otherwise contaminate the immediate context.
+
+\subsection{Feature Ablations}
+We perform targeted ablations on the feature set, removing frequency features, long-term statistics, and complexity features in separate runs. Frequency and complexity features showed the largest negative impact, suggesting that spectral changes and multi-scale complexity are primary signals for the types of telemetry anomalies evaluated.

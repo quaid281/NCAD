@@ -1,0 +1,77 @@
+{
+  "channel": "G-6",
+  "elapsed_seconds": 28.65859365463257,
+  "training_history": {
+    "train_loss": [
+      0.3133879185697503,
+      0.2348673423421978,
+      0.2348778438650187,
+      0.23724791720483882,
+      0.2391431635556656,
+      0.23477173010576613,
+      0.2362346100058285,
+      0.23564355657556177,
+      0.23077727774744805
+    ],
+    "val_loss": [
+      0.6463035241115925,
+      0.6594627388688021,
+      0.6557963176291118,
+      0.6525444538556329,
+      0.6510691945404969,
+      0.6486762142920679,
+      0.6501912680245185,
+      0.6604687060958655,
+      0.6523410095724949
+    ],
+    "best_val_loss": 0.6463035241115925
+  },
+  "calibration": {
+    "threshold_method": "counterfactual_successor_training_plus_adaptive_elbow",
+    "event_threshold": 26.708358764648438,
+    "event_threshold_percentile": 99.0,
+    "successor_score_median": 0.0027244515949860215,
+    "successor_score_iqr": 0.051070855697616935,
+    "local_score_median": 2.002394914627075,
+    "local_score_iqr": 3.0994415283203125e-06,
+    "context_threshold": 0.09109310805797577,
+    "successor_degenerate": false,
+    "context_degenerate": false,
+    "memory_size": 2582,
+    "memory_sampled": false,
+    "training_event_threshold": 19.61020278930664,
+    "score_floor_threshold": 26.708358764648438,
+    "score_floor_percentile": null,
+    "score_floor_method": "adaptive_elbow",
+    "score_floor_plateau_adjusted": false,
+    "score_floor_details": {
+      "threshold": 26.708358764648438,
+      "method": "adaptive_elbow",
+      "reason": "ok",
+      "plateau_adjusted": false,
+      "plateau_fraction": 0.00011967448539971278,
+      "lower_elbow_threshold": 26.708358764648438,
+      "upper_elbow_threshold": 24.329227447509766,
+      "otsu_threshold": 25.45753629915007,
+      "selected_candidate": "lower_elbow",
+      "selected_percentile": 89.64815701292484,
+      "effective_count": 8356
+    }
+  },
+  "threshold": {
+    "final_threshold": 26.708358764648438,
+    "threshold_method": "counterfactual_successor_training_plus_adaptive_elbow"
+  },
+  "metrics": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "tn": 7391,
+    "fp": 865,
+    "fn": 100
+  },
+  "context_ood_rate_window": 1.0,
+  "context_ood_rate_point": 1.0,
+  "score_mode": "counterfactual_successor_memory"
+}

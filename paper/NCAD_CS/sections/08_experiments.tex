@@ -1,0 +1,43 @@
+\section{Experimentation}
+\label{sec:exp}
+
+This section outlines the experimental methodology and assesses the performance of the NCAD-CS approach in detecting various types of anomalies.
+
+\subsection{Experimental Setup}
+\label{subsec:exp_setup}
+The experiments were conducted using telemetry channels from the SMAP and MSL dataset provided by NASA \cite{Hundman2018b}. Each channel was treated as an independent train-test problem. The accepted NCAD-CS configuration used the following settings:
+\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Windowing:} A full window size of 300 samples was used, consisting of a 284-sample context window and a 16-sample suspect/successor window. Windows were generated with a step size of 1.
+    \item \textit{Feature Representation:} Each univariate telemetry channel was transformed into a 64-dimensional feature representation using the multi-domain feature extraction pipeline described in Section~\ref{subsec:feature_eng}.
+    \item \textit{Encoder:} The reported default uses the hybrid-pooling TCN encoder with a 16-dimensional latent embedding, four TCN layers, 64 filters, kernel size 5, dropout 0.20, and Layer Normalization. A multi-scale TCN fork is evaluated separately in Section~\ref{sec:variants}.
+    \item \textit{Training:} The encoder was trained with contrastive synthetic anomaly injection, batch size 32, AdamW optimization, and early stopping. The accepted full-channel result uses 15 training epochs; a 30-epoch run is reported as a stability check.
+    \item \textit{Successor Memory:} Counterfactual Successor Memory used $K=8$ nearest normal contexts, a maximum of 5000 stored memory windows per channel, and a 99th-percentile context-distance threshold derived from leave-one-out normal-context distances.
+    \item \textit{Scoring and Thresholding:} Successor residual evidence, local raw-signal deviation, and context distance were fused into window scores. Point scores were smoothed with a 12-sample moving average. The final event threshold used the 99th percentile of training calibration scores with the adaptive elbow score floor described in Section~\ref{subsec:inference_thresholding}. No channel labels were used for threshold selection.
+\end{itemize}
+
+\subsection{All-Channel Results and Representative Behavior}
+\label{subsec:results_analysis}
+We analyze the accepted 15-epoch Counterfactual Successor Memory configuration across the full SMAP/MSL channel set. Rather than selecting only success cases, we use representative channels to show both the strengths and the remaining failure modes of the pipeline. Excluding one channel without valid labels, the run evaluated 81 telemetry channels and produced the aggregate status shown in Table~\ref{tab:current_aggregate_status}.
+
+\begin{table}[h!]
+\centering
+\caption{Full-channel evaluation status for the accepted 15-epoch NCAD-CS Counterfactual Successor Memory configuration.}
+\label{tab:current_aggregate_status}
+\begin{tabular}{@{}lr@{}}
+\toprule
+Metric & Value \\
+\midrule
+Evaluated channels & 81 \\
+Macro F1 & 0.3883 \\
+Median F1 & 0.2875 \\
+Micro precision & 0.3930 \\
+Micro recall & 0.4587 \\
+Micro F1 & 0.4233 \\
+Channels with F1 $\\geq$ 0.5 & 34 \\
+Channels with F1 $\\geq$ 0.8 & 16 \\
+Zero-F1 channels & 12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+... (results and representative channel subsections preserved)

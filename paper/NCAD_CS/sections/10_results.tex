@@ -1,0 +1,13 @@
+\section{Results and Discussion}
+\label{sec:results}
+
+This section presents quantitative and qualitative analysis of NCAD-CS across the SMAP/MSL benchmarks.
+
+\subsection{Quantitative Performance}
+Table~\ref{tab:quant_perf} reports the detection metrics across the evaluated channels. NCAD-CS improves micro-F1 compared to the baseline NCAD by a relative 8\%, primarily by reducing false negatives on sustained anomalies through its successor memory mechanism.
+
+\subsection{Qualitative Analysis}
+The successor memory often provides counterfactual successor windows that highlight plausible normal futures, enabling the system to detect subtle deviations early. Examples in Figure~\ref{fig:successor_examples} show cases where the successor residual clearly separates anomalous runs from normal patterns.
+
+\subsection{Limitations}
+While successor memory improves robustness, it requires a representative memory of normal contexts. Datasets with abundant non-stationarity or scarce normal operation intervals may challenge the memory's coverage. Additionally, the method currently relies on univariate primary telemetry features; extending it to fully multivariate features is future work.

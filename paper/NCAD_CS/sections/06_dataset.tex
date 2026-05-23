@@ -1,0 +1,11 @@
+\section{Dataset}
+\label{sec:dataset}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{telemetry.png}
+    \caption{Visualization of SMAP Dataset features \cite{meng2019spacecraft}. Shows telemetry value (first feature) and one-hot encoded commands (remaining features).}
+    \label{fig:smap_vis}
+\end{figure}
+
+The benchmark used in this study is composed of multiple telemetry channels from the public NASA SMAP/MSL collection \cite{Hundman2018b}, where each channel is treated as an independent dataset. Each channel file contains multivariate data, including the primary telemetry value and one-hot encoded commands (Figure~\ref{fig:smap_vis}). Our current approach focuses on extracting comprehensive temporal features from the primary univariate telemetry value. These channels exhibit two main anomaly types: contextual anomalies, where a point's deviation is only apparent given its surrounding context, and point anomalies, where a data point distinctly deviates from the bulk of the dataset regardless of context \cite{10400552}.

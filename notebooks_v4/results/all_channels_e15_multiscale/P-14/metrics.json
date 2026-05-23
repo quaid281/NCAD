@@ -1,0 +1,85 @@
+{
+  "channel": "P-14",
+  "elapsed_seconds": 112.41472482681274,
+  "training_history": {
+    "train_loss": [
+      0.28271859322982873,
+      0.23448748397149766,
+      0.23424214072079685,
+      0.234645985525536,
+      0.23542787898628556,
+      0.23879512923188728,
+      0.2351041054268926,
+      0.23376071280541216,
+      0.2410521702780787
+    ],
+    "val_loss": [
+      0.5793171645134918,
+      0.6041696517504462,
+      0.606536863386169,
+      0.5900840082371882,
+      0.605985236260318,
+      0.6027392162833103,
+      0.6032969598160234,
+      0.602169682120168,
+      0.5972638936467873
+    ],
+    "best_val_loss": 0.5793171645134918
+  },
+  "calibration": {
+    "threshold_method": "counterfactual_successor_training_plus_adaptive_elbow",
+    "event_threshold": 24.89241781987642,
+    "event_threshold_percentile": 99.0,
+    "successor_score_median": 0.8631338477134705,
+    "successor_score_iqr": 0.24758380651474,
+    "successor_manifold_uncertainty_enabled": false,
+    "successor_manifold_score_median": 0.5574630498886108,
+    "successor_manifold_score_iqr": 0.15148961544036865,
+    "successor_dispersion_median": 0.7684604525566101,
+    "successor_dispersion_iqr": 0.14822959899902344,
+    "successor_dispersion_floor": 0.7684604525566101,
+    "successor_dispersion_floor_percentile": 50.0,
+    "successor_uncertainty_min_confidence": 0.35,
+    "local_score_median": 1.79840087890625,
+    "local_score_iqr": 0.7066735029220581,
+    "context_threshold": 0.1562725007534027,
+    "successor_degenerate": false,
+    "context_degenerate": false,
+    "memory_size": 2581,
+    "memory_sampled": false,
+    "training_event_threshold": 3.5353636741638184,
+    "score_floor_threshold": 24.89241781987642,
+    "score_floor_percentile": null,
+    "score_floor_method": "adaptive_elbow",
+    "score_floor_plateau_adjusted": false,
+    "score_floor_details": {
+      "threshold": 24.89241781987642,
+      "method": "adaptive_elbow",
+      "reason": "ok",
+      "plateau_adjusted": false,
+      "plateau_fraction": 0.000171939477303989,
+      "lower_elbow_threshold": 24.724281311035156,
+      "upper_elbow_threshold": 23.245534896850586,
+      "otsu_threshold": 24.89241781987642,
+      "selected_candidate": "otsu",
+      "selected_percentile": 82.8920220082531,
+      "effective_count": 5816
+    }
+  },
+  "threshold": {
+    "final_threshold": 24.89241781987642,
+    "threshold_method": "counterfactual_successor_training_plus_adaptive_elbow"
+  },
+  "metrics": {
+    "precision": 0.09356136820925554,
+    "recall": 0.5166666666666667,
+    "f1": 0.15843270868824533,
+    "tp": 93,
+    "tn": 4735,
+    "fp": 901,
+    "fn": 87
+  },
+  "context_ood_rate_window": 0.9986209274263058,
+  "context_ood_rate_point": 1.0,
+  "score_mode": "counterfactual_successor_memory"
+}

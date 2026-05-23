@@ -1,0 +1,53 @@
+\section{Proposed Method}
+\label{sec:proposed_method}
+
+Our proposed methodology, termed Neural Contextual Anomaly Detection with Counterfactual Successor Memory (NCAD-CS), is a multi-stage methodology for anomaly detection in complex spacecraft telemetry. Building upon the contrastive-window formulation of the original NCAD framework \cite{carmona2021neural}, we retain a shared TCN encoder for full and context windows, but change the downstream question from context substitution to successor consistency. During training, normal contexts are stored together with the normal suspect segment that immediately followed them. During inference, a test context retrieves nearest normal contexts and their successors, producing a local counterfactual set of plausible normal futures. The observed suspect window is then scored by how far it deviates from this set, with complementary evidence from local raw-signal deviation and context distance. The overall workflow is depicted in Figure~\ref{fig:workflow}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{mermaid-ai-1.png}
+    \caption{Illustration of the algorithm workflow.}
+    \label{fig:workflow}
+\end{figure}
+
+\subsection{Robust Multi-Domain Feature Engineering}
+\label{subsec:feature_eng}
+
+Recognizing that raw telemetry often lacks the expressive power to capture subtle deviations, we begin with a multi-domain feature engineering stage. This process transforms the raw univariate signal into a rich, high-dimensional representation, providing the model with a holistic view of the system's state across various temporal and spectral dimensions. Given a raw univariate telemetry channel $x_{\text{raw}} = \{x_1, x_2, \dots, x_T\}$, we extract a comprehensive set of features, including:
+\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Short-term rolling statistics} (e.g., mean, standard deviation, skew, kurtosis) to model immediate local signal characteristics.
+    \item \textit{Long-term rolling statistics} over a significantly larger window to establish a stable baseline of the signal's intrinsic volatility \cite{zivot2003rolling}.
+    \item \textit{Frequency-domain features} derived from both the Fast Fourier Transform (FFT) for global spectral properties and the Short-Time Fourier Transform (STFT) to identify localized changes in spectral energy and multimodal behavior \cite{chen2007feature}.
+    \item \textit{Trend and complexity indicators}, such as rolling slope for trend analysis and wavelet energy ratios for capturing non-stationary, multi-scale patterns \cite{trokic2019wavelet}.
+\end{itemize}
+
+A critical aspect of this stage is ensuring numerical stability, particularly when dealing with real-world telemetry that may include periods of constant or near-constant values. Features relying on variance, such as the Z-score or higher-order moments like skewness, can be ill-defined for data with zero variance. Our implementation explicitly handles these edge cases by checking for near-zero variance before calculation and providing sensible defaults (e.g., zero skewness for a constant signal). This ensures the feature set remains robust and free of non-finite values that could disrupt model training.
+
+This process yields a high-dimensional feature matrix, $F_{\text{all}} \in \mathbb{R}^{T \times D_{\text{full}}}$. Each feature column is then normalized via a Z-score transformation using statistics ($\bm{\mu}_{F}$, $\bm{\sigma}_{F}$) computed from the training data \cite{patro2015normalization}. The results are clipped to a stable range (e.g., [-10, 10]) to mitigate the dominance of outliers. Finally, for computational efficiency, variance-based feature selection reduces the dimensionality to the final input matrix $F_{\text{selected}} \in \mathbb{R}^{T \times k}$, where $k=64$ in our experiments.
+
+\subsection{Windowing and Hybrid-Pooling TCN Encoder}
+\label{subsec:enhanced_tcn_encoder}
+
+The core of our anomaly detection system is a sophisticated encoder, $\phi(\cdot; \theta)$, designed to transform time series windows of fixed size into information-rich latent representations. Our encoder is built upon a Temporal Convolutional Network (TCN), an architecture well-suited for sequential data \cite{bai2018empirical}. Compared to recurrent architectures like LSTMs, TCNs offer several key advantages for this problem. Specifically, unlike the sequential, step-by-step processing inherent to LSTMs, TCNs apply 1D convolutions across the entire input sequence in parallel. This architectural difference significantly accelerates model training and inference, a critical requirement for handling the high-volume data streams common in space systems \cite{gopali2021comparison}. Furthermore, TCNs achieve a vast receptive field by stacking layers of dilated causal convolutions. This allows the model to capture extremely long-term dependencies—such as a slow system drift over thousands of timesteps—without the vanishing gradient problems that can still affect LSTMs over such long horizons \cite{chen2022vanishing}. The stable gradient flow and flexible receptive field make TCNs exceptionally well-suited for learning the complex, multi-scale temporal patterns characteristic of spacecraft telemetry. Our design, however, moves beyond a standard TCN to address the unique challenges of spacecraft telemetry, which exhibits a broad spectrum of signal dynamics, from quiescent periods to highly volatile events.
+
+\subsection{Input Segmentation and Normalization}
+The input to the encoder is a feature matrix, $F_{\text{selected}}$, which has been pre-processed and feature-engineered. This matrix is first segmented into overlapping windows of a fixed length, $L$. Each window, $w \in \mathbb{R}^{L \times k}$ (where $k$ is the number of features), is further subdivided into two distinct segments:
+\begin{itemize}
+    \item A context window, $w^{(c)} \in \mathbb{R}^{C \times k}$, representing the recent, presumably normal, history of the signal.
+    \item A suspect window, $w^{(s)} \in \mathbb{R}^{S \times k}$, representing the immediate subsequent data points to be evaluated for anomalies.
+\end{itemize}
+Here, the total window length is $L = C + S$.
+
+To ensure model stability and robustness, we integrate Layer Normalization \cite{ba2016layernormalization} directly within our TCN blocks. Unlike batch-dependent normalization schemes, Layer Normalization computes its statistics independently for each sample across its features. This makes the encoder's performance resilient to variations in batch composition and prevents issues with low-variance "flat-line" signals, common in telemetry data.
+
+\begin{figure}[t] % Changed from h! to t for better placement
+    \centering
+    \includegraphics[width=0.9\linewidth]{TCN-Encoder.png}
+    \caption{Conceptual Illustration of the Dual-Pathway Encoder Architecture.}
+    \label{fig:encoder_architecture}
+\end{figure}
+
+\subsection{Pathway 1: The Hybrid Temporal Pathway}
+A key innovation of our model lies in its dual-pathway architecture, which processes the intermediate feature maps from the TCN, denoted as $X_{\text{tcn}}$, through two concurrent and complementary pathways. This design is engineered to capture a multi-faceted understanding of the window's content, analyzing its temporal evolution and underlying statistical properties. The outputs of these pathways are then combined to form the final latent embedding.
+
+... (full method text preserved in the section file)

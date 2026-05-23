@@ -1,0 +1,15 @@
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+We introduced NCAD-CS, a neural contextual anomaly detection framework augmented with a counterfactual successor memory. Our experiments on SMAP/MSL telemetry channels demonstrate the potential of successor-based scoring for detecting sustained contextual anomalies that can otherwise contaminate reconstruction-based detectors. Successor-based evidence complements local raw-signal residuals and context-distance, producing a more reliable anomaly score.
+
+Future directions include:
+\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item Extending the pipeline to natively handle multivariate channels by designing a multivariate feature extractor and adapting the encoder to accept multi-dimensional inputs directly.
+    \item Building a memory-curation strategy that prioritizes diversity and temporal coverage to improve successor retrieval for non-stationary channels.
+    \item Integrating uncertainty quantification to convert window scores into calibrated event probabilities for operational use.
+\end{itemize}
+
+\vspace{6pt}
+\noindent
+author contributions and acknowledgments will be filled in the final manuscript.
