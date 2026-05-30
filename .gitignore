@@ -20,9 +20,7 @@ Thumbs.db
 # Local datasets and generated artifacts
 data/
 /models/
-notebooks_v2/results/
-notebooks_v3/results/
-reports/
+/mTSBench_data/
 
 # Training artifacts
 *.pt

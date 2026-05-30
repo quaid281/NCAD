@@ -1,0 +1,3 @@
+channel,error,precision,recall,f1,tp,tn,fp,fn,context_ood_rate_window,context_ood_rate_point,score_mode,elapsed_seconds
+A-1,,0.0,0.0,0.0,0,527,0,0,1.0,1.0,counterfactual_successor_memory,9.166232585906982
+D-3,,0.0,0.0,0.0,0,456,71,0,0.685546875,1.0,counterfactual_successor_memory,6.144435167312622
