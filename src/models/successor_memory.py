@@ -48,6 +48,7 @@ class CounterfactualSuccessorMemory:
         self.calibration_successor_scores: Optional[np.ndarray] = None
         self.calibration_successor_median_scores: Optional[np.ndarray] = None
         self.calibration_successor_dispersion: Optional[np.ndarray] = None
+        self.calibration_expected_successors: Optional[np.ndarray] = None
 
     def fit(self, context_embeddings: np.ndarray, successor_windows: np.ndarray) -> "CounterfactualSuccessorMemory":
         context_embeddings = np.asarray(context_embeddings, dtype=np.float32)
@@ -95,6 +96,7 @@ class CounterfactualSuccessorMemory:
             calibration_successor_scores=self.calibration_successor_scores,
             calibration_successor_median_scores=self.calibration_successor_median_scores,
             calibration_successor_dispersion=self.calibration_successor_dispersion,
+            calibration_expected_successors=self.calibration_expected_successors,
             n_neighbors=np.array([self.config.n_neighbors], dtype=np.int64),
             distance_metric=np.array([self.config.distance_metric]),
         )
@@ -107,6 +109,7 @@ class CounterfactualSuccessorMemory:
             self.calibration_successor_scores = np.zeros(1, dtype=np.float32)
             self.calibration_successor_median_scores = np.zeros(1, dtype=np.float32)
             self.calibration_successor_dispersion = np.zeros(1, dtype=np.float32)
+            self.calibration_expected_successors = np.zeros_like(self.successor_windows)
             self.context_threshold = 0.0
             return
 
@@ -137,6 +140,7 @@ class CounterfactualSuccessorMemory:
         self.calibration_successor_scores = result.successor_scores.astype(np.float32)
         self.calibration_successor_median_scores = result.successor_median_scores.astype(np.float32)
         self.calibration_successor_dispersion = result.successor_dispersion.astype(np.float32)
+        self.calibration_expected_successors = result.expected_successors.astype(np.float32)
         self.context_threshold = float(np.percentile(self.calibration_context_distances, self.config.context_percentile))
 
     def _score_against_neighbors(
@@ -149,12 +153,25 @@ class CounterfactualSuccessorMemory:
             raise RuntimeError("Successor memory has not been fitted.")
         observed_successors = np.asarray(observed_successors, dtype=np.float32)
         neighbor_successors = self.successor_windows[neighbor_indices]
+        # Generic over successor shape (works for raw (T, F) or latent (D,)).
+        # neighbor_successors: (B, K, *S);  observed: (B, *S)
+        feature_axes_neighbors = tuple(range(2, neighbor_successors.ndim))
+        feature_axes_observed = tuple(range(1, observed_successors.ndim))
         expected_successors = np.median(neighbor_successors, axis=1).astype(np.float32)
 
-        residuals = np.sqrt(np.mean((neighbor_successors - observed_successors[:, None, :, :]) ** 2, axis=(2, 3)))
+        residuals = np.sqrt(
+            np.mean(
+                (neighbor_successors - observed_successors[:, None, ...]) ** 2,
+                axis=feature_axes_neighbors,
+            )
+        )
         successor_scores = np.min(residuals, axis=1).astype(np.float32)
-        successor_median_scores = np.sqrt(np.mean((expected_successors - observed_successors) ** 2, axis=(1, 2))).astype(np.float32)
-        successor_dispersion = np.mean(np.std(neighbor_successors, axis=1), axis=(1, 2)).astype(np.float32)
+        successor_median_scores = np.sqrt(
+            np.mean((expected_successors - observed_successors) ** 2, axis=feature_axes_observed)
+        ).astype(np.float32)
+        successor_dispersion = np.mean(
+            np.std(neighbor_successors, axis=1), axis=feature_axes_observed
+        ).astype(np.float32)
         context_distances = distances[:, 0].astype(np.float32)
 
         return SuccessorQueryResult(

@@ -224,18 +224,22 @@ def positive_robust_z(values: np.ndarray, stats: RobustStats, clip: float = 20.0
     return np.clip(scores, 0.0, clip).astype(np.float32)
 
 
-def local_deviation_scores(windows: np.ndarray, context_size: int, tail_size: int = 64) -> np.ndarray:
-    """Measure abrupt suspect deviations relative to the recent raw-feature context."""
+def local_deviation_scores(windows: np.ndarray, context_size: int, tail_size: int = 64, mad_floor: float = 0.20) -> np.ndarray:
+    """Measure abrupt suspect deviations across ALL features relative to the recent context."""
 
-    raw_values = np.asarray(windows[:, :, 0], dtype=np.float64)
-    context_tail = raw_values[:, max(0, context_size - tail_size) : context_size]
-    suspects = raw_values[:, context_size:]
-    medians = np.median(context_tail, axis=1)
-    mad = np.median(np.abs(context_tail - medians[:, None]), axis=1)
-    scale = np.maximum(1.4826 * mad, 1e-4)
-    point_z = np.max(np.abs((suspects - medians[:, None]) / scale[:, None]), axis=1)
-    mean_shift = np.abs(np.mean(suspects, axis=1) - medians) / scale
-    return np.maximum(point_z, mean_shift).astype(np.float32)
+    n_features = windows.shape[2]
+    all_scores = []
+    for f in range(n_features):
+        raw_values = np.asarray(windows[:, :, f], dtype=np.float64)
+        context_tail = raw_values[:, max(0, context_size - tail_size) : context_size]
+        suspects = raw_values[:, context_size:]
+        medians = np.median(context_tail, axis=1)
+        mad = np.median(np.abs(context_tail - medians[:, None]), axis=1)
+        scale = np.maximum(1.4826 * mad, mad_floor)
+        point_z = np.max(np.abs((suspects - medians[:, None]) / scale[:, None]), axis=1)
+        mean_shift = np.abs(np.mean(suspects, axis=1) - medians) / scale
+        all_scores.append(np.maximum(point_z, mean_shift))
+    return np.max(all_scores, axis=0).astype(np.float32)
 
 
 def robust_dispersion_floor(values: np.ndarray, percentile: float = 50.0, minimum: float = 1e-6) -> float:
@@ -244,6 +248,15 @@ def robust_dispersion_floor(values: np.ndarray, percentile: float = 50.0, minimu
     if len(values) == 0:
         return float(minimum)
     return float(max(np.percentile(np.maximum(values, 0.0), percentile), minimum))
+
+
+def reconstruction_deviation_scores(
+    observed_successors: np.ndarray,
+    expected_successors: np.ndarray,
+) -> np.ndarray:
+    """Per-window RMSE between observed and KNN-expected successors."""
+    residuals = np.asarray(observed_successors, dtype=np.float64) - np.asarray(expected_successors, dtype=np.float64)
+    return np.sqrt(np.mean(residuals ** 2, axis=tuple(range(1, residuals.ndim)))).astype(np.float32)
 
 
 def successor_manifold_uncertainty_scores(
@@ -272,10 +285,12 @@ def fuse_evidence_scores(
     local_z: np.ndarray,
     context_ratio: np.ndarray,
     manifold_z: Optional[np.ndarray] = None,
+    reconstruction_z: Optional[np.ndarray] = None,
     uncertainty_confidence: Optional[np.ndarray] = None,
     successor_weight: float = 1.0,
     local_weight: float = 0.80,
     context_weight: float = 0.35,
+    reconstruction_weight: float = 0.60,
 ) -> np.ndarray:
     successor_z = np.asarray(successor_z, dtype=np.float32)
     local_z = np.asarray(local_z, dtype=np.float32)
@@ -289,7 +304,11 @@ def fuse_evidence_scores(
     context_gain = 1.0 + context_weight * np.clip(context_excess, 0.0, 2.0)
     contextual_successor = successor_weight * successor_evidence * context_gain
     local_component = local_weight * local_z
-    return np.maximum(contextual_successor, local_component).astype(np.float32)
+    fused = np.maximum(contextual_successor, local_component)
+    if reconstruction_z is not None:
+        reconstruction_component = reconstruction_weight * np.asarray(reconstruction_z, dtype=np.float32)
+        fused = np.maximum(fused, reconstruction_component)
+    return fused.astype(np.float32)
 
 
 def moving_average(values: np.ndarray, window: int) -> np.ndarray:
@@ -308,6 +327,7 @@ def aggregate_window_scores(
     step: int,
     window_indices: Optional[np.ndarray] = None,
     reducer: str = "mean",
+    mapping_method: str = "smear",
 ) -> tuple[np.ndarray, np.ndarray]:
     window_scores = np.asarray(window_scores, dtype=np.float64).reshape(-1)
     if window_indices is None:
@@ -315,30 +335,54 @@ def aggregate_window_scores(
     else:
         window_indices = np.asarray(window_indices, dtype=np.int64)
 
-    if reducer == "max":
-        point_scores = np.full(n_points, -np.inf, dtype=np.float64)
+    if mapping_method == "smear":
+        if reducer == "max":
+            point_scores = np.full(n_points, -np.inf, dtype=np.float64)
+            counts = np.zeros(n_points, dtype=np.float64)
+            for window_index, score in zip(window_indices, window_scores):
+                start = int(window_index) * step + context_size
+                end = min(start + suspect_size, n_points)
+                if start >= n_points or end <= start:
+                    continue
+                point_scores[start:end] = np.maximum(point_scores[start:end], score)
+                counts[start:end] += 1.0
+            point_scores[~np.isfinite(point_scores)] = 0.0
+            return point_scores.astype(np.float32), counts > 0
+
+        score_sum = np.zeros(n_points, dtype=np.float64)
         counts = np.zeros(n_points, dtype=np.float64)
         for window_index, score in zip(window_indices, window_scores):
             start = int(window_index) * step + context_size
             end = min(start + suspect_size, n_points)
             if start >= n_points or end <= start:
                 continue
-            point_scores[start:end] = np.maximum(point_scores[start:end], score)
+            score_sum[start:end] += score
             counts[start:end] += 1.0
-        point_scores[~np.isfinite(point_scores)] = 0.0
+        point_scores = np.divide(score_sum, counts, out=np.zeros_like(score_sum), where=counts > 0)
         return point_scores.astype(np.float32), counts > 0
 
     score_sum = np.zeros(n_points, dtype=np.float64)
     counts = np.zeros(n_points, dtype=np.float64)
     for window_index, score in zip(window_indices, window_scores):
-        start = int(window_index) * step + context_size
-        end = min(start + suspect_size, n_points)
-        if start >= n_points or end <= start:
-            continue
-        score_sum[start:end] += score
-        counts[start:end] += 1.0
+        if mapping_method == "last":
+            idx = int(window_index) * step + context_size + suspect_size - 1
+            if idx < n_points:
+                score_sum[idx] += score
+                counts[idx] += 1.0
+        elif mapping_method == "first":
+            idx = int(window_index) * step + context_size
+            if idx < n_points:
+                score_sum[idx] += score
+                counts[idx] += 1.0
+        elif mapping_method == "middle":
+            idx = int(window_index) * step + context_size + suspect_size // 2
+            if idx < n_points:
+                score_sum[idx] += score
+                counts[idx] += 1.0
+
     point_scores = np.divide(score_sum, counts, out=np.zeros_like(score_sum), where=counts > 0)
     return point_scores.astype(np.float32), counts > 0
+
 
 
 def event_level_filter(
@@ -372,7 +416,37 @@ def event_level_filter(
     return predictions.astype(np.float32)
 
 
-def compute_metrics(labels: Optional[np.ndarray], predictions: np.ndarray, valid_mask: Optional[np.ndarray] = None) -> dict:
+def point_adjustment(labels: np.ndarray, predictions: np.ndarray) -> np.ndarray:
+    """Adjust predictions such that if any point in a ground-truth anomaly segment
+    is correctly predicted, the entire segment is marked as predicted anomaly (True Positive).
+    """
+    adjusted = np.asarray(predictions).copy()
+    labels = np.asarray(labels)
+    in_anomaly = False
+    start = 0
+    n = len(labels)
+    for i in range(n):
+        if labels[i] == 1.0:
+            if not in_anomaly:
+                in_anomaly = True
+                start = i
+        else:
+            if in_anomaly:
+                in_anomaly = False
+                if np.any(predictions[start:i] == 1.0):
+                    adjusted[start:i] = 1.0
+    if in_anomaly:
+        if np.any(predictions[start:n] == 1.0):
+            adjusted[start:n] = 1.0
+    return adjusted
+
+
+def compute_metrics(
+    labels: Optional[np.ndarray],
+    predictions: np.ndarray,
+    valid_mask: Optional[np.ndarray] = None,
+    use_pa: bool = False,
+) -> dict:
     if labels is None:
         return {}
     labels = labels[: len(predictions)].astype(np.float32)
@@ -383,6 +457,10 @@ def compute_metrics(labels: Optional[np.ndarray], predictions: np.ndarray, valid
         predictions = predictions[mask]
     if len(labels) == 0:
         return {}
+
+    if use_pa:
+        predictions = point_adjustment(labels, predictions)
+
     tn, fp, fn, tp = confusion_matrix(labels, predictions, labels=[0.0, 1.0]).ravel()
     return {
         "precision": float(precision_score(labels, predictions, zero_division=0)),
@@ -393,3 +471,4 @@ def compute_metrics(labels: Optional[np.ndarray], predictions: np.ndarray, valid
         "fp": int(fp),
         "fn": int(fn),
     }
+

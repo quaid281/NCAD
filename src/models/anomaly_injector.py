@@ -55,7 +55,10 @@ class ContextualAnomalyInjector:
             start = context_size + offset
             end = start + anomaly_len
 
-            for feature_index in range(n_features):
+            # Randomly select a subset of features to perturb (partial-feature anomalies)
+            n_perturb = max(1, int(self.rng.integers(1, max(2, n_features // 2 + 1))))
+            perturb_features = self.rng.choice(n_features, size=n_perturb, replace=False)
+            for feature_index in perturb_features:
                 context_values = context[:, feature_index]
                 context_std = max(float(np.std(context_values)), 1e-6)
                 context_mean = float(np.mean(context_values))

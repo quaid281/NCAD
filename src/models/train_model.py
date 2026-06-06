@@ -88,6 +88,8 @@ class CSMConfig:
     save_plots: bool = True
     seed: int = 42
     device: str = "auto"
+    mapping_method: str = "middle"
+    use_pa: bool = True
 
     @property
     def full_window_size(self) -> int:
@@ -406,6 +408,7 @@ def calibrate_event_threshold(
         step=config.step,
         window_indices=memory.sample_indices,
         reducer="mean",
+        mapping_method=config.mapping_method,
     )
     calibration_smoothed_scores = moving_average(calibration_point_scores, config.smoothing_window)
     valid_scores = calibration_smoothed_scores[calibration_valid_mask]
@@ -497,6 +500,7 @@ def run_channel(channel_data: ChannelData, run_dir: Path, config: CSMConfig, dev
         suspect_size=config.suspect_size,
         step=config.step,
         reducer="mean",
+        mapping_method=config.mapping_method,
     )
     smoothed_scores = moving_average(point_scores, config.smoothing_window)
     valid_smoothed_scores = smoothed_scores[valid_mask]
@@ -524,7 +528,7 @@ def run_channel(channel_data: ChannelData, run_dir: Path, config: CSMConfig, dev
         extreme_factor=config.extreme_event_factor,
     )
     predictions = predictions * valid_mask.astype(np.float32)
-    metrics = compute_metrics(channel_data.labels, predictions, valid_mask=valid_mask)
+    metrics = compute_metrics(channel_data.labels, predictions, valid_mask=valid_mask, use_pa=config.use_pa)
 
     context_ood_point, _ = aggregate_window_scores(
         score_details["context_ood"].astype(np.float32),
@@ -533,6 +537,7 @@ def run_channel(channel_data: ChannelData, run_dir: Path, config: CSMConfig, dev
         suspect_size=config.suspect_size,
         step=config.step,
         reducer="mean",
+        mapping_method=config.mapping_method,
     )
     context_ood_map = context_ood_point > 0.0
     elapsed = time.time() - channel_start

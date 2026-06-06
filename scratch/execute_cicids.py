@@ -7,7 +7,7 @@ from pathlib import Path
 project_root = Path.cwd().resolve()
 
 def execute_notebook(nb_path):
-    print(f"\nExecuting notebook: {nb_path} ...")
+    print(f"\nExecuting notebook: {nb_path.name} ...")
     cmd = [
         "jupyter", "nbconvert",
         "--to", "notebook",
@@ -26,14 +26,5 @@ def execute_notebook(nb_path):
         print("Stderr:\n", res.stderr)
         return False
 
-# Execute CalIt2
-calit2_nb = project_root / "notebooks_v4" / "CalIt2" / "CalIt2_SSM_Anomaly_Detection.ipynb"
-execute_notebook(calit2_nb)
-
-# Execute CICIDS
 cicids_nb = project_root / "notebooks_v4" / "cicids" / "CICIDS_SSM_Anomaly_Detection.ipynb"
 execute_notebook(cicids_nb)
-
-# Execute Creditcard
-creditcard_nb = project_root / "notebooks_v4" / "creditcard" / "Creditcard_SSM_Anomaly_Detection.ipynb"
-execute_notebook(creditcard_nb)
