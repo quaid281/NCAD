@@ -1,13 +1,17 @@
 \section{Results and Discussion}
 \label{sec:results}
 
-This section presents quantitative and qualitative analysis of NCAD-CS across the SMAP/MSL benchmarks.
+This section presents quantitative and qualitative analysis of NCAD-CS v5 across diverse multi-sensor benchmarks.
 
 \subsection{Quantitative Performance}
-Table~\ref{tab:quant_perf} reports the detection metrics across the evaluated channels. NCAD-CS improves micro-F1 compared to the baseline NCAD by a relative 8\%, primarily by reducing false negatives on sustained anomalies through its successor memory mechanism.
+As detailed in Table~\ref{tab:multidataset_benchmark}, NCAD-CS v5 improves macro-average PA-F1 from $0.2604$ to $\mathbf{0.3631}$ across 23 multi-dataset benchmark channels (a relative improvement of $+39.4\%$). Simultaneously, the spatial-temporal graph attention architecture elevates the theoretical representation ceiling (Oracle PA-F1) from $0.3917$ to $\mathbf{0.5975}$ ($+52.5\%$).
 
-\subsection{Qualitative Analysis}
-The successor memory often provides counterfactual successor windows that highlight plausible normal futures, enabling the system to detect subtle deviations early. Examples in Figure~\ref{fig:successor_examples} show cases where the successor residual clearly separates anomalous runs from normal patterns.
+\subsection{Resolution of Relational Breakdown and Threshold Collapse}
+Two primary failure modes previously constrained unsupervised time-series anomaly detection:
+\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Cross-Sensor Relational Breakdown:} In high-dimensional sensor environments (e.g., OPPORTUNITY with 77 channels), anomalous states frequently manifest as desynchronization between correlated sensors. The multi-head \texttt{RelationalGATEncoder} captures these dynamic inter-variable topologies, raising macro PA-F1 from $0.1253$ to $0.1834$ (and up to $0.4045$ on individual activity recognition streams).
+    \item \textit{Zero-F1 Threshold Collapse:} Ad-hoc empirical elbow heuristics often selected overly conservative thresholds, leading to zero true positives on low-contrast anomalies. Extreme Value Theory (EVT / SPOT) calibration establishes a mathematically grounded tail cutoff, successfully recovering previously failing channels (e.g. Daphnet \texttt{S03R01E1} and Room-Occupancy \texttt{default}) with robust F1 scores above $0.30$.
+\end{enumerate}
 
-\subsection{Limitations}
-While successor memory improves robustness, it requires a representative memory of normal contexts. Datasets with abundant non-stationarity or scarce normal operation intervals may challenge the memory's coverage. Additionally, the method currently relies on univariate primary telemetry features; extending it to fully multivariate features is future work.
+\subsection{Limitations and Future Horizons}
+While NCAD-CS v5 exhibits strong generalization, memory scaling with high sampling frequencies ($>100\text{Hz}$) remains an active area of optimization. Integrating non-contrastive Joint Embedding Predictive Architectures (JEPA) and online streaming memory eviction policies represents a promising direction for future work.

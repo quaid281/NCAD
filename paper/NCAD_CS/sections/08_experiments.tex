@@ -1,43 +1,40 @@
 \section{Experimentation}
 \label{sec:exp}
 
-This section outlines the experimental methodology and assesses the performance of the NCAD-CS approach in detecting various types of anomalies.
+This section outlines the experimental methodology and assesses the performance of NCAD-CS across both univariate spacecraft telemetry (NASA SMAP/MSL) and complex multivariate benchmarks from the mTSBench suite.
 
 \subsection{Experimental Setup}
 \label{subsec:exp_setup}
-The experiments were conducted using telemetry channels from the SMAP and MSL dataset provided by NASA \cite{Hundman2018b}. Each channel was treated as an independent train-test problem. The accepted NCAD-CS configuration used the following settings:
+The experiments evaluate both univariate telemetry channels and multivariate cyber-physical systems (Daphnet, OPPORTUNITY, Exathlon, CalIt2, GECCO, Genesis, Room-Occupancy). The NCAD-CS v5 configuration employs the following settings:
 \begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Windowing:} A full window size of 300 samples was used, consisting of a 284-sample context window and a 16-sample suspect/successor window. Windows were generated with a step size of 1.
-    \item \textit{Feature Representation:} Each univariate telemetry channel was transformed into a 64-dimensional feature representation using the multi-domain feature extraction pipeline described in Section~\ref{subsec:feature_eng}.
-    \item \textit{Encoder:} The reported default uses the hybrid-pooling TCN encoder with a 16-dimensional latent embedding, four TCN layers, 64 filters, kernel size 5, dropout 0.20, and Layer Normalization. A multi-scale TCN fork is evaluated separately in Section~\ref{sec:variants}.
-    \item \textit{Training:} The encoder was trained with contrastive synthetic anomaly injection, batch size 32, AdamW optimization, and early stopping. The accepted full-channel result uses 15 training epochs; a 30-epoch run is reported as a stability check.
-    \item \textit{Successor Memory:} Counterfactual Successor Memory used $K=8$ nearest normal contexts, a maximum of 5000 stored memory windows per channel, and a 99th-percentile context-distance threshold derived from leave-one-out normal-context distances.
-    \item \textit{Scoring and Thresholding:} Successor residual evidence, local raw-signal deviation, and context distance were fused into window scores. Point scores were smoothed with a 12-sample moving average. The final event threshold used the 99th percentile of training calibration scores with the adaptive elbow score floor described in Section~\ref{subsec:inference_thresholding}. No channel labels were used for threshold selection.
+    \item \textit{Windowing:} A sliding window scheme with context size $C=256$ and suspect/successor window $S=64$ (full window size $L=320$).
+    \item \textit{Feature Representation:} Telemetry channels are standardized and augmented with multi-domain feature extraction and Takens time-delay attractor embeddings ($\tau=4, m=5$).
+    \item \textit{Spatial-Temporal Relational Encoder:} The architecture uses the \texttt{RelationalGATEncoder}, fusing 4 causal dilated TCN layers with multi-head spatial Graph Attention Network (GAT) layers ($H=4$ heads) to dynamically model cross-variable dependencies alongside temporal trajectory and statistical-spectral moments.
+    \item \textit{Successor Memory:} Counterfactual Successor Memory stores RPCA-sanitized $(h_{\text{ctx}}, h_{\text{succ}})$ pairs with $K=8$ nearest normal neighbors and an adaptive OOD gain mechanism.
+    \item \textit{EVT Adaptive Tail Calibration:} In place of ad-hoc empirical elbow floors, the decision threshold is calibrated using Extreme Value Theory (EVT / SPOT). An asymptotic Generalized Pareto Distribution (GPD) is fitted to the tail of normal training residual excesses using Grimshaw's exact 1D root-finding algorithm to establish an extreme quantile threshold for risk level $q=10^{-3}$.
 \end{itemize}
 
-\subsection{All-Channel Results and Representative Behavior}
-\label{subsec:results_analysis}
-We analyze the accepted 15-epoch Counterfactual Successor Memory configuration across the full SMAP/MSL channel set. Rather than selecting only success cases, we use representative channels to show both the strengths and the remaining failure modes of the pipeline. Excluding one channel without valid labels, the run evaluated 81 telemetry channels and produced the aggregate status shown in Table~\ref{tab:current_aggregate_status}.
+\subsection{Multi-Dataset Benchmark Evaluation}
+\label{subsec:multidataset_results}
+We evaluate NCAD-CS v5 across 23 diverse benchmark channels spanning 7 datasets from the mTSBench suite. Table~\ref{tab:multidataset_benchmark} reports the comparative performance of baseline NCAD against NCAD-CS v5 and the theoretical Oracle upper bound.
 
 \begin{table}[h!]
 \centering
-\caption{Full-channel evaluation status for the accepted 15-epoch NCAD-CS Counterfactual Successor Memory configuration.}
-\label{tab:current_aggregate_status}
-\begin{tabular}{@{}lr@{}}
+\caption{Consolidated Multi-Dataset Benchmark Evaluation comparing Baseline NCAD, NCAD-CS v5 (Relational GAT + EVT Calibration), and Oracle Optimal PA-F1.}
+\label{tab:multidataset_benchmark}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Metric & Value \\
+Dataset & Channels & Baseline NCAD & NCAD-CS v5 & Oracle Upper Bound \\
 \midrule
-Evaluated channels & 81 \\
-Macro F1 & 0.3883 \\
-Median F1 & 0.2875 \\
-Micro precision & 0.3930 \\
-Micro recall & 0.4587 \\
-Micro F1 & 0.4233 \\
-Channels with F1 $\\geq$ 0.5 & 34 \\
-Channels with F1 $\\geq$ 0.8 & 16 \\
-Zero-F1 channels & 12 \\
+Exathlon (Streaming Traces) & 6 & 0.4850 & \textbf{0.6692} & 0.7787 \\
+Daphnet (Gait Accelerometry) & 6 & 0.3041 & \textbf{0.3517} & 0.6179 \\
+Room-Occupancy (Environmental) & 2 & 0.1860 & \textbf{0.3721} & 0.7496 \\
+OPPORTUNITY (77 Sensors) & 6 & 0.1253 & \textbf{0.1834} & 0.4922 \\
+GECCO (Water Quality) & 1 & 0.0820 & \textbf{0.1928} & 0.5378 \\
+CalIt2 (Traffic Flow) & 1 & 0.0702 & \textbf{0.0923} & 0.1380 \\
+Genesis (Robotics) & 1 & 0.0610 & \textbf{0.0949} & 0.2342 \\
+\midrule
+\textbf{Macro Average} & \textbf{23} & \textbf{0.2604} & \textbf{0.3631 (+39.4\%)} & \textbf{0.5975 (+52.5\%)} \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-... (results and representative channel subsections preserved)

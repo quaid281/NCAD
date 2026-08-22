@@ -8,6 +8,8 @@ from typing import Optional
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
+from src.utils.evt_calibrator import EVTCalibrator, EVTThresholdResult
+
 
 @dataclass
 class RobustStats:
@@ -145,6 +147,16 @@ def percentile_score_floor(values: np.ndarray, percentile: float) -> AdaptiveSco
         selected_percentile=float(percentile),
         effective_count=int(len(scores)),
     )
+
+
+def calibrate_evt_threshold(
+    values: np.ndarray,
+    risk_level: float = 1e-3,
+    init_percentile: float = 98.0,
+) -> EVTThresholdResult:
+    calibrator = EVTCalibrator(risk_level=risk_level, init_percentile=init_percentile)
+    calibrator.fit(values)
+    return calibrator.compute_threshold(values, risk_level=risk_level)
 
 
 def _empty_score_floor(
@@ -286,28 +298,51 @@ def fuse_evidence_scores(
     context_ratio: np.ndarray,
     manifold_z: Optional[np.ndarray] = None,
     reconstruction_z: Optional[np.ndarray] = None,
+    sindy_z: Optional[np.ndarray] = None,
     uncertainty_confidence: Optional[np.ndarray] = None,
     successor_weight: float = 1.0,
     local_weight: float = 0.80,
     context_weight: float = 0.35,
     reconstruction_weight: float = 0.60,
+    sindy_weight: float = 0.50,
+    normalize_components: bool = True,
 ) -> np.ndarray:
     successor_z = np.asarray(successor_z, dtype=np.float32)
     local_z = np.asarray(local_z, dtype=np.float32)
+    if normalize_components:
+        succ_scale = max(float(np.percentile(successor_z, 95.0)), 1e-4)
+        local_scale = max(float(np.percentile(local_z, 95.0)), 1e-4)
+        successor_z = successor_z / succ_scale
+        local_z = local_z / local_scale
     if uncertainty_confidence is None:
         successor_evidence = successor_z
     else:
         successor_evidence = successor_z * np.asarray(uncertainty_confidence, dtype=np.float32)
     if manifold_z is not None:
-        successor_evidence = np.maximum(successor_evidence, np.asarray(manifold_z, dtype=np.float32))
+        m_z = np.asarray(manifold_z, dtype=np.float32)
+        if normalize_components:
+            m_scale = max(float(np.percentile(m_z, 95.0)), 1e-4)
+            m_z = m_z / m_scale
+        successor_evidence = np.maximum(successor_evidence, m_z)
     context_excess = np.maximum(np.asarray(context_ratio, dtype=np.float32) - 1.0, 0.0)
     context_gain = 1.0 + context_weight * np.clip(context_excess, 0.0, 2.0)
     contextual_successor = successor_weight * successor_evidence * context_gain
     local_component = local_weight * local_z
     fused = np.maximum(contextual_successor, local_component)
     if reconstruction_z is not None:
-        reconstruction_component = reconstruction_weight * np.asarray(reconstruction_z, dtype=np.float32)
+        rec_z = np.asarray(reconstruction_z, dtype=np.float32)
+        if normalize_components:
+            rec_scale = max(float(np.percentile(rec_z, 95.0)), 1e-4)
+            rec_z = rec_z / rec_scale
+        reconstruction_component = reconstruction_weight * rec_z
         fused = np.maximum(fused, reconstruction_component)
+    if sindy_z is not None:
+        sin_z = np.asarray(sindy_z, dtype=np.float32)
+        if normalize_components:
+            sin_scale = max(float(np.percentile(sin_z, 95.0)), 1e-4)
+            sin_z = sin_z / sin_scale
+        sindy_component = sindy_weight * sin_z
+        fused = np.maximum(fused, sindy_component)
     return fused.astype(np.float32)
 
 
@@ -471,4 +506,28 @@ def compute_metrics(
         "fp": int(fp),
         "fn": int(fn),
     }
+
+
+def confidence_over_threshold(value: float, threshold: float) -> float:
+    """Map a threshold exceedance to [0, 1] with smooth saturation."""
+    if not np.isfinite(value) or not np.isfinite(threshold) or threshold <= 1e-12:
+        return 0.0
+    ratio = (value - threshold) / threshold
+    if ratio <= 0:
+        return 0.0
+    return float(np.clip(ratio / (1.0 + ratio), 0.0, 0.95))
+
+
+def dynamic_weighted_smoothing(
+    point_scores: np.ndarray,
+    substitution_map: np.ndarray,
+    short_window: int = 50,
+    long_window: int = 200,
+) -> np.ndarray:
+    """Blend responsive and stable smoothing using the substitution indicator map."""
+    short_scores = moving_average(point_scores, short_window)
+    long_scores = moving_average(point_scores, long_window)
+    weights = moving_average(substitution_map.astype(np.float32), short_window)
+    weights = np.clip(weights, 0.0, 1.0)
+    return ((1.0 - weights) * short_scores + weights * long_scores).astype(np.float32)
 

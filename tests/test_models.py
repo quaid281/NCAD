@@ -65,3 +65,54 @@ def test_contrastive_loss():
     assert isinstance(loss, torch.Tensor)
     assert loss.ndim == 0
     assert loss.item() >= 0.0
+
+
+def test_selective_ssm_encoder():
+    from src.models.selective_ssm_encoder import SelectiveSSMContextEncoder
+    
+    batch_size = 4
+    window_size = 64
+    feature_dim = 8
+    latent_dim = 16
+    
+    model = SelectiveSSMContextEncoder(input_dim=feature_dim, latent_dim=latent_dim, hidden_dim=32, layers=2)
+    x = torch.randn(batch_size, window_size, feature_dim)
+    out = model(x)
+    
+    assert out.shape == (batch_size, latent_dim)
+    assert torch.isfinite(out).all()
+
+
+def test_ncad_jepa_model_forward():
+    from src.models.ncad_jepa import NCADJEPAModel
+    
+    model = NCADJEPAModel(input_dim=4, latent_dim=16, filters=16, tcn_layers=2)
+    ctx = torch.randn(4, 64, 4)
+    target = torch.randn(4, 16, 4)
+    
+    z_ctx, z_target_true, z_target_pred = model(ctx, target)
+    assert z_ctx.shape == (4, 16)
+    assert z_target_true.shape == (4, 16)
+    assert z_target_pred.shape == (4, 16)
+    
+    discrepancy = model.compute_predictive_discrepancy(ctx, target)
+    assert discrepancy.shape == (4,)
+    assert torch.isfinite(discrepancy).all()
+
+
+def test_gat_jepa_model_forward():
+    from src.models.gat_jepa import RelationalGAT_JEPAModel
+    
+    model = RelationalGAT_JEPAModel(input_dim=4, latent_dim=16, filters=16, tcn_layers=2, gat_layers=1)
+    ctx = torch.randn(4, 64, 4)
+    target = torch.randn(4, 16, 4)
+    
+    z_ctx, z_target_true, z_target_pred = model(ctx, target)
+    assert z_ctx.shape == (4, 16)
+    assert z_target_true.shape == (4, 16)
+    assert z_target_pred.shape == (4, 16)
+    
+    discrepancy = model.compute_predictive_discrepancy(ctx, target)
+    assert discrepancy.shape == (4,)
+    assert torch.isfinite(discrepancy).all()
+

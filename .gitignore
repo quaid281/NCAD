@@ -34,4 +34,6 @@ Thumbs.db
 *.log
 
 # Generated results
-notebooks_v4/results/
+results/
+notebooks/**/results/
+.pytest_cache/

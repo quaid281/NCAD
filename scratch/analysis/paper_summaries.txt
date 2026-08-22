@@ -1,0 +1,567 @@
+
+=================== FOLDER: Papers ===================
+
+--- FILE: 1-s2.0-S0021999118305527-main.pdf ---
+Journal of Computational Physics 375 (2018) 1339–1364
+Contents lists available at ScienceDirect
+Journal of Computational Physics
+www.elsevier.com/locate/jcp
+DGM: A deep learning algorithm for solving partial differential
+equations ✩,✩✩
+Justin Sirignanoa,∗, Konstantinos Spiliopoulosb
+a University of Illinois at Urbana Champaign, Urbana, United States of America
+b Department of Mathematics and Statistics, Boston University, Boston, United States of America
+a r t i c l e i n f o a b s t r a c t
+Article history:
+Received 2 February 2018
+Received in revised form 10 August 2018
+Accepted 20 August 2018
+Available online 24 August 2018
+Keywords:
+Partial differential equations
+Machine learning
+Deep learning
+High-dimensional partial differential
+equations
+High-dimensional PDEs have been a longstanding computational challenge. We propose to
+solve high-dimensional PDEs by approximating the solution with a deep neural network
+which is trained to satisfy the differential operator, initial condition, and boundary
+conditions. Our algorithm is meshfree, which is key since meshes become infeasible in
+
+--- FILE: 1-s2.0-S277266222300005X-main.pdf ---
+Decision Analytics Journal 6 (2023) 100165
+Contents lists available at ScienceDirect
+Decision Analytics Journal
+journal homepage: www.elsevier.com/locate/dajour
+Digital Twin: Benefits, use cases, challenges, and opportunities
+Mohsen Attaran a,∗, Bilge Gokhan Celikb
+a Operations Management, School of Business and Public Administration, California State University, Bakersfield, 9001 Stockdale
+Highway, CA 93311-1099, United States of America
+b School of Engineering Computing and Construction Management, Roger Williams University, One Old Ferry Road, Bristol, RI 02809, United States of America
+A R T I C L E I N F O
+Keywords:
+Digital Twins
+Digital Twin Technologies
+Digital Twin Drivers
+Healthcare and Life Sciences
+Automotive and Aerospace Industry
+Construction and Real Estate
+A B S T R A C T
+Applications of Digital Twin technology have been growing at an exponential rate, and it is transforming the
+way businesses operate. In the past few years, Digital Twins leveraged vital business applications, and it is
+predicted that the technology will expand to more applications, use cases, and industries. The purpose of this
+paper is to do a literature review and explore how Digital Twins streamline intelligent automation in different
+industries. This paper defines the concept, highlights the evolution and development of Digital Twins, reviews
+its key enabling technologies, examines its trends and challenges, and explores its applications in different
+industries.
+
+--- FILE: 1911.10107v1.pdf ---
+Deep Reinforcement Learning for Trading
+Zihao Zhang, Stefan Zohren, and Stephen Roberts
+Department of Engineering Science,
+Oxford-Man Institute of Quantitative Finance, University of Oxford
+Abstract
+We adopt Deep Reinforcement Learning algorithms to design trading strategies
+for continuous futures contracts. Both discrete and continuous action spaces are
+considered and volatility scaling is incorporated to create reward functions which
+scale trade positions based on market volatility. We test our algorithms on the 50
+most liquid futures contracts from 2011 to 2019, and investigate how performance
+varies across different asset classes including commodities, equity indices, ﬁxed
+income and FX markets. We compare our algorithms against classical time series
+momentum strategies, and show that our method outperforms such baseline models,
+delivering positive proﬁts despite heavy transaction costs. The experiments show
+that the proposed algorithms can follow large market trends without changing
+positions and can also scale down, or hold, through consolidation periods.
+1 Introduction
+Financial trading has been a widely researched topic and a variety of methods have been proposed to
+trade markets over the last few decades. These include fundamental analysis [16], technical analysis
+[38] and algorithmic trading [8]. Indeed, many practitioners use a hybrid of these techniques to make
+trades [42]. Algorithmic trading has arguably gained most recent interest and accounts for about 75%
+of 
+
+--- FILE: 2202.02435v1.pdf ---
+On Neural Diﬀerential Equations
+Patrick Kidger
+Mathematical Institute
+University of Oxford
+A thesis submitted for the degree of
+Doctor of Philosophy
+Trinity 2021
+arXiv:2202.02435v1  [cs.LG]  4 Feb 2022
+Abstract
+The conjoining of dynamical systems and deep learning has become a
+topic of great interest. In particular, neural diﬀerential equations (NDEs)
+demonstrate that neural networks and diﬀerential equation are two sides
+of the same coin. Traditional parameterised diﬀerential equations are a
+special case. Many popular neural network architectures, such as residual
+networks and recurrent networks, are discretisations.
+NDEs are suitable for tackling generative problems, dynamical systems,
+and time series (particularly in physics, ﬁnance, . . . ) and are thus of
+interest to both modern machine learning and traditional mathematical
+modelling. NDEs oﬀer high-capacity function approximation, strong pri-
+ors on model space, the ability to handle irregular data, memory eﬃciency,
+and a wealth of available theory on both sides.
+This doctoral thesis provides an in-depth survey of the ﬁeld.
+Topics include: neural ordinary diﬀerential equations (e.g. for hybrid
+neural/mechanistic modelling of physical systems); neural controlled dif-
+ferential equations (e.g. for learning functions of irregular time series);
+
+--- FILE: btae400 (1).pdf ---
+A physics-informed neural SDE network for learning cellular
+dynamics from time-series scRNA-seq data
+Qi Jiang, Lin Wan
+Downloaded from https://academic.oup.com/bioinformatics/article/40/Supplement_2/ii120/7749082 by guest on 19 July 2026
+A physics-informed neural SDE network for learning
+cellular dynamics from time-series scRNA-seq data
+Qi Jiang
+1,2
+and Lin Wan
+1,2,
+�
+1
+Academy of Mathematics and Systems Science, Chinese Academy of Sciences, Beijing 100190, China
+2
+School of Mathematical Sciences, University of Chinese Academy of Sciences, Beijing 100049, China
+�
+Corresponding author. Academy of Mathematics and Systems Science, Chinese Academy of Sciences, No. 55 Zhongguancun East Road, 100190, Beijing,
+China; School of Mathematical Sciences, University of Chinese Academy of Sciences, 19A Yuquan Road, 100049, Beijing, China. E-mail: lwan@amss.ac.cn (L.W.)
+Abstract
+Motivation: Learning cellular dynamics through reconstruction of the underlying cellular potential energy landscape (aka Waddington land -
+scape) from time-series single-cell RNA sequencing (scRNA-seq) data is a current challenge. Prevailing data-driven computational methods can
+be hampered by the lack of physical principles to guide learning from complex data, resulting in reduced prediction accuracy and interpretability
+when applied to infer cell population dynamics.
+Results: Here, we propose PI-SDE, a physics-informed neural stochastic differential equation (SDE) framework that combines the Hamilton–
+Jacobi (HJ) 
+
+--- FILE: btae400.pdf ---
+A physics-informed neural SDE network for learning cellular
+dynamics from time-series scRNA-seq data
+Qi Jiang, Lin Wan
+Downloaded from https://academic.oup.com/bioinformatics/article/40/Supplement_2/ii120/7749082 by guest on 19 July 2026
+A physics-informed neural SDE network for learning
+cellular dynamics from time-series scRNA-seq data
+Qi Jiang
+1,2
+and Lin Wan
+1,2,
+�
+1
+Academy of Mathematics and Systems Science, Chinese Academy of Sciences, Beijing 100190, China
+2
+School of Mathematical Sciences, University of Chinese Academy of Sciences, Beijing 100049, China
+�
+Corresponding author. Academy of Mathematics and Systems Science, Chinese Academy of Sciences, No. 55 Zhongguancun East Road, 100190, Beijing,
+China; School of Mathematical Sciences, University of Chinese Academy of Sciences, 19A Yuquan Road, 100049, Beijing, China. E-mail: lwan@amss.ac.cn (L.W.)
+Abstract
+Motivation: Learning cellular dynamics through reconstruction of the underlying cellular potential energy landscape (aka Waddington land -
+scape) from time-series single-cell RNA sequencing (scRNA-seq) data is a current challenge. Prevailing data-driven computational methods can
+be hampered by the lack of physical principles to guide learning from complex data, resulting in reduced prediction accuracy and interpretability
+when applied to infer cell population dynamics.
+Results: Here, we propose PI-SDE, a physics-informed neural stochastic differential equation (SDE) framework that combines the Hamilton–
+Jacobi (HJ) 
+
+--- FILE: constrained-sparse-galerkin-regression.pdf ---
+J. Fluid Mech. (2018), vol. 838, pp. 42–67. c⃝ Cambridge University Press 2018
+doi:10.1017/jfm.2017.823
+42
+Constrained sparse Galerkin regression
+Jean-Christophe Loiseau1,† and Steven L. Brunton2
+1Laboratoire DynFluid, Arts et Métiers ParisTech, 75013 Paris, France
+2Department of Mechanical Engineering, University of Washington, Seattle, W A 98195, USA
+(Received 23 December 2016; revised 18 August 2017; accepted 9 November 2017;
+ﬁrst published online 10 January 2018)
+The sparse identiﬁcation of nonlinear dynamics (SINDy) is a recently proposed
+data-driven modelling framework that uses sparse regression techniques to identify
+nonlinear low-order models. With the goal of low-order models of a ﬂuid ﬂow,
+we combine this approach with dimensionality reduction techniques (e.g. proper
+orthogonal decomposition) and extend it to enforce physical constraints in the
+regression, e.g. energy-preserving quadratic nonlinearities. The resulting models,
+hereafter referred to as Galerkin regression models, incorporate many beneﬁcial
+aspects of Galerkin projection, but without the need for a high-ﬁdelity solver to project
+the Navier–Stokes equations. Instead, the most parsimonious nonlinear model is
+determined that is consistent with observed measurement data and satisﬁes necessary
+constraints. Galerkin regression models also readily generalize to include higher-order
+nonlinear terms that model the effect of truncated modes. The effectiveness of such an
+approach is demonstrated on two canonical
+
+--- FILE: Deep learning for limit order books.pdf ---
+Quantitative Finance
+ISSN: 1469-7688 (Print) 1469-7696 (Online) Journal homepage: www.tandfonline.com/journals/rquf20
+Deep learning for limit order books
+Justin A. Sirignano
+To cite this article: Justin A. Sirignano (2019) Deep learning for limit order books, Quantitative
+Finance, 19:4, 549-570, DOI: 10.1080/14697688.2018.1546053
+To link to this article:  https://doi.org/10.1080/14697688.2018.1546053
+Published online: 23 Nov 2018.
+Submit your article to this journal
+Article views: 3702
+View related articles
+View Crossmark data
+Citing articles: 30 View citing articles
+Full Terms & Conditions of access and use can be found at
+https://www.tandfonline.com/action/journalInformation?journalCode=rquf20
+Quantitative Finance, 2019
+V ol. 19, No. 4, 549–570, https://doi.org/10.1080/14697688.2018.1546053
+Deep learning for limit order books
+JUSTIN A. SIRIGNANO*
+University of Illinois at Urbana-Champaign, Urbana, USA
+(Received 2 November 2017; accepted 28 September 2018; published online 23 November 2018)
+This paper develops a new neural network architecture for modeling spatial distributions (i.e.
+distributions on Rd ) which is more computationally efﬁcient than a traditional fully-connected feed-
+forward architecture. The design of the architecture takes advantage of the speciﬁc structure of limit
+order books. The new architecture, which we refer to as a ‘spatial neural network’, yields a low-
+
+--- FILE: hhaa009.pdf ---
+Empirical Asset Pricing via Machine Learning
+Shihao Gu, Bryan Kelly, Dacheng Xiu
+Downloaded from https://academic.oup.com/rfs/article/33/5/2223/5758276 by guest on 19 July 2026
+[16:04 6/4/2020 RFS-OP-REVF200009.tex] Page: 2223 2223–2274
+Empirical Asset Pricing via Machine
+Learning∗
+Shihao Gu
+Booth School of Business, University of Chicago
+Bryan Kelly
+Y ale University, AQR Capital Management, and NBER
+Dacheng Xiu
+Booth School of Business, University of Chicago
+We perform a comparative analysis of machine learning methods for the canonical problem
+of empirical asset pricing: measuring asset risk premiums. We demonstrate large economic
+gains to investors using machine learning forecasts, in some cases doubling the performance
+of leading regression-based strategies from the literature. We identify the best-performing
+methods (trees and neural networks) and trace their predictive gains to allowing nonlinear
+predictor interactions missed by other methods. All methods agree on the same set of
+dominant predictive signals, a set that includes variations on momentum, liquidity, and
+volatility. ( JEL C52, C55, C58, G0, G1, G17)
+Received September 4, 2018; editorial decision September 22, 2019 by Editor Andrew
+Karolyi. Authors have furnished an Internet Appendix, which is available on the Oxford
+University Press Web site next to the link to the ﬁnal published paper online.
+∗We beneﬁtted from discussions with Joseph Babcock, Si Chen (discussant), Rob Engle, Andrea Frazzini,
+Amit Goyal (di
+
+--- FILE: J Adv Model Earth Syst - 2026 - Tseng - Toward an Analytical Solution of the Liouville Equation via Data‐Driven Methods .pdf ---
+Toward an Analytical Solution of the Liouville Equation via
+Data‐Driven Methods: Applications to Ensemble Forecasting
+Kai‐Chih Tseng
+1
+, Ray Kuo
+1
+, and Yi‐An Feng
+1
+1
+Department of Atmospheric Sciences, National Taiwan University, Taipei, Taiwan
+Abstract Solving probabilistic weather forecasts is challenging due to computational constraints and the
+nonlinear nature of Earth atmosphere. This study proposes a proof‐of‐concept to address these challenges by
+solving the Liouville equation, that is, the analytical solution for probabilistic forecasts, with data‐driven
+method. Using the sparse identification of nonlinear dynamics (SINDy) algorithm, our research demonstrates
+that data‐driven models can achieve accuracy levels in probabilistic forecasts comparable to analytical
+solutions. Through various experiments, including Bernoulli differential equations, the Lorenz 84 model, and
+subseasonal forecasts of tropical intraseasonal variability, we show that the data‐driven Liouville equations
+yield simple functional forms or smoothness across physical space when predictability is present. These
+findings suggest the potential of these advancements in tackling higher‐dimensional weather forecasting
+problems. Additionally, we discuss potential applications and future challenges.
+Plain Language Summary This research introduces a proof‐of‐concept: creating an ensemble
+weather forecast with unlimited members (representing all possible scenarios) using a machine‐learned
+analytical solution
+
+--- FILE: JACM11.pdf ---
+11
+Robust Principal Component Analysis?
+EMMANUEL J. CAND `ES and XIAODONG LI , Stanford University
+YI MA, University of Illinois at Urbana-Champaign, Microsoft Research Asia
+JOHN WRIGHT, Microsoft Research Asia
+This article is about a curious phenomenon. Suppose we have a data matrix, which is the superposition of a
+low-rank component and a sparse component. Can we recover each component individually? We prove that
+under some suitable assumptions, it is possible to recover both the low-rank and the sparse components
+exactly by solving a very convenient convex program calledPrincipal Component Pursuit; among all feasible
+decompositions, simply minimize a weighted combination of the nuclear norm and of the ℓ
+1 norm. This sug-
+gests the possibility of a principled approach to robust principal component analysis since our methodology
+and results assert that one can recover the principal components of a data matrix even though a positive
+fraction of its entries are arbitrarily corrupted. This extends to the situation where a fraction of the entries
+are missing as well. We discuss an algorithm for solving this optimization problem, and present applications
+in the area of video surveillance, where our methodology allows for the detection of objects in a cluttered
+background, and in the area of face recognition, where it offers a principled way of removing shadows and
+specularities in images of faces.
+Categories and Subject Descriptors: G.1.6 [ Mathematics of Computing ]: Numerical A
+
+--- FILE: PhysRevFluids.5.054401.pdf ---
+PHYSICAL REVIEW FLUIDS 5, 054401 (2020)
+Editors’ Suggestion
+Robust principal component analysis for modal decomposition
+of corrupt ﬂuid ﬂows
+Isabel Scherl ,1,* Benjamin Strom,1 Jessica K. Shang,2 Owen Williams ,3
+Brian L. Polagye ,1 and Steven L. Brunton 1
+1Department of Mechanical Engineering, University of Washington, Seattle, Washington 98195, USA
+2Department of Mechanical Engineering, University of Rochester, Rochester, New York 14627, USA
+3Department of Aeronautics and Astronautics, University of Washington, Seattle, Washington 98195, USA
+(Received 19 December 2019; accepted 1 April 2020; published 28 May 2020)
+Modal analysis techniques are used to identify patterns and develop reduced-order
+models in a variety of ﬂuid applications. However, experimentally acquired ﬂow ﬁelds may
+be corrupted with incorrect and missing entries, which may degrade modal decomposition.
+Here we use robust principal component analysis (RPCA) to improve the quality of
+ﬂow-ﬁeld data by leveraging global coherent structures to identify and replace spurious
+data points. RPCA is a robust variant of principal component analysis, also known as
+proper orthogonal decomposition in ﬂuids, that decomposes a data matrix into the sum of a
+low-rank matrix containing coherent structures and a sparse matrix of outliers and corrupt
+entries. We apply RPCA ﬁltering to a range of ﬂuid simulations and experiments of varying
+complexities and assess the accuracy of low-rank structure recovery. First, we analyze
+direc
+
+--- FILE: rspa.2023.0422.pdf ---
+royalsocietypublishing.org/journal/rspa
+Research
+Citethisarticle: BakarjiJ,ChampionK,
+NathanKutzJ,BruntonSL.2023Discovering
+governingequationsfrompartial
+measurementswithdeepdelayautoencoders.
+P r o c .R .S o c .A479:20230422.
+https://doi.org/10.1098/rspa.2023.0422
+Received:12June2023
+Accepted:4August2023
+SubjectAreas:
+artificialintelligence,computationalphysics,
+computationalmathematics
+Keywords:
+sparseidentificationofnonlineardynamics,
+autoencoders,time-delayembedding
+Authorforcorrespondence:
+JosephBakarji
+e-mail:jbakarji@uw.edu
+Discoveringgoverning
+equationsfrompartial
+measurementswithdeep
+delayautoencoders
+JosephBakarji1,KathleenChampion 2,
+J.NathanKutz 2andStevenL.Brunton 1
+
+--- FILE: s10915-022-01939-z.pdf ---
+Journal of Scientiﬁc Computing (2022) 92:88
+https://doi.org/10.1007/s10915-022-01939-z
+Scientiﬁc Machine Learning Through Physics–Informed
+Neural Networks: Where we are and What’s Next
+Salvatore Cuomo 1 · Vincenzo Schiano Di Cola 2 · Fabio Giampaolo 1 ·
+Gianluigi Rozza 3 · Maziar Raissi 4 · Francesco Piccialli 1
+Received: 14 January 2022 / Revised: 6 July 2022 / Accepted: 6 July 2022 /
+Published online: 26 July 2022
+© The Author(s) 2022
+Abstract
+Physics-Informed Neural Networks (PINN) are neural networks (NNs) that encode model
+equations, like Partial Differential Equations (PDE), as a component of the neural network
+itself. PINNs are nowadays used to solve PDEs, fractional equations, integral-differential
+equations, and stochastic PDEs. This novel methodology has arisen as a multi-task learning
+framework in which a NN must ﬁt observed data while reducing a PDE residual. This article
+provides a comprehensive review of the literature on PINNs: while the primary goal of the
+study was to characterize these networks and their related advantages and disadvantages.
+The review also attempts to incorporate publications on a broader range of collocation-based
+physics informed neural networks, which stars form the vanilla PINN, as well as many other
+variants, such as physics-constrained neural networks (PCNN), variational hp-VPINN, and
+conservative PINN (CPINN). The study indicates that most research has focused on cus-
+tomizing the PINN through different activation functions, gradient
+
+--- FILE: sciadv.1602614.pdf ---
+APPLIED MATHEMATICS 2017 © The Authors,
+some rights reserved;
+exclusive licensee
+American Association
+for the Advancement
+of Science. Distributed
+under a Creative
+Commons Attribution
+NonCommercial
+License 4.0 (CC BY-NC).
+Data-driven discovery of partial differential equations
+Samuel H. Rudy, 1* Steven L. Brunton, 2 Joshua L. Proctor, 3 J. Nathan Kutz 1
+We propose a sparse regression method capable of discovering the governing partial differential equation(s) of
+a given system by time series measurements in the spatial domain. The regression framework relies on sparsity-
+promoting techniques to select the nonlinear and partial derivative terms of the governing equations that most
+accurately represent the data, bypassing a combinatorially large search through all possible candidate models.
+The method balances model complexity and regression accuracy by selecting a parsimonious model via Pareto
+analysis. Time series measurements can be made in an Eulerian framework, where the sensors are fixed spa-
+tially, or in a Lagrangian framework, where the sensors move with the dynamics. The method is computationally
+efficient, robust, and demonstrated to work on a variety of canonical problems spanning a number of scientific
+domains including Navier-Stokes, the quantum harmonic oscillator, and the diffusion equation. Moreover, the
+method is capable of disambiguating between potentially nonunique dynamical terms by using multiple time
+series taken with different initial data. Thus, for a t
+
+=================== FOLDER: JEPA ===================
+
+--- FILE: 05365-FuE.pdf ---
+Frequency-Masked Embedding Inference: A Non-Contrastive Approach for Time
+Series Representation Learning
+En Fu1, Yanyan Hu1,2, *,
+1School of Intelligence Science and Technology, University of Science and Technology Beijing
+2Institute of Artificial Intelligence, University of Science and Technology Beijing
+fuen@xs.ustb.edu.cn, huyanyan@ustb.edu.cn
+Abstract
+Contrastive learning underpins most current self-supervised
+time series representation methods. The strategy for con-
+structing positive and negative sample pairs significantly af-
+fects the final representation quality. However, due to the
+continuous nature of time series semantics, the modeling ap-
+proach of contrastive learning struggles to accommodate the
+characteristics of time series data. This results in issues such
+as difficulties in constructing hard negative samples and the
+potential introduction of inappropriate biases during positive
+sample construction. Although some recent works have de-
+veloped several scientific strategies for constructing positive
+and negative sample pairs with improved effectiveness, they
+remain constrained by the contrastive learning framework. To
+fundamentally overcome the limitations of contrastive learn-
+ing, this paper introduces Frequency-masked Embedding In-
+ference (FEI), a novel non-contrastive method that com-
+pletely eliminates the need for positive and negative samples.
+The proposed FEI constructs 2 inference branches based on a
+
+--- FILE: 2311.15830v3.pdf ---
+A-JEPA: Joint-Embedding Predictive Architecture Can Listen
+Zhengcong Fei, Mingyuan Fan, Junshi Huang∗
+Kunlun Inc.
+feizhengcong@gmail.com
+Abstract
+This paper presents that the masked-modeling prin-
+ciple driving the success of large foundational vi-
+sion models can be effectively applied to audio by
+making predictions in a latent space. We intro-
+duce Audio-based Joint-Embedding Predictive Ar-
+chitecture (A-JEPA), a simple extension method for
+self-supervised learning from the audio spectrum.
+Following the design of I-JEPA, our A-JEPA en-
+codes visible audio spectrogram patches with a cur-
+riculum masking strategy via context encoder, and
+predicts the representations of regions sampled at
+well-designed locations. The target representations
+of those regions are extracted by the exponential
+moving average of context encoder, i.e., target en-
+coder, on the whole spectrogram. We find it bene-
+ficial to transfer random block masking into time-
+frequency aware masking in a curriculum manner,
+considering the complexity of highly correlated in
+local time and frequency in audio spectrograms. To
+enhance contextual semantic understanding and ro-
+
+--- FILE: 2405.10093v2.pdf ---
+LaT-PFN: A Joint Embedding Predictive Architecture
+for In-context Time-series Forecasting
+Stijn Verdenius∗
+W AIR†, Amsterdam
+stijn@wairforretail.com
+Andrea Zerio∗
+W AIR, Amsterdam
+andrea@wairforretail.com
+Roy L.M. Wang
+W AIR, Amsterdam
+roy@wairforretail.com
+Abstract
+We introduce LatentTimePFN (LaT-PFN), a foundational Time Series model with
+a strong embedding space that enables zero-shot forecasting. To achieve this, we
+perform in-context learning in latent space utilizing a novel integration of the Prior-
+data Fitted Networks (PFN) and Joint Embedding Predictive Architecture (JEPA)
+frameworks. We leverage the JEPA framework to create a prediction-optimized
+latent representation of the underlying stochastic process that generates time series
+and combines it with contextual learning, using a PFN. Furthermore, we improve
+on preceding works by utilizing related time series as a context and introducing
+a normalized abstract time axis. This reduces training time and increases the
+versatility of the model by allowing any time granularity and forecast horizon. We
+show that this results in superior zero-shot predictions compared to established
+baselines. We also demonstrate our latent space produces informative embeddings
+of both individual time steps and fixed-length summaries of entire series. Finally,
+
+--- FILE: 2509.25449v1.pdf ---
+Joint Embeddings Go Temporal
+Sofiane Ennadir∗
+KTH
+Stockholm, Sweden
+Siavash Golkar
+New York University
+New York, USA
+Leopoldo Sarra
+Flatiron Institute
+New York, USA
+Abstract
+Self-supervised learning has seen great success recently in unsupervised represen-
+tation learning, enabling breakthroughs in natural language and image processing.
+However, these methods often rely on autoregressive and masked modeling, which
+aim to reproduce masked information in the input, which can be vulnerable to
+the presence of noise or confounding variables. To address this problem, Joint-
+Embedding Predictive Architectures (JEPA) has been introduced with the aim to
+perform self-supervised learning in the latent space. To leverage these advance-
+ments in the domain of time series, we introduce Time Series JEPA (TS-JEPA),
+an architecture specifically adapted for time series representation learning. We
+validate TS-JEPA on both classification and forecasting, showing that it can match
+or surpass current state-of-the-art baselines on different standard datasets. Notably,
+our approach demonstrates a strong performance balance across diverse tasks,
+indicating its potential as a robust foundation for learning general representations.
+Thus, this work lays the groundwork for developing future time series foundation
+
+--- FILE: 2606.16076v1.pdf ---
+Phys-JEPA: Physics-Informed Latent World Models for
+Multivariate Time-Series Forecasting
+Weizhi Nie, Weichao Liu, Honglin Guo, and Yuting Su
+Tianjin University
+Abstract
+Multivariate forecasting in physical systems requires models that predict coupled tempo-
+ral variables while preserving meaningful state evolution. Deep forecasters can fit complex
+temporal correlations, and physics-informed models can regularize predictions with scien-
+tific constraints, but these directions are typically connected only at the decoded-output
+level. Consequently, the hidden predictive state from which future trajectories are gener-
+ated may be statistically useful yet physically unstructured. We introduce Phys-JEPA, a
+physics-informed joint-embedding predictive architecture for multivariate time-series fore-
+casting. Phys-JEPA learns a latent world model in which predictive states are decomposed
+into physical and residual components, and physical consistency is imposed directly on la-
+tent states and latent transitions rather than only on decoded forecasts. This formulation
+uses known physical variables to organize the representation space while preserving residual
+capacity for dynamics that are not captured by the explicit physical projection. On Jena
+Climate 2009–2016, where the variables have direct meteorological meaning, Phys-JEPA
+reduces aggregate MSE from 0.12482 to 0.12273 and temperature MSE from 0.01892 to
+0.01831 at H=24. On Traffic, full Phys-JEPA improves aggregate MSE over the su
+
+--- FILE: ssrn-6855118.pdf ---
+Fin-JEPA: Joint-Embedding Predictive Representation
+Learning
+for Financial Time Series
+Yihan Wang*
+https://github.com/cedricwyh/fin-jepa
+Team Fin-JEPA
+Abstract
+We present Fin-JEPA, the ﬁrst application of the Joint-Embedding Predictive Architecture (JEPA)
+to ﬁnancial time series. Fin-JEPA learns 64-dimensional latent representations of daily equity features
+through a lightweight 367K-parameter architecture comprising a PriceEncoder (MLP with GELU activa-
+tions, LayerNorm) and a TransformerPredictor with 4-layer causal Transformer (n_heads=4, embed_dim=64).
+Representational collapse is prevented through Sketched Isotropic Gaussian Regularization (SIGReg,
+λ = 0.1). On a large-scale dataset of 6,230 publicly traded equities spanning 2010–2026 (2.07M training
+samples), the training loss converges from 1.369 to 0.706 over 50 epochs with no collapse ( stdZ=1.35,
+eff_rank=37.8). The learned latent predictions outperform an identity baseline by 10.1% ( Z_pred
+MSE 0.2922 vs. 0.3249), conﬁrming that daily ﬁnancial time series contain learnable temporal structure.
+In downstream evaluation, we analyze prediction error (V oE) as a potential trading signal across 300
+stocks (393K windows), ﬁnding weak-to-negligible signal (AUC ≈0.49, Spearman r ≈0). We outline
+future work for PELT-based regime detection and multi-horizon training.
+1 Introduction
+Self-supervised representation learning for ﬁnancial time series has largely followed two paradigms. Con-
+trastive methods ( van den Oord et al. ,
+
+--- FILE: Time-Series_JEPA_for_Predictive_Remote_Control_Under_Capacity-Limited_Networks.pdf ---
+IEEE INTERNET OF THINGS JOURNAL, VOL. 13, NO. 7, 1 APRIL 2026 14617
+Time-Series JEPA for Predictive Remote Control
+Under Capacity-Limited Networks
+Abanoub M. Girgis
+, Member , IEEE, Alvaro Valcarce
+, Senior Member , IEEE,
+and Mehdi Bennis
+, Fellow, IEEE
+Abstract—In remote control systems, transmitting large data
+volumes (e.g., images and video frames) from wireless sensors to
+remote controllers is challenging when uplink capacity is limited
+(e.g., RedCap devices or massive wireless sensor networks).
+Furthermore, controllers often need only information-rich rep-
+resentations of the original data. To address this, we propose
+a semantic-driven predictive control combined with a channel-
+aware scheduling to enhance the control performance for multiple
+devices under limited network capacity. At its core, the proposed
+framework, coined time-series joint-embedding predictive archi-
+tecture (TS-JEPA), encodes high-dimensional sensory data into
+low-dimensional semantic embeddings at the sensor, reducing
+communication overhead. Furthermore, TS-JEPA enables pre-
+dictive inference by predicting future embeddings from current
+ones and predicted commands, which are directly used by a
+semantic actor model to compute control commands within the
+embedding space, eliminating the need to reconstruct raw data.

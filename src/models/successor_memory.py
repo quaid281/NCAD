@@ -15,6 +15,65 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
 
+def robust_pca(
+    X: np.ndarray,
+    lmbda: Optional[float] = None,
+    max_iter: int = 100,
+    tol: float = 1e-7,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Inexact Augmented Lagrange Multipliers (IALM) for Robust PCA: X = L + S."""
+    X_mat = np.asarray(X, dtype=np.float64)
+    orig_shape = X_mat.shape
+    if X_mat.ndim > 2:
+        X_mat = X_mat.reshape(X_mat.shape[0], -1)
+
+    n, d = X_mat.shape
+    if lmbda is None:
+        lmbda = 1.0 / np.sqrt(max(n, d))
+
+    norm_two = float(np.linalg.norm(X_mat, 2))
+    norm_inf = float(np.max(np.abs(X_mat)) / lmbda)
+    dual_norm = max(norm_two, norm_inf)
+    if dual_norm < 1e-12:
+        dual_norm = 1.0
+
+    Y = X_mat / dual_norm
+    L = np.zeros_like(X_mat)
+    S = np.zeros_like(X_mat)
+
+    mu = 1.25 / norm_two if norm_two > 1e-12 else 1.25
+    mu_bar = mu * 1e7
+    rho = 1.5
+    d_norm = float(np.linalg.norm(X_mat, "fro"))
+
+    for _ in range(max_iter):
+        temp_s = X_mat - L + (1.0 / mu) * Y
+        S = np.sign(temp_s) * np.maximum(np.abs(temp_s) - lmbda / mu, 0.0)
+
+        temp_l = X_mat - S + (1.0 / mu) * Y
+        u, s, vh = np.linalg.svd(temp_l, full_matrices=False)
+        s_th = np.maximum(s - 1.0 / mu, 0.0)
+        rank = int(np.sum(s_th > 0))
+        if rank > 0:
+            L = (u[:, :rank] * s_th[:rank]) @ vh[:rank, :]
+        else:
+            L = np.zeros_like(X_mat)
+
+        Z = X_mat - L - S
+        Y = Y + mu * Z
+        mu = min(mu * rho, mu_bar)
+
+        err = float(np.linalg.norm(Z, "fro")) / (d_norm + 1e-12)
+        if err < tol:
+            break
+
+    if len(orig_shape) > 2:
+        L = L.reshape(orig_shape)
+        S = S.reshape(orig_shape)
+
+    return L.astype(np.float32), S.astype(np.float32)
+
+
 @dataclass
 class SuccessorMemoryConfig:
     n_neighbors: int = 8
@@ -22,6 +81,7 @@ class SuccessorMemoryConfig:
     context_percentile: float = 99.0
     distance_metric: str = "euclidean"
     seed: int = 42
+    use_rpca_sanitization: bool = True
 
 
 @dataclass
@@ -49,6 +109,7 @@ class CounterfactualSuccessorMemory:
         self.calibration_successor_median_scores: Optional[np.ndarray] = None
         self.calibration_successor_dispersion: Optional[np.ndarray] = None
         self.calibration_expected_successors: Optional[np.ndarray] = None
+        self.sparse_outliers: Optional[np.ndarray] = None
 
     def fit(self, context_embeddings: np.ndarray, successor_windows: np.ndarray) -> "CounterfactualSuccessorMemory":
         context_embeddings = np.asarray(context_embeddings, dtype=np.float32)
@@ -66,7 +127,15 @@ class CounterfactualSuccessorMemory:
 
         self.sample_indices = selected_indices
         self.context_embeddings = context_embeddings[selected_indices].astype(np.float32)
-        self.successor_windows = successor_windows[selected_indices].astype(np.float32)
+        raw_successors = successor_windows[selected_indices].astype(np.float32)
+
+        if self.config.use_rpca_sanitization and len(raw_successors) >= 10:
+            clean_l, sparse_s = robust_pca(raw_successors)
+            self.successor_windows = clean_l
+            self.sparse_outliers = sparse_s
+        else:
+            self.successor_windows = raw_successors
+            self.sparse_outliers = np.zeros_like(raw_successors)
 
         n_neighbors = max(1, min(self.config.n_neighbors, len(self.context_embeddings)))
         self.neighbor_model = NearestNeighbors(n_neighbors=n_neighbors, metric=self.config.distance_metric)

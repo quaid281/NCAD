@@ -27,6 +27,9 @@ class FeatureConfig:
     slope_windows: tuple[int, ...] = (16, 64)
     max_features: int = 64
     clip_value: float = 10.0
+    use_delay_embedding: bool = True
+    delay_embedding_dim: int = 5
+    delay_lag: int = 4
 
 
 class NCADFeatureExtractor:
@@ -137,9 +140,23 @@ class NCADFeatureExtractor:
         self._add_stft_features(values, add)
         self._add_wavelet_features(values, add)
         self._add_complexity_features(values, add)
+        if self.config.use_delay_embedding:
+            self._add_delay_features(values, add)
 
         self.feature_names_ = names
         return np.column_stack(feature_arrays)
+
+    def _add_delay_features(self, values: np.ndarray, add) -> None:
+        n_points = len(values)
+        dim = max(1, self.config.delay_embedding_dim)
+        lag = max(1, self.config.delay_lag)
+        for k in range(1, dim):
+            total_lag = k * lag
+            if total_lag < n_points:
+                lagged = np.r_[np.full(total_lag, values[0]), values[:-total_lag]]
+            else:
+                lagged = np.full(n_points, values[0])
+            add(f"delay_coord_m{k}_lag{total_lag}", lagged)
 
     @staticmethod
     def _rolling_slope(values: np.ndarray, window: int) -> np.ndarray:
