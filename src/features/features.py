@@ -160,31 +160,50 @@ class NCADFeatureExtractor:
 
     @staticmethod
     def _rolling_slope(values: np.ndarray, window: int) -> np.ndarray:
-        slopes = np.zeros(len(values), dtype=np.float64)
-        for index in range(len(values)):
-            start = max(0, index - window + 1)
-            y_values = values[start : index + 1]
-            if len(y_values) < 2:
-                continue
-            x_values = np.arange(len(y_values), dtype=np.float64)
-            x_centered = x_values - np.mean(x_values)
-            denominator = np.sum(x_centered * x_centered)
-            if denominator > 1e-12:
-                slopes[index] = np.sum(x_centered * (y_values - np.mean(y_values))) / denominator
+        """Vectorized rolling linear regression slope via 1D causal convolution."""
+        n_points = len(values)
+        slopes = np.zeros(n_points, dtype=np.float64)
+        if n_points < 2 or window < 2:
+            return slopes
+
+        w = min(window, n_points)
+        x = np.arange(w, dtype=np.float64)
+        x_centered = x - np.mean(x)
+        denom = np.sum(x_centered ** 2)
+
+        if denom > 1e-12:
+            kernel = x_centered / denom
+            conv = np.convolve(values, kernel[::-1], mode="full")[:n_points]
+            slopes[w - 1 :] = conv[w - 1 :]
+
+        # Initial warmup points for t < w - 1
+        for index in range(1, min(w - 1, n_points)):
+            y_values = values[: index + 1]
+            x_val = np.arange(len(y_values), dtype=np.float64)
+            x_c = x_val - np.mean(x_val)
+            d = np.sum(x_c ** 2)
+            if d > 1e-12:
+                slopes[index] = np.sum(x_c * y_values) / d
+
         return slopes
 
     def _add_fft_features(self, values: np.ndarray, add) -> None:
+        """Vectorized batch FFT spectral descriptors using strided sliding windows."""
         n_points = len(values)
         window = min(self.config.fft_window, n_points)
-        dominant_freq = np.zeros(n_points)
-        spectral_entropy = np.zeros(n_points)
-        spectral_power = np.zeros(n_points)
+        dominant_freq = np.zeros(n_points, dtype=np.float64)
+        spectral_entropy = np.zeros(n_points, dtype=np.float64)
+        spectral_power = np.zeros(n_points, dtype=np.float64)
 
-        for index in range(n_points):
-            start = max(0, index - window + 1)
-            segment = values[start : index + 1]
-            if len(segment) < 8:
-                continue
+        if n_points < 8:
+            add("fft_dominant_freq", dominant_freq)
+            add("fft_spectral_entropy", spectral_entropy)
+            add("fft_power", spectral_power)
+            return
+
+        # 1. Warmup for boundary points
+        for index in range(7, min(window - 1, n_points)):
+            segment = values[: index + 1]
             fft_values = np.fft.rfft(segment - np.mean(segment))
             power = np.abs(fft_values) ** 2
             spectral_power[index] = float(np.sum(power))
@@ -194,6 +213,25 @@ class NCADFeatureExtractor:
             if total_power > 1e-12:
                 normalized_power = power / total_power
                 spectral_entropy[index] = -float(np.sum(normalized_power * np.log2(normalized_power + 1e-12)))
+
+        # 2. Vectorized batch FFT for full windows
+        if n_points >= window:
+            from numpy.lib.stride_tricks import sliding_window_view
+            strided_windows = sliding_window_view(values, window_shape=window)
+            centered = strided_windows - np.mean(strided_windows, axis=1, keepdims=True)
+            fft_vals = np.fft.rfft(centered, axis=1)
+            power = np.abs(fft_vals) ** 2
+
+            tot_power = np.sum(power, axis=1)
+            spectral_power[window - 1 :] = tot_power
+
+            if power.shape[1] > 1:
+                dominant_freq[window - 1 :] = np.argmax(power[:, 1:], axis=1) + 1
+
+            eps = 1e-12
+            norm_power = np.divide(power, tot_power[:, None] + eps, out=np.zeros_like(power), where=tot_power[:, None] > eps)
+            log_term = np.log2(norm_power + eps)
+            spectral_entropy[window - 1 :] = -np.sum(np.where(norm_power > 0, norm_power * log_term, 0.0), axis=1)
 
         add("fft_dominant_freq", dominant_freq)
         add("fft_spectral_entropy", spectral_entropy)

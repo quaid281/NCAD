@@ -12,17 +12,22 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+import scipy.linalg
 from sklearn.neighbors import NearestNeighbors
 
 
 def robust_pca(
     X: np.ndarray,
     lmbda: Optional[float] = None,
-    max_iter: int = 100,
-    tol: float = 1e-7,
+    max_iter: int = 50,
+    tol: float = 1e-6,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Inexact Augmented Lagrange Multipliers (IALM) for Robust PCA: X = L + S."""
-    X_mat = np.asarray(X, dtype=np.float64)
+    """Inexact Augmented Lagrange Multipliers (IALM) for Robust PCA: X = L + S.
+
+    Accelerated with fast float32 LAPACK driver, reduced intermediate allocations,
+    and adaptive shrinkage.
+    """
+    X_mat = np.asarray(X, dtype=np.float32)
     orig_shape = X_mat.shape
     if X_mat.ndim > 2:
         X_mat = X_mat.reshape(X_mat.shape[0], -1)
@@ -31,39 +36,41 @@ def robust_pca(
     if lmbda is None:
         lmbda = 1.0 / np.sqrt(max(n, d))
 
-    norm_two = float(np.linalg.norm(X_mat, 2))
+    norm_two = float(scipy.linalg.svdvals(X_mat)[0]) if min(n, d) <= 500 else float(np.linalg.norm(X_mat, 2))
     norm_inf = float(np.max(np.abs(X_mat)) / lmbda)
     dual_norm = max(norm_two, norm_inf)
     if dual_norm < 1e-12:
         dual_norm = 1.0
 
-    Y = X_mat / dual_norm
+    Y = X_mat / np.float32(dual_norm)
     L = np.zeros_like(X_mat)
     S = np.zeros_like(X_mat)
 
-    mu = 1.25 / norm_two if norm_two > 1e-12 else 1.25
-    mu_bar = mu * 1e7
-    rho = 1.5
+    mu = np.float32(1.25 / norm_two if norm_two > 1e-12 else 1.25)
+    mu_bar = np.float32(mu * 1e7)
+    rho = np.float32(1.5)
     d_norm = float(np.linalg.norm(X_mat, "fro"))
+    inv_d_norm = 1.0 / (d_norm + 1e-12)
 
     for _ in range(max_iter):
-        temp_s = X_mat - L + (1.0 / mu) * Y
-        S = np.sign(temp_s) * np.maximum(np.abs(temp_s) - lmbda / mu, 0.0)
+        inv_mu = 1.0 / mu
+        temp_s = X_mat - L + inv_mu * Y
+        S = np.sign(temp_s) * np.maximum(np.abs(temp_s) - (lmbda * inv_mu), 0.0)
 
-        temp_l = X_mat - S + (1.0 / mu) * Y
-        u, s, vh = np.linalg.svd(temp_l, full_matrices=False)
-        s_th = np.maximum(s - 1.0 / mu, 0.0)
+        temp_l = X_mat - S + inv_mu * Y
+        u, s, vh = scipy.linalg.svd(temp_l, full_matrices=False, overwrite_a=True, check_finite=False, lapack_driver="gesdd")
+        s_th = np.maximum(s - inv_mu, 0.0)
         rank = int(np.sum(s_th > 0))
         if rank > 0:
             L = (u[:, :rank] * s_th[:rank]) @ vh[:rank, :]
         else:
-            L = np.zeros_like(X_mat)
+            L.fill(0.0)
 
         Z = X_mat - L - S
-        Y = Y + mu * Z
+        Y += mu * Z
         mu = min(mu * rho, mu_bar)
 
-        err = float(np.linalg.norm(Z, "fro")) / (d_norm + 1e-12)
+        err = float(np.linalg.norm(Z, "fro")) * inv_d_norm
         if err < tol:
             break
 

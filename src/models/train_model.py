@@ -26,13 +26,10 @@ from src.utils.logging_utils import setup_logging
 from src.utils.plotting import plot_channel_diagnostics
 
 from src.models.multi_scale_tcn_encoder import MultiScaleTCNEncoder
-from src.models.relational_gat_encoder import RelationalGATEncoder
 from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
-from src.models.ts_jepa import TSJEPAModel, jepa_vicreg_loss
 from src.utils.event_fusion import (
     adaptive_elbow_score_floor,
     aggregate_window_scores,
-    calibrate_evt_threshold,
     compute_metrics,
     event_level_filter,
     fuse_evidence_scores,
@@ -45,11 +42,10 @@ from src.utils.event_fusion import (
     dispersion_confidence,
     successor_manifold_uncertainty_scores,
 )
-from src.utils.evt_calibrator import EVTCalibrator, EVTThresholdResult
 
 logger = logging.getLogger("NCAD.train")
 
-EncoderModel = HybridTCNEncoder | MultiScaleTCNEncoder | RelationalGATEncoder
+EncoderModel = HybridTCNEncoder | MultiScaleTCNEncoder
 
 
 @dataclass
@@ -76,10 +72,10 @@ class CSMConfig:
     injection_ratio: float = 0.70
     successor_neighbors: int = 8
     context_percentile: float = 99.0
+    event_threshold_percentile: float = 99.0
     threshold_method: str = "evt"
     evt_risk_level: float = 1e-3
     evt_init_percentile: float = 98.0
-    event_threshold_percentile: float = 99.0
     score_floor_percentile: Optional[float] = None
     degenerate_score_epsilon: float = 1e-6
     local_tail_size: int = 64
@@ -97,15 +93,6 @@ class CSMConfig:
     device: str = "auto"
     mapping_method: str = "middle"
     use_pa: bool = True
-    successor_space: str = "latent"
-    use_delay_embedding: bool = True
-    delay_embedding_dim: int = 5
-    delay_lag: int = 4
-    use_rpca_sanitization: bool = True
-    use_sindy_dynamics: bool = True
-    sindy_threshold: float = 0.05
-    sindy_poly_degree: int = 2
-    pretrain_mode: str = "fei_sigreg"
 
     @property
     def full_window_size(self) -> int:
@@ -140,8 +127,6 @@ def build_encoder(config: CSMConfig, input_dim: int, device: torch.device) -> En
         model = HybridTCNEncoder(**common_kwargs)
     elif config.encoder_architecture == "multi_scale_tcn":
         model = MultiScaleTCNEncoder(**common_kwargs)
-    elif config.encoder_architecture == "relational_gat":
-        model = RelationalGATEncoder(**common_kwargs)
     else:
         raise ValueError(f"Unknown encoder architecture: {config.encoder_architecture}")
     model.architecture = config.encoder_architecture
@@ -184,66 +169,10 @@ def split_train_validation(windows: np.ndarray, val_split: float, seed: int) -> 
 
 def train_encoder(train_windows: np.ndarray, config: CSMConfig, input_dim: int, device: torch.device) -> tuple[EncoderModel, dict]:
     model = build_encoder(config, input_dim, device)
-    training_data, validation_data = split_train_validation(train_windows, config.val_split, config.seed)
-
-    if config.pretrain_mode == "ts_jepa":
-        jepa_model = TSJEPAModel(context_encoder=model, latent_dim=config.latent_dim, ema_decay=0.995).to(device)
-        optimizer = optim.AdamW(jepa_model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
-        best_state = None
-        best_val_loss = float("inf")
-        patience_counter = 0
-        history = {"train_loss": [], "val_loss": []}
-
-        for epoch in range(1, config.epochs + 1):
-            jepa_model.train()
-            epoch_indices = np.random.permutation(len(training_data))
-            total_loss = 0.0
-            total_count = 0
-            for batch_start in range(0, len(epoch_indices), config.batch_size):
-                batch_indices = epoch_indices[batch_start : batch_start + config.batch_size]
-                clean_batch = training_data[batch_indices]
-
-                ctx_tensor = torch.from_numpy(clean_batch[:, : config.context_size]).float().to(device)
-                target_tensor = torch.from_numpy(clean_batch[:, config.context_size :]).float().to(device)
-
-                optimizer.zero_grad(set_to_none=True)
-                z_ctx, z_target_true, z_target_pred = jepa_model(ctx_tensor, target_tensor)
-                loss = jepa_vicreg_loss(z_target_pred, z_target_true, z_ctx)
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(jepa_model.parameters(), max_norm=1.0)
-                optimizer.step()
-                jepa_model.update_target_encoder()
-
-                total_loss += float(loss.item()) * len(clean_batch)
-                total_count += len(clean_batch)
-
-            train_loss = total_loss / max(total_count, 1)
-            val_loss = evaluate_jepa_loss(jepa_model, validation_data, config, device)
-            if not np.isfinite(val_loss):
-                val_loss = train_loss
-            history["train_loss"].append(train_loss)
-            history["val_loss"].append(val_loss)
-            logger.info(f"  epoch {epoch:03d}/{config.epochs} (TS-JEPA): train_loss={train_loss:.5f}, val_loss={val_loss:.5f}")
-
-            if val_loss < best_val_loss - 1e-5:
-                best_val_loss = val_loss
-                best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
-                patience_counter = 0
-            else:
-                patience_counter += 1
-                if patience_counter >= config.patience:
-                    logger.info(f"  early stopping after {epoch} epochs")
-                    break
-
-        if best_state is not None:
-            model.load_state_dict(best_state)
-        history["best_val_loss"] = best_val_loss
-        return model, history
-
-    # Default contrastive training mode with synthetic anomaly injection
     optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
     injector = ContextualAnomalyInjector(AnomalyInjectionConfig(injection_ratio=config.injection_ratio), seed=config.seed)
     val_injector = ContextualAnomalyInjector(AnomalyInjectionConfig(injection_ratio=config.injection_ratio), seed=config.seed + 1)
+    training_data, validation_data = split_train_validation(train_windows, config.val_split, config.seed)
 
     best_state = None
     best_val_loss = float("inf")
@@ -297,29 +226,6 @@ def train_encoder(train_windows: np.ndarray, config: CSMConfig, input_dim: int, 
     return model, history
 
 
-def evaluate_jepa_loss(
-    jepa_model: TSJEPAModel,
-    validation_data: np.ndarray,
-    config: CSMConfig,
-    device: torch.device,
-) -> float:
-    if len(validation_data) == 0:
-        return float("nan")
-    jepa_model.eval()
-    losses = []
-    counts = []
-    with torch.no_grad():
-        for batch_start in range(0, len(validation_data), config.batch_size):
-            clean_batch = validation_data[batch_start : batch_start + config.batch_size]
-            ctx_tensor = torch.from_numpy(clean_batch[:, : config.context_size]).float().to(device)
-            target_tensor = torch.from_numpy(clean_batch[:, config.context_size :]).float().to(device)
-            z_ctx, z_target_true, z_target_pred = jepa_model(ctx_tensor, target_tensor)
-            loss = jepa_vicreg_loss(z_target_pred, z_target_true, z_ctx)
-            losses.append(float(loss.item()) * len(clean_batch))
-            counts.append(len(clean_batch))
-    return sum(losses) / max(sum(counts), 1)
-
-
 def evaluate_contrastive_loss(
     model: EncoderModel,
     validation_data: np.ndarray,
@@ -354,20 +260,15 @@ def build_successor_memory(
     context_windows = train_windows[:, : config.context_size]
     successor_windows = train_windows[:, config.context_size :]
     context_embeddings = encode_windows(model, context_windows, config.batch_size, device)
-    if config.successor_space == "latent":
-        successor_data = encode_windows(model, successor_windows, config.batch_size, device)
-    else:
-        successor_data = successor_windows
     memory = CounterfactualSuccessorMemory(
         SuccessorMemoryConfig(
             n_neighbors=config.successor_neighbors,
             max_memory_windows=config.max_memory_windows,
             context_percentile=config.context_percentile,
             seed=config.seed,
-            use_rpca_sanitization=config.use_rpca_sanitization,
         )
     )
-    return memory.fit(context_embeddings, successor_data)
+    return memory.fit(context_embeddings, successor_windows)
 
 
 def score_windows(
@@ -385,11 +286,7 @@ def score_windows(
     context_windows = windows[:, : config.context_size]
     observed_successors = windows[:, config.context_size :]
     context_embeddings = encode_windows(model, context_windows, config.batch_size, device)
-    if config.successor_space == "latent":
-        observed_successor_data = encode_windows(model, observed_successors, config.batch_size, device)
-    else:
-        observed_successor_data = observed_successors
-    query = memory.query(context_embeddings, observed_successor_data)
+    query = memory.query(context_embeddings, observed_successors)
 
     local_raw_scores = local_deviation_scores(windows, config.context_size, tail_size=config.local_tail_size)
     if successor_stats.percentile_99 <= config.degenerate_score_epsilon:
@@ -524,6 +421,7 @@ def calibrate_event_threshold(
     evt_calibrator = None
     evt_info = None
     if config.threshold_method == "evt":
+        from src.utils.evt_calibrator import EVTCalibrator
         evt_calibrator = EVTCalibrator(
             risk_level=config.evt_risk_level,
             init_percentile=config.evt_init_percentile,
@@ -719,11 +617,11 @@ def run_channel(channel_data: ChannelData, run_dir: Path, config: CSMConfig, dev
         score_details,
         point_scores,
         smoothed_scores,
-        anomaly_probabilities,
         context_ood_map,
         valid_mask,
         predictions,
         calibration_window_scores,
+        anomaly_probabilities=anomaly_probabilities,
     )
     if config.save_plots:
         plot_channel_diagnostics(channel_dir, channel_data, smoothed_scores, calibration["event_threshold"], predictions, context_ood_map)
@@ -743,11 +641,11 @@ def save_channel_outputs(
     score_details: dict,
     point_scores: np.ndarray,
     smoothed_scores: np.ndarray,
-    anomaly_probabilities: np.ndarray,
     context_ood_map: np.ndarray,
     valid_mask: np.ndarray,
     predictions: np.ndarray,
     calibration_window_scores: np.ndarray,
+    anomaly_probabilities: Optional[np.ndarray] = None,
 ) -> None:
     with (channel_dir / "metrics.json").open("w", encoding="utf-8") as file:
         json.dump(result, file, indent=2)
@@ -770,14 +668,19 @@ def save_channel_outputs(
     memory.save(channel_dir / "successor_memory.npz")
 
     labels = channel_data.labels if channel_data.labels is not None else np.full(len(channel_data.test_raw), np.nan)
+    prob_col = (
+        anomaly_probabilities.astype(np.float32)
+        if anomaly_probabilities is not None
+        else np.zeros(len(channel_data.test_raw), dtype=np.float32)
+    )
     predictions_df = pd.DataFrame(
         {
             "time_index": np.arange(len(channel_data.test_raw)),
             "telemetry": channel_data.test_raw,
             "point_score": point_scores,
             "smoothed_score": smoothed_scores,
-            "anomaly_probability": anomaly_probabilities[: len(channel_data.test_raw)],
             "prediction": predictions.astype(np.float32),
+            "anomaly_probability": prob_col,
             "label": labels[: len(channel_data.test_raw)],
             "context_ood": context_ood_map.astype(np.float32),
             "valid_score": valid_mask.astype(np.float32),
@@ -857,30 +760,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--encoder",
         type=str,
-        choices=["hybrid_tcn", "multi_scale_tcn", "relational_gat"],
+        choices=["hybrid_tcn", "multi_scale_tcn"],
         default="hybrid_tcn",
         help="Encoder architecture.",
     )
     parser.add_argument("--successor-neighbors", type=int, default=8)
-    parser.add_argument(
-        "--threshold-method",
-        type=str,
-        choices=["evt", "adaptive_elbow", "percentile"],
-        default="evt",
-        help="Adaptive threshold calibration method. 'evt' uses Generalized Pareto tail fitting.",
-    )
-    parser.add_argument(
-        "--evt-risk-level",
-        type=float,
-        default=1e-3,
-        help="EVT extreme quantile target false alarm risk probability q (e.g. 1e-3).",
-    )
-    parser.add_argument(
-        "--evt-init-percentile",
-        type=float,
-        default=98.0,
-        help="Initial baseline percentile t for EVT Peaks-Over-Threshold excess fitting.",
-    )
     parser.add_argument("--event-threshold-percentile", type=float, default=99.0)
     parser.add_argument(
         "--score-floor-percentile",
@@ -898,17 +782,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-memory-windows", type=int, default=5000)
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--no-plots", action="store_true")
-    parser.add_argument("--successor-space", type=str, choices=["latent", "raw"], default="latent")
-    parser.add_argument("--no-delay-embedding", action="store_true", help="Disable Takens time-delay attractor embedding.")
-    parser.add_argument("--delay-embedding-dim", type=int, default=5, help="Takens delay embedding dimension m.")
-    parser.add_argument("--delay-lag", type=int, default=4, help="Takens delay embedding lag tau.")
-    parser.add_argument(
-        "--pretrain-mode",
-        type=str,
-        choices=["ts_jepa", "contrastive"],
-        default="ts_jepa",
-        help="Self-supervised pre-training objective. 'ts_jepa' uses Joint Embedding Predictive Architecture with VICReg.",
-    )
     parser.add_argument(
         "--log-level",
         type=str,
@@ -947,9 +820,6 @@ def main() -> None:
         feature_dim=args.feature_dim,
         encoder_architecture=args.encoder,
         successor_neighbors=args.successor_neighbors,
-        threshold_method=args.threshold_method,
-        evt_risk_level=args.evt_risk_level,
-        evt_init_percentile=args.evt_init_percentile,
         event_threshold_percentile=args.event_threshold_percentile,
         score_floor_percentile=args.score_floor_percentile,
         manifold_uncertainty=args.manifold_uncertainty,
@@ -958,11 +828,6 @@ def main() -> None:
         max_memory_windows=args.max_memory_windows,
         save_plots=not args.no_plots,
         device=args.device,
-        successor_space=args.successor_space,
-        use_delay_embedding=not args.no_delay_embedding,
-        delay_embedding_dim=args.delay_embedding_dim,
-        delay_lag=args.delay_lag,
-        pretrain_mode=args.pretrain_mode,
     )
     run_dir, summary = run_experiment(channels, config)
     print("\nSummary:")

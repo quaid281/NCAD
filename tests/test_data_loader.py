@@ -26,6 +26,34 @@ def test_create_windows():
     assert np.allclose(windows[1, :, 0], [2, 3, 4, 5])
 
 
+def test_create_windows_zero_copy():
+    values = np.arange(20, dtype=np.float32)
+    windows_copy = DataLoader.create_windows(values, window_size=5, step=2, copy=True)
+    windows_view = DataLoader.create_windows(values, window_size=5, step=2, copy=False)
+    
+    assert np.allclose(windows_copy, windows_view)
+    # Verify that windows_view shares underlying memory buffer
+    assert windows_view.base is not None
+
+
+def test_sliding_window_dataset():
+    from src.data.data_loader import SlidingWindowDataset
+    import torch
+    
+    values = np.arange(20, dtype=np.float32).reshape(10, 2)
+    dataset = SlidingWindowDataset(values, window_size=4, step=2)
+    
+    assert len(dataset) == (10 - 4) // 2 + 1  # 4 windows
+    
+    sample_0 = dataset[0]
+    assert isinstance(sample_0, torch.Tensor)
+    assert sample_0.shape == (4, 2)
+    assert np.allclose(sample_0.numpy(), values[:4])
+    
+    sample_1 = dataset[1]
+    assert np.allclose(sample_1.numpy(), values[2:6])
+
+
 def test_data_loader_load(tmp_path):
     # Setup mock data directory
     raw_dir = tmp_path / "raw"
