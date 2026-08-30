@@ -45,11 +45,11 @@ class SelectiveStateSpaceBlock(nn.Module):
         return inputs + self.dropout(y)
 
 
-class SelectiveSSMContextEncoder(nn.Module):
-    """Drop-in sequence encoder for full or context windows.
+class ExperimentalSSMContextEncoder(nn.Module):
+    """Drop-in sequence encoder prototype for full or context windows.
 
-    The interface matches the existing TCN encoder: input shape is
-    ``(batch, sequence, features)`` and output shape is ``(batch, latent_dim)``.
+    Note: This is an experimental, token-by-token research prototype.
+    For high-performance production workloads, use `src.models.SelectiveSSMContextEncoder`.
     """
 
     def __init__(
@@ -89,3 +89,7 @@ class SelectiveSSMContextEncoder(nn.Module):
         std_features = torch.std(x, dim=1, unbiased=False)
         latent = self.pool_head(torch.cat([last_features, mean_features, max_features, std_features], dim=1))
         return torch.nan_to_num(latent)
+
+
+# Deprecated backward-compatibility alias
+SelectiveSSMContextEncoder = ExperimentalSSMContextEncoder

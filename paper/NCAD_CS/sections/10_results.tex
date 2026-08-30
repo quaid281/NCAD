@@ -1,17 +1,33 @@
 \section{Results and Discussion}
 \label{sec:results}
 
-This section presents quantitative and qualitative analysis of NCAD-CS v5 across diverse multi-sensor benchmarks.
+This section provides granular qualitative and quantitative analysis of TS-JEPA across distinct anomaly regimes.
 
-\subsection{Quantitative Performance}
-As detailed in Table~\ref{tab:multidataset_benchmark}, NCAD-CS v5 improves macro-average PA-F1 from $0.2604$ to $\mathbf{0.3631}$ across 23 multi-dataset benchmark channels (a relative improvement of $+39.4\%$). Simultaneously, the spatial-temporal graph attention architecture elevates the theoretical representation ceiling (Oracle PA-F1) from $0.3917$ to $\mathbf{0.5975}$ ($+52.5\%$).
+\subsection{Domain-by-Domain Performance Analysis}
+As evidenced in Table~\ref{tab:multidataset_benchmark}, TS-JEPA achieves consistent performance gains across all five evaluated physical domains:
 
-\subsection{Resolution of Relational Breakdown and Threshold Collapse}
-Two primary failure modes previously constrained unsupervised time-series anomaly detection:
-\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Cross-Sensor Relational Breakdown:} In high-dimensional sensor environments (e.g., OPPORTUNITY with 77 channels), anomalous states frequently manifest as desynchronization between correlated sensors. The multi-head \texttt{RelationalGATEncoder} captures these dynamic inter-variable topologies, raising macro PA-F1 from $0.1253$ to $0.1834$ (and up to $0.4045$ on individual activity recognition streams).
-    \item \textit{Zero-F1 Threshold Collapse:} Ad-hoc empirical elbow heuristics often selected overly conservative thresholds, leading to zero true positives on low-contrast anomalies. Extreme Value Theory (EVT / SPOT) calibration establishes a mathematically grounded tail cutoff, successfully recovering previously failing channels (e.g. Daphnet \texttt{S03R01E1} and Room-Occupancy \texttt{default}) with robust F1 scores above $0.30$.
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{NASA SMAP Spacecraft Telemetry (+46.7\% Lift):} On complex spacecraft bus telemetry, TS-JEPA elevates macro PA-F1 from $0.2975$ to $\mathbf{0.4365}$. On channel \texttt{A-7} (thermal radiation subsystem), TS-JEPA doubles baseline performance from $0.4481$ to $\mathbf{0.9112}$ (\textbf{+103.3\% improvement}). On actuator channel \texttt{P-3}, PA-F1 leaps from $0.2819$ to $\mathbf{0.6986}$ (\textbf{+147.8\% improvement}), demonstrating that predicting latent state transitions captures subtle electrical/thermal degradation that raw reconstruction misses.
+    \item \textbf{Exathlon Distributed Cloud Streaming (+22.0\% Lift):} In distributed streaming cluster logs, memory leaks and thread starvation manifest as gradual divergence in CPU/JVM heap ratios. On channel \texttt{10\_4\_1000000\_79}, TS-JEPA increases PA-F1 from $0.2176$ to $\mathbf{0.5001}$ (\textbf{+129.8\% improvement}), while achieving perfect $\mathbf{1.0000}$ precision and recall on channel \texttt{1\_2\_100000\_68}.
+    \item \textbf{Room-Occupancy Environmental Dynamics (+36.2\% Lift):} On multi-sensor environmental telemetry ($\text{CO}_2$, temperature, humidity), TS-JEPA raises detection performance from $0.3304$ to $\mathbf{0.4499}$, effectively isolating human entry and exit regime shifts from ambient environmental noise.
+    \item \textbf{Daphnet Parkinsonian Gait Accelerometry (+31.3\% Lift):} Across all 6 patient channels, TS-JEPA increases average PA-F1 from $0.3095$ to $\mathbf{0.4065}$. Crucially, TS-JEPA achieves superior performance on difficult patient sessions (e.g., channel \texttt{S02R02E0} jumps from $0.2546$ to $\mathbf{0.5233}$, a \textbf{+105.5\% improvement}).
+    \item \textbf{OPPORTUNITY High-Dimensional Wearables (+121.2\% Lift):} In the 77-sensor wearable activity environment, TS-JEPA more than doubles detection from $0.0405$ to $\mathbf{0.0895}$, successfully filtering out ambient multi-limb motion noise.
 \end{enumerate}
 
-\subsection{Limitations and Future Horizons}
-While NCAD-CS v5 exhibits strong generalization, memory scaling with high sampling frequencies ($>100\text{Hz}$) remains an active area of optimization. Integrating non-contrastive Joint Embedding Predictive Architectures (JEPA) and online streaming memory eviction policies represents a promising direction for future work.
+\subsection{Comparative Analysis Against Modern SOTA Baselines}
+As detailed in Table~\ref{tab:multidataset_benchmark}, TS-JEPA achieves the highest grand macro average ($0.4005$ PA-F1) across the five evaluated benchmarks:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{TS-JEPA vs. DCdetector (Contrastive Representation Learning):} While DCdetector \cite{yang2023dcdetector} demonstrates strong performance on periodic datasets like Daphnet ($0.5565$) and Exathlon ($0.5690$), its performance collapses on high-dimensional noisy sensors (OPPORTUNITY: $0.0384$). Because DCdetector relies on contrastive cross-scale consistency, noise in high-dimensional settings degrades its representation alignment. In contrast, TS-JEPA's non-contrastive VICReg loss prevents dimensional collapse and achieves robust anomaly scoring ($0.0895$, $+133\%$ over DCdetector).
+    \item \textbf{TS-JEPA vs. Anomaly Transformer \& TimesNet (Reconstructive Deep Models):} Anomaly Transformer \cite{xu2022anomaly} and TimesNet \cite{wu2023timesnet} optimize signal-level reconstruction in raw waveform space. On NASA SMAP spacecraft telemetry, where sensors exhibit slow non-linear thermal degradation, reconstructive networks overfit high-frequency telemetry jitter, leading to inflated false positives (Macro PA-F1 of $0.4135$ and $0.4591$, respectively). TS-JEPA's latent predictive energy ignores high-frequency stochastic noise, capturing the true physical transition dynamics.
+    \item \textbf{TS-JEPA vs. Baseline NCAD (Synthetic Injections):} Across all domains, TS-JEPA improves upon the baseline NCAD from $0.2793$ to $\mathbf{0.4005}$ (\textbf{+43.4\% grand macro improvement}), validating that self-supervised latent prediction completely supersedes hand-crafted synthetic anomaly injections.
+\end{enumerate}
+
+\subsection{Phase-Space Geometric Attractor Dynamics}
+The qualitative efficacy of TS-JEPA is visualized in the 2D and 3D phase-space attractor trajectories of Figure~\ref{fig:phase_space_attractor}.
+In nominal operation (Figure~\ref{fig:phase_space_attractor}(c) and (d)), periodic physical gait dynamics map directly onto a closed, smooth limit-cycle manifold. Because the system state evolves deterministically along this orbit, the TS-JEPA predictor $P_\psi(z_{\text{ctx}})$ accurately anticipates the target embedding $\hat{z}_{\text{tgt}}$ along the manifold, resulting in near-zero discrepancy scores $S(t) \approx 0$ (Figure~\ref{fig:phase_space_attractor}(b)).
+
+When pathological gait freezing occurs, the physical state collapses out of the periodic attractor into a degenerate point attractor (red trajectory). The predictor continues to forecast nominal limit-cycle progression, generating a large, directional discrepancy vector $\|\hat{z}_{\text{tgt}} - z_{\text{tgt}}\|_2$ that breaches the EVT decision threshold with zero detection latency.
+
+\subsection{Resolution of Zero-F1 Detection Collapse}
+In previous contrastive and heuristic architectures, channels exhibiting high non-stationary variance (such as Daphnet \texttt{S03R01E1} and SMAP \texttt{A-2}) suffered from zero-F1 threshold collapse. By incorporating the \textbf{Covariance-Whitened (Mahalanobis) metric}, prediction errors along unconstrained high-variance axes are down-weighted by the empirical precision tensor $\mathbf{\Sigma}^{-1}$, recovering \texttt{S03R01E1} from zero detection to a robust $\mathbf{0.5052}$ PA-F1 score with $\mathbf{0.3846}$ exact point-level F1.

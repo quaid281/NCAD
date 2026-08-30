@@ -59,6 +59,7 @@ class RelationalGAT_JEPAModel(nn.Module):
         self.target_encoder = copy.deepcopy(self.context_encoder)
         for p in self.target_encoder.parameters():
             p.requires_grad = False
+        self.target_encoder.eval()
 
         # 3. Latent Predictor
         self.predictor = LatentPredictor(
@@ -70,7 +71,14 @@ class RelationalGAT_JEPAModel(nn.Module):
 
         # Optional empirical precision matrix (inverse covariance) for Mahalanobis scoring
         self.register_buffer("precision_matrix", torch.eye(latent_dim))
-        self.precision_fitted = False
+        self.register_buffer("residual_mean", torch.zeros(latent_dim))
+        self.register_buffer("precision_fitted", torch.tensor(False, dtype=torch.bool))
+
+    def train(self, mode: bool = True) -> RelationalGAT_JEPAModel:
+        """Override train to ensure the target encoder strictly remains in eval mode."""
+        super().train(mode)
+        self.target_encoder.eval()
+        return self
 
     def forward(
         self,
@@ -91,6 +99,7 @@ class RelationalGAT_JEPAModel(nn.Module):
 
         z_target_true = None
         if target_windows is not None:
+            self.target_encoder.eval()
             with torch.no_grad():
                 z_target_true = self.target_encoder(target_windows)
 
@@ -98,10 +107,12 @@ class RelationalGAT_JEPAModel(nn.Module):
 
     @torch.no_grad()
     def update_target_encoder(self, decay: Optional[float] = None) -> None:
-        """Update target encoder weights via Exponential Moving Average (EMA)."""
+        """Update target encoder weights and buffers via Exponential Moving Average (EMA)."""
         m = self.ema_decay if decay is None else decay
         for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
             param_k.data.mul_(m).add_((1.0 - m) * param_q.data)
+        for buf_q, buf_k in zip(self.context_encoder.buffers(), self.target_encoder.buffers()):
+            buf_k.data.copy_(buf_q.data)
 
     def compute_loss(
         self,
@@ -109,7 +120,7 @@ class RelationalGAT_JEPAModel(nn.Module):
         target_windows: torch.Tensor,
         sim_weight: float = 1.0,
         var_weight: float = 1.0,
-        cov_weight: float = 0.05,
+        cov_weight: float = 0.5,
     ) -> torch.Tensor:
         """Compute VICReg loss."""
         z_context, z_target_true, z_target_pred = self.forward(context_windows, target_windows)
@@ -127,20 +138,30 @@ class RelationalGAT_JEPAModel(nn.Module):
         self,
         context_windows: torch.Tensor,
         target_windows: torch.Tensor,
+        batch_size: int = 512,
         reg: float = 1e-3,
     ) -> None:
-        """Fit empirical residual covariance matrix for Mahalanobis discrepancy."""
+        """Fit empirical residual covariance matrix for Mahalanobis discrepancy using batched accumulation."""
         self.eval()
-        z_ctx = self.context_encoder(context_windows)
-        z_pred = self.predictor(z_ctx)
-        z_obs = self.target_encoder(target_windows)
-        residuals = z_obs - z_pred  # (N, D)
+        n_samples = len(context_windows)
+        residuals_list = []
 
-        residuals_centered = residuals - residuals.mean(dim=0, keepdim=True)
+        for i in range(0, n_samples, batch_size):
+            ctx_b = context_windows[i : i + batch_size]
+            tgt_b = target_windows[i : i + batch_size]
+            z_ctx = self.context_encoder(ctx_b)
+            z_pred = self.predictor(z_ctx)
+            z_obs = self.target_encoder(tgt_b)
+            residuals_list.append(z_obs - z_pred)
+
+        residuals = torch.cat(residuals_list, dim=0)
+        mean_res = residuals.mean(dim=0, keepdim=True)
+        self.residual_mean.copy_(mean_res.squeeze(0))
+        residuals_centered = residuals - mean_res
         cov = (residuals_centered.T @ residuals_centered) / max(len(residuals) - 1, 1)
         cov_reg = cov + reg * torch.eye(self.latent_dim, device=cov.device)
-        self.precision_matrix = torch.linalg.pinv(cov_reg)
-        self.precision_fitted = True
+        self.precision_matrix.copy_(torch.linalg.pinv(cov_reg))
+        self.precision_fitted.copy_(torch.tensor(True, dtype=torch.bool))
 
     @torch.no_grad()
     def compute_predictive_discrepancy(
@@ -156,9 +177,15 @@ class RelationalGAT_JEPAModel(nn.Module):
         z_obs = self.target_encoder(observed_target_windows)
         diff = z_obs - z_pred
 
-        if use_mahalanobis and self.precision_fitted:
-            # S = sqrt(diff @ Precision @ diff.T)
-            mahal = torch.sum((diff @ self.precision_matrix) * diff, dim=-1)
+        if use_mahalanobis:
+            if not bool(self.precision_fitted.item()):
+                raise RuntimeError(
+                    "Mahalanobis discrepancy requested (use_mahalanobis=True), "
+                    "but the precision matrix has not been fitted! "
+                    "Call fit_mahalanobis_covariance() before inference."
+                )
+            diff_centered = diff - self.residual_mean
+            mahal = torch.sum((diff_centered @ self.precision_matrix) * diff_centered, dim=-1)
             return torch.sqrt(torch.clamp(mahal, min=1e-8))
         else:
             return torch.linalg.norm(diff, dim=-1)

@@ -1,53 +1,87 @@
-\section{Proposed Method}
+\section{Proposed Method: TS-JEPA}
 \label{sec:proposed_method}
 
-Our proposed methodology, termed Neural Contextual Anomaly Detection with Counterfactual Successor Memory (NCAD-CS), is a multi-stage methodology for anomaly detection in complex spacecraft telemetry. Building upon the contrastive-window formulation of the original NCAD framework \cite{carmona2021neural}, we retain a shared TCN encoder for full and context windows, but change the downstream question from context substitution to successor consistency. During training, normal contexts are stored together with the normal suspect segment that immediately followed them. During inference, a test context retrieves nearest normal contexts and their successors, producing a local counterfactual set of plausible normal futures. The observed suspect window is then scored by how far it deviates from this set, with complementary evidence from local raw-signal deviation and context distance. The overall workflow is depicted in Figure~\ref{fig:workflow}.
+This section details the architecture, optimization objectives, and statistical inference framework of \textbf{TS-JEPA} (Time-Series Joint-Embedding Predictive Architecture).
 
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{mermaid-ai-1.png}
-    \caption{Illustration of the algorithm workflow.}
-    \label{fig:workflow}
-\end{figure}
+\subsection{Architectural Formulation}
+\label{subsec:architecture}
+Let $\mathbf{X} \in \mathbb{R}^{T \times K}$ denote a continuous multivariate time-series sequence consisting of $K$ observed variables over $T$ timesteps. The sequence is segmented into overlapping temporal windows of length $L = C + S$, where $C$ is the historical context duration and $S$ is the suspect/target horizon:
+\begin{align}
+    x_{\text{ctx}} &= \mathbf{X}[t - C : t, :] \in \mathbb{R}^{C \times K}, \\
+    x_{\text{tgt}} &= \mathbf{X}[t : t + S, :] \in \mathbb{R}^{S \times K}.
+\end{align}
 
-\subsection{Robust Multi-Domain Feature Engineering}
-\label{subsec:feature_eng}
+TS-JEPA consists of three interconnected neural modules:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) with parameter weights $\theta$. The encoder maps the historical context $x_{\text{ctx}}$ to a low-dimensional representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal 1D convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context window without future information leakage \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
+    \item \textbf{Target Encoder ($E_\phi$):} An exact architectural replica of the context encoder with parameter weights $\phi$, mapping the target segment $x_{\text{tgt}}$ to the ground-truth target embedding $z_{\text{tgt}} = E_\phi(x_{\text{tgt}}) \in \mathbb{R}^D$. Crucially, $\phi$ is not updated via gradient backpropagation. Instead, $\phi$ tracks the context encoder weights $\theta$ via an Exponential Moving Average (EMA) momentum update at each training step $k$:
+    \begin{equation}
+        \phi_k \leftarrow m \phi_{k-1} + (1 - m) \theta_k,
+    \end{equation}
+    where $m \in [0, 1)$ is the momentum coefficient (empirically set to $m=0.995$).
+    \item \textbf{Latent Predictor ($P_\psi$):} A multi-layer bottleneck network with parameters $\psi$, parameterized by residual linear projections, GELU activations, and LayerNorm. The predictor forecasts the latent representation of the upcoming target window conditioned strictly on the context embedding:
+    \begin{equation}
+        \hat{z}_{\text{tgt}} = P_\psi(z_{\text{ctx}}) \in \mathbb{R}^D.
+    \end{equation}
+\end{enumerate}
 
-Recognizing that raw telemetry often lacks the expressive power to capture subtle deviations, we begin with a multi-domain feature engineering stage. This process transforms the raw univariate signal into a rich, high-dimensional representation, providing the model with a holistic view of the system's state across various temporal and spectral dimensions. Given a raw univariate telemetry channel $x_{\text{raw}} = \{x_1, x_2, \dots, x_T\}$, we extract a comprehensive set of features, including:
-\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Short-term rolling statistics} (e.g., mean, standard deviation, skew, kurtosis) to model immediate local signal characteristics.
-    \item \textit{Long-term rolling statistics} over a significantly larger window to establish a stable baseline of the signal's intrinsic volatility \cite{zivot2003rolling}.
-    \item \textit{Frequency-domain features} derived from both the Fast Fourier Transform (FFT) for global spectral properties and the Short-Time Fourier Transform (STFT) to identify localized changes in spectral energy and multimodal behavior \cite{chen2007feature}.
-    \item \textit{Trend and complexity indicators}, such as rolling slope for trend analysis and wavelet energy ratios for capturing non-stationary, multi-scale patterns \cite{trokic2019wavelet}.
-\end{itemize}
+\subsection{Non-Contrastive VICReg Regularization}
+\label{subsec:vicreg_loss}
+To learn the true dynamical laws of the system while strictly preventing representation collapse (wherein the encoder maps all time windows to a constant vector), TS-JEPA is optimized using the three-part VICReg objective \cite{bardes2021vicreg}:
 
-A critical aspect of this stage is ensuring numerical stability, particularly when dealing with real-world telemetry that may include periods of constant or near-constant values. Features relying on variance, such as the Z-score or higher-order moments like skewness, can be ill-defined for data with zero variance. Our implementation explicitly handles these edge cases by checking for near-zero variance before calculation and providing sensible defaults (e.g., zero skewness for a constant signal). This ensures the feature set remains robust and free of non-finite values that could disrupt model training.
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Invariance Loss ($\mathcal{L}_{\text{sim}}$):} Enforces accurate physical state forecasting between the predicted embedding $\hat{z}_{\text{tgt}}$ and the actual target embedding $z_{\text{tgt}}$ across a mini-batch of size $B$:
+    \begin{equation}
+        \mathcal{L}_{\text{sim}}(\hat{z}_{\text{tgt}}, z_{\text{tgt}}) = \frac{1}{B} \sum_{i=1}^B \|\hat{z}_{\text{tgt}}^{(i)} - z_{\text{tgt}}^{(i)}\|_2^2.
+    \end{equation}
+    \item \textbf{Variance Hinge Loss ($\mathcal{L}_{\text{var}}$):} Constrains the standard deviation of each latent dimension along the batch dimension to remain above a target threshold $\gamma = 1.0$, guaranteeing representation diversity and precluding point collapse:
+    \begin{equation}
+        \mathcal{L}_{\text{var}}(z) = \frac{1}{D} \sum_{j=1}^D \max\left(0, \gamma - \sqrt{\text{Var}(z_{\cdot, j}) + \epsilon}\right),
+    \end{equation}
+    where $\text{Var}(z_{\cdot, j}) = \frac{1}{B-1}\sum_{i=1}^B (z_{i, j} - \bar{z}_j)^2$ and $\epsilon = 10^{-4}$.
+    \item \textbf{Covariance Decorrelation Loss ($\mathcal{L}_{\text{cov}}$):} Penalizes off-diagonal correlations between distinct latent dimensions, preventing dimensional redundancy and encouraging orthogonal dynamical eigenmodes:
+    \begin{equation}
+        \mathcal{L}_{\text{cov}}(z) = \frac{1}{D} \sum_{j=1}^D \sum_{k \neq j} \left[ \mathbf{C}(z) \right]_{j, k}^2,
+    \end{equation}
+    where $\mathbf{C}(z) = \frac{1}{B-1} \sum_{i=1}^B (z^{(i)} - \bar{z})(z^{(i)} - \bar{z})^T \in \mathbb{R}^{D \times D}$.
+\end{enumerate}
 
-This process yields a high-dimensional feature matrix, $F_{\text{all}} \in \mathbb{R}^{T \times D_{\text{full}}}$. Each feature column is then normalized via a Z-score transformation using statistics ($\bm{\mu}_{F}$, $\bm{\sigma}_{F}$) computed from the training data \cite{patro2015normalization}. The results are clipped to a stable range (e.g., [-10, 10]) to mitigate the dominance of outliers. Finally, for computational efficiency, variance-based feature selection reduces the dimensionality to the final input matrix $F_{\text{selected}} \in \mathbb{R}^{T \times k}$, where $k=64$ in our experiments.
+The complete TS-JEPA training loss is minimized over parameters $\{\theta, \psi\}$:
+\begin{align}
+    \mathcal{L}_{\text{JEPA}} = \mathcal{L}_{\text{sim}}(\hat{z}_{\text{tgt}}, z_{\text{tgt}}) &+ \lambda_{\text{var}}\left[\mathcal{L}_{\text{var}}(\hat{z}_{\text{tgt}}) + \mathcal{L}_{\text{var}}(z_{\text{ctx}})\right] \nonumber \\
+    &+ \lambda_{\text{cov}}\left[\mathcal{L}_{\text{cov}}(\hat{z}_{\text{tgt}}) + \mathcal{L}_{\text{cov}}(z_{\text{ctx}})\right],
+\end{align}
+where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.05$ are hyperparameter balancing weights.
 
-\subsection{Windowing and Hybrid-Pooling TCN Encoder}
-\label{subsec:enhanced_tcn_encoder}
+\subsection{Covariance-Whitened (Mahalanobis) Discrepancy Metric}
+\label{subsec:mahalanobis}
+Standard anomaly detection scoring uses unweighted Euclidean distance $\|z_{\text{tgt}} - \hat{z}_{\text{tgt}}\|_2$, which implicitly assumes isotropic Gaussian variance across all latent axes. However, in multi-sensor physical systems, different latent dimensions correspond to dynamic modes with varying natural fluctuations.
 
-The core of our anomaly detection system is a sophisticated encoder, $\phi(\cdot; \theta)$, designed to transform time series windows of fixed size into information-rich latent representations. Our encoder is built upon a Temporal Convolutional Network (TCN), an architecture well-suited for sequential data \cite{bai2018empirical}. Compared to recurrent architectures like LSTMs, TCNs offer several key advantages for this problem. Specifically, unlike the sequential, step-by-step processing inherent to LSTMs, TCNs apply 1D convolutions across the entire input sequence in parallel. This architectural difference significantly accelerates model training and inference, a critical requirement for handling the high-volume data streams common in space systems \cite{gopali2021comparison}. Furthermore, TCNs achieve a vast receptive field by stacking layers of dilated causal convolutions. This allows the model to capture extremely long-term dependencies—such as a slow system drift over thousands of timesteps—without the vanishing gradient problems that can still affect LSTMs over such long horizons \cite{chen2022vanishing}. The stable gradient flow and flexible receptive field make TCNs exceptionally well-suited for learning the complex, multi-scale temporal patterns characteristic of spacecraft telemetry. Our design, however, moves beyond a standard TCN to address the unique challenges of spacecraft telemetry, which exhibits a broad spectrum of signal dynamics, from quiescent periods to highly volatile events.
+To capture directional uncertainty, TS-JEPA computes the empirical error covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal validation residuals $\mathbf{e}^{(i)} = z_{\text{tgt}}^{(i)} - \hat{z}_{\text{tgt}}^{(i)}$:
+\begin{equation}
+    \mathbf{\Sigma} = \frac{1}{N_{\text{cal}} - 1} \sum_{i=1}^{N_{\text{cal}}} \mathbf{e}^{(i)} (\mathbf{e}^{(i)})^T + \lambda_{\text{reg}} \mathbf{I}_D,
+\end{equation}
+where $\lambda_{\text{reg}} = 10^{-3}$ guarantees well-conditioned numerical inversion. The \textbf{Covariance-Whitened Discrepancy} for a test window is then defined as:
+\begin{equation}
+    D_M(x_{\text{ctx}}, x_{\text{tgt}}) = \sqrt{(\hat{z}_{\text{tgt}} - z_{\text{tgt}})^T \mathbf{\Sigma}^{-1} (\hat{z}_{\text{tgt}} - z_{\text{tgt}})}.
+\end{equation}
+This metric automatically scales prediction residuals by the inverse variance of each eigenmode, eliminating false alarms along high-variance nominal directions while magnifying subtle deviations along tightly constrained physical manifolds.
 
-\subsection{Input Segmentation and Normalization}
-The input to the encoder is a feature matrix, $F_{\text{selected}}$, which has been pre-processed and feature-engineered. This matrix is first segmented into overlapping windows of a fixed length, $L$. Each window, $w \in \mathbb{R}^{L \times k}$ (where $k$ is the number of features), is further subdivided into two distinct segments:
-\begin{itemize}
-    \item A context window, $w^{(c)} \in \mathbb{R}^{C \times k}$, representing the recent, presumably normal, history of the signal.
-    \item A suspect window, $w^{(s)} \in \mathbb{R}^{S \times k}$, representing the immediate subsequent data points to be evaluated for anomalies.
-\end{itemize}
-Here, the total window length is $L = C + S$.
+\subsection{Extreme Value Theory (EVT / SPOT) Tail Calibration}
+\label{subsec:evt_calibration}
+To establish an optimal anomaly threshold without relying on ground-truth labels or arbitrary heuristic percentiles, TS-JEPA applies Extreme Value Theory (EVT) via the Streaming Peaks-Over-Threshold (SPOT) framework \cite{siffer2017anomaly}.
 
-To ensure model stability and robustness, we integrate Layer Normalization \cite{ba2016layernormalization} directly within our TCN blocks. Unlike batch-dependent normalization schemes, Layer Normalization computes its statistics independently for each sample across its features. This makes the encoder's performance resilient to variations in batch composition and prevents issues with low-variance "flat-line" signals, common in telemetry data.
+According to the Pickands-Balkema-de Haan theorem \cite{balkema1974residual}, for a broad class of distributions, the excesses $Y = S - u$ of a continuous anomaly score $S$ over an initial high threshold $u$ asymptotically follow a Generalized Pareto Distribution (GPD):
+\begin{equation}
+    G_{\xi, \sigma}(y) = P(S - u \le y \mid S > u) = 1 - \left(1 + \frac{\xi y}{\sigma}\right)^{-1/\xi},
+\end{equation}
+where $\xi \in \mathbb{R}$ is the shape parameter and $\sigma > 0$ is the scale parameter.
 
-\begin{figure}[t] % Changed from h! to t for better placement
-    \centering
-    \includegraphics[width=0.9\linewidth]{TCN-Encoder.png}
-    \caption{Conceptual Illustration of the Dual-Pathway Encoder Architecture.}
-    \label{fig:encoder_architecture}
-\end{figure}
-
-\subsection{Pathway 1: The Hybrid Temporal Pathway}
-A key innovation of our model lies in its dual-pathway architecture, which processes the intermediate feature maps from the TCN, denoted as $X_{\text{tcn}}$, through two concurrent and complementary pathways. This design is engineered to capture a multi-faceted understanding of the window's content, analyzing its temporal evolution and underlying statistical properties. The outputs of these pathways are then combined to form the final latent embedding.
-
-... (full method text preserved in the section file)
+We fit the GPD parameters $(\hat{\xi}, \hat{\sigma})$ to the upper $2\%$ tail of nominal training residuals using Grimshaw's exact 1D root-finding algorithm \cite{grimshaw1993computing}. For a specified extreme exceedance probability (risk level) $q = 10^{-3}$, the calibrated decision threshold $\tau_{\text{EVT}}$ is computed analytically as:
+\begin{equation}
+    \tau_{\text{EVT}} = u + \frac{\hat{\sigma}}{\hat{\xi}} \left[ \left(\frac{N}{N_u} q\right)^{-\hat{\xi}} - 1 \right],
+\end{equation}
+where $N$ is the total number of calibration scores and $N_u$ is the number of exceedances above $u$. A test point at timestep $t$ is flagged as anomalous whenever its moving-average score exceeds $\tau_{\text{EVT}}$ for at least $R_{\text{min}} = 2$ consecutive steps:
+\begin{equation}
+    \hat{y}(t) = \mathbb{I}\left(S(t) \ge \tau_{\text{EVT}}\right).
+\end{equation}

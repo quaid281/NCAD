@@ -399,18 +399,23 @@ def aggregate_window_scores(
     score_sum = np.zeros(n_points, dtype=np.float64)
     counts = np.zeros(n_points, dtype=np.float64)
     for window_index, score in zip(window_indices, window_scores):
-        if mapping_method == "last":
+        if mapping_method in ["last", "trailing"]:
             idx = int(window_index) * step + context_size + suspect_size - 1
             if idx < n_points:
                 score_sum[idx] += score
                 counts[idx] += 1.0
-        elif mapping_method == "first":
+        elif mapping_method in ["first", "leading"]:
             idx = int(window_index) * step + context_size
             if idx < n_points:
                 score_sum[idx] += score
                 counts[idx] += 1.0
-        elif mapping_method == "middle":
+        elif mapping_method in ["middle", "center"]:
             idx = int(window_index) * step + context_size + suspect_size // 2
+            if idx < n_points:
+                score_sum[idx] += score
+                counts[idx] += 1.0
+        elif mapping_method == "suspect_trailing":
+            idx = int(window_index) * step + context_size + suspect_size - 1
             if idx < n_points:
                 score_sum[idx] += score
                 counts[idx] += 1.0

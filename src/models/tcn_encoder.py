@@ -54,7 +54,7 @@ class HybridTCNEncoder(nn.Module):
         input_dim: int,
         latent_dim: int = 16,
         filters: int = 64,
-        tcn_layers: int = 4,
+        tcn_layers: int = 6,
         kernel_size: int = 5,
         dropout: float = 0.20,
     ):

@@ -20,8 +20,8 @@ import torch
 class NormalizationStats:
     """Z-score statistics fitted on the training signal."""
 
-    mean: float
-    std: float
+    mean: np.ndarray | float
+    std: np.ndarray | float
 
     def transform(self, values: np.ndarray) -> np.ndarray:
         return ((values - self.mean) / (self.std + 1e-8)).astype(np.float32)
@@ -68,7 +68,12 @@ class DataLoader:
                 channels.append(train_file.stem)
         return sorted(channels)
 
-    def load_channel(self, channel_id: str, normalize: bool = True, signal_index: int = 0) -> ChannelData:
+    def load_channel(
+        self,
+        channel_id: str,
+        normalize: bool = True,
+        signal_index: Optional[int] = 0,
+    ) -> ChannelData:
         train_path = self.train_dir / f"{channel_id}.npy"
         test_path = self.test_dir / f"{channel_id}.npy"
         if not train_path.exists():
@@ -76,11 +81,23 @@ class DataLoader:
         if not test_path.exists():
             raise FileNotFoundError(f"Test data not found: {test_path}")
 
-        train_raw = self._extract_signal(np.load(train_path), signal_index)
-        test_raw = self._extract_signal(np.load(test_path), signal_index)
+        train_raw = np.load(train_path)
+        test_raw = np.load(test_path)
+
+        if not np.all(np.isfinite(train_raw)):
+            raise ValueError(f"Training telemetry for channel {channel_id} contains non-finite values (NaN/Inf).")
+        if not np.all(np.isfinite(test_raw)):
+            raise ValueError(f"Test telemetry for channel {channel_id} contains non-finite values (NaN/Inf).")
+
+        train_raw = self._extract_signal(train_raw, signal_index)
+        test_raw = self._extract_signal(test_raw, signal_index)
 
         if normalize:
-            norm_stats = NormalizationStats(mean=float(np.mean(train_raw)), std=float(np.std(train_raw)))
+            axis = 0 if train_raw.ndim == 2 else None
+            mean_val = np.mean(train_raw, axis=axis)
+            std_val = np.std(train_raw, axis=axis)
+            std_val = np.where(std_val < 1e-8, 1.0, std_val)
+            norm_stats = NormalizationStats(mean=mean_val, std=std_val)
             train_normalized = norm_stats.transform(train_raw)
             test_normalized = norm_stats.transform(test_raw)
         else:
@@ -102,20 +119,16 @@ class DataLoader:
 
     @staticmethod
     def create_windows(values: np.ndarray, window_size: int, step: int = 1, copy: bool = True) -> np.ndarray:
-        """Create overlapping windows using stride tricks.
+        """Create overlapping windows using stride tricks with strict parameter validation."""
+        if window_size <= 0:
+            raise ValueError(f"window_size must be positive, got {window_size}")
+        if step <= 0:
+            raise ValueError(f"step must be positive, got {step}")
+        if values.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D values array, got {values.ndim}D array with shape {values.shape}")
+        if not np.all(np.isfinite(values)):
+            raise ValueError("Cannot create sliding windows from array containing non-finite values (NaN/Inf)")
 
-        Parameters
-        ----------
-        values : np.ndarray
-            Input time series array of shape (N,) or (N, F).
-        window_size : int
-            Length of each sliding window.
-        step : int, default=1
-            Stride step between consecutive windows.
-        copy : bool, default=True
-            If True, returns a contiguous copy. If False, returns a zero-copy
-            strided view to save RAM on large datasets.
-        """
         if values.ndim == 1:
             values = values[:, None]
 
@@ -133,12 +146,14 @@ class DataLoader:
         return windows.copy() if copy else windows
 
     @staticmethod
-    def _extract_signal(values: np.ndarray, signal_index: int) -> np.ndarray:
+    def _extract_signal(values: np.ndarray, signal_index: Optional[int]) -> np.ndarray:
         if values.ndim == 1:
-            if signal_index != 0:
+            if signal_index is not None and signal_index != 0:
                 raise ValueError(f"Cannot extract signal index {signal_index} from 1D array of shape {values.shape}")
             return values.astype(np.float32)
         if values.ndim == 2:
+            if signal_index is None:
+                return values.astype(np.float32)
             if signal_index < 0 or signal_index >= values.shape[1]:
                 raise ValueError(f"Signal index {signal_index} out of bounds for 2D array of shape {values.shape}")
             return values[:, signal_index].astype(np.float32)
@@ -146,11 +161,9 @@ class DataLoader:
 
     def _load_labels(self, channel_id: str, test_length: int) -> Tuple[Optional[np.ndarray], List[Tuple[int, int]]]:
         if self._labels_df is None:
-            label_paths = [self.labels_path, self.data_dir / "processed" / "final_predictions.csv"]
-            existing_path = next((path for path in label_paths if path.exists()), None)
-            if existing_path is None:
+            if not self.labels_path.exists():
                 return None, []
-            self._labels_df = pd.read_csv(existing_path)
+            self._labels_df = pd.read_csv(self.labels_path)
 
         rows = self._labels_df[self._labels_df["chan_id"] == channel_id]
         if rows.empty:
@@ -163,7 +176,8 @@ class DataLoader:
             expected_length = test_length
 
         labels = np.zeros(expected_length, dtype=np.float32)
-        anomaly_sequences = self._parse_anomaly_sequences(row.get("anomaly_sequences", "[]"))
+        seq_str = row.get("anomaly_sequences", "[]")
+        anomaly_sequences = self._parse_anomaly_sequences(seq_str, channel_id=channel_id)
 
         normalized_sequences: List[Tuple[int, int]] = []
         for sequence in anomaly_sequences:
@@ -187,16 +201,23 @@ class DataLoader:
         return labels, normalized_sequences
 
     @staticmethod
-    def _parse_anomaly_sequences(value: object) -> list:
+    def _parse_anomaly_sequences(value: object, channel_id: str = "") -> list:
         if isinstance(value, str):
+            value = value.strip()
+            if not value or value == "nan":
+                return []
             try:
                 parsed = ast.literal_eval(value)
-            except (ValueError, SyntaxError):
-                return []
-            return parsed if isinstance(parsed, list) else []
+            except (ValueError, SyntaxError) as err:
+                raise ValueError(f"Malformed anomaly_sequences for channel '{channel_id}': {value}") from err
+            if not isinstance(parsed, list):
+                raise ValueError(f"Expected list for anomaly_sequences in channel '{channel_id}', got: {type(parsed)}")
+            return parsed
         if isinstance(value, list):
             return value
-        return []
+        if value is None or (isinstance(value, float) and np.isnan(value)):
+            return []
+        raise ValueError(f"Unexpected anomaly_sequences type for channel '{channel_id}': {type(value)}")
 
 
 class SlidingWindowDataset(torch.utils.data.Dataset):

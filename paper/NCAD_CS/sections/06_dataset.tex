@@ -1,11 +1,14 @@
-\section{Dataset}
+\section{Multi-Domain Benchmark Datasets}
 \label{sec:dataset}
 
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{telemetry.png}
-    \caption{Visualization of SMAP Dataset features \cite{meng2019spacecraft}. Shows telemetry value (first feature) and one-hot encoded commands (remaining features).}
-    \label{fig:smap_vis}
-\end{figure}
+To evaluate the universal applicability of TS-JEPA across diverse physical, cyber-physical, and distributed dynamics, our benchmark suite encompasses 26 channels across five distinct real-world domains from the NASA and mTSBench collections \cite{Hundman2018b, schmidl2022anomaly}:
 
-The benchmark used in this study is composed of multiple telemetry channels from the public NASA SMAP/MSL collection \cite{Hundman2018b}, where each channel is treated as an independent dataset. Each channel file contains multivariate data, including the primary telemetry value and one-hot encoded commands (Figure~\ref{fig:smap_vis}). Our current approach focuses on extracting comprehensive temporal features from the primary univariate telemetry value. These channels exhibit two main anomaly types: contextual anomalies, where a point's deviation is only apparent given its surrounding context, and point anomalies, where a data point distinctly deviates from the bulk of the dataset regardless of context \cite{10400552}.
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{NASA SMAP Spacecraft Telemetry \cite{Hundman2018b}:} High-consequence spacecraft telemetry from the Soil Moisture Active Passive satellite. Telemetry channels record continuous sensor metrics (e.g., radiative temperatures, battery currents, actuator torques) subject to abrupt hardware faults and sustained contextual operational drifts.
+    \item \textbf{Exathlon Distributed Cloud Logs \cite{jacob2021exathlon}:} Telemetry traces from large-scale Apache Spark distributed streaming applications running on multi-node clusters. Metrics include JVM heap utilization, memory leaks, CPU core consumption, and network I/O during simulated system bottlenecks.
+    \item \textbf{Room-Occupancy Environmental IoT \cite{candanedo2016accurate}:} Multi-sensor indoor environmental telemetry recording continuous physical variables ($\text{CO}_2$ concentration, ambient temperature, relative humidity, light level, and humidity ratio) with sudden and gradual regime shifts caused by human presence.
+    \item \textbf{Daphnet Biomedical Gait Dynamics \cite{bachlin2010wearable}:} Tri-axial accelerometry recorded from three body-worn sensor nodes (shank, thigh, trunk; 9 continuous spatial-temporal dimensions) on Parkinson's disease patients. Nominal walking manifests as smooth, periodic limit cycles, interrupted by abrupt Freezing-of-Gait (FoG) pathological breakdown events.
+    \item \textbf{OPPORTUNITY High-Dimensional Wearables \cite{roggen2010collecting}:} 77 body-worn motion and environmental sensors capturing complex, non-stationary human activities of daily living (ADL) with high cross-sensor relational synchronization.
+\end{enumerate}
+
+Each benchmark channel provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled point- and event-level anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$) using robust epsilon floors $\max(\bm{\sigma}, 10^{-2})$ to prevent numerical instability during flat-line operational phases.

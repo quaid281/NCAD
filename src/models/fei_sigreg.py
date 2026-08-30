@@ -30,10 +30,10 @@ class FrequencyMasker:
 
         num_mask = int(num_freqs * self.mask_ratio)
         if num_mask > 0:
-            mask = torch.ones((batch_size, num_freqs, num_feats), device=windows.device)
-            for b in range(batch_size):
-                perm = torch.randperm(num_freqs, device=windows.device)[:num_mask]
-                mask[b, perm, :] = 0.0
+            rand_weights = torch.rand(batch_size, num_freqs, device=windows.device)
+            _, mask_indices = torch.topk(rand_weights, k=num_mask, dim=1)
+            mask = torch.ones((batch_size, num_freqs, 1), device=windows.device)
+            mask.scatter_(1, mask_indices.unsqueeze(-1), 0.0)
             fft_coefs = fft_coefs * mask
 
         masked_windows = torch.fft.irfft(fft_coefs, n=seq_len, dim=1)

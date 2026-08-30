@@ -22,6 +22,7 @@ class NCADPipeline:
         window_size: int,
         step: int = 1,
         signal_indices: Optional[List[int]] = None,
+        copy: bool = True,
     ) -> np.ndarray:
         """Fits the feature extractors on the training data and returns sliding windows."""
         if train_data.ndim == 1:
@@ -42,7 +43,7 @@ class NCADPipeline:
                 features_list.append(feat)
             features = np.concatenate(features_list, axis=1)
 
-        return DataLoader.create_windows(features, window_size, step)
+        return DataLoader.create_windows(features, window_size, step, copy=copy)
 
     def prepare_windows(
         self,
@@ -50,6 +51,7 @@ class NCADPipeline:
         window_size: int,
         step: int = 1,
         signal_indices: Optional[List[int]] = None,
+        copy: bool = True,
     ) -> np.ndarray:
         """Transforms the test data using the already fitted extractors and returns sliding windows."""
         if not self.extractors:
@@ -70,4 +72,4 @@ class NCADPipeline:
                 features_list.append(feat)
             features = np.concatenate(features_list, axis=1)
 
-        return DataLoader.create_windows(features, window_size, step)
+        return DataLoader.create_windows(features, window_size, step, copy=copy)

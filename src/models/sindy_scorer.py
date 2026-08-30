@@ -47,12 +47,9 @@ class SINDyDynamicsScorer:
 
         # Degree 2
         if self.config.poly_degree >= 2:
-            deg2_cols = []
-            for i in range(n_dim):
-                for j in range(i, n_dim):
-                    deg2_cols.append((z[:, i] * z[:, j])[:, None])
-            if deg2_cols:
-                cols.append(np.hstack(deg2_cols))
+            i_idx, j_idx = np.triu_indices(n_dim)
+            deg2_matrix = z[:, i_idx] * z[:, j_idx]
+            cols.append(deg2_matrix)
 
         return np.hstack(cols)
 

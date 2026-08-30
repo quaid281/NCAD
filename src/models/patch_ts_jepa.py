@@ -1,0 +1,305 @@
+"""Patch-Level Sequence Joint Embedding Predictive Architecture (Patch-TS-JEPA).
+
+Eliminates temporal dilution caused by global pooling by tokenizing time-series
+into non-overlapping patches, encoding token dynamics with Transformers, and
+predicting future patch token embeddings directly in latent representation space.
+"""
+
+from __future__ import annotations
+
+import copy
+import math
+from typing import Optional, Tuple
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from src.models.ts_jepa import jepa_vicreg_loss
+
+
+class PositionalEncoding(nn.Module):
+    """Sinusoidal positional encoding for sequence tokens."""
+
+    def __init__(self, d_model: int, max_len: int = 500):
+        super().__init__()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.register_buffer("pe", pe.unsqueeze(0))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Add positional encoding: (B, N, D) + (1, N, D)."""
+        return x + self.pe[:, : x.size(1)]
+
+
+class PatchTokenizer(nn.Module):
+    """Splits a multivariate sequence into non-overlapping temporal patches."""
+
+    def __init__(self, input_dim: int, patch_size: int, d_model: int):
+        super().__init__()
+        self.input_dim = input_dim
+        self.patch_size = patch_size
+        self.d_model = d_model
+        self.proj = nn.Linear(input_dim * patch_size, d_model)
+        self.norm = nn.LayerNorm(d_model)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Convert (B, L, C) -> (B, N_patches, d_model)."""
+        B, L, C = x.shape
+        assert L % self.patch_size == 0, f"Sequence length {L} must be divisible by patch_size {self.patch_size}"
+        num_patches = L // self.patch_size
+        # Reshape to (B, num_patches, patch_size * C)
+        x_patches = x.view(B, num_patches, self.patch_size * C)
+        return self.norm(self.proj(x_patches))
+
+
+class PatchSequenceEncoder(nn.Module):
+    """Transformer Encoder operating over patch tokens."""
+
+    def __init__(
+        self,
+        input_dim: int,
+        patch_size: int = 16,
+        d_model: int = 48,
+        n_heads: int = 4,
+        n_layers: int = 2,
+        d_ff: int = 96,
+        dropout: float = 0.10,
+    ):
+        super().__init__()
+        self.patch_size = patch_size
+        self.tokenizer = PatchTokenizer(input_dim, patch_size, d_model)
+        self.pos_encoder = PositionalEncoding(d_model)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model,
+            nhead=n_heads,
+            dim_feedforward=d_ff,
+            dropout=dropout,
+            activation="gelu",
+            batch_first=True,
+            norm_first=True,
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers, enable_nested_tensor=False)
+        self.norm = nn.LayerNorm(d_model)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Encode (B, L, C) -> (B, N_patches, d_model)."""
+        tokens = self.tokenizer(x)
+        tokens = self.pos_encoder(tokens)
+        out = self.transformer(tokens)
+        return self.norm(out)
+
+
+class PatchSequencePredictor(nn.Module):
+    """Predicts future patch tokens using cross-attention over context patch representations."""
+
+    def __init__(
+        self,
+        d_model: int = 48,
+        n_target_patches: int = 4,
+        n_heads: int = 4,
+        n_layers: int = 2,
+        d_ff: int = 96,
+        dropout: float = 0.10,
+    ):
+        super().__init__()
+        self.n_target_patches = n_target_patches
+        self.d_model = d_model
+        # Learnable target future query tokens
+        self.target_queries = nn.Parameter(torch.randn(1, n_target_patches, d_model) * 0.02)
+        self.pos_encoder = PositionalEncoding(d_model)
+
+        decoder_layer = nn.TransformerDecoderLayer(
+            d_model=d_model,
+            nhead=n_heads,
+            dim_feedforward=d_ff,
+            dropout=dropout,
+            activation="gelu",
+            batch_first=True,
+            norm_first=True,
+        )
+        self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=n_layers)
+        self.norm = nn.LayerNorm(d_model)
+
+    def forward(self, h_context: torch.Tensor) -> torch.Tensor:
+        """Predict future tokens: (B, N_ctx, d_model) -> (B, N_tgt, d_model)."""
+        B = h_context.size(0)
+        queries = self.target_queries.repeat(B, 1, 1)
+        queries = self.pos_encoder(queries)
+        out = self.decoder(tgt=queries, memory=h_context)
+        return self.norm(out)
+
+
+class PatchTSJEPA(nn.Module):
+    """Patch-Level Sequence Joint Embedding Predictive Architecture."""
+
+    def __init__(
+        self,
+        input_dim: int,
+        patch_size: int = 16,
+        d_model: int = 48,
+        n_heads: int = 4,
+        n_layers: int = 2,
+        d_ff: int = 96,
+        n_target_patches: int = 4,
+        ema_decay: float = 0.996,
+        dropout: float = 0.10,
+    ):
+        super().__init__()
+        self.input_dim = input_dim
+        self.patch_size = patch_size
+        self.d_model = d_model
+        self.n_target_patches = n_target_patches
+        self.ema_decay = ema_decay
+
+        # Active Context Encoder
+        self.context_encoder = PatchSequenceEncoder(
+            input_dim=input_dim,
+            patch_size=patch_size,
+            d_model=d_model,
+            n_heads=n_heads,
+            n_layers=n_layers,
+            d_ff=d_ff,
+            dropout=dropout,
+        )
+
+        # EMA Target Encoder
+        self.target_encoder = copy.deepcopy(self.context_encoder)
+        for p in self.target_encoder.parameters():
+            p.requires_grad = False
+        self.target_encoder.eval()
+
+        # Sequence Predictor
+        self.predictor = PatchSequencePredictor(
+            d_model=d_model,
+            n_target_patches=n_target_patches,
+            n_heads=n_heads,
+            n_layers=n_layers,
+            d_ff=d_ff,
+            dropout=dropout,
+        )
+
+        self.register_buffer("precision_matrix", torch.eye(d_model))
+        self.register_buffer("residual_mean", torch.zeros(d_model))
+        self.register_buffer("precision_fitted", torch.tensor(False, dtype=torch.bool))
+
+    def train(self, mode: bool = True) -> PatchTSJEPA:
+        """Override train to ensure the target encoder strictly remains in eval mode."""
+        super().train(mode)
+        self.target_encoder.eval()
+        return self
+
+    def forward(
+        self,
+        context_windows: torch.Tensor,
+        target_windows: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor]:
+        """Forward pass.
+        
+        Returns:
+            Tuple of (h_ctx: (B, N_ctx, D), h_tgt_true: (B, N_tgt, D), h_tgt_pred: (B, N_tgt, D))
+        """
+        h_ctx = self.context_encoder(context_windows)
+        h_tgt_pred = self.predictor(h_ctx)
+
+        h_tgt_true = None
+        if target_windows is not None:
+            self.target_encoder.eval()
+            with torch.no_grad():
+                h_tgt_true = self.target_encoder(target_windows)
+
+        return h_ctx, h_tgt_true, h_tgt_pred
+
+    @torch.no_grad()
+    def update_target_encoder(self, decay: Optional[float] = None) -> None:
+        """EMA update of target encoder parameters and buffers."""
+        m = self.ema_decay if decay is None else decay
+        for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
+            param_k.data.mul_(m).add_((1.0 - m) * param_q.data)
+        for buf_q, buf_k in zip(self.context_encoder.buffers(), self.target_encoder.buffers()):
+            buf_k.data.copy_(buf_q.data)
+
+    def compute_patch_loss(
+        self,
+        h_tgt_pred: torch.Tensor,
+        h_tgt_true: torch.Tensor,
+        h_ctx: Optional[torch.Tensor] = None,
+        cov_weight: float = 0.5,
+    ) -> torch.Tensor:
+        """Token-level VICReg loss averaged across future patch positions."""
+        B, N_tgt, D = h_tgt_pred.shape
+        loss_total = 0.0
+        for i in range(N_tgt):
+            z_pred_i = h_tgt_pred[:, i, :]
+            z_true_i = h_tgt_true[:, i, :]
+            z_ctx_i = h_ctx[:, i % h_ctx.size(1), :] if h_ctx is not None else None
+            loss_i = jepa_vicreg_loss(z_pred_i, z_true_i, z_context=z_ctx_i, cov_weight=cov_weight)
+            loss_total = loss_total + loss_i
+        return loss_total / N_tgt
+
+    @torch.no_grad()
+    def fit_mahalanobis_covariance(
+        self,
+        context_windows: torch.Tensor,
+        target_windows: torch.Tensor,
+        batch_size: int = 512,
+        reg: float = 1e-3,
+    ) -> None:
+        """Fit empirical residual covariance across patch tokens using batched accumulation."""
+        self.eval()
+        n_samples = len(context_windows)
+        residuals_list = []
+
+        for i in range(0, n_samples, batch_size):
+            ctx_b = context_windows[i : i + batch_size]
+            tgt_b = target_windows[i : i + batch_size]
+            h_ctx = self.context_encoder(ctx_b)
+            h_pred = self.predictor(h_ctx)
+            h_obs = self.target_encoder(tgt_b)
+            residuals_list.append((h_obs - h_pred).reshape(-1, self.d_model))
+
+        residuals = torch.cat(residuals_list, dim=0)
+        mean_res = residuals.mean(dim=0, keepdim=True)
+        self.residual_mean.copy_(mean_res.squeeze(0))
+        residuals_centered = residuals - mean_res
+        cov = (residuals_centered.T @ residuals_centered) / max(len(residuals) - 1, 1)
+        cov_reg = cov + reg * torch.eye(self.d_model, device=cov.device)
+        self.precision_matrix.copy_(torch.linalg.pinv(cov_reg))
+        self.precision_fitted.copy_(torch.tensor(True, dtype=torch.bool))
+
+    def compute_predictive_discrepancy(
+        self,
+        context_windows: torch.Tensor,
+        observed_target_windows: torch.Tensor,
+        use_mahalanobis: bool = False,
+    ) -> torch.Tensor:
+        """Compute patch-level prediction discrepancy.
+        
+        Returns:
+            Tensor of shape (B,) representing the mean patch prediction error.
+        """
+        self.eval()
+        with torch.no_grad():
+            h_ctx = self.context_encoder(context_windows)
+            h_pred = self.predictor(h_ctx)
+            h_obs = self.target_encoder(observed_target_windows)
+            diff = h_obs - h_pred  # (B, N_tgt, D)
+            if use_mahalanobis:
+                if not bool(self.precision_fitted.item()):
+                    raise RuntimeError(
+                        "Mahalanobis discrepancy requested (use_mahalanobis=True), "
+                        "but the precision matrix has not been fitted! "
+                        "Call fit_mahalanobis_covariance() before inference."
+                    )
+                diff_centered = diff - self.residual_mean
+                # (B, N_tgt, D) @ (D, D) -> (B, N_tgt, D)
+                mahal = torch.sum((diff_centered @ self.precision_matrix) * diff_centered, dim=-1)
+                patch_scores = torch.sqrt(torch.clamp(mahal, min=1e-8))  # (B, N_tgt)
+            else:
+                patch_scores = torch.linalg.norm(diff, dim=-1)  # (B, N_tgt)
+            # Mean patch score across the target horizon (well-calibrated EVT distribution)
+            return torch.mean(patch_scores, dim=-1)

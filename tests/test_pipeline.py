@@ -44,3 +44,17 @@ def test_pipeline_multivariate():
     test_windows = pipeline.prepare_windows(test_data, window_size=100, step=5, signal_indices=signal_indices)
     
     assert test_windows.shape == (41, 100, 8)
+
+
+def test_pipeline_zero_copy():
+    pipeline = NCADPipeline(max_features_per_channel=4)
+    data = np.random.randn(200, 2).astype(np.float32)
+    
+    windows_view = pipeline.fit_prepare_train(data, window_size=50, step=1, copy=False)
+    assert windows_view.flags.owndata is False
+    assert windows_view.shape == (151, 50, 8)
+    
+    test_view = pipeline.prepare_windows(data, window_size=50, step=1, copy=False)
+    assert test_view.flags.owndata is False
+    assert test_view.shape == (151, 50, 8)
+

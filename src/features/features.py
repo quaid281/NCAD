@@ -14,7 +14,10 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-import pywt
+try:
+    import pywt
+except ImportError:
+    pywt = None
 from scipy import signal as scipy_signal
 
 
@@ -53,19 +56,22 @@ class NCADFeatureExtractor:
         self.std_ = np.nanstd(features, axis=0)
         self.std_ = np.where(self.std_ < 1e-8, 1.0, self.std_)
 
-        normalized = self._normalize(features)
-        variances = np.nanvar(normalized, axis=0)
-        order = np.argsort(variances)[::-1]
+        # Pre-normalization robust variance ranking (avoids ranking ~1.0 post-normalization artifacts)
+        raw_variances = np.nanvar(features, axis=0)
+        valid_mask = raw_variances > 1e-12
+        raw_variances = np.where(valid_mask, raw_variances, -1.0)
+        order = np.argsort(raw_variances)[::-1]
 
         keep = [0]
         for index in order:
-            if index != 0:
+            if index != 0 and valid_mask[index]:
                 keep.append(int(index))
-            if len(keep) >= min(self.config.max_features, normalized.shape[1]):
+            if len(keep) >= min(self.config.max_features, features.shape[1]):
                 break
 
         self.selected_indices_ = np.array(keep, dtype=np.int64)
         self.selected_feature_names_ = [self.feature_names_[i] for i in self.selected_indices_]
+        normalized = self._normalize(features)
         return normalized[:, self.selected_indices_].astype(np.float32)
 
     def transform(self, signal: np.ndarray) -> np.ndarray:
@@ -129,9 +135,11 @@ class NCADFeatureExtractor:
             add(f"roll_z_{window}", (values - mean) / (std + 1e-8))
             add(f"roll_range_pos_{window}", (values - min_value) / (max_value - min_value + 1e-8))
 
-        long_rolling = series.rolling(window=self.config.long_window, min_periods=2)
-        add(f"long_mean_{self.config.long_window}", long_rolling.mean().bfill().fillna(0.0).to_numpy())
-        add(f"long_std_{self.config.long_window}", long_rolling.std(ddof=0).fillna(0.0).to_numpy())
+        # Causal long-window rolling features (no future bfill)
+        long_mean = series.rolling(window=self.config.long_window, min_periods=1).mean().to_numpy()
+        long_std = series.rolling(window=self.config.long_window, min_periods=1).std(ddof=0).fillna(0.0).to_numpy()
+        add(f"long_mean_{self.config.long_window}", long_mean)
+        add(f"long_std_{self.config.long_window}", long_std)
 
         for window in self.config.slope_windows:
             add(f"slope_{window}", self._rolling_slope(values, window))
@@ -176,7 +184,7 @@ class NCADFeatureExtractor:
             conv = np.convolve(values, kernel[::-1], mode="full")[:n_points]
             slopes[w - 1 :] = conv[w - 1 :]
 
-        # Initial warmup points for t < w - 1
+        # Causal initial warmup points for t < w - 1
         for index in range(1, min(w - 1, n_points)):
             y_values = values[: index + 1]
             x_val = np.arange(len(y_values), dtype=np.float64)
@@ -188,7 +196,7 @@ class NCADFeatureExtractor:
         return slopes
 
     def _add_fft_features(self, values: np.ndarray, add) -> None:
-        """Vectorized batch FFT spectral descriptors using strided sliding windows."""
+        """Vectorized batch FFT spectral descriptors using causal sliding windows."""
         n_points = len(values)
         window = min(self.config.fft_window, n_points)
         dominant_freq = np.zeros(n_points, dtype=np.float64)
@@ -201,7 +209,7 @@ class NCADFeatureExtractor:
             add("fft_power", spectral_power)
             return
 
-        # 1. Warmup for boundary points
+        # 1. Causal warmup for boundary points
         for index in range(7, min(window - 1, n_points)):
             segment = values[: index + 1]
             fft_values = np.fft.rfft(segment - np.mean(segment))
@@ -214,7 +222,7 @@ class NCADFeatureExtractor:
                 normalized_power = power / total_power
                 spectral_entropy[index] = -float(np.sum(normalized_power * np.log2(normalized_power + 1e-12)))
 
-        # 2. Vectorized batch FFT for full windows
+        # 2. Vectorized causal batch FFT for full windows
         if n_points >= window:
             from numpy.lib.stride_tricks import sliding_window_view
             strided_windows = sliding_window_view(values, window_shape=window)
@@ -238,52 +246,94 @@ class NCADFeatureExtractor:
         add("fft_power", spectral_power)
 
     def _add_stft_features(self, values: np.ndarray, add) -> None:
+        """Strictly causal multi-band spectral decomposition over trailing historical windows."""
         n_points = len(values)
-        if n_points < 16:
-            for name in ("stft_low", "stft_mid", "stft_high", "stft_centroid"):
-                add(name, np.zeros(n_points))
+        stft_low = np.zeros(n_points, dtype=np.float64)
+        stft_mid = np.zeros(n_points, dtype=np.float64)
+        stft_high = np.zeros(n_points, dtype=np.float64)
+        stft_centroid = np.zeros(n_points, dtype=np.float64)
+
+        if n_points < 8:
+            add("stft_low", stft_low)
+            add("stft_mid", stft_mid)
+            add("stft_high", stft_high)
+            add("stft_centroid", stft_centroid)
             return
 
-        nperseg = min(self.config.stft_window, n_points)
-        noverlap = max(0, nperseg // 2)
-        freqs, times, zxx = scipy_signal.stft(values, nperseg=nperseg, noverlap=noverlap, boundary=None)
-        power = np.abs(zxx) ** 2
-        if power.size == 0:
-            for name in ("stft_low", "stft_mid", "stft_high", "stft_centroid"):
-                add(name, np.zeros(n_points))
-            return
+        window = min(self.config.stft_window, n_points)
 
-        band_edges = np.array_split(np.arange(len(freqs)), 3)
-        low = np.mean(power[band_edges[0]], axis=0) if len(band_edges[0]) else np.zeros(power.shape[1])
-        mid = np.mean(power[band_edges[1]], axis=0) if len(band_edges[1]) else np.zeros(power.shape[1])
-        high = np.mean(power[band_edges[2]], axis=0) if len(band_edges[2]) else np.zeros(power.shape[1])
-        centroid = np.sum(freqs[:, None] * power, axis=0) / (np.sum(power, axis=0) + 1e-12)
-        sample_times = np.clip(times, 0, n_points - 1)
+        # 1. Causal prefix warmup (t < window - 1)
+        for index in range(7, min(window - 1, n_points)):
+            segment = values[: index + 1]
+            centered = segment - np.mean(segment)
+            fft_vals = np.fft.rfft(centered)
+            power = np.abs(fft_vals) ** 2
+            n_freqs = len(power)
+            if n_freqs >= 3:
+                bands = np.array_split(np.arange(n_freqs), 3)
+                stft_low[index] = float(np.mean(power[bands[0]]))
+                stft_mid[index] = float(np.mean(power[bands[1]]))
+                stft_high[index] = float(np.mean(power[bands[2]]))
+            freqs = np.fft.rfftfreq(len(segment))
+            tot_p = np.sum(power)
+            if tot_p > 1e-12:
+                stft_centroid[index] = float(np.sum(freqs * power) / tot_p)
 
-        add("stft_low", np.interp(np.arange(n_points), sample_times, low))
-        add("stft_mid", np.interp(np.arange(n_points), sample_times, mid))
-        add("stft_high", np.interp(np.arange(n_points), sample_times, high))
-        add("stft_centroid", np.interp(np.arange(n_points), sample_times, centroid))
+        # 2. Vectorized sliding trailing windows (t >= window - 1)
+        if n_points >= window:
+            from numpy.lib.stride_tricks import sliding_window_view
+            strided = sliding_window_view(values, window_shape=window)
+            centered = strided - np.mean(strided, axis=1, keepdims=True)
+            fft_vals = np.fft.rfft(centered, axis=1)
+            power = np.abs(fft_vals) ** 2
+
+            n_freqs = power.shape[1]
+            if n_freqs >= 3:
+                bands = np.array_split(np.arange(n_freqs), 3)
+                stft_low[window - 1 :] = np.mean(power[:, bands[0]], axis=1)
+                stft_mid[window - 1 :] = np.mean(power[:, bands[1]], axis=1)
+                stft_high[window - 1 :] = np.mean(power[:, bands[2]], axis=1)
+
+            freqs = np.fft.rfftfreq(window)
+            tot_p = np.sum(power, axis=1)
+            eps = 1e-12
+            stft_centroid[window - 1 :] = np.sum(freqs[None, :] * power, axis=1) / (tot_p + eps)
+
+        add("stft_low", stft_low)
+        add("stft_mid", stft_mid)
+        add("stft_high", stft_high)
+        add("stft_centroid", stft_centroid)
 
     @staticmethod
     def _add_wavelet_features(values: np.ndarray, add) -> None:
+        """Strictly causal multi-scale wavelet energy decomposition over trailing historical signals."""
         n_points = len(values)
-        max_level = pywt.dwt_max_level(max(n_points, 2), pywt.Wavelet("db2").dec_len)
-        level = max(1, min(3, max_level))
-        try:
-            coeffs = pywt.wavedec(values, "db2", level=level, mode="periodization")
-            reconstructed_energies = []
-            for coeff_index in range(1, len(coeffs)):
-                detail_coeffs = [np.zeros_like(coeff) for coeff in coeffs]
-                detail_coeffs[coeff_index] = coeffs[coeff_index]
-                detail = pywt.waverec(detail_coeffs, "db2", mode="periodization")[:n_points]
-                reconstructed_energies.append(detail * detail)
-            total_energy = np.sum(reconstructed_energies, axis=0) + 1e-12
-            for index, energy in enumerate(reconstructed_energies):
-                add(f"wavelet_energy_ratio_{index + 1}", energy / total_energy)
-        except Exception:
-            for index in range(3):
-                add(f"wavelet_energy_ratio_{index + 1}", np.zeros(n_points))
+        # Fixed deterministic schema across any sequence length
+        e1 = np.zeros(n_points, dtype=np.float64)
+        e2 = np.zeros(n_points, dtype=np.float64)
+        e3 = np.zeros(n_points, dtype=np.float64)
+
+        if n_points >= 2:
+            # Scale 1 (High frequency detail): (x_t - x_{t-1}) / sqrt(2)
+            d1 = np.r_[0.0, np.diff(values)] / np.sqrt(2.0)
+            e1 = pd.Series(d1 ** 2).rolling(window=16, min_periods=1).mean().to_numpy()
+
+        if n_points >= 4:
+            # Scale 2 (Mid frequency detail): [(x_t + x_{t-1}) - (x_{t-2} + x_{t-3})] / (2 * sqrt(2))
+            s1 = (values[1:] + values[:-1]) / 2.0
+            d2 = np.r_[0.0, 0.0, 0.0, s1[2:] - s1[:-2]] / np.sqrt(2.0)
+            e2 = pd.Series(d2 ** 2).rolling(window=16, min_periods=1).mean().to_numpy()
+
+        if n_points >= 8:
+            # Scale 3 (Low-mid frequency detail): length-4 block differences
+            s2 = pd.Series(values).rolling(window=4, min_periods=4).mean().to_numpy()
+            d3 = np.r_[np.zeros(7), s2[7:] - s2[3:-4]] if len(s2) >= 8 else np.zeros(n_points)
+            e3 = pd.Series(d3 ** 2).rolling(window=16, min_periods=1).mean().to_numpy()
+
+        tot_e = e1 + e2 + e3 + 1e-12
+        add("wavelet_energy_ratio_1", e1 / tot_e)
+        add("wavelet_energy_ratio_2", e2 / tot_e)
+        add("wavelet_energy_ratio_3", e3 / tot_e)
 
     @staticmethod
     def _add_complexity_features(values: np.ndarray, add) -> None:

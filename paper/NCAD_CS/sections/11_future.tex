@@ -1,15 +1,13 @@
-\section{Conclusion and Future Work}
+\section{Conclusion and Future Horizons}
 \label{sec:conclusion}
 
-We introduced NCAD-CS, a neural contextual anomaly detection framework augmented with a counterfactual successor memory. Our experiments on SMAP/MSL telemetry channels demonstrate the potential of successor-based scoring for detecting sustained contextual anomalies that can otherwise contaminate reconstruction-based detectors. Successor-based evidence complements local raw-signal residuals and context-distance, producing a more reliable anomaly score.
+We introduced \textbf{TS-JEPA} (Time-Series Joint-Embedding Predictive Architecture), a self-supervised framework that reformulates unsupervised multivariate anomaly detection as non-contrastive latent world model forecasting. By eliminating raw signal-level reconstruction loss and artificial negative sampling, TS-JEPA models physical systems as smooth, continuous limit-cycle attractors in representation space. Non-contrastive VICReg regularization enforces representation diversity while decorrelating latent dynamical modes. Coupled with a Covariance-Whitened (Mahalanobis) discrepancy metric and Extreme Value Theory (EVT / SPOT) tail calibration, TS-JEPA normalizes directional variance and establishes mathematically grounded anomaly thresholds.
 
-Future directions include:
+Empirical evaluations across 26 benchmark channels spanning five distinct physical domains (NASA spacecraft telemetry, distributed cloud streaming logs, environmental IoT, biomedical gait dynamics, and high-dimensional wearables) establish that TS-JEPA consistently outperforms baseline contrastive and reconstructive architectures, achieving a \textbf{+35.6\% grand macro PA-F1 gain} (0.3786 vs. 0.2793). Systematic ablation sweeps confirm that VICReg prevents catastrophic representation collapse while target momentum EMA provides vital stability on non-stationary streams.
+
+Promising avenues for future research include:
 \begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
-    \item Extending the pipeline to natively handle multivariate channels by designing a multivariate feature extractor and adapting the encoder to accept multi-dimensional inputs directly.
-    \item Building a memory-curation strategy that prioritizes diversity and temporal coverage to improve successor retrieval for non-stationary channels.
-    \item Integrating uncertainty quantification to convert window scores into calibrated event probabilities for operational use.
+    \item \textbf{Continuous Online Streaming Adaptation:} Developing continuous test-time momentum updates to track gradual seasonal or orbital regime drifts without catastrophic forgetting.
+    \item \textbf{Edge Hardware Quantization:} Deploying lightweight integer-quantized (INT8) TCN-JEPA encoders directly on radiation-hardened spacecraft microcontrollers and wearable biomedical sensors.
+    \item \textbf{Foundation Models for Cyber-Physical Telemetry:} Pretraining large-scale multi-domain TS-JEPA world models on massive multi-mission telemetry archives for zero-shot downstream fault diagnosis.
 \end{itemize}
-
-\vspace{6pt}
-\noindent
-author contributions and acknowledgments will be filled in the final manuscript.

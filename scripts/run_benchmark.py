@@ -36,12 +36,14 @@ from src.models import (
     TSJEPAModel,
     jepa_vicreg_loss,
 )
+from src.models.train_model import split_train_validation as split_train_val
 from src.data.data_loader import DataLoader
 from src.utils.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
     compute_metrics,
     event_level_filter,
+    local_deviation_scores,
     moving_average,
     positive_robust_z,
     robust_stats,
@@ -55,34 +57,6 @@ DEFAULT_DATASET_CHANNELS = {
     "room-occupancy": ["default", "1"],
     "OPPORTUNITY": ["S1-ADL2", "S1-ADL3", "S1-ADL4", "S1-ADL5", "S2-ADL1", "S2-ADL2"],
 }
-
-
-def split_train_val(windows: np.ndarray, val_split: float = 0.1, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
-    rng = np.random.default_rng(seed)
-    indices = np.arange(len(windows))
-    rng.shuffle(indices)
-    n_val = max(1, int(len(indices) * val_split))
-    return windows[indices[n_val:]], windows[indices[:n_val]]
-
-
-def local_deviation_scores(windows: np.ndarray, context_size: int, tail_size: int = 64, chunk_size: int = 2048) -> np.ndarray:
-    n_windows = windows.shape[0]
-    out = np.empty(n_windows, dtype=np.float32)
-    tail_start = max(0, context_size - tail_size)
-    for start in range(0, n_windows, chunk_size):
-        end = min(start + chunk_size, n_windows)
-        chunk = np.asarray(windows[start:end], dtype=np.float64)
-        context_tail = chunk[:, tail_start:context_size, :]
-        suspects = chunk[:, context_size:, :]
-        medians = np.median(context_tail, axis=1)
-        mad = np.median(np.abs(context_tail - medians[:, None, :]), axis=1)
-        scale = np.maximum(1.4826 * mad, 0.20)
-        diff = (suspects - medians[:, None, :]) / scale[:, None, :]
-        point_z = np.max(np.abs(diff), axis=1)
-        mean_shift = np.abs(np.mean(suspects, axis=1) - medians) / scale
-        per_feature = np.maximum(point_z, mean_shift)
-        out[start:end] = np.max(per_feature, axis=1).astype(np.float32)
-    return out
 
 
 def evaluate_channel(
