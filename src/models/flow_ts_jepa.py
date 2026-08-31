@@ -8,14 +8,14 @@ along straight ODE paths to the ground-truth future target latent representation
 
 from __future__ import annotations
 
-import copy
 import math
-from typing import Callable, Literal, Optional, Tuple, Union
+from typing import Callable, List, Literal, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.models._jepa_utils import JEPABase
 from src.models.ts_jepa import _vicreg_branch_loss
 
 
@@ -43,11 +43,13 @@ class TimestepEmbedding(nn.Module):
         """
         if t.ndim == 0:
             t = t.unsqueeze(0)
+        dtype = self.mlp[0].weight.dtype
+        device = t.device
         half_dim = self.embed_dim // 2
         freqs = torch.exp(
-            -math.log(self.max_period) * torch.arange(start=0, end=half_dim, dtype=torch.float32, device=t.device) / half_dim
+            -math.log(self.max_period) * torch.arange(start=0, end=half_dim, dtype=dtype, device=device) / half_dim
         )
-        args = t[:, None].float() * freqs[None]
+        args = t[:, None].to(dtype=dtype) * freqs[None]
         embedding = torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
         if self.embed_dim % 2 == 1:
             embedding = torch.cat([embedding, torch.zeros_like(embedding[:, :1])], dim=-1)
@@ -129,6 +131,43 @@ class FlowLatentPredictor(nn.Module):
         return self.out_proj(x)
 
 
+def von_neumann_operator_entropy_loss(z: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
+    """Von Neumann / Operator Bregman Divergence loss for covariance decorrelation.
+
+    Computes D_Breg(rho || (1/D) * I) = Tr(rho log rho) + log(D) where rho is the normalized
+    batch covariance matrix (density operator).
+
+    Rooted in Quantum Information Theory and Operator Convexity (Petz, 2007):
+    forces all covariance eigenvalues to be identical (maximal entropy / isotropic dispersion),
+    with logarithmic gradient steepness near zero singular values preventing dimensional collapse.
+
+    Args:
+        z: Latent embeddings of shape (B, D) or (B, N, D).
+        eps: Small eigenvalue regularizer for log stability.
+
+    Returns:
+        Scalar loss >= 0, achieving 0 iff all covariance eigenvalues are equal.
+    """
+    if z.ndim == 3:
+        z = z.reshape(-1, z.size(-1))
+    D = z.size(-1)
+    N = z.size(0)
+    if N <= 1:
+        return torch.tensor(0.0, device=z.device)
+
+    z_c = z - z.mean(dim=0, keepdim=True)
+    cov = (z_c.T @ z_c) / (N - 1)
+    tr = torch.trace(cov) + eps
+    rho = cov / tr + (eps / D) * torch.eye(D, device=z.device, dtype=z.dtype)
+    rho = rho / torch.trace(rho)
+    evals = torch.linalg.eigvalsh(rho)
+    evals = torch.clamp(evals, min=eps)
+    p = evals / evals.sum()
+    vn_entropy = -torch.sum(p * torch.log(p))
+    max_entropy = math.log(float(D))
+    return torch.clamp(max_entropy - vn_entropy, min=0.0)
+
+
 def flow_matching_vicreg_loss(
     v_pred: torch.Tensor,
     v_target: torch.Tensor,
@@ -139,29 +178,44 @@ def flow_matching_vicreg_loss(
     cov_weight: float = 0.1,
     gamma: float = 1.0,
     eps: float = 1e-4,
+    reg_mode: Literal["vicreg", "operator_entropy"] = "operator_entropy",
 ) -> Tuple[torch.Tensor, dict]:
-    """Combined Optimal Transport Flow Matching and Non-Contrastive VICReg Loss.
+    """Combined Optimal Transport Flow Matching and Manifold Regularization Loss.
     
     1. Flow Matching Objective: || v_pred - (z_1 - z_0) ||^2
     2. Variance Regularization: Prevents context and target representations from collapsing.
-    3. Covariance Decorrelation: Prevents dimensional collapse.
+    3. Covariance Regularization:
+       - 'operator_entropy' (default): Quantum Von Neumann Operator Entropy divergence.
+       - 'vicreg': Classical off-diagonal covariance Frobenius norm penalty.
     """
     # 1. Flow Matching Loss
     loss_flow = F.mse_loss(v_pred, v_target)
 
-    # 2. Branch-wise VICReg Regularization
+    # 2. Branch-wise Variance and Covariance Regularization
     var_loss = torch.tensor(0.0, device=v_pred.device)
     cov_loss = torch.tensor(0.0, device=v_pred.device)
 
     branch_count = 0
     if z_ctx is not None:
-        v_c, c_c = _vicreg_branch_loss(z_ctx, gamma=gamma, eps=eps)
+        if reg_mode == "operator_entropy":
+            z_c_flat = z_ctx.reshape(-1, z_ctx.size(-1))
+            std_c = torch.sqrt(torch.var(z_c_flat, dim=0, unbiased=False) + eps)
+            v_c = torch.mean(F.relu(gamma - std_c))
+            c_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+        else:
+            v_c, c_c = _vicreg_branch_loss(z_ctx, gamma=gamma, eps=eps)
         var_loss = var_loss + v_c
         cov_loss = cov_loss + c_c
         branch_count += 1
 
     if z_tgt_true is not None:
-        v_t, c_t = _vicreg_branch_loss(z_tgt_true, gamma=gamma, eps=eps)
+        if reg_mode == "operator_entropy":
+            z_t_flat = z_tgt_true.reshape(-1, z_tgt_true.size(-1))
+            std_t = torch.sqrt(torch.var(z_t_flat, dim=0, unbiased=False) + eps)
+            v_t = torch.mean(F.relu(gamma - std_t))
+            c_t = von_neumann_operator_entropy_loss(z_tgt_true, eps=eps)
+        else:
+            v_t, c_t = _vicreg_branch_loss(z_tgt_true, gamma=gamma, eps=eps)
         var_loss = var_loss + v_t
         cov_loss = cov_loss + c_t
         branch_count += 1
@@ -180,7 +234,31 @@ def flow_matching_vicreg_loss(
     return total_loss, loss_metrics
 
 
-class FlowTSJEPAModel(nn.Module):
+def _get_chebyshev_collocation_nodes(
+    mode: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
+    device: torch.device = torch.device("cpu"),
+    dtype: torch.dtype = torch.float32,
+) -> Tuple[List[float], List[float]]:
+    """Compute deterministic quadrature collocation nodes and weights along the OT path t in (0, 1)."""
+    if mode == "midpoint":
+        return [0.5], [1.0]
+    elif mode == "chebyshev_3":
+        t1 = 0.5 * (1.0 - math.sqrt(2) / 2.0)
+        t2 = 0.5
+        t3 = 0.5 * (1.0 + math.sqrt(2) / 2.0)
+        w = [0.2761, 0.4478, 0.2761]
+        sum_w = sum(w)
+        return [t1, t2, t3], [x / sum_w for x in w]
+    elif mode == "chebyshev_5":
+        nodes = [0.5 * (1.0 + math.cos((5 - k) * math.pi / 5.0)) for k in range(1, 5)]
+        w = [0.2, 0.3, 0.3, 0.2]
+        sum_w = sum(w)
+        return nodes, [x / sum_w for x in w]
+    else:
+        raise ValueError(f"Unknown collocation mode: {mode}. Choose 'midpoint', 'chebyshev_3', or 'chebyshev_5'.")
+
+
+class FlowTSJEPAModel(JEPABase):
     """Conditional Flow Matching Time-Series Joint Embedding Predictive Architecture.
     
     Wraps:
@@ -204,10 +282,7 @@ class FlowTSJEPAModel(nn.Module):
         self.ema_decay = ema_decay
 
         # Target encoder is an EMA copy of context encoder
-        self.target_encoder = copy.deepcopy(context_encoder)
-        for p in self.target_encoder.parameters():
-            p.requires_grad = False
-        self.target_encoder.eval()
+        self.target_encoder = self.init_target_encoder(context_encoder)
 
         self.flow_predictor = FlowLatentPredictor(
             latent_dim=latent_dim,
@@ -217,15 +292,7 @@ class FlowTSJEPAModel(nn.Module):
         )
 
         # Buffers for Mahalanobis-whitened flow scoring
-        self.register_buffer("precision_matrix", torch.eye(latent_dim))
-        self.register_buffer("residual_mean", torch.zeros(latent_dim))
-        self.register_buffer("precision_fitted", torch.tensor(False, dtype=torch.bool))
-
-    def train(self, mode: bool = True) -> FlowTSJEPAModel:
-        """Ensure target encoder strictly remains in eval mode during training."""
-        super().train(mode)
-        self.target_encoder.eval()
-        return self
+        self.register_mahalanobis_buffers(latent_dim)
 
     def forward(
         self,
@@ -261,11 +328,11 @@ class FlowTSJEPAModel(nn.Module):
 
         # Sample time t in [0, 1] if not provided
         if t is None:
-            t = torch.rand(B, device=device)
+            t = torch.rand(B, device=device, dtype=context_windows.dtype)
 
         # Sample prior noise z_0 ~ N(0, I) if not provided
         if z_noise is None:
-            z_noise = torch.randn(B, self.latent_dim, device=device)
+            z_noise = torch.randn(B, self.latent_dim, device=device, dtype=context_windows.dtype)
 
         # Optimal Transport Flow Matching Linear Interpolation:
         # z_t = (1 - t) * z_0 + t * z_1
@@ -279,15 +346,6 @@ class FlowTSJEPAModel(nn.Module):
         v_pred = self.flow_predictor(z_t, t, z_ctx)
 
         return z_ctx, z_tgt_true, v_pred, v_target
-
-    @torch.no_grad()
-    def update_target_encoder(self, decay: Optional[float] = None) -> None:
-        """Update target encoder weights and buffers via Exponential Moving Average (EMA)."""
-        m = self.ema_decay if decay is None else decay
-        for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
-            param_k.data.mul_(m).add_((1.0 - m) * param_q.data)
-        for buf_q, buf_k in zip(self.context_encoder.buffers(), self.target_encoder.buffers()):
-            buf_k.data.copy_(buf_q.data)
 
     @torch.no_grad()
     def sample_target(
@@ -311,17 +369,18 @@ class FlowTSJEPAModel(nn.Module):
         self.eval()
         B = context_windows.size(0)
         device = context_windows.device
+        dtype = context_windows.dtype
         z_ctx = self.context_encoder(context_windows)
 
         if z_init is None:
-            z_t = torch.randn(B, self.latent_dim, device=device)
+            z_t = torch.randn(B, self.latent_dim, device=device, dtype=dtype)
         else:
             z_t = z_init.clone()
 
         dt = 1.0 / n_steps
         for step in range(n_steps):
             t_val = step * dt
-            t_curr = torch.full((B,), t_val, device=device, dtype=torch.float32)
+            t_curr = torch.full((B,), t_val, device=device, dtype=dtype)
 
             if solver == "euler":
                 v = self.flow_predictor(z_t, t_curr, z_ctx)
@@ -331,17 +390,17 @@ class FlowTSJEPAModel(nn.Module):
                 # 2nd order Runge-Kutta / Midpoint method
                 v_curr = self.flow_predictor(z_t, t_curr, z_ctx)
                 z_mid = z_t + 0.5 * dt * v_curr
-                t_mid = torch.full((B,), t_val + 0.5 * dt, device=device, dtype=torch.float32)
+                t_mid = torch.full((B,), t_val + 0.5 * dt, device=device, dtype=dtype)
                 v_mid = self.flow_predictor(z_mid, t_mid, z_ctx)
                 z_t = z_t + dt * v_mid
 
             elif solver == "rk4":
                 # 4th order classic Runge-Kutta
                 k1 = self.flow_predictor(z_t, t_curr, z_ctx)
-                t_half = torch.full((B,), t_val + 0.5 * dt, device=device, dtype=torch.float32)
+                t_half = torch.full((B,), t_val + 0.5 * dt, device=device, dtype=dtype)
                 k2 = self.flow_predictor(z_t + 0.5 * dt * k1, t_half, z_ctx)
                 k3 = self.flow_predictor(z_t + 0.5 * dt * k2, t_half, z_ctx)
-                t_next = torch.full((B,), t_val + dt, device=device, dtype=torch.float32)
+                t_next = torch.full((B,), t_val + dt, device=device, dtype=dtype)
                 k4 = self.flow_predictor(z_t + dt * k3, t_next, z_ctx)
                 z_t = z_t + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
@@ -356,41 +415,57 @@ class FlowTSJEPAModel(nn.Module):
         context_windows: torch.Tensor,
         observed_target_windows: torch.Tensor,
         use_mahalanobis: bool = False,
+        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
     ) -> torch.Tensor:
-        """Compute deterministic Optimal Transport midpoint flow discrepancy.
+        """Compute deterministic Optimal Transport flow discrepancy.
         
-        Evaluates the vector field consistency at t=0.5 along the straight trajectory
-        from prior mean z_0=0 to observed target z_1=E_phi(x_tgt):
-        || v_psi(0.5 * z_tgt, t=0.5, z_ctx) - z_tgt ||.
+        Evaluates the continuous velocity field consistency along the straight OT-CFM trajectory
+        interpolating from the prior mean (z_0 = 0) to observed target z_1 = E_phi(x_tgt):
+        z_t = t * z_tgt, with target velocity v_target = z_tgt - z_0 = z_tgt.
         
-        Completely eliminates Monte Carlo sampling noise, enabling precise GPD tail calibration.
+        Evaluates at deterministic Chebyshev-Lobatto quadrature nodes t_k in (0, 1) (default: t=0.5 midpoint).
+        This eliminates Monte Carlo sampling noise while capturing non-linear vector-field curvature,
+        enabling exact Extreme Value Theory (EVT) Generalized Pareto tail calibration.
         
         Args:
             context_windows: (B, L_ctx, C)
             observed_target_windows: (B, L_tgt, C)
             use_mahalanobis: Whether to apply covariance whitening
+            collocation: 'midpoint' (1-point t=0.5), 'chebyshev_3' (3-point), or 'chebyshev_5' (5-point)
             
         Returns:
             Discrepancy scores of shape (B,)
         """
+        if use_mahalanobis and not bool(self.precision_fitted.item()):
+            raise RuntimeError("Mahalanobis scoring requested, but covariance has not been fitted.")
+
         self.eval()
         B = context_windows.size(0)
         device = context_windows.device
+        dtype = context_windows.dtype
 
         z_ctx = self.context_encoder(context_windows)
         z_tgt = self.target_encoder(observed_target_windows)
 
-        t_mid = torch.full((B,), 0.5, device=device, dtype=torch.float32)
-        z_mid = 0.5 * z_tgt
-        v_pred = self.flow_predictor(z_mid, t_mid, z_ctx)
-        diff = v_pred - z_tgt
+        nodes, weights = _get_chebyshev_collocation_nodes(collocation, device=device, dtype=dtype)
+        total_score = torch.zeros(B, device=device, dtype=dtype)
 
-        if use_mahalanobis and bool(self.precision_fitted.item()):
-            diff_c = diff - self.residual_mean
-            m_dist = torch.sum((diff_c @ self.precision_matrix) * diff_c, dim=-1)
-            return torch.sqrt(torch.clamp(m_dist, min=1e-8))
-        else:
-            return torch.linalg.norm(diff, dim=-1)
+        for t_val, w_val in zip(nodes, weights):
+            t_tensor = torch.full((B,), t_val, device=device, dtype=dtype)
+            z_node = t_val * z_tgt
+            v_pred = self.flow_predictor(z_node, t_tensor, z_ctx)
+            diff = v_pred - z_tgt
+
+            if use_mahalanobis:
+                diff_c = diff - self.residual_mean
+                m_dist = torch.sum((diff_c @ self.precision_matrix) * diff_c, dim=-1)
+                node_score = torch.sqrt(torch.clamp(m_dist, min=1e-8))
+            else:
+                node_score = torch.linalg.norm(diff, dim=-1)
+
+            total_score = total_score + w_val * node_score
+
+        return total_score
 
     @torch.no_grad()
     def compute_instantaneous_energy_discrepancy(
@@ -399,9 +474,13 @@ class FlowTSJEPAModel(nn.Module):
         target_windows: torch.Tensor,
         n_eval_times: int = 3,
         use_mahalanobis: bool = False,
+        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
     ) -> torch.Tensor:
-        """Compute deterministic predictive discrepancy (alias for backward compatibility)."""
-        return self.compute_predictive_discrepancy(context_windows, target_windows, use_mahalanobis=use_mahalanobis)
+        """Compute deterministic predictive discrepancy (alias with collocation support)."""
+        return self.compute_predictive_discrepancy(
+            context_windows, target_windows, use_mahalanobis=use_mahalanobis, collocation=collocation
+        )
+
 
     @torch.no_grad()
     def compute_trajectory_discrepancy(
@@ -438,35 +517,38 @@ class FlowTSJEPAModel(nn.Module):
     @torch.no_grad()
     def fit_mahalanobis_covariance(
         self,
-        context_windows: torch.Tensor,
-        target_windows: torch.Tensor,
+        context_windows,
+        target_windows,
         batch_size: int = 512,
         reg: float = 1e-3,
     ) -> None:
-        """Fit empirical vector field residual covariance for Mahalanobis whitened scoring."""
-        self.eval()
-        n_samples = len(context_windows)
-        residuals_list = []
+        """Fit empirical vector field residual covariance for Mahalanobis whitened scoring.
 
-        for i in range(0, n_samples, batch_size):
-            ctx_b = context_windows[i : i + batch_size]
-            tgt_b = target_windows[i : i + batch_size]
+        Accepts numpy arrays or tensors; data is transferred in batches.
+        """
+        from src.models._jepa_utils import fit_covariance_batched
+
+        def residual_fn(ctx_b, tgt_b):
             z_ctx = self.context_encoder(ctx_b)
             z_tgt = self.target_encoder(tgt_b)
-            B_b = len(ctx_b)
-            t_mid = torch.full((B_b,), 0.5, device=ctx_b.device, dtype=torch.float32)
+            B_b = ctx_b.size(0)
+            t_mid = torch.full((B_b,), 0.5, device=ctx_b.device, dtype=ctx_b.dtype)
             z_mid = 0.5 * z_tgt
             v_pred = self.flow_predictor(z_mid, t_mid, z_ctx)
-            residuals_list.append(v_pred - z_tgt)
+            return v_pred - z_tgt
 
-        residuals = torch.cat(residuals_list, dim=0)
-        mean_res = residuals.mean(dim=0, keepdim=True)
-        self.residual_mean.copy_(mean_res.squeeze(0))
-        residuals_centered = residuals - mean_res
-        cov = (residuals_centered.T @ residuals_centered) / max(len(residuals) - 1, 1)
-        cov_reg = cov + reg * torch.eye(self.latent_dim, device=cov.device)
-        self.precision_matrix.copy_(torch.linalg.pinv(cov_reg))
-        self.precision_fitted.copy_(torch.tensor(True, dtype=torch.bool))
+        fit_covariance_batched(
+            self,
+            context_windows,
+            target_windows,
+            residual_fn=residual_fn,
+            dim=self.latent_dim,
+            batch_size=batch_size,
+            reg=reg,
+            precision_buffer=self.precision_matrix,
+            residual_mean_buffer=self.residual_mean,
+            fitted_buffer=self.precision_fitted,
+        )
 
 
 # Alias

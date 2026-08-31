@@ -7,21 +7,11 @@ from the new modular engine (`src.config`, `src.engine`, `src.cli`) to ensure
 
 from __future__ import annotations
 
+# 5. CLI
+from src.cli import main, parse_args
+
 # 1. Configuration
 from src.config import CSMConfig
-
-# 2. Engine Trainer
-from src.engine.trainer import (
-    EncoderModel,
-    build_encoder,
-    encode_windows,
-    evaluate_contrastive_loss,
-    limit_windows,
-    resolve_device,
-    set_seed,
-    split_train_validation,
-    train_encoder,
-)
 
 # 3. Engine Evaluator
 from src.engine.evaluator import (
@@ -38,8 +28,18 @@ from src.engine.orchestrator import (
     save_channel_outputs,
 )
 
-# 5. CLI
-from src.cli import main, parse_args
+# 2. Engine Trainer
+from src.engine.trainer import (
+    EncoderModel,
+    build_encoder,
+    encode_windows,
+    evaluate_contrastive_loss,
+    limit_windows,
+    resolve_device,
+    set_seed,
+    split_train_validation,
+    train_encoder,
+)
 
 __all__ = [
     # Config

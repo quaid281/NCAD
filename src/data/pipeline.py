@@ -2,10 +2,13 @@
 """
 
 from __future__ import annotations
-import numpy as np
+
 from typing import List, Optional
-from src.features.features import FeatureConfig, NCADFeatureExtractor
+
+import numpy as np
+
 from src.data.data_loader import DataLoader
+from src.features.features import FeatureConfig, NCADFeatureExtractor
 
 
 class NCADPipeline:
@@ -65,7 +68,7 @@ class NCADPipeline:
                 indices = list(range(test_data.shape[1]))
             if len(indices) != len(self.extractors):
                 raise ValueError("Number of signal indices does not match fitted extractors.")
-            
+
             features_list = []
             for i, idx in enumerate(indices):
                 feat = self.extractors[i].transform(test_data[:, idx])

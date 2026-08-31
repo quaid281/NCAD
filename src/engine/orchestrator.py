@@ -17,7 +17,15 @@ import torch
 from src.config import CSMConfig
 from src.data.data_loader import ChannelData, DataLoader
 from src.engine.evaluator import build_successor_memory, calibrate_event_threshold, score_windows
-from src.engine.trainer import EncoderModel, limit_windows, resolve_device, set_seed, train_encoder, train_ts_jepa, build_ts_jepa_model
+from src.engine.trainer import (
+    EncoderModel,
+    build_ts_jepa_model,
+    limit_windows,
+    resolve_device,
+    set_seed,
+    train_encoder,
+    train_ts_jepa,
+)
 from src.features.features import FeatureConfig, NCADFeatureExtractor
 from src.models.successor_memory import CounterfactualSuccessorMemory
 from src.utils.event_fusion import (
@@ -29,7 +37,6 @@ from src.utils.event_fusion import (
     percentile_score_floor,
     positive_robust_z,
 )
-from src.utils.plotting import plot_channel_diagnostics
 
 logger = logging.getLogger("NCAD.engine.orchestrator")
 
@@ -66,7 +73,9 @@ def run_channel(
 
     logger.info(f"[{channel_data.channel_id}] windows: train={len(train_windows):,}, test={len(test_windows):,}, features={train_features.shape[1]}")
 
-    is_jepa = config.model_type in ["ts_jepa", "patch_ts_jepa", "gat_jepa"]
+    from src.models.registry import is_jepa_model
+
+    is_jepa = is_jepa_model(config.model_type)
 
     if is_jepa:
         logger.info(f"[{channel_data.channel_id}] training {config.model_type} self-supervised physical dynamics model")
@@ -246,6 +255,8 @@ def run_channel(
         anomaly_probabilities=anomaly_probabilities,
     )
     if config.save_plots:
+        from src.utils.plotting import plot_channel_diagnostics
+
         plot_channel_diagnostics(channel_dir, channel_data, smoothed_scores, calibration["event_threshold"], predictions, context_ood_map)
 
     logger.info(f"[{channel_data.channel_id}] done in {elapsed:.1f}s: Point-F1={metrics_pt.get('f1', 0.0):.4f}, PA-F1={metrics_pa.get('f1', 0.0):.4f}")

@@ -10,7 +10,6 @@ This model combines:
 
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
@@ -18,11 +17,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.models._jepa_utils import JEPABase
 from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
 from src.models.ts_jepa import LatentPredictor, jepa_vicreg_loss
 
 
-class NCADJEPAModel(nn.Module):
+class NCADJEPAModel(JEPABase):
     """Unified NCAD-TCN + TS-JEPA Model."""
 
     def __init__(
@@ -54,10 +54,8 @@ class NCADJEPAModel(nn.Module):
             dropout=dropout,
         )
 
-        # 2. Target Encoder (EMA updated, no grads)
-        self.target_encoder = copy.deepcopy(self.context_encoder)
-        for p in self.target_encoder.parameters():
-            p.requires_grad = False
+        # 2. Target Encoder (EMA updated, no grads, strictly deterministic eval)
+        self.target_encoder = self.init_target_encoder(self.context_encoder)
 
         # 3. Latent Space Dynamics Predictor
         self.predictor = LatentPredictor(
@@ -86,17 +84,12 @@ class NCADJEPAModel(nn.Module):
 
         z_target_true = None
         if target_windows is not None:
+            self.target_encoder.eval()
             with torch.no_grad():
                 z_target_true = self.target_encoder(target_windows)
 
         return z_context, z_target_true, z_target_pred
 
-    @torch.no_grad()
-    def update_target_encoder(self, decay: Optional[float] = None) -> None:
-        """Update target encoder weights via Exponential Moving Average (EMA)."""
-        m = self.ema_decay if decay is None else decay
-        for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
-            param_k.data.mul_(m).add_((1.0 - m) * param_q.data)
 
     def compute_joint_loss(
         self,

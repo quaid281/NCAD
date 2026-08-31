@@ -21,7 +21,7 @@ class PositionalEncoding(nn.Module):
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term[: d_model // 2])
         pe = pe.unsqueeze(0)
         self.register_buffer("pe", pe)
 
@@ -124,11 +124,15 @@ class TranAD(nn.Module):
     def adversarial_loss(
         rec1: torch.Tensor, rec2: torch.Tensor, target: torch.Tensor, epoch: int = 1
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Adversarial two-phase training loss (VLDB 2022)."""
-        l1 = torch.mean((rec1 - target) ** 2)
-        # Phase 2 penalty with focus on deviations
+        """Adversarial two-phase training loss (VLDB 2022).
+
+        Phase 1: Reconstruction loss for Decoder 1: (1 / n) * MSE(rec1, target).
+        Phase 2: Epoch-weighted composite loss for Decoder 2:
+                 (1 / n) * MSE(rec1, target) + (1 - 1 / n) * MSE(rec2, target).
+        """
         n = max(epoch, 1)
-        l2 = (1.0 / n) * torch.mean((rec2 - target) ** 2) - (1.0 - 1.0 / n) * torch.mean((rec1 - rec2) ** 2)
+        l1 = (1.0 / n) * torch.mean((rec1 - target) ** 2)
+        l2 = (1.0 / n) * torch.mean((rec1 - target) ** 2) + (1.0 - 1.0 / n) * torch.mean((rec2 - target) ** 2)
         return l1, l2
 
     def compute_anomaly_scores(self, x: torch.Tensor) -> torch.Tensor:

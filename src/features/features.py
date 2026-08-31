@@ -14,6 +14,7 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+
 try:
     import pywt
 except ImportError:

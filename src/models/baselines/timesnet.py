@@ -59,13 +59,13 @@ def FFT_for_Period(x: torch.Tensor, k: int = 2) -> Tuple[List[int], torch.Tensor
     frequency_list[0] = 0.0  # Ignore DC / zero-frequency component
     _, top_list = torch.topk(frequency_list, k=min(k, len(frequency_list)))
     top_list_np = top_list.detach().cpu().numpy()
-    
+
     seq_len = x.shape[1]
     period = []
     for top in top_list_np:
         p = math.ceil(seq_len / (top + 1e-5))
         period.append(max(p, 1))
-    
+
     period_weight = F.softmax(frequency_list[top_list], dim=-1)
     return period, period_weight.to(x.device)
 
@@ -103,7 +103,7 @@ class TimesBlock(nn.Module):
             else:
                 length = T
                 out = x
-            
+
             # Reshape 1D -> 2D: (B, N, length/period, period)
             out = out.reshape(B, length // period, period, N).permute(0, 3, 1, 2).contiguous()
             # 2D Inception

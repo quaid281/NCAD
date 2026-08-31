@@ -40,13 +40,16 @@ from src.models import (
     AnomalyTransformer,
     ContextualAnomalyInjector,
     DCdetector,
+    FlowTSJEPA,
     HybridTCNEncoder,
+    PatchFlowJEPA,
     PatchTSJEPA,
     RelationalGAT_JEPAModel,
     TimesNet,
     TranAD,
     TSJEPAModel,
     contrastive_loss,
+    flow_matching_vicreg_loss,
     jepa_vicreg_loss,
 )
 from src.models.train_model import split_train_validation as split_train_val
@@ -506,6 +509,130 @@ def train_and_score_channel(
                     res.append(disc)
             return np.concatenate(res, axis=0)
 
+    # =========================================================================
+    # 9. Conditional Flow Matching TS-JEPA (FlowTSJEPA)
+    # =========================================================================
+    elif model_name in ["flow_jepa", "ts_jepa_flow"]:
+        base_enc = HybridTCNEncoder(input_dim=input_dim, latent_dim=32, filters=48, tcn_layers=6, dropout=0.20)
+        model = FlowTSJEPA(
+            context_encoder=base_enc,
+            latent_dim=32,
+            predictor_hidden_dim=64,
+            predictor_layers=3,
+            ema_decay=0.996,
+        ).to(device)
+        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
+
+        total_steps = epochs * max(1, len(training_data) // batch_size)
+        global_step = 0
+
+        for epoch in range(1, epochs + 1):
+            model.train()
+            perm = np.random.permutation(len(training_data))
+            for b in range(0, len(perm), batch_size):
+                global_step += 1
+                batch_arr = training_data[perm[b : b + batch_size]]
+                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
+                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
+                z_ctx, z_tgt_true, v_pred, v_target = model(ctx, tgt)
+                loss, _ = flow_matching_vicreg_loss(
+                    v_pred=v_pred,
+                    v_target=v_target,
+                    z_ctx=z_ctx,
+                    z_tgt_true=z_tgt_true,
+                    cov_weight=0.5,
+                )
+
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                optimizer.step()
+
+                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
+                model.update_target_encoder(decay=ema_val)
+            scheduler.step()
+
+        if use_mahalanobis:
+            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
+            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
+            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
+
+        def compute_discrepancy(arr):
+            model.eval()
+            res = []
+            with torch.no_grad():
+                for i in range(0, len(arr), 256):
+                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
+                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
+                    disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
+                    res.append(disc)
+            return np.concatenate(res, axis=0)
+
+    # =========================================================================
+    # 10. Patch Sequence Flow Matching JEPA (PatchFlowJEPA)
+    # =========================================================================
+    elif model_name in ["patch_flow_jepa", "ts_jepa_patch_flow"]:
+        patch_size = 16
+        n_tgt_patches = suspect_size // patch_size
+        model = PatchFlowJEPA(
+            input_dim=input_dim,
+            patch_size=patch_size,
+            d_model=48,
+            n_heads=4,
+            n_layers=2,
+            d_ff=96,
+            n_target_patches=n_tgt_patches,
+            predictor_layers=2,
+            ema_decay=0.996,
+            dropout=0.10,
+        ).to(device)
+        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
+
+        total_steps = epochs * max(1, len(training_data) // batch_size)
+        global_step = 0
+
+        for epoch in range(1, epochs + 1):
+            model.train()
+            perm = np.random.permutation(len(training_data))
+            for b in range(0, len(perm), batch_size):
+                global_step += 1
+                batch_arr = training_data[perm[b : b + batch_size]]
+                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
+                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
+                h_ctx, z_tgt_true, v_pred, v_target = model(ctx, tgt)
+                loss, _ = flow_matching_vicreg_loss(
+                    v_pred=v_pred.reshape(-1, 48),
+                    v_target=v_target.reshape(-1, 48),
+                    z_ctx=h_ctx.reshape(-1, 48),
+                    z_tgt_true=z_tgt_true.reshape(-1, 48),
+                    cov_weight=0.5,
+                )
+
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                optimizer.step()
+
+                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
+                model.update_target_encoder(decay=ema_val)
+            scheduler.step()
+
+        if use_mahalanobis:
+            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
+            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
+            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
+
+        def compute_discrepancy(arr):
+            model.eval()
+            res = []
+            with torch.no_grad():
+                for i in range(0, len(arr), 256):
+                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
+                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
+                    disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
+                    res.append(disc)
+            return np.concatenate(res, axis=0)
+
     else:
         raise ValueError(f"Unknown model_name: {model_name}")
 
@@ -621,6 +748,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs (default 50)")
     parser.add_argument("--seeds", nargs="+", type=int, default=[42], help="Random seeds to evaluate")
     parser.add_argument("--device", type=str, default="auto")
+    parser.add_argument("--resume", action="store_true", default=False, help="Skip runs already present in output CSV")
     parser.add_argument("--output_csv", type=str, default="reports/sota_baseline_comparison.csv")
     args = parser.parse_args()
 
@@ -632,6 +760,16 @@ def main():
     datasets_to_run = all_available if "all" in args.dataset else args.dataset
     out_p = ROOT / args.output_csv
     out_p.parent.mkdir(parents=True, exist_ok=True)
+
+    completed_runs = set()
+    if args.resume and out_p.exists():
+        try:
+            df_existing = pd.read_csv(out_p)
+            for _, r in df_existing.iterrows():
+                completed_runs.add((str(r["dataset"]), str(r["channel"]), str(r["model"]), int(r["seed"])))
+            print(f"Resuming: found {len(completed_runs)} already completed runs in {out_p.name}")
+        except Exception as e:
+            print(f"Warning: Could not parse existing {out_p.name} for resuming: {e}")
 
     print("=" * 100)
     print("RIGOROUS SOTA BENCHMARK EVALUATION (2021-2024)")
@@ -671,6 +809,10 @@ def main():
                     continue
 
                 for model_name in args.models:
+                    if (str(ds_name), str(chan), str(model_name), int(seed)) in completed_runs:
+                        print(f"  [{model_name:19s}] Chan: {chan:16s} ... [ALREADY COMPLETED, SKIPPED]")
+                        continue
+
                     print(f"  [{model_name:19s}] Chan: {chan:16s} ... ", end="", flush=True)
                     try:
                         res = train_and_score_channel(

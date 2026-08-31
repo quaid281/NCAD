@@ -22,7 +22,7 @@ class PositionalEmbedding(nn.Module):
         position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2, dtype=torch.float32) * -(math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term[: d_model // 2])
         pe = pe.unsqueeze(0)
         self.register_buffer("pe", pe)
 
@@ -186,14 +186,17 @@ class AnomalyTransformer(nn.Module):
             kl_sp = torch.sum(series * (torch.log(series + 1e-8) - torch.log(prior + 1e-8)), dim=-1)
             sym_kl = (kl_ps + kl_sp).mean(dim=1)  # average over heads -> (B, L)
             discrepancies.append(sym_kl)
-        
+
         return torch.stack(discrepancies, dim=0).mean(dim=0)
 
     def minimax_losses(
         self, x: torch.Tensor, lambda_weight: float = 3.0
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Official two-phase Minimax Loss for Anomaly Transformer (ICLR 2022).
-        
+
+        Phase 1 (Prior update): Minimize discrepancy with detached series to approximate series association.
+        Phase 2 (Series update): Maximize discrepancy with detached prior to enlarge association distance.
+
         Returns:
             loss_prior: Loss for Phase 1 (Prior association optimization with detached series)
             loss_series: Loss for Phase 2 (Series association optimization with detached prior)
@@ -203,11 +206,11 @@ class AnomalyTransformer(nn.Module):
 
         series_detached = [s.detach() for s in series_list]
         ass_dis_prior = self.association_discrepancy(prior_list, series_detached)
-        loss_prior = rec_loss - lambda_weight * ass_dis_prior.mean()
+        loss_prior = rec_loss + lambda_weight * ass_dis_prior.mean()
 
         prior_detached = [p.detach() for p in prior_list]
         ass_dis_series = self.association_discrepancy(prior_detached, series_list)
-        loss_series = rec_loss + lambda_weight * ass_dis_series.mean()
+        loss_series = rec_loss - lambda_weight * ass_dis_series.mean()
 
         return loss_prior, loss_series
 

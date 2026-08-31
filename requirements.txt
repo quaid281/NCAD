@@ -1,3 +1,5 @@
+# Runtime dependencies (mirror of [project.dependencies] in pyproject.toml).
+# pyproject.toml is the authoritative source; regenerate this file when deps change.
 torch>=2.0.0
 numpy>=1.24.0
 pandas>=2.0.0
@@ -5,4 +7,4 @@ scipy>=1.10.0
 scikit-learn>=1.2.0
 PyWavelets>=1.4.0
 matplotlib>=3.7.0
-pytest>=7.0.0
+pillow>=9.0.0

@@ -66,3 +66,28 @@ $m = 0.999$ & 0.2965 & 0.2172 & 0.3991 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Ablation 4: Flow Discrepancy Metrics vs. Numerical ODE Integration}
+Table~\ref{tab:ablation_ode} compares four anomaly scoring paradigms for continuous flow matching:
+\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. Achieves the highest precision and Oracle ceilings ($\mathbf{0.9897}$ on Daphnet \texttt{S03R02E0}) with zero Monte Carlo noise and minimal inference latency ($3.47$s).
+    \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Discretization errors accumulate across integration steps, slightly blurring the nominal decision boundary (Oracle drops from $0.9897$ to $0.8876$).
+    \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.4881$).
+\end{enumerate}
+
+\begin{table}[h!]
+\centering
+\caption{Comparison of Flow Discrepancy Metrics on Daphnet \texttt{S03R02E0}.}
+\label{tab:ablation_ode}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Scoring Formulation} & \textbf{PA-F1} & \textbf{Precision} & \textbf{Oracle Ceiling} & \textbf{Inference Time} \\
+\midrule
+Deterministic TS-JEPA & 0.2556 & 0.1566 & 0.3359 & 4.84s \\
+Trajectory ODE (1-step Euler) & 0.6510 & 0.7785 & 0.8881 & 3.46s \\
+Trajectory ODE (2-step Midpoint RK2) & 0.8770 & 0.8083 & 0.8876 & 3.57s \\
+Trajectory ODE (4-step Midpoint RK2) & 0.7866 & 0.7875 & 0.8876 & 3.71s \\
+\textbf{Deterministic Midpoint Flow (Ours)} & \textbf{0.9209} & \textbf{0.9861} & \textbf{0.9897} & \textbf{3.47s} \\
+\bottomrule
+\end{tabular}
+\end{table}

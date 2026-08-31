@@ -1,4 +1,8 @@
-"""Utilities package for NCAD-CS."""
+"""Utilities package for NCAD-CS.
+
+Plotting helpers are imported lazily so that core numerical utilities do not
+require matplotlib/Pillow at import time.
+"""
 
 from src.utils.event_fusion import (
     AdaptiveScoreFloor,
@@ -22,7 +26,6 @@ from src.utils.event_fusion import (
 )
 from src.utils.evt_calibrator import EVTCalibrator, EVTThresholdResult
 from src.utils.logging_utils import setup_logging
-from src.utils.plotting import plot_channel_diagnostics
 
 __all__ = [
     "AdaptiveScoreFloor",
@@ -48,3 +51,12 @@ __all__ = [
     "setup_logging",
     "plot_channel_diagnostics",
 ]
+
+
+def __getattr__(name: str):
+    """Lazy import for plotting helpers to avoid eager matplotlib dependency."""
+    if name == "plot_channel_diagnostics":
+        from src.utils.plotting import plot_channel_diagnostics
+
+        return plot_channel_diagnostics
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

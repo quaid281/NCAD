@@ -5,8 +5,8 @@ import torch
 import torch.optim as optim
 
 from src.models.relational_gat_encoder import (
-    RelationalGraphAttentionLayer,
     RelationalGATEncoder,
+    RelationalGraphAttentionLayer,
 )
 from src.models.tcn_encoder import contrastive_loss
 
@@ -16,14 +16,14 @@ def test_relational_gat_layer():
     batch_size = 4
     num_nodes = 9
     node_dim = 32
-    
+
     layer = RelationalGraphAttentionLayer(node_dim=node_dim, num_heads=4, dropout=0.0)
     x = torch.randn(batch_size, num_nodes, node_dim)
-    
+
     out, attn = layer(x, return_attention=True)
     assert out.shape == (batch_size, num_nodes, node_dim)
     assert attn.shape == (batch_size, 4, num_nodes, num_nodes)
-    
+
     # Softmax row sums must be 1.0
     row_sums = attn.sum(dim=-1)
     assert torch.allclose(row_sums, torch.ones_like(row_sums), atol=1e-5)
@@ -57,23 +57,23 @@ def test_relational_gat_optimization_step():
     """Verify backpropagation and parameter updates via contrastive loss."""
     encoder = RelationalGATEncoder(input_dim=6, latent_dim=16, filters=32, tcn_layers=2, gat_layers=1)
     optimizer = optim.AdamW(encoder.parameters(), lr=1e-3)
-    
+
     full_windows = torch.randn(8, 80, 6)
     context_windows = full_windows[:, :64]
     labels = torch.tensor([0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0])
-    
+
     z_full = encoder(full_windows)
     z_ctx = encoder(context_windows)
     loss = contrastive_loss(z_full, z_ctx, labels, margin=1.0)
-    
+
     assert loss.item() > 0.0
     optimizer.zero_grad()
     loss.backward()
-    
+
     # Verify gradients exist across both TCN and GAT blocks
     for name, param in encoder.named_parameters():
         if param.requires_grad:
             assert param.grad is not None, f"Gradient missing for {name}"
             assert not torch.isnan(param.grad).any(), f"NaN gradient in {name}"
-            
+
     optimizer.step()

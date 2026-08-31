@@ -33,7 +33,7 @@ class PatchEmbedding(nn.Module):
         pad_len = (self.patch_size - (L % self.patch_size)) % self.patch_size
         if pad_len > 0:
             x = F.pad(x, (0, 0, 0, pad_len))
-        
+
         padded_L = x.shape[1]
         num_patches = padded_L // self.patch_size
         # Reshape to (B, num_patches, patch_size * C)

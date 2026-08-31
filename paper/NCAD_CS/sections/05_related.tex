@@ -1,14 +1,20 @@
 \section{Related Work}
 \label{sec:related}
 
-Unsupervised time-series anomaly detection has evolved through reconstructive, contrastive, and predictive paradigms. This section reviews these developments and clearly differentiates TS-JEPA from prior art.
+Unsupervised time-series anomaly detection has evolved through dynamical equation discovery, reconstructive generative modeling, contrastive representation learning, and predictive world models. This section reviews these developments and clearly differentiates Flow-JEPA from prior art.
+
+\subsection{Dynamical Systems, SINDy, and Neural ODEs}
+The physical modeling of multi-sensor time series has long pursued the identification of continuous governing equations $\dot{x}(t) = \mathbf{f}(x(t))$.
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Sparse Identification of Nonlinear Dynamics (SINDy) \cite{brunton2016discovering}:} Employs sparse regression over candidate non-linear function libraries to discover symbolic ODEs. While transformative for low-dimensional closed systems (e.g., fluid dynamics, celestial mechanics), SINDy fails on real-world industrial telemetry. Calculating numerical derivatives $\dot{x} \approx \frac{\Delta x}{\Delta t}$ on noisy discrete measurements amplifies measurement noise exponentially; unobserved hidden states violate full-state Markov assumptions; and high sensor dimensionality ($K \ge 50$) triggers a combinatorial explosion of candidate terms ($\binom{K+3}{3} > 23,000$).
+    \item \textbf{Neural Ordinary Differential Equations (Neural ODEs) \cite{chen2018neural}:} Parameterize the continuous velocity field using neural networks $\frac{dx}{dt} = f_\theta(x(t), t)$ and solve trajectories via numerical ODE integrators. While Neural ODEs eliminate hand-crafted function libraries, fitting them directly in raw sensor space forces the integrator to solve stiff equations caused by high-frequency sensor noise, leading to slow training and numerical instability.
+    \item \textbf{Flow Matching on Latent Manifolds \cite{lipman2022flow}:} Continuous Normalizing Flows and Conditional Flow Matching (CFM) train neural velocity vector fields $v_\psi(z_t, t)$ along straight Optimal Transport probability paths. Flow-JEPA represents the first architecture to marry Optimal Transport Flow Matching with non-contrastive Joint-Embedding representations, learning continuous dynamical vector fields purely in regularized latent space without raw-space noise integration.
+\end{itemize}
 
 \subsection{Reconstructive Anomaly Detection Paradigms}
-The predominant paradigm in time-series anomaly detection relies on learning nominal patterns through reconstruction. Early seminal work by Hundman et al. \cite{Hundman2018b} introduced LSTM-based prediction coupled with non-parametric dynamic thresholding for NASA spacecraft telemetry (SMAP/MSL). While effective for simple univariate deviations, recurrent models struggle to capture multi-scale long-range dependencies \cite{hua2019deep}.
-
-To capture complex multi-scale temporal dependencies, modern deep learning architectures incorporate specialized attention and frequency-domain transformations:
+The predominant deep learning paradigm in time-series anomaly detection relies on learning nominal patterns through raw signal reconstruction. Early seminal work by Hundman et al. \cite{Hundman2018b} introduced LSTM-based prediction coupled with non-parametric dynamic thresholding for NASA spacecraft telemetry (SMAP/MSL). Modern architectures incorporate specialized attention and frequency-domain transformations:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Anomaly Transformer \cite{xu2022anomaly}:} Introduces Anomaly-Attention to quantify the \textit{Association Discrepancy} between local prior associations (Gaussian kernel attention) and global series associations (self-attention). While effective for isolated point anomalies, it still couples discrepancy with raw waveform reconstruction.
+    \item \textbf{Anomaly Transformer \cite{xu2022anomaly}:} Introduces Anomaly-Attention to quantify the \textit{Association Discrepancy} between local prior Gaussian kernel associations and global series self-attention. While effective for isolated point anomalies, it still couples discrepancy with point-level waveform reconstruction.
     \item \textbf{TimesNet \cite{wu2023timesnet}:} Decomposes 1D multivariate time series into 2D temporal variations using Fast Fourier Transform (FFT) periodicity discovery and 2D Inception blocks. However, optimizing point-level 2D reconstruction makes it susceptible to over-fitting high-frequency sensor noise.
     \item \textbf{TranAD \cite{tuli2022tranad}:} Employs a two-phase adversarial Transformer with sub-series attention and focus scoring to amplify subtle reconstruction errors, but remains vulnerable to phase-drift in continuous dynamical systems.
 \end{itemize}
@@ -24,18 +30,17 @@ To avoid reconstructing raw noise, contrastive methods learn discriminative repr
 
 \subsection{Emerging Joint-Embedding Predictive Architectures (JEPA)}
 Joint-Embedding Predictive Architectures (JEPA), originally proposed by LeCun \cite{lecun2022path} and demonstrated in computer vision by I-JEPA \cite{assran2023self} and V-JEPA \cite{bardes2024vjepa}, represent a paradigm shift. Rather than reconstructing raw signals, JEPAs predict the representation of a target observation from a context observation entirely within latent space.
-
-Recently, preliminary exploratory works have investigated JEPA concepts in time-series analysis:
+Recent preliminary exploratory works have investigated JEPA concepts in time-series analysis:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{SC-JEPA \cite{he2026scjepa}:} Introduces a Sequential Codebook JEPA for time-series forecasting. However, SC-JEPA relies on discrete Vector Quantization (VQ) codebooks, converting continuous continuous signals into finite discrete tokens. For continuous dynamical systems governed by smooth trajectories, discrete tokenization introduces severe quantization error and loses fine-grained phase-space geometry.
-    \item \textbf{T-SAR-JEPA \cite{woldesenbet2026tsarjepa} and CF-JEPA \cite{lee2026cfjepa}:} Apply joint-embedding objectives to multimodal Synthetic Aperture Radar (SAR) remote sensing or counterfactual causal graphs. However, they rely on heuristic cosine-distance scoring and lack non-contrastive representation regularization and statistical threshold calibration.
+    \item \textbf{SC-JEPA \cite{he2026scjepa}:} Introduces a Sequential Codebook JEPA for time-series forecasting. However, SC-JEPA relies on discrete Vector Quantization (VQ) codebooks, converting continuous signals into finite discrete tokens. For continuous dynamical systems governed by smooth trajectories, discrete tokenization introduces severe quantization error and loses fine-grained phase-space geometry.
+    \item \textbf{T-SAR-JEPA \cite{woldesenbet2026tsarjepa} and CF-JEPA \cite{lee2026cfjepa}:} Apply joint-embedding objectives to multimodal Synthetic Aperture Radar (SAR) remote sensing or counterfactual causal graphs. However, they rely on heuristic cosine-distance scoring and lack continuous velocity field modeling and statistical threshold calibration.
 \end{itemize}
 
-\subsection{Positioning and Novelty of TS-JEPA}
-TS-JEPA addresses the limitations of both traditional reconstructive/contrastive methods and early JEPA attempts through four distinct architectural innovations:
+\subsection{Positioning and Novelty of Flow-JEPA}
+Flow-JEPA synthesizes the strengths of continuous dynamical modeling and joint-embedding self-supervised learning while resolving their respective limitations through four innovations:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Continuous Non-Contrastive Latent Manifold:} Unlike SC-JEPA's discrete codebooks or NCAD's synthetic injections, TS-JEPA operates directly in continuous latent space, utilizing the non-contrastive VICReg (Invariance, Variance hinge, Covariance decorrelation) loss \cite{bardes2021vicreg} to enforce complete representation diversity without collapse.
-    \item \textbf{Covariance-Whitened (Mahalanobis) Discrepancy Metric:} Rather than unweighted Euclidean or cosine distances, TS-JEPA scores target predictions using the empirical precision tensor $\mathbf{\Sigma}^{-1}$ estimated from nominal transition residuals, normalizing directional variance across multi-sensor axes.
-    \item \textbf{Extreme Value Theory (EVT / SPOT) Tail Calibration:} In contrast to empirical percentile heuristics or ad-hoc elbow floors, TS-JEPA derives decision thresholds by fitting Generalized Pareto Distributions (GPD) \cite{siffer2017anomaly} to nominal predictive residuals under extreme value theory.
-    \item \textbf{Limit-Cycle Attractor Stability:} We demonstrate theoretically and visually that TS-JEPA models physical systems as stable limit cycles in latent phase space, providing unambiguous geometric separation between nominal orbits and anomaly breakdown.
+    \item \textbf{Continuous Latent Vector Field Modeling:} Instead of symbolic equation fitting (SINDy) or discrete codebooks (SC-JEPA), Flow-JEPA learns the continuous tangent velocity field of the physical manifold via Optimal Transport Conditional Flow Matching directly in an abstract latent space.
+    \item \textbf{Non-Contrastive VICReg Regularization:} Replaces synthetic negative injection heuristics (NCAD) with non-contrastive variance and covariance penalties, mathematically precluding dimensional collapse while preserving smooth attractor geometry.
+    \item \textbf{Deterministic Midpoint Velocity Discrepancy:} Eliminates stochastic Monte Carlo inference sampling noise by evaluating the velocity field at the exact Optimal Transport midpoint ($t=0.5$), enabling high-precision Mahalanobis whitening.
+    \item \textbf{Asymptotic Extreme Value Tail Calibration:} Applies Extreme Value Theory (EVT / SPOT) under the Pickands-Balkema-de Haan theorem to fit Generalized Pareto tails on nominal velocity residuals, establishing optimal decision boundaries without manual tuning.
 \end{enumerate}

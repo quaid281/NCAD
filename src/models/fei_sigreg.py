@@ -7,6 +7,8 @@ SIGReg variance/covariance regularization.
 
 from __future__ import annotations
 
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,7 +17,9 @@ import torch.nn.functional as F
 class FrequencyMasker:
     """Masks random frequency components of input time-series windows via FFT."""
 
-    def __init__(self, mask_ratio: float = 0.30, seed: int = 42):
+    def __init__(self, mask_ratio: float = 0.30, seed: Optional[int] = 42):
+        if not (0.0 <= mask_ratio <= 1.0):
+            raise ValueError(f"mask_ratio must be between 0.0 and 1.0, got {mask_ratio}.")
         self.mask_ratio = mask_ratio
         self.seed = seed
 
@@ -28,9 +32,14 @@ class FrequencyMasker:
         fft_coefs = torch.fft.rfft(windows, dim=1)
         num_freqs = fft_coefs.shape[1]
 
-        num_mask = int(num_freqs * self.mask_ratio)
+        num_mask = min(num_freqs, max(0, int(num_freqs * self.mask_ratio)))
         if num_mask > 0:
-            rand_weights = torch.rand(batch_size, num_freqs, device=windows.device)
+            if self.seed is not None:
+                gen = torch.Generator(device=windows.device)
+                gen.manual_seed(self.seed)
+                rand_weights = torch.rand(batch_size, num_freqs, generator=gen, device=windows.device)
+            else:
+                rand_weights = torch.rand(batch_size, num_freqs, device=windows.device)
             _, mask_indices = torch.topk(rand_weights, k=num_mask, dim=1)
             mask = torch.ones((batch_size, num_freqs, 1), device=windows.device)
             mask.scatter_(1, mask_indices.unsqueeze(-1), 0.0)
@@ -46,6 +55,7 @@ def sigreg_loss(
     var_weight: float = 1.0,
     cov_weight: float = 0.1,
     eps: float = 1e-4,
+    symmetric: bool = True,
 ) -> torch.Tensor:
     """Non-contrastive SIGReg loss preventing representational collapse.
 
@@ -53,16 +63,26 @@ def sigreg_loss(
     """
     inv_loss = F.mse_loss(z_masked, z_clean)
 
-    std_z = torch.sqrt(torch.var(z_clean, dim=0, unbiased=False) + eps)
-    var_loss = torch.mean(F.relu(1.0 - std_z))
+    def _var_cov(z: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        std_z = torch.sqrt(torch.var(z, dim=0, unbiased=False) + eps)
+        var_l = torch.mean(F.relu(1.0 - std_z))
+        batch_size, latent_dim = z.shape
+        if batch_size > 1:
+            z_centered = z - torch.mean(z, dim=0, keepdim=True)
+            cov_mat = (z_centered.T @ z_centered) / (batch_size - 1)
+            off_diag = cov_mat - torch.diag(torch.diag(cov_mat))
+            cov_l = torch.sum(off_diag.pow(2)) / latent_dim
+        else:
+            cov_l = torch.tensor(0.0, device=z.device)
+        return var_l, cov_l
 
-    batch_size, latent_dim = z_clean.shape
-    if batch_size > 1:
-        z_centered = z_clean - torch.mean(z_clean, dim=0, keepdim=True)
-        cov_mat = (z_centered.T @ z_centered) / (batch_size - 1)
-        off_diag = cov_mat - torch.diag(torch.diag(cov_mat))
-        cov_loss = torch.sum(off_diag.pow(2)) / latent_dim
+    var_clean, cov_clean = _var_cov(z_clean)
+    if symmetric:
+        var_masked, cov_masked = _var_cov(z_masked)
+        var_loss = 0.5 * (var_clean + var_masked)
+        cov_loss = 0.5 * (cov_clean + cov_masked)
     else:
-        cov_loss = torch.tensor(0.0, device=z_clean.device)
+        var_loss = var_clean
+        cov_loss = cov_clean
 
     return inv_loss + var_weight * var_loss + cov_weight * cov_loss

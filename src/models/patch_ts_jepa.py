@@ -7,7 +7,6 @@ predicting future patch token embeddings directly in latent representation space
 
 from __future__ import annotations
 
-import copy
 import math
 from typing import Optional, Tuple
 
@@ -16,6 +15,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.models._jepa_utils import JEPABase
 from src.models.ts_jepa import jepa_vicreg_loss
 
 
@@ -28,7 +28,7 @@ class PositionalEncoding(nn.Module):
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term[: d_model // 2])
         self.register_buffer("pe", pe.unsqueeze(0))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -50,7 +50,10 @@ class PatchTokenizer(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Convert (B, L, C) -> (B, N_patches, d_model)."""
         B, L, C = x.shape
-        assert L % self.patch_size == 0, f"Sequence length {L} must be divisible by patch_size {self.patch_size}"
+        if L % self.patch_size != 0:
+            raise ValueError(
+                f"Sequence length {L} must be divisible by patch_size {self.patch_size}"
+            )
         num_patches = L // self.patch_size
         # Reshape to (B, num_patches, patch_size * C)
         x_patches = x.view(B, num_patches, self.patch_size * C)
@@ -134,7 +137,7 @@ class PatchSequencePredictor(nn.Module):
         return self.norm(out)
 
 
-class PatchTSJEPA(nn.Module):
+class PatchTSJEPA(JEPABase):
     """Patch-Level Sequence Joint Embedding Predictive Architecture."""
 
     def __init__(
@@ -168,10 +171,7 @@ class PatchTSJEPA(nn.Module):
         )
 
         # EMA Target Encoder
-        self.target_encoder = copy.deepcopy(self.context_encoder)
-        for p in self.target_encoder.parameters():
-            p.requires_grad = False
-        self.target_encoder.eval()
+        self.target_encoder = self.init_target_encoder(self.context_encoder)
 
         # Sequence Predictor
         self.predictor = PatchSequencePredictor(
@@ -183,15 +183,12 @@ class PatchTSJEPA(nn.Module):
             dropout=dropout,
         )
 
-        self.register_buffer("precision_matrix", torch.eye(d_model))
-        self.register_buffer("residual_mean", torch.zeros(d_model))
-        self.register_buffer("precision_fitted", torch.tensor(False, dtype=torch.bool))
+        self.register_mahalanobis_buffers(d_model)
 
-    def train(self, mode: bool = True) -> PatchTSJEPA:
-        """Override train to ensure the target encoder strictly remains in eval mode."""
-        super().train(mode)
-        self.target_encoder.eval()
-        return self
+    @property
+    def latent_dim(self) -> int:
+        """Alias for ``d_model`` so patch models expose the same interface as other JEPA variants."""
+        return self.d_model
 
     def forward(
         self,
@@ -208,20 +205,18 @@ class PatchTSJEPA(nn.Module):
 
         h_tgt_true = None
         if target_windows is not None:
+            expected_len = self.n_target_patches * self.patch_size
+            if target_windows.size(1) != expected_len:
+                raise ValueError(
+                    f"target_windows sequence length ({target_windows.size(1)}) must match "
+                    f"n_target_patches * patch_size ({self.n_target_patches} * {self.patch_size} = {expected_len})."
+                )
             self.target_encoder.eval()
             with torch.no_grad():
                 h_tgt_true = self.target_encoder(target_windows)
 
         return h_ctx, h_tgt_true, h_tgt_pred
 
-    @torch.no_grad()
-    def update_target_encoder(self, decay: Optional[float] = None) -> None:
-        """EMA update of target encoder parameters and buffers."""
-        m = self.ema_decay if decay is None else decay
-        for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
-            param_k.data.mul_(m).add_((1.0 - m) * param_q.data)
-        for buf_q, buf_k in zip(self.context_encoder.buffers(), self.target_encoder.buffers()):
-            buf_k.data.copy_(buf_q.data)
 
     def compute_patch_loss(
         self,
@@ -231,6 +226,10 @@ class PatchTSJEPA(nn.Module):
         cov_weight: float = 0.5,
     ) -> torch.Tensor:
         """Token-level VICReg loss averaged across future patch positions."""
+        if h_tgt_pred.shape != h_tgt_true.shape:
+            raise ValueError(
+                f"Shape mismatch between h_tgt_pred {tuple(h_tgt_pred.shape)} and h_tgt_true {tuple(h_tgt_true.shape)}."
+            )
         B, N_tgt, D = h_tgt_pred.shape
         loss_total = 0.0
         for i in range(N_tgt):
@@ -244,32 +243,35 @@ class PatchTSJEPA(nn.Module):
     @torch.no_grad()
     def fit_mahalanobis_covariance(
         self,
-        context_windows: torch.Tensor,
-        target_windows: torch.Tensor,
+        context_windows,
+        target_windows,
         batch_size: int = 512,
         reg: float = 1e-3,
     ) -> None:
-        """Fit empirical residual covariance across patch tokens using batched accumulation."""
-        self.eval()
-        n_samples = len(context_windows)
-        residuals_list = []
+        """Fit empirical residual covariance across patch tokens using batched accumulation.
 
-        for i in range(0, n_samples, batch_size):
-            ctx_b = context_windows[i : i + batch_size]
-            tgt_b = target_windows[i : i + batch_size]
+        Accepts numpy arrays or tensors; data is transferred in batches.
+        """
+        from src.models._jepa_utils import fit_covariance_batched
+
+        def residual_fn(ctx_b, tgt_b):
             h_ctx = self.context_encoder(ctx_b)
             h_pred = self.predictor(h_ctx)
             h_obs = self.target_encoder(tgt_b)
-            residuals_list.append((h_obs - h_pred).reshape(-1, self.d_model))
+            return (h_obs - h_pred).reshape(-1, self.d_model)
 
-        residuals = torch.cat(residuals_list, dim=0)
-        mean_res = residuals.mean(dim=0, keepdim=True)
-        self.residual_mean.copy_(mean_res.squeeze(0))
-        residuals_centered = residuals - mean_res
-        cov = (residuals_centered.T @ residuals_centered) / max(len(residuals) - 1, 1)
-        cov_reg = cov + reg * torch.eye(self.d_model, device=cov.device)
-        self.precision_matrix.copy_(torch.linalg.pinv(cov_reg))
-        self.precision_fitted.copy_(torch.tensor(True, dtype=torch.bool))
+        fit_covariance_batched(
+            self,
+            context_windows,
+            target_windows,
+            residual_fn=residual_fn,
+            dim=self.d_model,
+            batch_size=batch_size,
+            reg=reg,
+            precision_buffer=self.precision_matrix,
+            residual_mean_buffer=self.residual_mean,
+            fitted_buffer=self.precision_fitted,
+        )
 
     def compute_predictive_discrepancy(
         self,

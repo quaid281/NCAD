@@ -7,18 +7,18 @@ Combines sensitivity to abrupt transient spikes with long-range drift detection.
 
 from __future__ import annotations
 
-import copy
 from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.models._jepa_utils import JEPABase
 from src.models.tcn_encoder import HybridTCNEncoder
 from src.models.ts_jepa import LatentPredictor, jepa_vicreg_loss
 
 
-class MultiScaleTSJEPA(nn.Module):
+class MultiScaleTSJEPA(JEPABase):
     """Multi-Horizon Hierarchical TS-JEPA."""
 
     def __init__(
@@ -34,9 +34,15 @@ class MultiScaleTSJEPA(nn.Module):
         ema_decay: float = 0.996,
     ):
         super().__init__()
+        if not horizons:
+            raise ValueError("horizons must be a non-empty sequence of positive integers.")
+        for h in horizons:
+            if not isinstance(h, int) or h <= 0:
+                raise ValueError(f"Each horizon must be a positive integer, got {h}.")
+
         self.input_dim = input_dim
         self.latent_dim = latent_dim
-        self.horizons = horizons
+        self.horizons = tuple(horizons)
         self.ema_decay = ema_decay
 
         # Shared Context Encoder
@@ -49,10 +55,8 @@ class MultiScaleTSJEPA(nn.Module):
             dropout=dropout,
         )
 
-        # EMA Target Encoder
-        self.target_encoder = copy.deepcopy(self.context_encoder)
-        for p in self.target_encoder.parameters():
-            p.requires_grad = False
+        # EMA Target Encoder (strictly deterministic eval mode)
+        self.target_encoder = self.init_target_encoder(self.context_encoder)
 
         # Multi-Head Latent Predictors for each horizon
         self.predictors = nn.ModuleDict(
@@ -70,7 +74,7 @@ class MultiScaleTSJEPA(nn.Module):
         for h in horizons:
             self.register_buffer(f"precision_matrix_{h}", torch.eye(latent_dim))
             self.register_buffer(f"residual_mean_{h}", torch.zeros(latent_dim))
-        self.precision_fitted = False
+        self.register_buffer("precision_fitted", torch.tensor(False, dtype=torch.bool))
 
     def forward(
         self,
@@ -91,6 +95,7 @@ class MultiScaleTSJEPA(nn.Module):
 
         z_tgt_true_dict = {}
         if target_windows is not None:
+            self.target_encoder.eval()
             with torch.no_grad():
                 for h in self.horizons:
                     # Slice target up to horizon h
@@ -103,12 +108,6 @@ class MultiScaleTSJEPA(nn.Module):
 
         return z_ctx, z_tgt_true_dict, z_tgt_pred_dict
 
-    @torch.no_grad()
-    def update_target_encoder(self, decay: Optional[float] = None) -> None:
-        """EMA update of target encoder."""
-        m = self.ema_decay if decay is None else decay
-        for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
-            param_k.data.mul_(m).add_((1.0 - m) * param_q.data)
 
     def compute_multiscale_loss(
         self,
@@ -132,27 +131,48 @@ class MultiScaleTSJEPA(nn.Module):
     @torch.no_grad()
     def fit_mahalanobis_covariance(
         self,
-        context_windows: torch.Tensor,
-        target_windows: torch.Tensor,
+        context_windows,
+        target_windows,
+        batch_size: int = 512,
         reg: float = 1e-3,
     ) -> None:
-        """Fit empirical residual covariance matrices for each horizon."""
-        self.eval()
-        z_ctx = self.context_encoder(context_windows)
-        for h in self.horizons:
-            h_len = min(h, target_windows.size(1))
-            tgt_slice = target_windows[:, :h_len, :]
-            z_obs = self.target_encoder(tgt_slice)
-            z_pred = self.predictors[str(h)](z_ctx)
-            residuals = z_obs - z_pred
+        """Fit empirical residual covariance matrices for each horizon.
 
-            mean_res = residuals.mean(dim=0, keepdim=True)
-            getattr(self, f"residual_mean_{h}").copy_(mean_res.squeeze(0))
-            residuals_centered = residuals - mean_res
-            cov = (residuals_centered.T @ residuals_centered) / max(len(residuals) - 1, 1)
-            cov_reg = cov + reg * torch.eye(self.latent_dim, device=cov.device)
+        Accepts numpy arrays or tensors; data is transferred in batches.
+        """
+        from src.models._jepa_utils import _model_device, to_device_tensor
+
+        self.eval()
+        device = _model_device(self)
+        n_samples = len(context_windows)
+
+        # Accumulate per-horizon residual sums and outer-product sums incrementally
+        for h in self.horizons:
+            h_len = min(h, target_windows.shape[1])
+            res_sum = torch.zeros(self.latent_dim, device=device, dtype=torch.float32)
+            outer_sum = torch.zeros((self.latent_dim, self.latent_dim), device=device, dtype=torch.float32)
+            count = 0
+
+            for i in range(0, n_samples, batch_size):
+                ctx_b = to_device_tensor(context_windows[i : i + batch_size], self)
+                tgt_b = to_device_tensor(target_windows[i : i + batch_size], self)
+                z_ctx = self.context_encoder(ctx_b)
+                tgt_slice = tgt_b[:, :h_len, :]
+                z_obs = self.target_encoder(tgt_slice)
+                z_pred = self.predictors[str(h)](z_ctx)
+                residuals = (z_obs - z_pred).reshape(-1, self.latent_dim).to(torch.float32)
+                res_sum += residuals.sum(dim=0)
+                outer_sum += residuals.T @ residuals
+                count += residuals.shape[0]
+
+            if count == 0:
+                continue
+            mean_res = res_sum / count
+            getattr(self, f"residual_mean_{h}").copy_(mean_res)
+            cov = (outer_sum - count * torch.outer(mean_res, mean_res)) / max(count - 1, 1)
+            cov_reg = cov + reg * torch.eye(self.latent_dim, device=device)
             getattr(self, f"precision_matrix_{h}").copy_(torch.linalg.pinv(cov_reg))
-        self.precision_fitted = True
+        self.precision_fitted.fill_(True)
 
     def compute_predictive_discrepancy(
         self,
@@ -165,6 +185,9 @@ class MultiScaleTSJEPA(nn.Module):
         Returns:
             Tensor of shape (B,) representing the max standardized multi-horizon discrepancy.
         """
+        if use_mahalanobis and not bool(self.precision_fitted.item()):
+            raise RuntimeError("Mahalanobis scoring requested, but covariance has not been fitted.")
+
         self.eval()
         scores_list = []
         with torch.no_grad():
@@ -175,7 +198,7 @@ class MultiScaleTSJEPA(nn.Module):
                 z_obs = self.target_encoder(tgt_slice)
                 z_pred = self.predictors[str(h)](z_ctx)
                 diff = z_obs - z_pred
-                if use_mahalanobis and self.precision_fitted:
+                if use_mahalanobis:
                     mean_res = getattr(self, f"residual_mean_{h}")
                     prec_mat = getattr(self, f"precision_matrix_{h}")
                     diff_centered = diff - mean_res

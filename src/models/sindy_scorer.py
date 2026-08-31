@@ -33,6 +33,9 @@ class SINDyDynamicsScorer:
 
     def build_library(self, z: np.ndarray) -> np.ndarray:
         """Construct polynomial feature library Theta(Z) up to poly_degree."""
+        if self.config.poly_degree not in (0, 1, 2):
+            raise ValueError(f"Unsupported poly_degree: {self.config.poly_degree}. Supported: 0, 1, 2.")
+
         z = np.asarray(z, dtype=np.float64)
         if z.ndim == 1:
             z = z.reshape(1, -1)
@@ -43,13 +46,17 @@ class SINDyDynamicsScorer:
             cols.append(np.ones((n_samples, 1), dtype=np.float64))
 
         # Degree 1
-        cols.append(z)
+        if self.config.poly_degree >= 1:
+            cols.append(z)
 
         # Degree 2
         if self.config.poly_degree >= 2:
             i_idx, j_idx = np.triu_indices(n_dim)
             deg2_matrix = z[:, i_idx] * z[:, j_idx]
             cols.append(deg2_matrix)
+
+        if not cols:
+            raise ValueError("Feature library is empty. Ensure include_constant=True or poly_degree >= 1.")
 
         return np.hstack(cols)
 
@@ -107,11 +114,13 @@ class SINDyDynamicsScorer:
             raise ValueError("Expected 2D array of shape (n_samples, latent_dim).")
 
         n_samples, latent_dim = z_seq.shape
+        if n_samples < 3:
+            raise ValueError(f"Need at least 3 samples to estimate derivatives in score(), got {n_samples}.")
+
         z_dot = np.zeros_like(z_seq)
-        if n_samples >= 3:
-            z_dot[1:-1] = (z_seq[2:] - z_seq[:-2]) / (2.0 * dt)
-            z_dot[0] = (z_seq[1] - z_seq[0]) / dt
-            z_dot[-1] = (z_seq[-1] - z_seq[-2]) / dt
+        z_dot[1:-1] = (z_seq[2:] - z_seq[:-2]) / (2.0 * dt)
+        z_dot[0] = (z_seq[1] - z_seq[0]) / dt
+        z_dot[-1] = (z_seq[-1] - z_seq[-2]) / dt
 
         theta = self.build_library(z_seq)
         z_dot_pred = theta @ self.coefficients

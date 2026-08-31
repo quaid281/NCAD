@@ -7,6 +7,7 @@
 
 import pytest
 import torch
+
 from src.models.baselines import (
     AnomalyTransformer,
     DCdetector,
@@ -39,6 +40,11 @@ def test_anomaly_transformer(dummy_data):
     ass_dis = model.association_discrepancy(prior_list, series_list)
     loss = loss_rec + 0.01 * ass_dis.mean()
     loss.backward()
+
+    # Minimax two-phase loss check
+    loss_prior, loss_series = model.minimax_losses(dummy_data, lambda_weight=3.0)
+    assert torch.isfinite(loss_prior)
+    assert torch.isfinite(loss_series)
 
     for p in model.parameters():
         if p.requires_grad:
@@ -106,6 +112,10 @@ def test_tranad(dummy_data):
     l1, l2 = model.adversarial_loss(rec1, rec2, dummy_data, epoch=1)
     loss = l1 + l2
     loss.backward()
+
+    l1_ep5, l2_ep5 = model.adversarial_loss(rec1, rec2, dummy_data, epoch=5)
+    assert l1_ep5.item() >= 0.0
+    assert l2_ep5.item() >= 0.0
 
     for p in model.parameters():
         if p.requires_grad:

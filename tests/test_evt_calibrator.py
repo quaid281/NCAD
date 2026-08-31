@@ -5,9 +5,9 @@ import pytest
 
 from src.utils.evt_calibrator import (
     EVTCalibrator,
-    fit_gpd,
     _grimshaw_gpd_fit,
     _mle_gpd_fit,
+    fit_gpd,
 )
 
 

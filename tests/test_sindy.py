@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 from src.models.sindy_scorer import SINDyConfig, SINDyDynamicsScorer
 

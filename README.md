@@ -76,10 +76,13 @@ NCAD_CS/
 ### 1. Training on a Telemetry Channel
 ```bash
 # Train TS-JEPA on a target channel (e.g. SMAP A-1)
-python train.py --channel A-1 --encoder tcn --epochs 15
+python train.py --channel A-1 --encoder hybrid_tcn --epochs 15
 
-# Train with Covariance-Whitened Mahalanobis scoring
-python train.py --channel A-1 --encoder tcn --scoring mahalanobis
+# Train with the patch-tokenized Transformer JEPA variant
+python train.py --channel A-1 --model-type patch_ts_jepa --patch-size 16 --encoder hybrid_tcn
+
+# Train with covariance-whitened (Mahalanobis) scoring enabled by default
+python train.py --channel A-1 --encoder hybrid_tcn
 ```
 
 ### 2. Running Benchmarks
@@ -88,7 +91,7 @@ python train.py --channel A-1 --encoder tcn --scoring mahalanobis
 python scripts/run_benchmark.py --dataset Daphnet --encoder tcn
 
 # Run full cross-domain benchmark across all datasets
-python scripts/run_benchmark.py --dataset all --scoring euclidean
+python scripts/run_benchmark.py --dataset all --scoring mahalanobis
 ```
 
 ### 3. Visualizing Phase-Space Attractors

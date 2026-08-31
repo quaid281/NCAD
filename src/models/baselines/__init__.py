@@ -8,8 +8,8 @@ Includes:
 """
 
 from src.models.baselines.anomaly_transformer import AnomalyTransformer
-from src.models.baselines.timesnet import TimesNet
 from src.models.baselines.dcdetector import DCdetector
+from src.models.baselines.timesnet import TimesNet
 from src.models.baselines.tranad import TranAD
 
 __all__ = [

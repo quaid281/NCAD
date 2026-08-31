@@ -11,7 +11,6 @@ Combines:
 
 from __future__ import annotations
 
-import copy
 import math
 from typing import Literal, Optional, Tuple
 
@@ -19,7 +18,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models.flow_ts_jepa import TimestepEmbedding
+from src.models._jepa_utils import JEPABase
+from src.models.flow_ts_jepa import TimestepEmbedding, _get_chebyshev_collocation_nodes
 from src.models.patch_ts_jepa import PatchSequenceEncoder, PositionalEncoding
 from src.models.ts_jepa import _vicreg_branch_loss
 
@@ -94,7 +94,7 @@ class PatchFlowPredictor(nn.Module):
         return self.out_proj(out)
 
 
-class PatchFlowJEPA(nn.Module):
+class PatchFlowJEPA(JEPABase):
     """Patch-Level Sequence Flow Matching Joint Embedding Predictive Architecture."""
 
     def __init__(
@@ -129,10 +129,7 @@ class PatchFlowJEPA(nn.Module):
         )
 
         # EMA Target Encoder
-        self.target_encoder = copy.deepcopy(self.context_encoder)
-        for p in self.target_encoder.parameters():
-            p.requires_grad = False
-        self.target_encoder.eval()
+        self.target_encoder = self.init_target_encoder(self.context_encoder)
 
         # Flow Transformer Predictor
         self.flow_predictor = PatchFlowPredictor(
@@ -145,15 +142,12 @@ class PatchFlowJEPA(nn.Module):
         )
 
         # Buffers for Mahalanobis-whitened flow scoring
-        self.register_buffer("precision_matrix", torch.eye(d_model))
-        self.register_buffer("residual_mean", torch.zeros(d_model))
-        self.register_buffer("precision_fitted", torch.tensor(False, dtype=torch.bool))
+        self.register_mahalanobis_buffers(d_model)
 
-    def train(self, mode: bool = True) -> PatchFlowJEPA:
-        """Keep target encoder strictly in evaluation mode."""
-        super().train(mode)
-        self.target_encoder.eval()
-        return self
+    @property
+    def latent_dim(self) -> int:
+        """Alias for ``d_model`` so patch flow models expose the same interface as other JEPA variants."""
+        return self.d_model
 
     def forward(
         self,
@@ -182,16 +176,23 @@ class PatchFlowJEPA(nn.Module):
         if target_windows is None:
             return h_ctx, None, None, None
 
+        expected_len = self.n_target_patches * self.patch_size
+        if target_windows.size(1) != expected_len:
+            raise ValueError(
+                f"target_windows sequence length ({target_windows.size(1)}) must match "
+                f"n_target_patches * patch_size ({self.n_target_patches} * {self.patch_size} = {expected_len})."
+            )
+
         # Encode target tokens with EMA target encoder
         self.target_encoder.eval()
         with torch.no_grad():
             z_tgt_true = self.target_encoder(target_windows)  # (B, N_tgt, d_model)
 
         if t is None:
-            t = torch.rand(B, device=device)
+            t = torch.rand(B, device=device, dtype=context_windows.dtype)
 
         if z_noise is None:
-            z_noise = torch.randn(B, self.n_target_patches, self.d_model, device=device)
+            z_noise = torch.randn(B, self.n_target_patches, self.d_model, device=device, dtype=context_windows.dtype)
 
         # OT Flow Linear Interpolation: Z_t = (1 - t) * Z_0 + t * Z_1
         t_expand = t.view(B, 1, 1)
@@ -206,46 +207,40 @@ class PatchFlowJEPA(nn.Module):
         return h_ctx, z_tgt_true, v_pred, v_target
 
     @torch.no_grad()
-    def update_target_encoder(self, decay: Optional[float] = None) -> None:
-        """Update target encoder via Exponential Moving Average (EMA)."""
-        m = self.ema_decay if decay is None else decay
-        for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
-            param_k.data.mul_(m).add_((1.0 - m) * param_q.data)
-        for buf_q, buf_k in zip(self.context_encoder.buffers(), self.target_encoder.buffers()):
-            buf_k.data.copy_(buf_q.data)
-
-    @torch.no_grad()
     def fit_mahalanobis_covariance(
         self,
-        context_windows: torch.Tensor,
-        target_windows: torch.Tensor,
+        context_windows,
+        target_windows,
         batch_size: int = 512,
         reg: float = 1e-3,
     ) -> None:
-        """Fit empirical residual covariance across patch tokens for Mahalanobis scoring."""
-        self.eval()
-        n_samples = len(context_windows)
-        residuals_list = []
+        """Fit empirical residual covariance across patch tokens for Mahalanobis scoring.
 
-        for i in range(0, n_samples, batch_size):
-            ctx_b = context_windows[i : i + batch_size]
-            tgt_b = target_windows[i : i + batch_size]
+        Accepts numpy arrays or tensors; data is transferred in batches.
+        """
+        from src.models._jepa_utils import fit_covariance_batched
+
+        def residual_fn(ctx_b, tgt_b):
             h_ctx = self.context_encoder(ctx_b)
             z_tgt = self.target_encoder(tgt_b)
-            B_b = len(ctx_b)
-            t_mid = torch.full((B_b,), 0.5, device=ctx_b.device, dtype=torch.float32)
+            B_b = ctx_b.size(0)
+            t_mid = torch.full((B_b,), 0.5, device=ctx_b.device, dtype=ctx_b.dtype)
             z_mid = 0.5 * z_tgt
             v_pred = self.flow_predictor(z_mid, t_mid, h_ctx)
-            residuals_list.append((v_pred - z_tgt).reshape(-1, self.d_model))
+            return (v_pred - z_tgt).reshape(-1, self.d_model)
 
-        residuals = torch.cat(residuals_list, dim=0)
-        mean_res = residuals.mean(dim=0, keepdim=True)
-        self.residual_mean.copy_(mean_res.squeeze(0))
-        residuals_centered = residuals - mean_res
-        cov = (residuals_centered.T @ residuals_centered) / max(len(residuals) - 1, 1)
-        cov_reg = cov + reg * torch.eye(self.d_model, device=cov.device)
-        self.precision_matrix.copy_(torch.linalg.pinv(cov_reg))
-        self.precision_fitted.copy_(torch.tensor(True, dtype=torch.bool))
+        fit_covariance_batched(
+            self,
+            context_windows,
+            target_windows,
+            residual_fn=residual_fn,
+            dim=self.d_model,
+            batch_size=batch_size,
+            reg=reg,
+            precision_buffer=self.precision_matrix,
+            residual_mean_buffer=self.residual_mean,
+            fitted_buffer=self.precision_fitted,
+        )
 
     @torch.no_grad()
     def compute_predictive_discrepancy(
@@ -253,11 +248,13 @@ class PatchFlowJEPA(nn.Module):
         context_windows: torch.Tensor,
         observed_target_windows: torch.Tensor,
         use_mahalanobis: bool = False,
+        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
     ) -> torch.Tensor:
         """Compute deterministic patch flow discrepancy averaged across target horizon.
         
-        Evaluates the vector field at t=0.5 along the straight path from z_0=0 to z_1=z_tgt:
-        || v_psi(0.5 * z_tgt, t=0.5, h_ctx) - z_tgt ||.
+        Evaluates the vector field along deterministic Chebyshev-Lobatto quadrature nodes
+        along the straight path from z_0=0 to z_1=z_tgt:
+        || v_psi(t * z_tgt, t, h_ctx) - z_tgt ||.
         
         Completely eliminates Monte Carlo sampling noise, allowing EVT threshold calibration
         to match the true GPD tail.
@@ -265,26 +262,37 @@ class PatchFlowJEPA(nn.Module):
         Returns:
             Tensor of shape (B,)
         """
+        if use_mahalanobis and not bool(self.precision_fitted.item()):
+            raise RuntimeError("Mahalanobis scoring requested, but covariance has not been fitted.")
+
         self.eval()
         B = context_windows.size(0)
         device = context_windows.device
+        dtype = context_windows.dtype
 
         h_ctx = self.context_encoder(context_windows)
         z_tgt = self.target_encoder(observed_target_windows)
 
-        t_mid = torch.full((B,), 0.5, device=device, dtype=torch.float32)
-        z_mid = 0.5 * z_tgt
-        v_pred = self.flow_predictor(z_mid, t_mid, h_ctx)
-        diff = v_pred - z_tgt  # (B, N_tgt, d_model)
+        nodes, weights = _get_chebyshev_collocation_nodes(collocation, device=device, dtype=dtype)
+        total_window_score = torch.zeros(B, device=device, dtype=dtype)
 
-        if use_mahalanobis and bool(self.precision_fitted.item()):
-            diff_c = diff - self.residual_mean
-            mahal = torch.sum((diff_c @ self.precision_matrix) * diff_c, dim=-1)
-            patch_scores = torch.sqrt(torch.clamp(mahal, min=1e-8))  # (B, N_tgt)
-        else:
-            patch_scores = torch.linalg.norm(diff, dim=-1)  # (B, N_tgt)
+        for t_val, w_val in zip(nodes, weights):
+            t_tensor = torch.full((B,), t_val, device=device, dtype=dtype)
+            z_node = t_val * z_tgt
+            v_pred = self.flow_predictor(z_node, t_tensor, h_ctx)
+            diff = v_pred - z_tgt  # (B, N_tgt, d_model)
 
-        return torch.mean(patch_scores, dim=-1)
+            if use_mahalanobis:
+                diff_c = diff - self.residual_mean
+                mahal = torch.sum((diff_c @ self.precision_matrix) * diff_c, dim=-1)
+                patch_scores = torch.sqrt(torch.clamp(mahal, min=1e-8))  # (B, N_tgt)
+            else:
+                patch_scores = torch.linalg.norm(diff, dim=-1)  # (B, N_tgt)
+
+            node_window_score = patch_scores.mean(dim=-1)  # (B,)
+            total_window_score = total_window_score + w_val * node_window_score
+
+        return total_window_score
 
     @torch.no_grad()
     def sample_target_patches(
@@ -308,17 +316,18 @@ class PatchFlowJEPA(nn.Module):
         self.eval()
         B = context_windows.size(0)
         device = context_windows.device
+        dtype = context_windows.dtype
         h_ctx = self.context_encoder(context_windows)
 
         if z_init is None:
-            z_t = torch.randn(B, self.n_target_patches, self.d_model, device=device)
+            z_t = torch.randn(B, self.n_target_patches, self.d_model, device=device, dtype=dtype)
         else:
             z_t = z_init.clone()
 
         dt = 1.0 / n_steps
         for step in range(n_steps):
             t_val = step * dt
-            t_curr = torch.full((B,), t_val, device=device, dtype=torch.float32)
+            t_curr = torch.full((B,), t_val, device=device, dtype=dtype)
 
             if solver == "euler":
                 v = self.flow_predictor(z_t, t_curr, h_ctx)
@@ -326,7 +335,7 @@ class PatchFlowJEPA(nn.Module):
             elif solver == "midpoint":
                 v_curr = self.flow_predictor(z_t, t_curr, h_ctx)
                 z_mid = z_t + 0.5 * dt * v_curr
-                t_mid = torch.full((B,), t_val + 0.5 * dt, device=device, dtype=torch.float32)
+                t_mid = torch.full((B,), t_val + 0.5 * dt, device=device, dtype=dtype)
                 v_mid = self.flow_predictor(z_mid, t_mid, h_ctx)
                 z_t = z_t + dt * v_mid
             else:
@@ -340,9 +349,13 @@ class PatchFlowJEPA(nn.Module):
         context_windows: torch.Tensor,
         target_windows: torch.Tensor,
         n_eval_times: int = 1,
+        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute patch-level and window-level deterministic flow discrepancy.
-        
+
+        Evaluates the vector field along the straight OT path from prior mean z_0=0 to target tokens z_tgt.
+        Supports Chebyshev-Lobatto multi-collocation quadrature nodes.
+
         Returns:
             patch_scores: (B, N_tgt) - Anomaly score localized per patch token
             window_scores: (B,) - Mean anomaly score across target window
@@ -350,17 +363,24 @@ class PatchFlowJEPA(nn.Module):
         self.eval()
         B = context_windows.size(0)
         device = context_windows.device
+        dtype = context_windows.dtype
 
         h_ctx = self.context_encoder(context_windows)
         z_tgt = self.target_encoder(target_windows)
 
-        t_mid = torch.full((B,), 0.5, device=device, dtype=torch.float32)
-        z_mid = 0.5 * z_tgt
-        v_pred = self.flow_predictor(z_mid, t_mid, h_ctx)
+        nodes, weights = _get_chebyshev_collocation_nodes(collocation, device=device, dtype=dtype)
+        total_patch_scores = torch.zeros(B, self.n_target_patches, device=device, dtype=dtype)
 
-        patch_scores = torch.linalg.norm(v_pred - z_tgt, dim=-1)  # (B, N_tgt)
-        window_scores = patch_scores.mean(dim=-1)  # (B,)
-        return patch_scores, window_scores
+        for t_val, w_val in zip(nodes, weights):
+            t_curr = torch.full((B,), t_val, device=device, dtype=dtype)
+            z_t = t_val * z_tgt
+            v_pred = self.flow_predictor(z_t, t_curr, h_ctx)
+            node_patch_scores = torch.linalg.norm(v_pred - z_tgt, dim=-1)  # (B, N_tgt)
+            total_patch_scores = total_patch_scores + w_val * node_patch_scores
+
+        window_scores = total_patch_scores.mean(dim=-1)  # (B,)
+        return total_patch_scores, window_scores
+
 
     @torch.no_grad()
     def compute_patch_trajectory_discrepancy(

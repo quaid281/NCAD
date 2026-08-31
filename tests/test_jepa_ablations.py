@@ -4,11 +4,11 @@ import pytest
 import torch
 
 from src.models import (
+    HybridTCNEncoder,
     MultiScaleTSJEPA,
     PatchTSJEPA,
     RelationalGAT_JEPAModel,
     TSJEPAModel,
-    HybridTCNEncoder,
 )
 
 

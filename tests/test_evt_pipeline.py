@@ -1,6 +1,7 @@
 """End-to-end pipeline test comparing EVT threshold calibration with legacy heuristics."""
 
 from pathlib import Path
+
 import numpy as np
 import pytest
 import torch
@@ -15,20 +16,20 @@ def create_synthetic_channel() -> ChannelData:
     # Train: 800 timesteps of clean harmonic signal + Gaussian noise
     t_train = np.linspace(0, 8 * np.pi, 800)
     train_clean = np.sin(t_train) + 0.1 * np.random.randn(800)
-    
+
     # Test: 1000 timesteps with sustained anomalous burst at [600:750]
     t_test = np.linspace(0, 10 * np.pi, 1000)
     test_raw = np.sin(t_test) + 0.1 * np.random.randn(1000)
     # Inject sustained square shift / anomaly burst
     test_raw[600:750] += 2.5
-    
+
     labels = np.zeros(1000, dtype=np.float32)
     labels[600:750] = 1.0
-    
+
     mean = float(np.mean(train_clean))
     std = float(np.std(train_clean))
     norm_stats = NormalizationStats(mean=mean, std=std)
-    
+
     return ChannelData(
         channel_id="SYNTH-1",
         train_raw=train_clean.astype(np.float32),
@@ -45,7 +46,7 @@ def test_evt_vs_legacy_thresholding(tmp_path: Path):
     """Verify that EVT calibrator correctly runs through the training pipeline and achieves high F1."""
     channel_data = create_synthetic_channel()
     device = torch.device("cpu")
-    
+
     # Run 1: EVT Adaptive Calibration
     evt_dir = tmp_path / "evt_run"
     config_evt = CSMConfig(
@@ -63,14 +64,14 @@ def test_evt_vs_legacy_thresholding(tmp_path: Path):
         save_plots=False,
     )
     result_evt = run_channel(channel_data, evt_dir, config_evt, device)
-    
+
     assert "metrics" in result_evt
     metrics_evt = result_evt["metrics"]
     assert metrics_evt["f1"] > 0.35
     assert metrics_evt["tp"] > 40
     assert result_evt["calibration"]["threshold_method"].startswith("evt_gpd")
     assert result_evt["calibration"]["evt_details"] is not None
-    
+
     # Check that point_predictions.csv contains calibrated anomaly probabilities
     pred_file = evt_dir / "SYNTH-1" / "point_predictions.csv"
     assert pred_file.exists()

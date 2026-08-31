@@ -9,11 +9,14 @@ outlier probabilities without requiring labeled anomaly data.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import numpy as np
 from scipy import optimize
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -92,8 +95,8 @@ def _grimshaw_gpd_fit(excesses: np.ndarray) -> Optional[Tuple[float, float]]:
             if val_low * val_zero_minus <= 0:
                 sol = optimize.brentq(objective, low_bound, -eps, maxiter=100)
                 candidates.append(float(sol))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("EVT negative-branch root finding failed: %s", e, exc_info=True)
 
     # Check positive branch
     try:
@@ -103,8 +106,8 @@ def _grimshaw_gpd_fit(excesses: np.ndarray) -> Optional[Tuple[float, float]]:
             if val_zero_plus * val_high <= 0:
                 sol = optimize.brentq(objective, eps, high_bound, maxiter=100)
                 candidates.append(float(sol))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("EVT positive-branch root finding failed: %s", e, exc_info=True)
 
     if not candidates:
         # Fallback grid search
@@ -116,8 +119,8 @@ def _grimshaw_gpd_fit(excesses: np.ndarray) -> Optional[Tuple[float, float]]:
                 try:
                     sol = optimize.brentq(objective, valid_thetas[i], valid_thetas[i+1], maxiter=100)
                     candidates.append(float(sol))
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("EVT grid root finding failed in [%s, %s]: %s", valid_thetas[i], valid_thetas[i+1], e, exc_info=True)
 
     best_loglik = -np.inf
     best_params = None

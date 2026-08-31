@@ -6,10 +6,10 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-import numpy as np
-
 # Set matplotlib backend to Agg to prevent headless GUI crashes
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -31,7 +31,7 @@ def plot_channel_diagnostics(
         labels = channel_data.labels if channel_data.labels is not None else np.zeros_like(predictions)
         fig, axes = plt.subplots(4, 1, figsize=(15, 10), sharex=True)
         time_index = np.arange(len(channel_data.test_raw))
-        
+
         # Panel 1: Telemetry & ground truth labels
         axes[0].plot(time_index, channel_data.test_raw, color="#111827", linewidth=0.8, label="telemetry")
         if labels is not None:

@@ -1,7 +1,7 @@
-\section{Proposed Method: TS-JEPA}
+\section{Proposed Method: Flow-JEPA}
 \label{sec:proposed_method}
 
-This section details the architecture, optimization objectives, and statistical inference framework of \textbf{TS-JEPA} (Time-Series Joint-Embedding Predictive Architecture).
+This section details the architecture, continuous velocity field formulation, non-contrastive manifold regularization, and statistical inference framework of \textbf{Flow-JEPA} (Time-Series Flow-Matching Joint-Embedding Predictive Architecture).
 
 \subsection{Architectural Formulation}
 \label{subsec:architecture}
@@ -11,77 +11,92 @@ Let $\mathbf{X} \in \mathbb{R}^{T \times K}$ denote a continuous multivariate ti
     x_{\text{tgt}} &= \mathbf{X}[t : t + S, :] \in \mathbb{R}^{S \times K}.
 \end{align}
 
-TS-JEPA consists of three interconnected neural modules:
+Flow-JEPA consists of three interconnected modules operating in continuous representation space:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) with parameter weights $\theta$. The encoder maps the historical context $x_{\text{ctx}}$ to a low-dimensional representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal 1D convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context window without future information leakage \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
-    \item \textbf{Target Encoder ($E_\phi$):} An exact architectural replica of the context encoder with parameter weights $\phi$, mapping the target segment $x_{\text{tgt}}$ to the ground-truth target embedding $z_{\text{tgt}} = E_\phi(x_{\text{tgt}}) \in \mathbb{R}^D$. Crucially, $\phi$ is not updated via gradient backpropagation. Instead, $\phi$ tracks the context encoder weights $\theta$ via an Exponential Moving Average (EMA) momentum update at each training step $k$:
+    \item \textbf{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) or Patch Sequence Transformer with parameter weights $\theta$. The encoder maps the historical context $x_{\text{ctx}}$ to an abstract latent representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context duration without lookahead bias \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
+    \item \textbf{Momentum Target Encoder ($E_\phi$):} An architectural replica of the context encoder with parameter weights $\phi$, mapping the target window $x_{\text{tgt}}$ to the ground-truth target representation $z_{\text{tgt}} = E_\phi(x_{\text{tgt}}) \in \mathbb{R}^D$. Crucially, $\phi$ is updated without gradient backpropagation via an Exponential Moving Average (EMA) schedule at training step $k$:
     \begin{equation}
-        \phi_k \leftarrow m \phi_{k-1} + (1 - m) \theta_k,
+        \phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k,
     \end{equation}
-    where $m \in [0, 1)$ is the momentum coefficient (empirically set to $m=0.995$).
-    \item \textbf{Latent Predictor ($P_\psi$):} A multi-layer bottleneck network with parameters $\psi$, parameterized by residual linear projections, GELU activations, and LayerNorm. The predictor forecasts the latent representation of the upcoming target window conditioned strictly on the context embedding:
+    where $m_k = m_{\text{base}} + (m_{\text{max}} - m_{\text{base}}) \cdot \frac{1}{2}\left(1 - \cos(\pi k / K_{\text{total}})\right)$ follows a cosine schedule from $0.996$ to $0.9995$.
+    \item \textbf{Conditional Flow Predictor ($v_\psi$):} A continuous velocity field network parameterized by $\psi$ with sinusoidal timestep embeddings $\mathbf{e}(t) \in \mathbb{R}^D$. Given an intermediate latent state $z_t$, continuous time $t \in [0, 1]$, and context embedding $z_{\text{ctx}}$, the velocity field network predicts the instantaneous tangent velocity:
     \begin{equation}
-        \hat{z}_{\text{tgt}} = P_\psi(z_{\text{ctx}}) \in \mathbb{R}^D.
+        v_\psi(z_t, t, z_{\text{ctx}}) \in \mathbb{R}^D.
     \end{equation}
 \end{enumerate}
 
-\subsection{Non-Contrastive VICReg Regularization}
-\label{subsec:vicreg_loss}
-To learn the true dynamical laws of the system while strictly preventing representation collapse (wherein the encoder maps all time windows to a constant vector), TS-JEPA is optimized using the three-part VICReg objective \cite{bardes2021vicreg}:
+\subsection{Optimal Transport Conditional Flow Matching (OT-CFM)}
+\label{subsec:flow_matching}
+Instead of regressing to a single deterministic point $\hat{z}_{\text{tgt}}$ (which collapses to the conditional mean on multi-branching systems), Flow-JEPA defines a continuous probability path $p_t(z)$ connecting a standard Gaussian base distribution $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$ at $t=0$ to the target representation distribution $z_1 = z_{\text{tgt}}$ at $t=1$.
 
+Under Optimal Transport Conditional Flow Matching (OT-CFM) \cite{lipman2022flow}, the conditional probability path follows the straight-line trajectory:
+\begin{equation}
+    z_t = (1 - t) z_0 + t z_{\text{tgt}}, \quad t \sim \mathcal{U}(0, 1).
+\end{equation}
+The unique ground-truth target velocity field along this optimal transport path is constant with respect to time:
+\begin{equation}
+    u_t(z_t \mid z_0, z_{\text{tgt}}) = \frac{d z_t}{d t} = z_{\text{tgt}} - z_0.
+\end{equation}
+The neural velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ is trained to minimize the flow matching objective:
+\begin{equation}
+    \mathcal{L}_{\text{CFM}}(\psi) = \mathbb{E}_{t, z_0, z_{\text{tgt}}, z_{\text{ctx}}} \left[ \| v_\psi(z_t, t, z_{\text{ctx}}) - (z_{\text{tgt}} - z_0) \|_2^2 \right].
+\end{equation}
+
+\subsection{Non-Contrastive VICReg Manifold Regularization}
+\label{subsec:vicreg_loss}
+To prevent representation collapse (where the encoder collapses all temporal trajectories to a single point) while avoiding synthetic negative sampling biases, Flow-JEPA jointly optimizes a non-contrastive VICReg objective \cite{bardes2021vicreg}:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Invariance Loss ($\mathcal{L}_{\text{sim}}$):} Enforces accurate physical state forecasting between the predicted embedding $\hat{z}_{\text{tgt}}$ and the actual target embedding $z_{\text{tgt}}$ across a mini-batch of size $B$:
-    \begin{equation}
-        \mathcal{L}_{\text{sim}}(\hat{z}_{\text{tgt}}, z_{\text{tgt}}) = \frac{1}{B} \sum_{i=1}^B \|\hat{z}_{\text{tgt}}^{(i)} - z_{\text{tgt}}^{(i)}\|_2^2.
-    \end{equation}
-    \item \textbf{Variance Hinge Loss ($\mathcal{L}_{\text{var}}$):} Constrains the standard deviation of each latent dimension along the batch dimension to remain above a target threshold $\gamma = 1.0$, guaranteeing representation diversity and precluding point collapse:
+    \item \textbf{Variance Hinge Regularization ($\mathcal{L}_{\text{var}}$):} Constrains the standard deviation of each latent dimension along the batch dimension to remain above $\gamma = 1.0$, guaranteeing representation diversity:
     \begin{equation}
         \mathcal{L}_{\text{var}}(z) = \frac{1}{D} \sum_{j=1}^D \max\left(0, \gamma - \sqrt{\text{Var}(z_{\cdot, j}) + \epsilon}\right),
     \end{equation}
     where $\text{Var}(z_{\cdot, j}) = \frac{1}{B-1}\sum_{i=1}^B (z_{i, j} - \bar{z}_j)^2$ and $\epsilon = 10^{-4}$.
-    \item \textbf{Covariance Decorrelation Loss ($\mathcal{L}_{\text{cov}}$):} Penalizes off-diagonal correlations between distinct latent dimensions, preventing dimensional redundancy and encouraging orthogonal dynamical eigenmodes:
+    \item \textbf{Covariance Decorrelation Loss ($\mathcal{L}_{\text{cov}}$):} Penalizes off-diagonal covariances between distinct latent axes, preventing dimensional redundancy and encouraging orthogonal dynamical eigenmodes:
     \begin{equation}
         \mathcal{L}_{\text{cov}}(z) = \frac{1}{D} \sum_{j=1}^D \sum_{k \neq j} \left[ \mathbf{C}(z) \right]_{j, k}^2,
     \end{equation}
     where $\mathbf{C}(z) = \frac{1}{B-1} \sum_{i=1}^B (z^{(i)} - \bar{z})(z^{(i)} - \bar{z})^T \in \mathbb{R}^{D \times D}$.
 \end{enumerate}
 
-The complete TS-JEPA training loss is minimized over parameters $\{\theta, \psi\}$:
-\begin{align}
-    \mathcal{L}_{\text{JEPA}} = \mathcal{L}_{\text{sim}}(\hat{z}_{\text{tgt}}, z_{\text{tgt}}) &+ \lambda_{\text{var}}\left[\mathcal{L}_{\text{var}}(\hat{z}_{\text{tgt}}) + \mathcal{L}_{\text{var}}(z_{\text{ctx}})\right] \nonumber \\
-    &+ \lambda_{\text{cov}}\left[\mathcal{L}_{\text{cov}}(\hat{z}_{\text{tgt}}) + \mathcal{L}_{\text{cov}}(z_{\text{ctx}})\right],
-\end{align}
-where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.05$ are hyperparameter balancing weights.
+The complete Flow-JEPA training loss is minimized over $\{\theta, \psi\}$:
+\begin{equation}
+    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CFM}} + \lambda_{\text{var}}\left[\mathcal{L}_{\text{var}}(z_{\text{tgt}}) + \mathcal{L}_{\text{var}}(z_{\text{ctx}})\right] + \lambda_{\text{cov}}\left[\mathcal{L}_{\text{cov}}(z_{\text{tgt}}) + \mathcal{L}_{\text{cov}}(z_{\text{ctx}})\right],
+\end{equation}
+where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancing weights.
 
-\subsection{Covariance-Whitened (Mahalanobis) Discrepancy Metric}
+\subsection{Deterministic Midpoint Velocity Discrepancy \& Mahalanobis Whitening}
 \label{subsec:mahalanobis}
-Standard anomaly detection scoring uses unweighted Euclidean distance $\|z_{\text{tgt}} - \hat{z}_{\text{tgt}}\|_2$, which implicitly assumes isotropic Gaussian variance across all latent axes. However, in multi-sensor physical systems, different latent dimensions correspond to dynamic modes with varying natural fluctuations.
+Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical integration noise and Monte Carlo variance. To achieve deterministic, zero-variance anomaly scoring, we evaluate the velocity field at the **Optimal Transport Midpoint** ($t=0.5$).
 
-To capture directional uncertainty, TS-JEPA computes the empirical error covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal validation residuals $\mathbf{e}^{(i)} = z_{\text{tgt}}^{(i)} - \hat{z}_{\text{tgt}}^{(i)}$:
+Along the straight Optimal Transport ray connecting prior mean $z_0 = \mathbf{0}$ to target representation $z_1 = z_{\text{tgt}}$, the midpoint state is $z_{0.5} = 0.5 z_{\text{tgt}}$ with ground-truth velocity $u = z_{\text{tgt}}$. The deterministic velocity prediction is:
+\begin{equation}
+    \hat{v}_{\text{mid}} = v_\psi(0.5 z_{\text{tgt}},\, t=0.5,\, z_{\text{ctx}}).
+\end{equation}
+We compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal validation velocity residuals $\mathbf{e}^{(i)} = \hat{v}_{\text{mid}}^{(i)} - z_{\text{tgt}}^{(i)}$:
 \begin{equation}
     \mathbf{\Sigma} = \frac{1}{N_{\text{cal}} - 1} \sum_{i=1}^{N_{\text{cal}}} \mathbf{e}^{(i)} (\mathbf{e}^{(i)})^T + \lambda_{\text{reg}} \mathbf{I}_D,
 \end{equation}
-where $\lambda_{\text{reg}} = 10^{-3}$ guarantees well-conditioned numerical inversion. The \textbf{Covariance-Whitened Discrepancy} for a test window is then defined as:
+where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical inversion. The \textbf{Covariance-Whitened Midpoint Discrepancy} for any test window is:
 \begin{equation}
-    D_M(x_{\text{ctx}}, x_{\text{tgt}}) = \sqrt{(\hat{z}_{\text{tgt}} - z_{\text{tgt}})^T \mathbf{\Sigma}^{-1} (\hat{z}_{\text{tgt}} - z_{\text{tgt}})}.
+    D_M(x_{\text{ctx}}, x_{\text{tgt}}) = \sqrt{(\hat{v}_{\text{mid}} - z_{\text{tgt}})^T \mathbf{\Sigma}^{-1} (\hat{v}_{\text{mid}} - z_{\text{tgt}})}.
 \end{equation}
-This metric automatically scales prediction residuals by the inverse variance of each eigenmode, eliminating false alarms along high-variance nominal directions while magnifying subtle deviations along tightly constrained physical manifolds.
+This metric evaluates whether the observed suspect window lies along a physically valid tangent vector on the normal manifold, scaling prediction residuals by the inverse variance of each dynamical mode.
 
 \subsection{Extreme Value Theory (EVT / SPOT) Tail Calibration}
 \label{subsec:evt_calibration}
-To establish an optimal anomaly threshold without relying on ground-truth labels or arbitrary heuristic percentiles, TS-JEPA applies Extreme Value Theory (EVT) via the Streaming Peaks-Over-Threshold (SPOT) framework \cite{siffer2017anomaly}.
+To establish an optimal decision threshold without manual tuning or label leakage, Flow-JEPA applies Extreme Value Theory (EVT) via the Streaming Peaks-Over-Threshold (SPOT) framework \cite{siffer2017anomaly}.
 
-According to the Pickands-Balkema-de Haan theorem \cite{balkema1974residual}, for a broad class of distributions, the excesses $Y = S - u$ of a continuous anomaly score $S$ over an initial high threshold $u$ asymptotically follow a Generalized Pareto Distribution (GPD):
+According to the Pickands-Balkema-de Haan theorem \cite{balkema1974residual}, the score excesses $Y = S - u$ over an initial high threshold $u$ asymptotically follow a Generalized Pareto Distribution (GPD):
 \begin{equation}
     G_{\xi, \sigma}(y) = P(S - u \le y \mid S > u) = 1 - \left(1 + \frac{\xi y}{\sigma}\right)^{-1/\xi},
 \end{equation}
 where $\xi \in \mathbb{R}$ is the shape parameter and $\sigma > 0$ is the scale parameter.
 
-We fit the GPD parameters $(\hat{\xi}, \hat{\sigma})$ to the upper $2\%$ tail of nominal training residuals using Grimshaw's exact 1D root-finding algorithm \cite{grimshaw1993computing}. For a specified extreme exceedance probability (risk level) $q = 10^{-3}$, the calibrated decision threshold $\tau_{\text{EVT}}$ is computed analytically as:
+We fit $(\hat{\xi}, \hat{\sigma})$ to the upper $2\%$ tail of nominal training residuals using Grimshaw's exact root-finding algorithm \cite{grimshaw1993computing}. For a specified extreme exceedance probability (risk level) $q = 10^{-3}$, the calibrated decision threshold $\tau_{\text{EVT}}$ is derived analytically:
 \begin{equation}
     \tau_{\text{EVT}} = u + \frac{\hat{\sigma}}{\hat{\xi}} \left[ \left(\frac{N}{N_u} q\right)^{-\hat{\xi}} - 1 \right],
 \end{equation}
-where $N$ is the total number of calibration scores and $N_u$ is the number of exceedances above $u$. A test point at timestep $t$ is flagged as anomalous whenever its moving-average score exceeds $\tau_{\text{EVT}}$ for at least $R_{\text{min}} = 2$ consecutive steps:
+where $N$ is the total number of calibration points and $N_u$ is the number of exceedances above $u$. A test point at timestep $t$ is flagged as anomalous whenever its moving-average score exceeds $\tau_{\text{EVT}}$ for at least $R_{\text{min}} = 2$ consecutive timesteps:
 \begin{equation}
     \hat{y}(t) = \mathbb{I}\left(S(t) \ge \tau_{\text{EVT}}\right).
 \end{equation}

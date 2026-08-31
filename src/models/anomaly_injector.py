@@ -34,10 +34,10 @@ class ContextualAnomalyInjector:
         labels = np.zeros(len(windows), dtype=np.float32)
         batch_size, full_window_size, n_features = modified.shape
         suspect_size = full_window_size - context_size
-        if batch_size == 0 or suspect_size <= 0:
+        if batch_size == 0 or suspect_size <= 0 or self.config.injection_ratio <= 0.0:
             return modified, labels
 
-        n_inject = max(1, int(batch_size * self.config.injection_ratio))
+        n_inject = min(batch_size, max(1, int(batch_size * self.config.injection_ratio)))
         inject_indices = self.rng.choice(batch_size, size=n_inject, replace=False)
 
         for batch_index in inject_indices:

@@ -9,6 +9,7 @@ from pathlib import Path
 from src.config import CSMConfig
 from src.data.data_loader import DataLoader
 from src.engine.orchestrator import run_experiment
+from src.models.registry import canonical_model_choices
 from src.utils.logging_utils import setup_logging
 
 
@@ -32,6 +33,7 @@ def parse_args() -> argparse.Namespace:
         help="Encoder architecture.",
     )
     parser.add_argument("--successor-neighbors", type=int, default=8)
+    parser.add_argument("--patch-size", type=int, default=16, help="Patch size for patch_ts_jepa model.")
     parser.add_argument("--event-threshold-percentile", type=float, default=99.0)
     parser.add_argument(
         "--score-floor-percentile",
@@ -50,7 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model-type",
         type=str,
-        choices=["ts_jepa", "patch_ts_jepa", "gat_jepa", "ncad"],
+        choices=list(canonical_model_choices()),
         default="ts_jepa",
         help="Core model type (ts_jepa, patch_ts_jepa, gat_jepa, or legacy ncad).",
     )
@@ -96,6 +98,7 @@ def main() -> None:
         feature_dim=args.feature_dim,
         encoder_architecture=args.encoder,
         successor_neighbors=args.successor_neighbors,
+        patch_size=args.patch_size,
         event_threshold_percentile=args.event_threshold_percentile,
         score_floor_percentile=args.score_floor_percentile,
         manifold_uncertainty=args.manifold_uncertainty,

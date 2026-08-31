@@ -7,19 +7,22 @@ from typing import Optional
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.optim as optim
 
 from src.config import CSMConfig
 from src.models.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
-from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
-from src.models.multi_scale_tcn_encoder import MultiScaleTCNEncoder
-from src.models.ts_jepa import TSJEPAModel, jepa_vicreg_loss
-from src.models.patch_ts_jepa import PatchTSJEPA
 from src.models.gat_jepa import RelationalGAT_JEPAModel
+from src.models.multi_scale_tcn_encoder import MultiScaleTCNEncoder
+from src.models.patch_ts_jepa import PatchTSJEPA
+from src.models.relational_gat_encoder import RelationalGATEncoder
+from src.models.selective_ssm_encoder import SelectiveSSMContextEncoder
+from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.models.ts_jepa import TSJEPAModel, jepa_vicreg_loss
 
 logger = logging.getLogger("NCAD.engine.trainer")
 
-EncoderModel = HybridTCNEncoder | MultiScaleTCNEncoder | TSJEPAModel | PatchTSJEPA | RelationalGAT_JEPAModel
+EncoderModel = HybridTCNEncoder | MultiScaleTCNEncoder | RelationalGATEncoder | SelectiveSSMContextEncoder | TSJEPAModel | PatchTSJEPA | RelationalGAT_JEPAModel
 
 
 def set_seed(seed: int) -> None:
@@ -39,7 +42,7 @@ def resolve_device(device_name: str) -> torch.device:
     return torch.device(device_name)
 
 
-def build_encoder(config: CSMConfig, input_dim: int, device: torch.device) -> HybridTCNEncoder | MultiScaleTCNEncoder:
+def build_encoder(config: CSMConfig, input_dim: int, device: torch.device) -> nn.Module:
     """Instantiate and initialize the requested temporal sequence encoder."""
     common_kwargs = {
         "input_dim": input_dim,
@@ -53,6 +56,23 @@ def build_encoder(config: CSMConfig, input_dim: int, device: torch.device) -> Hy
         model = HybridTCNEncoder(**common_kwargs)
     elif config.encoder_architecture == "multi_scale_tcn":
         model = MultiScaleTCNEncoder(**common_kwargs)
+    elif config.encoder_architecture == "relational_gat":
+        model = RelationalGATEncoder(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            filters=config.filters,
+            tcn_layers=config.tcn_layers,
+            kernel_size=config.kernel_size,
+            dropout=config.dropout,
+        )
+    elif config.encoder_architecture in ["selective_ssm", "ssm"]:
+        model = SelectiveSSMContextEncoder(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            layers=config.tcn_layers,
+            dropout=config.dropout,
+        )
     else:
         raise ValueError(f"Unknown encoder architecture: {config.encoder_architecture}")
     model.architecture = config.encoder_architecture
@@ -61,7 +81,10 @@ def build_encoder(config: CSMConfig, input_dim: int, device: torch.device) -> Hy
 
 def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device) -> nn.Module:
     """Instantiate and initialize the requested TS-JEPA model variant."""
-    if config.model_type == "ts_jepa":
+    from src.models.registry import canonical_model_type
+
+    canonical = canonical_model_type(config.model_type)
+    if canonical == "ts_jepa":
         encoder = build_encoder(config, input_dim, device)
         model = TSJEPAModel(
             context_encoder=encoder,
@@ -71,8 +94,8 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             ema_decay=0.996,
             dropout=config.dropout,
         )
-    elif config.model_type in ["patch_ts_jepa", "patch_jepa"]:
-        patch_size = 16
+    elif canonical == "patch_ts_jepa":
+        patch_size = config.patch_size
         n_tgt_patches = max(1, config.suspect_size // patch_size)
         model = PatchTSJEPA(
             input_dim=input_dim,
@@ -85,7 +108,7 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             ema_decay=0.996,
             dropout=config.dropout,
         )
-    elif config.model_type in ["gat_jepa", "relational_gat_jepa"]:
+    elif canonical == "gat_jepa":
         model = RelationalGAT_JEPAModel(
             input_dim=input_dim,
             latent_dim=config.latent_dim,
@@ -96,8 +119,15 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             dropout=config.dropout,
             ema_decay=0.996,
         )
+    elif canonical == "ncad":
+        raise NotImplementedError(
+            "The 'ncad' legacy model type is documented but not implemented in build_ts_jepa_model. "
+            "Use 'ts_jepa', 'patch_ts_jepa', or 'gat_jepa'."
+        )
     else:
-        raise ValueError(f"Unknown TS-JEPA model type: {config.model_type}")
+        # Should be unreachable because canonical_model_type raises for unknowns,
+        # but keep a defensive error in case a new spec is added without a branch.
+        raise ValueError(f"Unsupported model type: {config.model_type!r} (canonical: {canonical!r})")
     return model.to(device)
 
 
@@ -126,14 +156,17 @@ def encode_windows(model: EncoderModel, windows: np.ndarray, batch_size: int, de
 def split_train_validation(
     windows: np.ndarray,
     val_split: float = 0.1,
-    seed: int = 42,
+    seed: Optional[int] = None,
     window_size: Optional[int] = None,
     step: int = 1,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Chronologically split sliding windows into training and validation partitions with a purge gap.
 
     Purging prevents overlapping time samples between training and validation windows.
+    The split is strictly chronological (no shuffling), so *seed* is accepted for
+    backward compatibility but ignored.
     """
+    del seed  # accepted for backward compatibility; split is chronological
     n_windows = len(windows)
     if n_windows < 10 or val_split <= 0.0:
         return windows, np.empty((0,) + windows.shape[1:], dtype=windows.dtype)
@@ -247,8 +280,8 @@ def train_ts_jepa(
         model.load_state_dict(best_state)
 
     if config.use_mahalanobis:
-        ctx_all = torch.from_numpy(train_windows[:, : config.context_size]).float().to(device)
-        tgt_all = torch.from_numpy(train_windows[:, config.context_size :]).float().to(device)
+        ctx_all = train_windows[:, : config.context_size]
+        tgt_all = train_windows[:, config.context_size :]
         model.fit_mahalanobis_covariance(ctx_all, tgt_all)
 
     history["best_val_loss"] = best_val_loss
@@ -289,7 +322,7 @@ def evaluate_ts_jepa_loss(
             elif isinstance(model, RelationalGAT_JEPAModel):
                 loss = model.compute_loss(ctx, tgt, sim_weight=config.vicreg_sim_weight, var_weight=config.vicreg_var_weight, cov_weight=config.vicreg_cov_weight)
             else:
-                loss = torch.tensor(0.0)
+                raise ValueError(f"Unsupported TS-JEPA model instance during validation: {type(model)}")
 
             losses.append(float(loss.item()) * len(batch_arr))
             counts.append(len(batch_arr))
