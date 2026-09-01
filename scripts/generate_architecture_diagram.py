@@ -1,8 +1,9 @@
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from matplotlib.patches import FancyArrowPatch, Circle, Rectangle
-import numpy as np
 from pathlib import Path
+
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -43,10 +44,6 @@ def draw_block(x, y, w, h, title, subtitle="", bg_col='#FFFFFF', border_col='#0F
         ax.text(x + w/2, y + h/2, title, ha='center', va='center', fontsize=8.8, fontweight='bold', color=c_line_dark, zorder=3)
     return rect
 
-# Helper: Draw IEEE Sum/Diff/Product Node
-def draw_node(x, y, r=0.22, symbol=r"\oplus", bg='#FFFFFF', border='#0F172A', ax=ax):
-    circ = patches.Circle((x, y), r, facecolor=bg, edgecolor=border, lw=1.1, zorder=4)
-    ax.add_patch(circ)
 # Helper: Draw IEEE Sum/Diff/Product Node
 def draw_node(x, y, r=0.22, symbol=r"\oplus", bg='#FFFFFF', border='#0F172A', ax=ax):
     circ = patches.Circle((x, y), r, facecolor=bg, edgecolor=border, lw=1.1, zorder=4)

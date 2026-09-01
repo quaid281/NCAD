@@ -112,7 +112,6 @@ def main():
             all_z_tgt_true.append(z_tgt_true.cpu().numpy())
             all_z_tgt_pred.append(z_tgt_pred.cpu().numpy())
 
-    z_ctx_all = np.concatenate(all_z_ctx, axis=0)
     z_tgt_true_all = np.concatenate(all_z_tgt_true, axis=0)
     z_tgt_pred_all = np.concatenate(all_z_tgt_pred, axis=0)
 

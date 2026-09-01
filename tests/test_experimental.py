@@ -14,14 +14,14 @@ from src.experimental.hopfield_context import (
     HopfieldContextMemory,
     HopfieldRetrieval,
 )
+from src.experimental.mamba_ssm_encoder import (
+    ExperimentalSSMContextEncoder,
+    SelectiveStateSpaceBlock,
+)
 from src.experimental.memoryless_context import (
     MemorylessContextConfig,
     MemorylessContextResult,
     MemorylessContextSubstitutor,
-)
-from src.experimental.selective_ssm_encoder import (
-    ExperimentalSSMContextEncoder,
-    SelectiveStateSpaceBlock,
 )
 
 

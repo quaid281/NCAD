@@ -47,6 +47,86 @@ def default_output_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "results" / timestamp
 
 
+def _calibrate_threshold(
+    calibration: dict,
+    smoothed_scores: np.ndarray,
+    valid_smoothed_scores: np.ndarray,
+    config: CSMConfig,
+    is_jepa: bool,
+    evt_calibrator: Optional[object],
+) -> np.ndarray:
+    """Apply threshold calibration strategy and return anomaly probabilities.
+
+    Mutates *calibration* in-place with threshold metadata.
+    """
+    if config.threshold_method == "evt" or is_jepa:
+        training_event_threshold = float(calibration["event_threshold"])
+        calibration["training_event_threshold"] = training_event_threshold
+        calibration["score_floor_threshold"] = training_event_threshold
+        calibration["score_floor_method"] = "evt"
+        if evt_calibrator is not None:
+            anomaly_probabilities = evt_calibrator.predict_anomaly_probability(smoothed_scores)
+        else:
+            anomaly_probabilities = np.zeros_like(smoothed_scores)
+    elif config.score_floor_percentile is None:
+        score_floor = adaptive_elbow_score_floor(valid_smoothed_scores)
+        score_floor_threshold = score_floor.threshold
+        training_event_threshold = float(calibration["event_threshold"])
+        calibration["training_event_threshold"] = training_event_threshold
+        calibration["score_floor_threshold"] = score_floor_threshold
+        calibration["score_floor_percentile"] = config.score_floor_percentile
+        calibration["score_floor_method"] = score_floor.method
+        calibration["score_floor_plateau_adjusted"] = score_floor.plateau_adjusted
+        calibration["score_floor_details"] = score_floor.to_dict()
+        if score_floor_threshold > training_event_threshold:
+            calibration["event_threshold"] = score_floor_threshold
+            calibration["threshold_method"] = f"counterfactual_successor_training_plus_{score_floor.method}"
+        anomaly_probabilities = np.zeros_like(smoothed_scores)
+    else:
+        score_floor = percentile_score_floor(valid_smoothed_scores, config.score_floor_percentile)
+        score_floor_threshold = score_floor.threshold
+        training_event_threshold = float(calibration["event_threshold"])
+        calibration["training_event_threshold"] = training_event_threshold
+        calibration["score_floor_threshold"] = score_floor_threshold
+        calibration["score_floor_percentile"] = config.score_floor_percentile
+        calibration["score_floor_method"] = score_floor.method
+        calibration["score_floor_plateau_adjusted"] = score_floor.plateau_adjusted
+        calibration["score_floor_details"] = score_floor.to_dict()
+        if score_floor_threshold > training_event_threshold:
+            calibration["event_threshold"] = score_floor_threshold
+            calibration["threshold_method"] = f"counterfactual_successor_training_plus_{score_floor.method}"
+        anomaly_probabilities = np.zeros_like(smoothed_scores)
+    return anomaly_probabilities
+
+
+def _compute_context_ood(
+    score_details: dict,
+    test_windows: np.ndarray,
+    channel_data: ChannelData,
+    config: CSMConfig,
+    valid_mask: np.ndarray,
+) -> tuple[np.ndarray, float, float]:
+    """Aggregate context-OOD flags from window-level to point-level."""
+    if "context_ood" in score_details:
+        context_ood_point, _ = aggregate_window_scores(
+            score_details["context_ood"].astype(np.float32),
+            n_points=len(channel_data.test_raw),
+            context_size=config.context_size,
+            suspect_size=config.suspect_size,
+            step=config.step,
+            reducer="mean",
+            mapping_method=config.mapping_method,
+        )
+        context_ood_map = context_ood_point > 0.0
+        context_ood_rate_win = float(np.mean(score_details["context_ood"])) if len(test_windows) else 0.0
+        context_ood_rate_pt = float(np.mean(context_ood_map[valid_mask])) if np.any(valid_mask) else 0.0
+    else:
+        context_ood_map = np.zeros(len(channel_data.test_raw), dtype=bool)
+        context_ood_rate_win = 0.0
+        context_ood_rate_pt = 0.0
+    return context_ood_map, context_ood_rate_win, context_ood_rate_pt
+
+
 def run_channel(
     channel_data: ChannelData,
     run_dir: Path,
@@ -64,8 +144,11 @@ def run_channel(
     train_features = feature_extractor.fit_transform(channel_data.train_normalized)
     test_features = feature_extractor.transform(channel_data.test_normalized)
 
-    train_windows = DataLoader.create_windows(train_features, config.full_window_size, config.step)
-    test_windows = DataLoader.create_windows(test_features, config.full_window_size, config.step)
+    # copy=False: the strided view shares memory with train/test_features, which
+    # are not modified after this point. limit_windows below creates an independent
+    # sub-sampled copy when max_windows is set.
+    train_windows = DataLoader.create_windows(train_features, config.full_window_size, config.step, copy=False)
+    test_windows = DataLoader.create_windows(test_features, config.full_window_size, config.step, copy=False)
     train_windows = limit_windows(train_windows, config.max_train_windows)
     test_windows = limit_windows(test_windows, config.max_test_windows)
     if len(train_windows) == 0 or len(test_windows) == 0:
@@ -155,43 +238,9 @@ def run_channel(
         smoothed_scores = moving_average(point_scores, config.smoothing_window)
         valid_smoothed_scores = smoothed_scores[valid_mask]
 
-    if config.threshold_method == "evt" or is_jepa:
-        training_event_threshold = float(calibration["event_threshold"])
-        calibration["training_event_threshold"] = training_event_threshold
-        calibration["score_floor_threshold"] = training_event_threshold
-        calibration["score_floor_method"] = "evt"
-        if evt_calibrator is not None:
-            anomaly_probabilities = evt_calibrator.predict_anomaly_probability(smoothed_scores)
-        else:
-            anomaly_probabilities = np.zeros_like(smoothed_scores)
-    elif config.score_floor_percentile is None:
-        score_floor = adaptive_elbow_score_floor(valid_smoothed_scores)
-        score_floor_threshold = score_floor.threshold
-        training_event_threshold = float(calibration["event_threshold"])
-        calibration["training_event_threshold"] = training_event_threshold
-        calibration["score_floor_threshold"] = score_floor_threshold
-        calibration["score_floor_percentile"] = config.score_floor_percentile
-        calibration["score_floor_method"] = score_floor.method
-        calibration["score_floor_plateau_adjusted"] = score_floor.plateau_adjusted
-        calibration["score_floor_details"] = score_floor.to_dict()
-        if score_floor_threshold > training_event_threshold:
-            calibration["event_threshold"] = score_floor_threshold
-            calibration["threshold_method"] = f"counterfactual_successor_training_plus_{score_floor.method}"
-        anomaly_probabilities = np.zeros_like(smoothed_scores)
-    else:
-        score_floor = percentile_score_floor(valid_smoothed_scores, config.score_floor_percentile)
-        score_floor_threshold = score_floor.threshold
-        training_event_threshold = float(calibration["event_threshold"])
-        calibration["training_event_threshold"] = training_event_threshold
-        calibration["score_floor_threshold"] = score_floor_threshold
-        calibration["score_floor_percentile"] = config.score_floor_percentile
-        calibration["score_floor_method"] = score_floor.method
-        calibration["score_floor_plateau_adjusted"] = score_floor.plateau_adjusted
-        calibration["score_floor_details"] = score_floor.to_dict()
-        if score_floor_threshold > training_event_threshold:
-            calibration["event_threshold"] = score_floor_threshold
-            calibration["threshold_method"] = f"counterfactual_successor_training_plus_{score_floor.method}"
-        anomaly_probabilities = np.zeros_like(smoothed_scores)
+    anomaly_probabilities = _calibrate_threshold(
+        calibration, smoothed_scores, valid_smoothed_scores, config, is_jepa, evt_calibrator
+    )
 
     predictions = event_level_filter(
         smoothed_scores,
@@ -204,23 +253,9 @@ def run_channel(
     metrics_pt = compute_metrics(channel_data.labels, predictions, valid_mask=valid_mask, use_pa=False)
     metrics_pa = compute_metrics(channel_data.labels, predictions, valid_mask=valid_mask, use_pa=True)
 
-    if "context_ood" in score_details:
-        context_ood_point, _ = aggregate_window_scores(
-            score_details["context_ood"].astype(np.float32),
-            n_points=len(channel_data.test_raw),
-            context_size=config.context_size,
-            suspect_size=config.suspect_size,
-            step=config.step,
-            reducer="mean",
-            mapping_method=config.mapping_method,
-        )
-        context_ood_map = context_ood_point > 0.0
-        context_ood_rate_win = float(np.mean(score_details["context_ood"])) if len(test_windows) else 0.0
-        context_ood_rate_pt = float(np.mean(context_ood_map[valid_mask])) if np.any(valid_mask) else 0.0
-    else:
-        context_ood_map = np.zeros(len(channel_data.test_raw), dtype=bool)
-        context_ood_rate_win = 0.0
-        context_ood_rate_pt = 0.0
+    context_ood_map, context_ood_rate_win, context_ood_rate_pt = _compute_context_ood(
+        score_details, test_windows, channel_data, config, valid_mask
+    )
 
     elapsed = time.time() - channel_start
     result = {

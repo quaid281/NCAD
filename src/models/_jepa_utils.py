@@ -62,6 +62,33 @@ class JEPABase(nn.Module):
         for buf_q, buf_k in zip(self.context_encoder.buffers(), self.target_encoder.buffers()):
             buf_k.data.copy_(buf_q.data)
 
+    def compute_objective(
+        self,
+        ctx: torch.Tensor,
+        tgt: torch.Tensor,
+        config,
+        *,
+        injector=None,
+        full_batch=None,
+    ):
+        """Compute the training/validation objective for this JEPA variant.
+
+        Subclasses must override this to return ``(total_loss, metrics_dict)``.
+        Centralising the objective here lets the trainer dispatch polymorphically
+        instead of maintaining a per-class ``isinstance`` chain.
+
+        Args:
+            ctx: (B, L_ctx, C) context windows.
+            tgt: (B, L_tgt, C) target windows.
+            config: ``CSMConfig`` with VICReg weights and other hyperparameters.
+            injector: Optional ``ContextualAnomalyInjector`` for NCAD-JEPA.
+            full_batch: Optional (B, L_full, C) numpy array for NCAD-JEPA injection.
+
+        Returns:
+            Tuple of (total_loss_tensor, metrics_dict).
+        """
+        raise NotImplementedError(f"{type(self).__name__} must implement compute_objective")
+
 
 def to_device_tensor(arr: ArrayLike, model: nn.Module, dtype: torch.dtype = torch.float32) -> torch.Tensor:
     """Convert a numpy array or tensor to a float tensor on the model's device.

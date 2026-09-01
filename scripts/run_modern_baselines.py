@@ -43,6 +43,8 @@ from src.models import (
     DCdetector,
     FlowTSJEPA,
     HybridTCNEncoder,
+    NCADFlowJEPAModel,
+    NCADJEPAModel,
     PatchFlowJEPA,
     PatchTSJEPA,
     RelationalGAT_JEPAModel,
@@ -177,6 +179,8 @@ def train_and_score_channel(
     # =========================================================================
     # 1. TS-JEPA (Ours)
     # =========================================================================
+    model = None  # assigned in one of the branches below; ruff cannot trace this
+    compute_discrepancy = None
     if model_name == "ts_jepa":
         base_enc = HybridTCNEncoder(input_dim=input_dim, latent_dim=32, filters=48, tcn_layers=6, dropout=0.20)
         model = TSJEPAModel(context_encoder=base_enc, latent_dim=32, predictor_hidden_dim=64, ema_decay=0.996).to(device)
@@ -635,6 +639,76 @@ def train_and_score_channel(
                     res.append(disc)
             return np.concatenate(res, axis=0)
 
+    # =========================================================================
+    # 11. NCAD-Flow-JEPA (Flow Matching + Contextual Anomaly Injection)
+    # =========================================================================
+    elif model_name in ["ncad_flow_jepa", "ncad_flow_jepa_v1"]:
+        model = NCADFlowJEPAModel(
+            input_dim=input_dim,
+            latent_dim=32,
+            filters=48,
+            tcn_layers=3,
+            dropout=0.20,
+            predictor_hidden_dim=64,
+            predictor_layers=3,
+            ema_decay=0.996,
+        ).to(device)
+        injector = ContextualAnomalyInjector(
+            AnomalyInjectionConfig(injection_ratio=0.5, min_anomaly_len=16, max_anomaly_len=64),
+            seed=seed,
+        )
+        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
+
+        total_steps = epochs * max(1, len(training_data) // batch_size)
+        global_step = 0
+
+        for epoch in range(1, epochs + 1):
+            model.train()
+            perm = np.random.permutation(len(training_data))
+            for b in range(0, len(perm), batch_size):
+                global_step += 1
+                batch_arr = training_data[perm[b : b + batch_size]]
+                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
+                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
+                injected_full, lbl = injector.inject_batch(batch_arr, context_size)
+                injected_tensor = torch.from_numpy(injected_full).float().to(device)
+                label_tensor = torch.from_numpy(lbl).float().to(device)
+
+                # Flow matching pass
+                z_ctx, z_tgt_true, v_pred, v_target = model(ctx, tgt)
+                loss_flow, _ = flow_matching_vicreg_loss(
+                    v_pred=v_pred, v_target=v_target, z_ctx=z_ctx, z_tgt_true=z_tgt_true, cov_weight=0.5,
+                )
+                # Contrastive injection pass
+                z_injected = model.context_encoder(injected_tensor)
+                loss_contrastive = contrastive_loss(z_injected, z_ctx, label_tensor)
+                loss = loss_flow + model.injection_loss_weight * loss_contrastive
+
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                optimizer.step()
+
+                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
+                model.update_target_encoder(decay=ema_val)
+            scheduler.step()
+
+        if use_mahalanobis:
+            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
+            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
+            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
+
+        def compute_discrepancy(arr):
+            model.eval()
+            res = []
+            with torch.no_grad():
+                for i in range(0, len(arr), 256):
+                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
+                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
+                    disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
+                    res.append(disc)
+            return np.concatenate(res, axis=0)
+
     else:
         raise ValueError(f"Unknown model_name: {model_name}")
 
@@ -737,7 +811,7 @@ def main():
         "--models",
         nargs="+",
         default=["ts_jepa", "anomaly_transformer", "timesnet", "dcdetector", "tranad", "ncad"],
-        help="Models: ts_jepa, patch_ts_jepa, anomaly_transformer, timesnet, dcdetector, tranad, ncad",
+        help="Models: ts_jepa, patch_ts_jepa, flow_jepa, patch_flow_jepa, ncad_flow_jepa, anomaly_transformer, timesnet, dcdetector, tranad, ncad",
     )
     parser.add_argument(
         "--dataset",

@@ -230,7 +230,7 @@ def test_chebyshev_collocation_modes():
     ctx = torch.randn(4, 64, 3)
     tgt = torch.randn(4, 16, 3)
 
-    for mode in ["midpoint", "chebyshev_3", "chebyshev_5"]:
+    for mode in ["midpoint", "chebyshev_3", "chebyshev_4"]:
         score = flow_model.compute_predictive_discrepancy(ctx, tgt, collocation=mode)
         assert score.shape == (4,)
         assert (score >= 0).all()
@@ -246,7 +246,7 @@ def test_chebyshev_collocation_modes():
     )
     tgt_patch = torch.randn(4, 32, 3) # 32 / 16 = 2 target patches
 
-    for mode in ["midpoint", "chebyshev_3", "chebyshev_5"]:
+    for mode in ["midpoint", "chebyshev_3", "chebyshev_4"]:
         win_score = patch_model.compute_predictive_discrepancy(ctx, tgt_patch, collocation=mode)
         assert win_score.shape == (4,)
         assert (win_score >= 0).all()

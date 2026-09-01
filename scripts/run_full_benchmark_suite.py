@@ -143,12 +143,12 @@ def evaluate_single_channel(
             for b in range(0, len(val_data), batch_size):
                 clean = val_data[b : b + batch_size]
                 mod, lbl = injector.inject_batch(clean, context_size)
-                l = contrastive_loss(
+                batch_loss = contrastive_loss(
                     model(torch.from_numpy(mod).float().to(device)),
                     model(torch.from_numpy(clean[:, :context_size]).float().to(device)),
                     torch.from_numpy(lbl).float().to(device),
                 )
-                v_loss += float(l.item()) * len(clean)
+                v_loss += float(batch_loss.item()) * len(clean)
                 v_cnt += len(clean)
         val_score = v_loss / max(v_cnt, 1)
 

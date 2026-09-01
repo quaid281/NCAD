@@ -217,12 +217,24 @@ class PatchTSJEPA(JEPABase):
 
         return h_ctx, h_tgt_true, h_tgt_pred
 
+    def compute_objective(self, ctx, tgt, config, **kwargs):
+        """Patch-level JEPA VICReg loss."""
+        h_ctx, h_tgt_true, h_tgt_pred = self.forward(ctx, tgt)
+        loss = self.compute_patch_loss(
+            h_tgt_pred, h_tgt_true, h_ctx=h_ctx,
+            sim_weight=config.vicreg_sim_weight,
+            var_weight=config.vicreg_var_weight,
+            cov_weight=config.vicreg_cov_weight,
+        )
+        return loss, {"loss": float(loss.item())}
 
     def compute_patch_loss(
         self,
         h_tgt_pred: torch.Tensor,
         h_tgt_true: torch.Tensor,
         h_ctx: Optional[torch.Tensor] = None,
+        sim_weight: float = 1.0,
+        var_weight: float = 1.0,
         cov_weight: float = 0.5,
     ) -> torch.Tensor:
         """Token-level VICReg loss averaged across future patch positions."""
@@ -236,7 +248,10 @@ class PatchTSJEPA(JEPABase):
             z_pred_i = h_tgt_pred[:, i, :]
             z_true_i = h_tgt_true[:, i, :]
             z_ctx_i = h_ctx[:, i % h_ctx.size(1), :] if h_ctx is not None else None
-            loss_i = jepa_vicreg_loss(z_pred_i, z_true_i, z_context=z_ctx_i, cov_weight=cov_weight)
+            loss_i = jepa_vicreg_loss(
+                z_pred_i, z_true_i, z_context=z_ctx_i,
+                sim_weight=sim_weight, var_weight=var_weight, cov_weight=cov_weight,
+            )
             loss_total = loss_total + loss_i
         return loss_total / N_tgt
 

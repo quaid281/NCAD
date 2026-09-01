@@ -116,6 +116,19 @@ class TSJEPAModel(JEPABase):
 
         return z_context, z_target_true, z_target_pred
 
+    def compute_objective(self, ctx, tgt, config, **kwargs):
+        """Endpoint JEPA VICReg loss."""
+        z_ctx, z_tgt_true, z_tgt_pred = self.forward(ctx, tgt)
+        loss = jepa_vicreg_loss(
+            z_target_pred=z_tgt_pred,
+            z_target_true=z_tgt_true,
+            z_context=z_ctx,
+            sim_weight=config.vicreg_sim_weight,
+            var_weight=config.vicreg_var_weight,
+            cov_weight=config.vicreg_cov_weight,
+        )
+        return loss, {"loss": float(loss.item())}
+
     @torch.no_grad()
     def fit_mahalanobis_covariance(
         self,

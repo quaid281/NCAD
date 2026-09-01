@@ -94,6 +94,15 @@ class RelationalGAT_JEPAModel(JEPABase):
 
         return z_context, z_target_true, z_target_pred
 
+    def compute_objective(self, ctx, tgt, config, **kwargs):
+        """GAT JEPA VICReg loss."""
+        loss = self.compute_loss(
+            ctx, tgt,
+            sim_weight=config.vicreg_sim_weight,
+            var_weight=config.vicreg_var_weight,
+            cov_weight=config.vicreg_cov_weight,
+        )
+        return loss, {"loss": float(loss.item())}
 
     def compute_loss(
         self,

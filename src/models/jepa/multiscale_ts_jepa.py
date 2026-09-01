@@ -108,12 +108,24 @@ class MultiScaleTSJEPA(JEPABase):
 
         return z_ctx, z_tgt_true_dict, z_tgt_pred_dict
 
+    def compute_objective(self, ctx, tgt, config, **kwargs):
+        """Multi-horizon JEPA VICReg loss."""
+        z_ctx, z_tgt_true_dict, z_tgt_pred_dict = self.forward(ctx, tgt)
+        loss = self.compute_multiscale_loss(
+            z_tgt_pred_dict, z_tgt_true_dict, z_ctx=z_ctx,
+            sim_weight=config.vicreg_sim_weight,
+            var_weight=config.vicreg_var_weight,
+            cov_weight=config.vicreg_cov_weight,
+        )
+        return loss, {"loss": float(loss.item())}
 
     def compute_multiscale_loss(
         self,
         z_tgt_pred_dict: Dict[int, torch.Tensor],
         z_tgt_true_dict: Dict[int, torch.Tensor],
         z_ctx: Optional[torch.Tensor] = None,
+        sim_weight: float = 1.0,
+        var_weight: float = 1.0,
         cov_weight: float = 0.5,
     ) -> torch.Tensor:
         """Sum of VICReg losses across all horizons."""
@@ -123,6 +135,8 @@ class MultiScaleTSJEPA(JEPABase):
                 z_tgt_pred_dict[h],
                 z_tgt_true_dict[h],
                 z_context=z_ctx,
+                sim_weight=sim_weight,
+                var_weight=var_weight,
                 cov_weight=cov_weight,
             )
             total_loss = total_loss + loss_h

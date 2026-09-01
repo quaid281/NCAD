@@ -13,7 +13,6 @@ from src.models.losses.anomaly_injector import AnomalyInjectionConfig, Contextua
 from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
 from src.features.features import FeatureConfig, NCADFeatureExtractor
 from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
-from src.models.memory.sindy_scorer import SINDyConfig, SINDyDynamicsScorer
 from src.data.data_loader import DataLoader
 from src.scoring.event_fusion import (
     adaptive_elbow_score_floor,
@@ -144,49 +143,27 @@ local_z = positive_robust_z(test_local_scores, local_stats)
 context_ratio = query.context_distances / max(float(memory.context_threshold), 1e-6)
 context_ratio = np.minimum(context_ratio, 3.0).astype(np.float32)
 
-# Fit SINDy Scorer on normal training latent embeddings
-sindy = SINDyDynamicsScorer(SINDyConfig(poly_degree=2, threshold=0.05))
-sindy.fit(train_context_embeddings)
+window_scores = fuse_evidence_scores(
+    successor_z=successor_z,
+    local_z=local_z,
+    context_ratio=context_ratio,
+    normalize_components=True
+)
 
-calibration_sindy_scores = sindy.score(train_context_embeddings[memory.sample_indices])
-sindy_stats = robust_stats(calibration_sindy_scores)
+point_scores, valid_mask = aggregate_window_scores(
+    window_scores, n_points=len(test_df), context_size=context_size, suspect_size=suspect_size, step=step, reducer="mean", mapping_method="middle"
+)
+test_scores = moving_average(point_scores, 12)
 
-test_sindy_scores = sindy.score(test_context_embeddings)
-sindy_z = positive_robust_z(test_sindy_scores, sindy_stats)
+floor_res = adaptive_elbow_score_floor(test_scores[valid_mask])
+threshold = floor_res.threshold
 
-for use_sindy in [False, True]:
-    print(f"\n=================== EVALUATING SINDY DYNAMICS = {use_sindy} ===================")
-    if use_sindy:
-        window_scores = fuse_evidence_scores(
-            successor_z=successor_z,
-            local_z=local_z,
-            context_ratio=context_ratio,
-            sindy_z=sindy_z,
-            sindy_weight=0.50,
-            normalize_components=True
-        )
-    else:
-        window_scores = fuse_evidence_scores(
-            successor_z=successor_z,
-            local_z=local_z,
-            context_ratio=context_ratio,
-            normalize_components=True
-        )
+preds = event_level_filter(test_scores, threshold, valid_mask, min_run=2, extreme_factor=1.75)
+preds = preds * valid_mask.astype(np.float32)
 
-    point_scores, valid_mask = aggregate_window_scores(
-        window_scores, n_points=len(test_df), context_size=context_size, suspect_size=suspect_size, step=step, reducer="mean", mapping_method="middle"
-    )
-    test_scores = moving_average(point_scores, 12)
+m_std = compute_metrics(test_labels, preds, valid_mask=valid_mask, use_pa=False)
+m_pa = compute_metrics(test_labels, preds, valid_mask=valid_mask, use_pa=True)
 
-    floor_res = adaptive_elbow_score_floor(test_scores[valid_mask])
-    threshold = floor_res.threshold
-
-    preds = event_level_filter(test_scores, threshold, valid_mask, min_run=2, extreme_factor=1.75)
-    preds = preds * valid_mask.astype(np.float32)
-
-    m_std = compute_metrics(test_labels, preds, valid_mask=valid_mask, use_pa=False)
-    m_pa = compute_metrics(test_labels, preds, valid_mask=valid_mask, use_pa=True)
-
-    print(f"Elbow Threshold: {threshold:.5f}")
-    print("Standard Metrics (No PA):", m_std)
-    print("Point-Adjusted Metrics (PA):", m_pa)
+print(f"Elbow Threshold: {threshold:.5f}")
+print("Standard Metrics (No PA):", m_std)
+print("Point-Adjusted Metrics (PA):", m_pa)

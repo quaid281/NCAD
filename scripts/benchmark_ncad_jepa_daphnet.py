@@ -424,7 +424,6 @@ def main():
 
     # Summary Pivot Table
     pivot_pa = results_df.pivot(index="channel", columns="mode", values="pa_f1")
-    pivot_oracle = results_df.pivot(index="channel", columns="mode", values="oracle_pa_f1")
     print("\n" + "=" * 80)
     print("CONSOLIDATED PA-F1 COMPARISON TABLE (Daphnet):")
     print("=" * 80)

@@ -19,7 +19,6 @@ from src.models.jepa.patch_ts_jepa import PatchSequenceEncoder, PatchTSJEPA
 from src.models.jepa.patch_ts_jepa import PositionalEncoding as Patch_PositionalEncoding
 from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
 from src.models.losses.fei_sigreg import FrequencyMasker, sigreg_loss
-from src.models.memory.sindy_scorer import SINDyConfig, SINDyDynamicsScorer
 
 
 @pytest.fixture
@@ -346,44 +345,7 @@ def test_positional_encodings_odd_even_dimensions(d_model):
 
 
 # =========================================================================
-# 8. SINDy Dynamics Scorer Validation
-# =========================================================================
-
-def test_sindy_scorer_poly_degrees():
-    z = np.random.randn(20, 4)
-
-    # Degree 0 (constant only)
-    scorer0 = SINDyDynamicsScorer(SINDyConfig(poly_degree=0, include_constant=True))
-    lib0 = scorer0.build_library(z)
-    assert lib0.shape == (20, 1)
-
-    # Degree 1
-    scorer1 = SINDyDynamicsScorer(SINDyConfig(poly_degree=1, include_constant=True))
-    lib1 = scorer1.build_library(z)
-    assert lib1.shape == (20, 1 + 4)
-
-    # Degree 2
-    scorer2 = SINDyDynamicsScorer(SINDyConfig(poly_degree=2, include_constant=True))
-    lib2 = scorer2.build_library(z)
-    assert lib2.shape == (20, 1 + 4 + 10)
-
-    # Invalid degree
-    scorer_inv = SINDyDynamicsScorer(SINDyConfig(poly_degree=3))
-    with pytest.raises(ValueError, match="Unsupported poly_degree"):
-        scorer_inv.build_library(z)
-
-
-def test_sindy_scorer_short_sequence_error():
-    z_short = np.random.randn(2, 4)
-    scorer = SINDyDynamicsScorer()
-    scorer.coefficients = np.ones((5, 4), dtype=np.float32)
-    scorer.n_features = 5
-    with pytest.raises(ValueError, match="Need at least 3 samples"):
-        scorer.score(z_short)
-
-
-# =========================================================================
-# 9. Anomaly Injector Zero Ratio
+# 8. Anomaly Injector Zero Ratio
 # =========================================================================
 
 def test_anomaly_injector_zero_ratio():

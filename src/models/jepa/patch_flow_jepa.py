@@ -19,7 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase
-from src.models.jepa.flow_ts_jepa import TimestepEmbedding, _get_chebyshev_collocation_nodes
+from src.models.jepa.flow_ts_jepa import TimestepEmbedding, _get_chebyshev_collocation_nodes, flow_matching_vicreg_loss
 from src.models.jepa.patch_ts_jepa import PatchSequenceEncoder, PositionalEncoding
 from src.models.jepa.ts_jepa import _vicreg_branch_loss
 
@@ -206,6 +206,28 @@ class PatchFlowJEPA(JEPABase):
 
         return h_ctx, z_tgt_true, v_pred, v_target
 
+    def compute_objective(self, ctx, tgt, config, **kwargs):
+        """Patch flow matching VICReg loss.
+
+        In eval mode, uses deterministic t=0.5 and zero prior Z_0=0.
+        """
+        if not self.training:
+            B = ctx.size(0)
+            device = ctx.device
+            dtype = ctx.dtype
+            t_val = torch.full((B,), 0.5, device=device, dtype=dtype)
+            z_zero = torch.zeros(B, self.n_target_patches, self.d_model, device=device, dtype=dtype)
+            h_ctx, z_tgt_true, v_pred, v_target = self.forward(ctx, tgt, t=t_val, z_noise=z_zero)
+        else:
+            h_ctx, z_tgt_true, v_pred, v_target = self.forward(ctx, tgt)
+        loss, metrics = flow_matching_vicreg_loss(
+            v_pred=v_pred, v_target=v_target, z_ctx=h_ctx, z_tgt_true=z_tgt_true,
+            flow_weight=config.vicreg_sim_weight,
+            var_weight=config.vicreg_var_weight,
+            cov_weight=config.vicreg_cov_weight,
+        )
+        return loss, metrics
+
     @torch.no_grad()
     def fit_mahalanobis_covariance(
         self,
@@ -248,7 +270,7 @@ class PatchFlowJEPA(JEPABase):
         context_windows: torch.Tensor,
         observed_target_windows: torch.Tensor,
         use_mahalanobis: bool = False,
-        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
+        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_4"] = "midpoint",
     ) -> torch.Tensor:
         """Compute deterministic patch flow discrepancy averaged across target horizon.
         
@@ -349,7 +371,7 @@ class PatchFlowJEPA(JEPABase):
         context_windows: torch.Tensor,
         target_windows: torch.Tensor,
         n_eval_times: int = 1,
-        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
+        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_4"] = "midpoint",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute patch-level and window-level deterministic flow discrepancy.
 

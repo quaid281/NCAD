@@ -37,25 +37,6 @@ def test_create_windows_zero_copy():
     assert windows_view.base is not None
 
 
-def test_sliding_window_dataset():
-    import torch
-
-    from src.data.data_loader import SlidingWindowDataset
-
-    values = np.arange(20, dtype=np.float32).reshape(10, 2)
-    dataset = SlidingWindowDataset(values, window_size=4, step=2)
-
-    assert len(dataset) == (10 - 4) // 2 + 1  # 4 windows
-
-    sample_0 = dataset[0]
-    assert isinstance(sample_0, torch.Tensor)
-    assert sample_0.shape == (4, 2)
-    assert np.allclose(sample_0.numpy(), values[:4])
-
-    sample_1 = dataset[1]
-    assert np.allclose(sample_1.numpy(), values[2:6])
-
-
 def test_data_loader_load(tmp_path):
     # Setup mock data directory
     raw_dir = tmp_path / "raw"

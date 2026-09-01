@@ -9,6 +9,7 @@ from src.models.jepa.flow_ts_jepa import (
 )
 from src.models.jepa.gat_jepa import RelationalGAT_JEPAModel
 from src.models.jepa.multiscale_ts_jepa import MultiScaleTSJEPA
+from src.models.jepa.ncad_flow_jepa import NCADFlowJEPAModel
 from src.models.jepa.ncad_jepa import NCADJEPAModel
 from src.models.jepa.patch_flow_jepa import PatchFlowJEPA, PatchFlowPredictor
 from src.models.jepa.patch_ts_jepa import PatchTSJEPA
@@ -20,6 +21,7 @@ __all__ = [
     "MultiScaleTSJEPA",
     "LatentPredictor",
     "NCADJEPAModel",
+    "NCADFlowJEPAModel",
     "RelationalGAT_JEPAModel",
     "FlowTSJEPA",
     "FlowTSJEPAModel",

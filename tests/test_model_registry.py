@@ -35,6 +35,7 @@ def test_is_jepa_model():
     assert is_jepa_model("patch_ts_jepa") is True
     assert is_jepa_model("gat_jepa") is True
     assert is_jepa_model("ncad") is False
+    assert is_jepa_model("ncad_jepa") is True
 
 
 def test_requires_patch_division():

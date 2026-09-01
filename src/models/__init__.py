@@ -28,6 +28,7 @@ from src.models.jepa import (
     FlowTSJEPAModel,
     LatentPredictor,
     MultiScaleTSJEPA,
+    NCADFlowJEPAModel,
     NCADJEPAModel,
     PatchFlowJEPA,
     PatchFlowPredictor,
@@ -46,8 +47,6 @@ from src.models.losses import (
 )
 from src.models.memory import (
     CounterfactualSuccessorMemory,
-    SINDyConfig,
-    SINDyDynamicsScorer,
     SuccessorMemoryConfig,
 )
 
@@ -60,14 +59,13 @@ __all__ = [
     # Memory & Dynamics
     "CounterfactualSuccessorMemory",
     "SuccessorMemoryConfig",
-    "SINDyDynamicsScorer",
-    "SINDyConfig",
     # JEPA & Invariance Architectures
     "TSJEPAModel",
     "PatchTSJEPA",
     "MultiScaleTSJEPA",
     "LatentPredictor",
     "NCADJEPAModel",
+    "NCADFlowJEPAModel",
     "RelationalGAT_JEPAModel",
     "FrequencyMasker",
     # Flow-JEPA (Conditional Flow Matching)

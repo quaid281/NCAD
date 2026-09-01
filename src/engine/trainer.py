@@ -18,9 +18,11 @@ from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
 from src.models.jepa.flow_ts_jepa import FlowTSJEPAModel
 from src.models.jepa.gat_jepa import RelationalGAT_JEPAModel
 from src.models.jepa.multiscale_ts_jepa import MultiScaleTSJEPA
+from src.models.jepa.ncad_flow_jepa import NCADFlowJEPAModel
+from src.models.jepa.ncad_jepa import NCADJEPAModel
 from src.models.jepa.patch_flow_jepa import PatchFlowJEPA
 from src.models.jepa.patch_ts_jepa import PatchTSJEPA
-from src.models.jepa.ts_jepa import TSJEPAModel, jepa_vicreg_loss
+from src.models.jepa.ts_jepa import TSJEPAModel
 from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
 
 logger = logging.getLogger("NCAD.engine.trainer")
@@ -36,6 +38,8 @@ EncoderModel = (
     | FlowTSJEPAModel
     | PatchFlowJEPA
     | MultiScaleTSJEPA
+    | NCADJEPAModel
+    | NCADFlowJEPAModel
 )
 
 
@@ -134,9 +138,36 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             ema_decay=0.996,
         )
     elif canonical == "ncad":
-        raise NotImplementedError(
-            "The 'ncad' legacy model type is documented but not implemented in build_ts_jepa_model. "
-            "Use 'ts_jepa', 'patch_ts_jepa', 'gat_jepa', 'flow_jepa', 'patch_flow_jepa', or 'multiscale_ts_jepa'."
+        # Legacy NCAD uses the contrastive TCN encoder path (is_jepa=False).
+        # build_ts_jepa_model is only called for JEPA models, so this branch
+        # should never be reached. If it is, redirect to the contrastive path.
+        raise ValueError(
+            "The 'ncad' model type uses the contrastive encoder path, not build_ts_jepa_model. "
+            "Use 'ncad_jepa' for the fused JEPA+contrastive variant."
+        )
+    elif canonical == "ncad_jepa":
+        model = NCADJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            filters=config.filters,
+            tcn_layers=config.tcn_layers,
+            kernel_size=config.kernel_size,
+            dropout=config.dropout,
+            predictor_hidden_dim=max(64, config.latent_dim * 2),
+            predictor_layers=2,
+            ema_decay=0.995,
+        )
+    elif canonical == "ncad_flow_jepa":
+        model = NCADFlowJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            filters=config.filters,
+            tcn_layers=config.tcn_layers,
+            kernel_size=config.kernel_size,
+            dropout=config.dropout,
+            predictor_hidden_dim=max(64, config.latent_dim * 2),
+            predictor_layers=3,
+            ema_decay=0.995,
         )
     elif canonical == "flow_jepa":
         encoder = build_encoder(config, input_dim, device)
@@ -248,6 +279,7 @@ def train_ts_jepa(
     model = build_ts_jepa_model(config, input_dim, device)
     optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs, eta_min=1e-5)
+    injector = ContextualAnomalyInjector(AnomalyInjectionConfig(injection_ratio=config.injection_ratio), seed=config.seed)
     training_data, validation_data = split_train_validation(
         train_windows,
         val_split=config.val_split,
@@ -278,23 +310,9 @@ def train_ts_jepa(
             ctx = torch.from_numpy(batch_arr[:, : config.context_size]).float().to(device)
             tgt = torch.from_numpy(batch_arr[:, config.context_size :]).float().to(device)
 
-            if isinstance(model, TSJEPAModel):
-                z_ctx, z_tgt_true, z_tgt_pred = model(ctx, tgt)
-                loss = jepa_vicreg_loss(
-                    z_target_pred=z_tgt_pred,
-                    z_target_true=z_tgt_true,
-                    z_context=z_ctx,
-                    sim_weight=config.vicreg_sim_weight,
-                    var_weight=config.vicreg_var_weight,
-                    cov_weight=config.vicreg_cov_weight,
-                )
-            elif isinstance(model, PatchTSJEPA):
-                h_ctx, h_tgt_true, h_tgt_pred = model(ctx, tgt)
-                loss = model.compute_patch_loss(h_tgt_pred, h_tgt_true, h_ctx=h_ctx, cov_weight=config.vicreg_cov_weight)
-            elif isinstance(model, RelationalGAT_JEPAModel):
-                loss = model.compute_loss(ctx, tgt, sim_weight=config.vicreg_sim_weight, var_weight=config.vicreg_var_weight, cov_weight=config.vicreg_cov_weight)
-            else:
-                raise ValueError(f"Unsupported TS-JEPA model instance: {type(model)}")
+            loss, _ = model.compute_objective(
+                ctx, tgt, config, injector=injector, full_batch=batch_arr
+            )
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
@@ -349,6 +367,12 @@ def evaluate_ts_jepa_loss(
     if len(validation_data) == 0:
         return float("nan")
     model.eval()
+    # A deterministic validation injector (fixed seed) keeps validation stable.
+    # Non-NCAD models simply ignore it in compute_objective.
+    val_injector = ContextualAnomalyInjector(
+        AnomalyInjectionConfig(injection_ratio=config.injection_ratio),
+        seed=config.seed + 1,
+    )
     losses = []
     counts = []
     with torch.no_grad():
@@ -357,23 +381,10 @@ def evaluate_ts_jepa_loss(
             ctx = torch.from_numpy(batch_arr[:, : config.context_size]).float().to(device)
             tgt = torch.from_numpy(batch_arr[:, config.context_size :]).float().to(device)
 
-            if isinstance(model, TSJEPAModel):
-                z_ctx, z_tgt_true, z_tgt_pred = model(ctx, tgt)
-                loss = jepa_vicreg_loss(
-                    z_target_pred=z_tgt_pred,
-                    z_target_true=z_tgt_true,
-                    z_context=z_ctx,
-                    sim_weight=config.vicreg_sim_weight,
-                    var_weight=config.vicreg_var_weight,
-                    cov_weight=config.vicreg_cov_weight,
-                )
-            elif isinstance(model, PatchTSJEPA):
-                h_ctx, h_tgt_true, h_tgt_pred = model(ctx, tgt)
-                loss = model.compute_patch_loss(h_tgt_pred, h_tgt_true, h_ctx=h_ctx, cov_weight=config.vicreg_cov_weight)
-            elif isinstance(model, RelationalGAT_JEPAModel):
-                loss = model.compute_loss(ctx, tgt, sim_weight=config.vicreg_sim_weight, var_weight=config.vicreg_var_weight, cov_weight=config.vicreg_cov_weight)
-            else:
-                raise ValueError(f"Unsupported TS-JEPA model instance during validation: {type(model)}")
+            loss, _ = model.compute_objective(
+                ctx, tgt, config,
+                injector=val_injector, full_batch=batch_arr,
+            )
 
             losses.append(float(loss.item()) * len(batch_arr))
             counts.append(len(batch_arr))

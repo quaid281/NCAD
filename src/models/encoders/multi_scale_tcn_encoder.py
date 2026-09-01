@@ -8,6 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.models.encoders.tcn_encoder import contrastive_loss
+
 
 def _as_odd_kernel_size(value: int) -> int:
     value = max(3, int(value))
@@ -191,10 +193,3 @@ class MultiScaleTCNEncoder(nn.Module):
 
         features = torch.cat([mean, std, skew, kurtosis, energy, zero_crossing], dim=1)
         return torch.nan_to_num(features)
-
-
-def contrastive_loss(z_full: torch.Tensor, z_context: torch.Tensor, labels: torch.Tensor, margin: float = 1.0) -> torch.Tensor:
-    distances = torch.linalg.norm(z_full - z_context, dim=1)
-    positive_loss = (1.0 - labels) * distances.pow(2)
-    negative_loss = labels * F.relu(margin - distances).pow(2)
-    return torch.mean(positive_loss + negative_loss)

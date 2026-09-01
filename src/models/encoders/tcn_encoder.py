@@ -127,7 +127,8 @@ class HybridTCNEncoder(nn.Module):
 def contrastive_loss(z_full: torch.Tensor, z_context: torch.Tensor, labels: torch.Tensor, margin: float = 1.0) -> torch.Tensor:
     """Paper contrastive objective: positives close, synthetic negatives at least margin apart."""
 
-    distances = torch.linalg.norm(z_full - z_context, dim=1)
+    diff = z_full - z_context
+    distances = torch.sqrt((diff * diff).sum(dim=1) + 1e-8)
     positive_loss = (1.0 - labels) * distances.pow(2)
     negative_loss = labels * F.relu(margin - distances).pow(2)
     return torch.mean(positive_loss + negative_loss)

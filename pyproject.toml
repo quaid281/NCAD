@@ -57,3 +57,4 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tests/*" = ["F401"]
+"scripts/run_modern_baselines.py" = ["F821"]  # model is assigned in if/elif branches; ruff cannot trace closure captures

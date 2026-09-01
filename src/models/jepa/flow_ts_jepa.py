@@ -235,11 +235,15 @@ def flow_matching_vicreg_loss(
 
 
 def _get_chebyshev_collocation_nodes(
-    mode: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
+    mode: Literal["midpoint", "chebyshev_3", "chebyshev_4"] = "midpoint",
     device: torch.device = torch.device("cpu"),
     dtype: torch.dtype = torch.float32,
 ) -> Tuple[List[float], List[float]]:
-    """Compute deterministic quadrature collocation nodes and weights along the OT path t in (0, 1)."""
+    """Compute deterministic quadrature collocation nodes and weights along the OT path t in (0, 1).
+
+    The integer suffix denotes the number of interior nodes returned (endpoints
+    t=0 and t=1 are excluded because the velocity field is trivial there).
+    """
     if mode == "midpoint":
         return [0.5], [1.0]
     elif mode == "chebyshev_3":
@@ -249,13 +253,13 @@ def _get_chebyshev_collocation_nodes(
         w = [0.2761, 0.4478, 0.2761]
         sum_w = sum(w)
         return [t1, t2, t3], [x / sum_w for x in w]
-    elif mode == "chebyshev_5":
+    elif mode == "chebyshev_4":
         nodes = [0.5 * (1.0 + math.cos((5 - k) * math.pi / 5.0)) for k in range(1, 5)]
         w = [0.2, 0.3, 0.3, 0.2]
         sum_w = sum(w)
         return nodes, [x / sum_w for x in w]
     else:
-        raise ValueError(f"Unknown collocation mode: {mode}. Choose 'midpoint', 'chebyshev_3', or 'chebyshev_5'.")
+        raise ValueError(f"Unknown collocation mode: {mode}. Choose 'midpoint', 'chebyshev_3', or 'chebyshev_4'.")
 
 
 class FlowTSJEPAModel(JEPABase):
@@ -347,6 +351,29 @@ class FlowTSJEPAModel(JEPABase):
 
         return z_ctx, z_tgt_true, v_pred, v_target
 
+    def compute_objective(self, ctx, tgt, config, **kwargs):
+        """Flow matching VICReg loss.
+
+        In eval mode, uses deterministic t=0.5 and zero prior z_0=0 to keep
+        validation loss stable across evaluations.
+        """
+        if not self.training:
+            B = ctx.size(0)
+            device = ctx.device
+            dtype = ctx.dtype
+            t_val = torch.full((B,), 0.5, device=device, dtype=dtype)
+            z_zero = torch.zeros(B, self.latent_dim, device=device, dtype=dtype)
+            z_ctx, z_tgt_true, v_pred, v_target = self.forward(ctx, tgt, t=t_val, z_noise=z_zero)
+        else:
+            z_ctx, z_tgt_true, v_pred, v_target = self.forward(ctx, tgt)
+        loss, metrics = flow_matching_vicreg_loss(
+            v_pred=v_pred, v_target=v_target, z_ctx=z_ctx, z_tgt_true=z_tgt_true,
+            flow_weight=config.vicreg_sim_weight,
+            var_weight=config.vicreg_var_weight,
+            cov_weight=config.vicreg_cov_weight,
+        )
+        return loss, metrics
+
     @torch.no_grad()
     def sample_target(
         self,
@@ -415,7 +442,7 @@ class FlowTSJEPAModel(JEPABase):
         context_windows: torch.Tensor,
         observed_target_windows: torch.Tensor,
         use_mahalanobis: bool = False,
-        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
+        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_4"] = "midpoint",
     ) -> torch.Tensor:
         """Compute deterministic Optimal Transport flow discrepancy.
         
@@ -431,7 +458,7 @@ class FlowTSJEPAModel(JEPABase):
             context_windows: (B, L_ctx, C)
             observed_target_windows: (B, L_tgt, C)
             use_mahalanobis: Whether to apply covariance whitening
-            collocation: 'midpoint' (1-point t=0.5), 'chebyshev_3' (3-point), or 'chebyshev_5' (5-point)
+            collocation: 'midpoint' (1-point t=0.5), 'chebyshev_3' (3-point), or 'chebyshev_4' (4-point)
             
         Returns:
             Discrepancy scores of shape (B,)
@@ -474,7 +501,7 @@ class FlowTSJEPAModel(JEPABase):
         target_windows: torch.Tensor,
         n_eval_times: int = 3,
         use_mahalanobis: bool = False,
-        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_5"] = "midpoint",
+        collocation: Literal["midpoint", "chebyshev_3", "chebyshev_4"] = "midpoint",
     ) -> torch.Tensor:
         """Compute deterministic predictive discrepancy (alias with collocation support)."""
         return self.compute_predictive_discrepancy(

@@ -298,13 +298,11 @@ def fuse_evidence_scores(
     context_ratio: np.ndarray,
     manifold_z: Optional[np.ndarray] = None,
     reconstruction_z: Optional[np.ndarray] = None,
-    sindy_z: Optional[np.ndarray] = None,
     uncertainty_confidence: Optional[np.ndarray] = None,
     successor_weight: float = 1.0,
     local_weight: float = 0.80,
     context_weight: float = 0.35,
     reconstruction_weight: float = 0.60,
-    sindy_weight: float = 0.50,
     normalize_components: bool = True,
 ) -> np.ndarray:
     successor_z = np.asarray(successor_z, dtype=np.float32)
@@ -336,13 +334,6 @@ def fuse_evidence_scores(
             rec_z = rec_z / rec_scale
         reconstruction_component = reconstruction_weight * rec_z
         fused = np.maximum(fused, reconstruction_component)
-    if sindy_z is not None:
-        sin_z = np.asarray(sindy_z, dtype=np.float32)
-        if normalize_components:
-            sin_scale = max(float(np.percentile(sin_z, 95.0)), 1e-4)
-            sin_z = sin_z / sin_scale
-        sindy_component = sindy_weight * sin_z
-        fused = np.maximum(fused, sindy_component)
     return fused.astype(np.float32)
 
 

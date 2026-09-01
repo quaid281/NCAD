@@ -9,11 +9,10 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import torch
 
 
 @dataclass
@@ -172,7 +171,7 @@ class DataLoader:
         row = rows.iloc[0]
         try:
             expected_length = int(row.get("num_values", test_length))
-        except Exception:
+        except (ValueError, TypeError, KeyError):
             expected_length = test_length
 
         labels = np.zeros(expected_length, dtype=np.float32)
@@ -218,39 +217,3 @@ class DataLoader:
         if value is None or (isinstance(value, float) and np.isnan(value)):
             return []
         raise ValueError(f"Unexpected anomaly_sequences type for channel '{channel_id}': {type(value)}")
-
-
-class SlidingWindowDataset(torch.utils.data.Dataset):
-    """Lazy zero-copy sliding window dataset for PyTorch DataLoader.
-
-    Avoids materializing all sliding windows into RAM simultaneously.
-    """
-
-    def __init__(
-        self,
-        values: np.ndarray,
-        window_size: int,
-        step: int = 1,
-        transform: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-    ):
-        if values.ndim == 1:
-            values = values[:, None]
-        self.values = np.ascontiguousarray(values, dtype=np.float32)
-        self.window_size = window_size
-        self.step = step
-        self.transform = transform
-        n_samples = len(self.values)
-        self.n_windows = max(0, (n_samples - window_size) // step + 1) if n_samples >= window_size else 0
-
-    def __len__(self) -> int:
-        return self.n_windows
-
-    def __getitem__(self, index: int) -> torch.Tensor:
-        if index < 0 or index >= self.n_windows:
-            raise IndexError(f"Window index {index} out of range for {self.n_windows} windows")
-        start = index * self.step
-        end = start + self.window_size
-        window = self.values[start:end]
-        if self.transform is not None:
-            window = self.transform(window)
-        return torch.from_numpy(window).float()

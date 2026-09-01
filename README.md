@@ -109,7 +109,7 @@ NCAD_CS/
 │   │   │   ├── gat_jepa.py               # Graph Attention JEPA
 │   │   │   └── ncad_jepa.py              # NCAD-JEPA variant
 │   │   ├── losses/                   # Anomaly injection + FEI-SigReg loss
-│   │   ├── memory/                   # Counterfactual successor memory + SINDy
+│   │   ├── memory/                   # Counterfactual successor memory
 │   │   └── legacy/                   # Backward-compat shims
 │   ├── scoring/                  # EVT calibration + event-level fusion
 │   │   ├── evt_calibrator.py         # GPD tail fitting (Grimshaw/numerical MLE)

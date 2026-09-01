@@ -15,8 +15,8 @@ if str(ROOT) not in sys.path:
 
 from src.experimental.causal_counterfactual import CounterfactualContextSubstitutor
 from src.experimental.hopfield_context import HopfieldContextMemory
+from src.experimental.mamba_ssm_encoder import ExperimentalSSMContextEncoder
 from src.experimental.memoryless_context import MemorylessContextConfig, MemorylessContextSubstitutor
-from src.experimental.selective_ssm_encoder import ExperimentalSSMContextEncoder
 
 
 def main() -> None:

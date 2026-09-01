@@ -55,6 +55,20 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         description="Legacy NCAD contrastive encoder (not a JEPA variant).",
     ),
     ModelSpec(
+        canonical_name="ncad_jepa",
+        aliases=("ncad_jepa_v1",),
+        is_jepa=True,
+        requires_patch_division=False,
+        description="Fused NCAD + TS-JEPA with VICReg and contextual anomaly injection.",
+    ),
+    ModelSpec(
+        canonical_name="ncad_flow_jepa",
+        aliases=("ncad_flow_jepa_v1",),
+        is_jepa=True,
+        requires_patch_division=False,
+        description="Fused NCAD + Flow Matching TS-JEPA with OT-CFM velocity field and contextual anomaly injection.",
+    ),
+    ModelSpec(
         canonical_name="flow_jepa",
         aliases=("ts_jepa_flow",),
         is_jepa=True,

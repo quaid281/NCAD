@@ -65,6 +65,10 @@ class NCADJEPAModel(JEPABase):
             dropout=dropout,
         )
 
+        # 4. Mahalanobis-whitened scoring buffers (matches the JEPA contract used
+        # by the trainer/evaluator: fit_mahalanobis_covariance + use_mahalanobis).
+        self.register_mahalanobis_buffers(latent_dim)
+
     def forward(
         self,
         context_windows: torch.Tensor,
@@ -90,6 +94,31 @@ class NCADJEPAModel(JEPABase):
 
         return z_context, z_target_true, z_target_pred
 
+    def compute_objective(self, ctx, tgt, config, *, injector=None, full_batch=None, **kwargs):
+        """Joint JEPA + contrastive injection loss.
+
+        Requires ``injector`` and ``full_batch`` to produce injected windows.
+        In eval mode, the injector should be deterministic for stable validation.
+        """
+        if injector is None or full_batch is None:
+            raise ValueError(
+                "NCADJEPAModel.compute_objective requires 'injector' and 'full_batch' "
+                "keyword arguments for contextual anomaly injection."
+            )
+        injected_full, labels = injector.inject_batch(full_batch, config.context_size)
+        injected_tensor = torch.from_numpy(injected_full).float().to(ctx.device)
+        label_tensor = torch.from_numpy(labels).float().to(ctx.device)
+        loss, metrics = self.compute_joint_loss(
+            clean_context=ctx,
+            clean_target=tgt,
+            injected_context=injected_tensor,
+            injected_label=label_tensor,
+            sim_weight=config.vicreg_sim_weight,
+            var_weight=config.vicreg_var_weight,
+            cov_weight=config.vicreg_cov_weight,
+        )
+        return loss, metrics
+
 
     def compute_joint_loss(
         self,
@@ -103,7 +132,17 @@ class NCADJEPAModel(JEPABase):
         margin: float = 1.0,
     ) -> Tuple[torch.Tensor, dict]:
         """Compute the combined VICReg + Synthetic Anomaly Contrastive loss.
-        
+
+        Args:
+            clean_context: (B, L_ctx, C) clean context windows.
+            clean_target: (B, L_tgt, C) clean target/suspect windows.
+            injected_context: (B, L_full, C) FULL injected windows (context +
+                injected suspect region). The injector only modifies the suspect
+                region, so the context portion remains clean. Passing only the
+                context slice would discard the anomalies and make the
+                contrastive branch a no-op.
+            injected_label: (B,) binary labels — 1 for anomalous, 0 for clean.
+
         Returns:
             Tuple of (total_loss, loss_dict)
         """
@@ -138,18 +177,62 @@ class NCADJEPAModel(JEPABase):
         return total_loss, loss_dict
 
     @torch.no_grad()
+    def fit_mahalanobis_covariance(
+        self,
+        context_windows,
+        target_windows,
+        batch_size: int = 512,
+        reg: float = 1e-3,
+    ) -> None:
+        """Fit empirical residual covariance for Mahalanobis-whitened scoring.
+
+        Accepts numpy arrays or tensors; data is transferred in batches.
+        """
+        from src.models._jepa_utils import fit_covariance_batched
+
+        def residual_fn(ctx_b, tgt_b):
+            z_ctx = self.context_encoder(ctx_b)
+            z_pred = self.predictor(z_ctx)
+            z_obs = self.target_encoder(tgt_b)
+            return z_obs - z_pred
+
+        fit_covariance_batched(
+            self,
+            context_windows,
+            target_windows,
+            residual_fn=residual_fn,
+            dim=self.latent_dim,
+            batch_size=batch_size,
+            reg=reg,
+            precision_buffer=self.precision_matrix,
+            residual_mean_buffer=self.residual_mean,
+            fitted_buffer=self.precision_fitted,
+        )
+
+    @torch.no_grad()
     def compute_predictive_discrepancy(
         self,
         context_windows: torch.Tensor,
         observed_target_windows: torch.Tensor,
+        use_mahalanobis: bool = False,
     ) -> torch.Tensor:
         """Compute latent physical dynamics prediction error ||E(target) - P(E(ctx))||_2."""
         self.eval()
         z_ctx = self.context_encoder(context_windows)
         z_pred = self.predictor(z_ctx)
         z_obs = self.target_encoder(observed_target_windows)
-        discrepancy = torch.linalg.norm(z_obs - z_pred, dim=-1)
-        return discrepancy
+        diff = z_obs - z_pred
+        if use_mahalanobis:
+            if not bool(self.precision_fitted.item()):
+                raise RuntimeError(
+                    "Mahalanobis discrepancy requested (use_mahalanobis=True), "
+                    "but the precision matrix has not been fitted! "
+                    "Call fit_mahalanobis_covariance() before inference."
+                )
+            diff_centered = diff - self.residual_mean
+            mahal = torch.sum((diff_centered @ self.precision_matrix) * diff_centered, dim=-1)
+            return torch.sqrt(torch.clamp(mahal, min=1e-8))
+        return torch.linalg.norm(diff, dim=-1)
 
     @torch.no_grad()
     def encode_context(self, context_windows: torch.Tensor) -> torch.Tensor:
