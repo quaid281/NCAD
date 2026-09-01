@@ -21,7 +21,6 @@ from src.experimental.memoryless_context import (
 )
 from src.experimental.selective_ssm_encoder import (
     ExperimentalSSMContextEncoder,
-    SelectiveSSMContextEncoder,
     SelectiveStateSpaceBlock,
 )
 
@@ -79,8 +78,4 @@ def test_experimental_selective_ssm_encoder():
 
     assert latent.shape == (4, 16)
     assert torch.isfinite(latent).all()
-
-    # Verify backward-compatibility alias
-    alias_encoder = SelectiveSSMContextEncoder(input_dim=4, latent_dim=16, hidden_dim=32, layers=2)
-    assert isinstance(alias_encoder, ExperimentalSSMContextEncoder)
 

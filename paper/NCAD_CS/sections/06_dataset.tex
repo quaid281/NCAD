@@ -1,14 +1,27 @@
 \section{Multi-Domain Benchmark Datasets}
 \label{sec:dataset}
 
-To evaluate the universal applicability of TS-JEPA across diverse physical, cyber-physical, and distributed dynamics, our benchmark suite encompasses 26 channels across five distinct real-world domains from the NASA and mTSBench collections \cite{Hundman2018b, schmidl2022anomaly}:
+To evaluate the universal applicability of Flow-JEPA across diverse physical, cyber-physical, biomedical, and distributed dynamics, our benchmark suite encompasses **19 benchmark datasets comprising 348 train/test series pairs** from the NASA, PhysioNet, and mTSBench collections \cite{Hundman2018b, schmidl2022anomaly}:
 
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{NASA SMAP Spacecraft Telemetry \cite{Hundman2018b}:} High-consequence spacecraft telemetry from the Soil Moisture Active Passive satellite. Telemetry channels record continuous sensor metrics (e.g., radiative temperatures, battery currents, actuator torques) subject to abrupt hardware faults and sustained contextual operational drifts.
-    \item \textbf{Exathlon Distributed Cloud Logs \cite{jacob2021exathlon}:} Telemetry traces from large-scale Apache Spark distributed streaming applications running on multi-node clusters. Metrics include JVM heap utilization, memory leaks, CPU core consumption, and network I/O during simulated system bottlenecks.
-    \item \textbf{Room-Occupancy Environmental IoT \cite{candanedo2016accurate}:} Multi-sensor indoor environmental telemetry recording continuous physical variables ($\text{CO}_2$ concentration, ambient temperature, relative humidity, light level, and humidity ratio) with sudden and gradual regime shifts caused by human presence.
-    \item \textbf{Daphnet Biomedical Gait Dynamics \cite{bachlin2010wearable}:} Tri-axial accelerometry recorded from three body-worn sensor nodes (shank, thigh, trunk; 9 continuous spatial-temporal dimensions) on Parkinson's disease patients. Nominal walking manifests as smooth, periodic limit cycles, interrupted by abrupt Freezing-of-Gait (FoG) pathological breakdown events.
-    \item \textbf{OPPORTUNITY High-Dimensional Wearables \cite{roggen2010collecting}:} 77 body-worn motion and environmental sensors capturing complex, non-stationary human activities of daily living (ADL) with high cross-sensor relational synchronization.
+    \item \textbf{NASA SMAP \& MSL Spacecraft Telemetry \cite{Hundman2018b} (77 series):} High-consequence telemetry from the Soil Moisture Active Passive (SMAP) satellite and the Mars Science Laboratory (MSL) Curiosity rover. Continuous channels record radiative temperatures, battery currents, bus voltages, and actuator torques subject to radiation events, sensor malfunctions, and operational mode switches.
+    \item \textbf{Biomedical Rhythm \& Kinematic Databases (151 series):}
+    \begin{itemize}[noitemsep, topsep=0pt]
+        \item \textit{Daphnet Parkinsonian Gait Dynamics \cite{bachlin2010wearable} (26 series):} Tri-axial accelerometry from body-worn sensor nodes (shank, thigh, trunk; 9 continuous dimensions) tracking Freezing-of-Gait (FoG) breakdown events.
+        \item \textit{SVDB \& MITDB Arrhythmia ECG (125 series):} High-frequency electrocardiogram telemetry from the MIT-BIH Supraventricular Arrhythmia and Arrhythmia databases capturing complex cardiac conduction faults.
+    \end{itemize}
+    \item \textbf{Exathlon Distributed Cloud Logs \cite{jacob2021exathlon} (30 series):} Telemetry traces from large-scale Apache Spark streaming clusters. Metrics include JVM heap utilization, memory leaks, thread starvation, and network I/O bottlenecks.
+    \item \textbf{Industrial Process \& Cyber-Physical Control (20 series):}
+    \begin{itemize}[noitemsep, topsep=0pt]
+        \item \textit{GHL Separation Plant (14 series):} Multi-phase gas-oil-water separation process control telemetry.
+        \item \textit{cicids Network Intrusion (6 series):} Network flow telemetry with DDoS and port-scan attack anomalies.
+    \end{itemize}
+    \item \textbf{Environmental IoT \& Human Activity Wearables (15 series):}
+    \begin{itemize}[noitemsep, topsep=0pt]
+        \item \textit{Room-Occupancy IoT \cite{candanedo2016accurate} (2 series):} Indoor environmental telemetry ($\text{CO}_2$, temperature, humidity, light) recording occupant-induced regime shifts.
+        \item \textit{OPPORTUNITY Wearables \cite{roggen2010collecting} (13 series):} 77 body-worn motion and environmental sensors capturing non-stationary human activities of daily living (ADL).
+    \end{itemize}
+    \item \textbf{Synthetic \& Specialized Benchmarks (55 series):} Including GutenTAG (30 series), SMD Server Machine Dataset (18 series), PSM Public Server Metric (1 series), CalIt2, creditcard, GECCO, Genesis, metro, and swan.
 \end{enumerate}
 
-Each benchmark channel provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled point- and event-level anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$) using robust epsilon floors $\max(\bm{\sigma}, 10^{-2})$ to prevent numerical instability during flat-line operational phases.
+Each benchmark series provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled ground-truth anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$) using robust epsilon floors $\max(\bm{\sigma}, 10^{-2})$ to prevent division by zero during flat-line operational phases.

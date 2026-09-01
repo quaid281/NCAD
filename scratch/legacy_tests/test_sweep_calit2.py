@@ -10,10 +10,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from src.models.selective_ssm_encoder import SelectiveSSMContextEncoder
-from src.models.anomaly_injector import ContextualAnomalyInjector, AnomalyInjectionConfig
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
-from src.utils.event_fusion import (
+from src.models.encoders.selective_ssm_encoder import SelectiveSSMContextEncoder
+from src.models.losses.anomaly_injector import ContextualAnomalyInjector, AnomalyInjectionConfig
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.scoring.event_fusion import (
     robust_stats, positive_robust_z, local_deviation_scores, 
     reconstruction_deviation_scores, fuse_evidence_scores,
     adaptive_elbow_score_floor, event_level_filter, compute_metrics,

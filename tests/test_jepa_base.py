@@ -3,13 +3,13 @@
 import torch
 
 from src.models._jepa_utils import JEPABase
-from src.models.gat_jepa import RelationalGAT_JEPAModel
-from src.models.patch_ts_jepa import PatchTSJEPA
-from src.models.ts_jepa import TSJEPAModel
+from src.models.jepa.gat_jepa import RelationalGAT_JEPAModel
+from src.models.jepa.patch_ts_jepa import PatchTSJEPA
+from src.models.jepa.ts_jepa import TSJEPAModel
 
 
 def _make_ts_jepa():
-    from src.models.tcn_encoder import HybridTCNEncoder
+    from src.models.encoders.tcn_encoder import HybridTCNEncoder
 
     enc = HybridTCNEncoder(input_dim=3, latent_dim=16, filters=16, tcn_layers=2)
     return TSJEPAModel(context_encoder=enc, latent_dim=16, predictor_hidden_dim=32, predictor_layers=1)

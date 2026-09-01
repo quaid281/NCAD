@@ -3,8 +3,9 @@
 import argparse
 import glob
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import torch
@@ -16,14 +17,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.models.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
-from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
-from src.models.relational_gat_encoder import RelationalGATEncoder
-from src.models.selective_ssm_encoder import SelectiveSSMContextEncoder
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
 from src.data.data_loader import DataLoader
-from src.models.train_model import encode_windows, split_train_validation
-from src.utils.event_fusion import (
+from src.models.encoders.relational_gat_encoder import RelationalGATEncoder
+from src.models.encoders.selective_ssm_encoder import SelectiveSSMContextEncoder
+from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.models.legacy.train_model import encode_windows, split_train_validation
+from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.scoring.event_fusion import (
     adaptive_elbow_score_floor,
     aggregate_window_scores,
     calibrate_evt_threshold,
@@ -35,7 +36,7 @@ from src.utils.event_fusion import (
     positive_robust_z,
     robust_stats,
 )
-from src.utils.evt_calibrator import EVTCalibrator
+from src.scoring.evt_calibrator import EVTCalibrator
 
 
 def evaluate_dataset(
@@ -73,10 +74,10 @@ def evaluate_dataset(
     batch_size = 32
     latent_dim = 32
 
-    print(f"\n=======================================================")
+    print("\n=======================================================")
     print(f"Evaluating {dataset_name} ({len(channels)} channels) on {device} | Encoder: {encoder_arch}")
     print(f"EVT Risk Level: {risk_level} | Window: {window_size} (Ctx:{context_size}, Susp:{suspect_size})")
-    print(f"=======================================================\n")
+    print("=======================================================\n")
 
     results = []
 

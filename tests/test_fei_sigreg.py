@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from src.models.fei_sigreg import FrequencyMasker, sigreg_loss
+from src.models.losses.fei_sigreg import FrequencyMasker, sigreg_loss
 
 
 def test_frequency_masker_shape():

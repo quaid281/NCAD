@@ -10,17 +10,17 @@ def fix_imports(nb_path: Path):
         if cell['cell_type'] != 'code':
             continue
         src = ''.join(cell['source'])
-        if 'from src.utils.event_fusion import' in src:
+        if 'from src.scoring.event_fusion import' in src:
             # Fix the broken import - rebuild the import statement properly
             new_lines = []
             in_event_fusion_import = False
             import_done = False
             
             for line in cell['source']:
-                if 'from src.utils.event_fusion import' in line and not import_done:
+                if 'from src.scoring.event_fusion import' in line and not import_done:
                     # Start rebuilding
                     in_event_fusion_import = True
-                    new_lines.append('from src.utils.event_fusion import (\n')
+                    new_lines.append('from src.scoring.event_fusion import (\n')
                     new_lines.append('    adaptive_elbow_score_floor,\n')
                     new_lines.append('    aggregate_window_scores,\n')
                     new_lines.append('    compute_metrics,\n')

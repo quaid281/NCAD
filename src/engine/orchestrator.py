@@ -27,8 +27,8 @@ from src.engine.trainer import (
     train_ts_jepa,
 )
 from src.features.features import FeatureConfig, NCADFeatureExtractor
-from src.models.successor_memory import CounterfactualSuccessorMemory
-from src.utils.event_fusion import (
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory
+from src.scoring.event_fusion import (
     adaptive_elbow_score_floor,
     aggregate_window_scores,
     compute_metrics,

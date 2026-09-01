@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase
-from src.models.ts_jepa import _vicreg_branch_loss
+from src.models.jepa.ts_jepa import _vicreg_branch_loss
 
 
 class TimestepEmbedding(nn.Module):

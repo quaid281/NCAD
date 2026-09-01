@@ -22,8 +22,8 @@ for cell in nb.get('cells', []):
     source_str = source_str.replace("NCAD-CS v4: Anomaly Detection Protocol on CICIDS Intrusion Detection Dataset", "NCAD-CS v4: Anomaly Detection Protocol on CICIDS Intrusion Detection Dataset (SSM Encoder)")
     
     # Imports replacement
-    source_str = source_str.replace("from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss", 
-                      "from src.models.tcn_encoder import contrastive_loss\nfrom src.models.selective_ssm_encoder import SelectiveSSMContextEncoder")
+    source_str = source_str.replace("from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss", 
+                      "from src.models.encoders.tcn_encoder import contrastive_loss\nfrom src.models.encoders.selective_ssm_encoder import SelectiveSSMContextEncoder")
     
     # Model training markdown replacement
     source_str = source_str.replace("### Step 3: Contrastive Training of TCN Encoder", "### Step 3: Contrastive Training of Selective SSM Encoder")

@@ -13,11 +13,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 project_root = Path.cwd().resolve()
 sys.path.insert(0, str(project_root))
 
-from src.models.tcn_encoder import HybridTCNEncoder
+from src.models.encoders.tcn_encoder import HybridTCNEncoder
 from src.data.data_loader import DataLoader
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
-from src.models.anomaly_injector import ContextualAnomalyInjector, AnomalyInjectionConfig
-from src.utils.event_fusion import (
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.models.losses.anomaly_injector import ContextualAnomalyInjector, AnomalyInjectionConfig
+from src.scoring.event_fusion import (
     robust_stats,
     positive_robust_z,
     local_deviation_scores,

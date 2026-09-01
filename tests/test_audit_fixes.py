@@ -7,19 +7,19 @@ import pytest
 import torch
 import torch.nn as nn
 
-from src.models.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
 from src.models.baselines import AnomalyTransformer, TranAD
 from src.models.baselines.anomaly_transformer import PositionalEmbedding as AT_PositionalEmbedding
 from src.models.baselines.tranad import PositionalEncoding as TranAD_PositionalEncoding
-from src.models.fei_sigreg import FrequencyMasker, sigreg_loss
-from src.models.flow_ts_jepa import FlowTSJEPA
-from src.models.multiscale_ts_jepa import MultiScaleTSJEPA
-from src.models.ncad_jepa import NCADJEPAModel
-from src.models.patch_flow_jepa import PatchFlowJEPA
-from src.models.patch_ts_jepa import PatchSequenceEncoder, PatchTSJEPA
-from src.models.patch_ts_jepa import PositionalEncoding as Patch_PositionalEncoding
-from src.models.sindy_scorer import SINDyConfig, SINDyDynamicsScorer
-from src.models.tcn_encoder import HybridTCNEncoder
+from src.models.encoders.tcn_encoder import HybridTCNEncoder
+from src.models.jepa.flow_ts_jepa import FlowTSJEPA
+from src.models.jepa.multiscale_ts_jepa import MultiScaleTSJEPA
+from src.models.jepa.ncad_jepa import NCADJEPAModel
+from src.models.jepa.patch_flow_jepa import PatchFlowJEPA
+from src.models.jepa.patch_ts_jepa import PatchSequenceEncoder, PatchTSJEPA
+from src.models.jepa.patch_ts_jepa import PositionalEncoding as Patch_PositionalEncoding
+from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
+from src.models.losses.fei_sigreg import FrequencyMasker, sigreg_loss
+from src.models.memory.sindy_scorer import SINDyConfig, SINDyDynamicsScorer
 
 
 @pytest.fixture
@@ -77,12 +77,13 @@ def test_tranad_loss_bounded_epoch_greater_than_1():
 
     mse1 = torch.mean((rec1 - x) ** 2)
     mse2 = torch.mean((rec2 - x) ** 2)
+    mse2_vs_rec1 = torch.mean((rec2 - rec1.detach()) ** 2)
 
     for epoch in [1, 2, 5, 10]:
         n = epoch
         l1, l2 = model.adversarial_loss(rec1, rec2, x, epoch=epoch)
         expected_l1 = (1.0 / n) * mse1
-        expected_l2 = (1.0 / n) * mse1 + (1.0 - 1.0 / n) * mse2
+        expected_l2 = (1.0 / n) * mse2 + (1.0 - 1.0 / n) * mse2_vs_rec1
         assert torch.allclose(l1, expected_l1, atol=1e-5)
         assert torch.allclose(l2, expected_l2, atol=1e-5)
         assert l1.item() >= 0.0
@@ -90,6 +91,32 @@ def test_tranad_loss_bounded_epoch_greater_than_1():
         total_loss = l1 + l2
         assert total_loss.item() >= 0.0
         assert torch.isfinite(total_loss)
+
+
+def test_tranad_adversarial_loss_uses_detached_rec1():
+    """Verify that l2 uses rec1.detach() in the consistency term (not rec1 directly).
+
+    We can't check gradient isolation on the full model because rec2 depends on rec1
+    through the forward pass (dec2 = embedding(rec1)). Instead, verify the formula
+    matches the detached version and that direct rec1 input gets no grad from l2.
+    """
+    B, L, C = 4, 32, 3
+    x = torch.randn(B, L, C)
+    rec1 = torch.randn(B, L, C, requires_grad=True)
+    rec2 = torch.randn(B, L, C, requires_grad=True)
+
+    _, l2 = TranAD.adversarial_loss(rec1, rec2, x, epoch=5)
+    l2.backward()
+
+    # rec1 is a leaf tensor here — it should get NO gradient from l2 because
+    # it only appears via rec1.detach() in the consistency term
+    assert rec1.grad is None or rec1.grad.abs().sum().item() == 0.0, (
+        "rec1 received direct gradients from l2 — detach is missing"
+    )
+    # rec2 should receive gradients from both terms in l2
+    assert rec2.grad is not None and rec2.grad.abs().sum().item() > 0.0, (
+        "rec2 received no gradients from l2"
+    )
 
 
 # =========================================================================

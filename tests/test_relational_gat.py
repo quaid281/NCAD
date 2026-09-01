@@ -4,11 +4,11 @@ import pytest
 import torch
 import torch.optim as optim
 
-from src.models.relational_gat_encoder import (
+from src.models.encoders.relational_gat_encoder import (
     RelationalGATEncoder,
     RelationalGraphAttentionLayer,
 )
-from src.models.tcn_encoder import contrastive_loss
+from src.models.encoders.tcn_encoder import contrastive_loss
 
 
 def test_relational_gat_layer():

@@ -6,8 +6,8 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-from src.models.selective_ssm_encoder import SelectiveSSMContextEncoder
-from src.models.anomaly_injector import ContextualAnomalyInjector, AnomalyInjectionConfig
+from src.models.encoders.selective_ssm_encoder import SelectiveSSMContextEncoder
+from src.models.losses.anomaly_injector import ContextualAnomalyInjector, AnomalyInjectionConfig
 
 device = torch.device("cpu")
 print(f"Device: {device}")

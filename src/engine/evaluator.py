@@ -10,8 +10,8 @@ import torch
 
 from src.config import CSMConfig
 from src.engine.trainer import EncoderModel, encode_windows
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
-from src.utils.event_fusion import (
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.scoring.event_fusion import (
     aggregate_window_scores,
     dispersion_confidence,
     fuse_evidence_scores,
@@ -22,7 +22,7 @@ from src.utils.event_fusion import (
     robust_stats,
     successor_manifold_uncertainty_scores,
 )
-from src.utils.evt_calibrator import EVTCalibrator
+from src.scoring.evt_calibrator import EVTCalibrator
 
 logger = logging.getLogger("NCAD.engine.evaluator")
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
 
 
 def test_successor_memory():
@@ -74,7 +74,7 @@ def test_successor_memory_latent_space():
 
 
 def test_robust_pca_decomposition():
-    from src.models.successor_memory import robust_pca
+    from src.models.memory.successor_memory import robust_pca
 
     # Create low-rank matrix + sparse outliers
     rng = np.random.default_rng(42)

@@ -19,10 +19,10 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / 'notebooks_v4'))
 sys.path.insert(0, str(project_root / 'src'))
 
-from src.models.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
-from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
-from src.utils.event_fusion import (
+from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
+from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.scoring.event_fusion import (
     adaptive_elbow_score_floor,
     aggregate_window_scores,
     compute_metrics,

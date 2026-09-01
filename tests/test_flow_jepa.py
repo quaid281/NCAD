@@ -15,7 +15,7 @@ from src.models import (
     flow_matching_vicreg_loss,
     von_neumann_operator_entropy_loss,
 )
-from src.models.flow_ts_jepa import TimestepEmbedding
+from src.models.jepa.flow_ts_jepa import TimestepEmbedding
 
 
 def test_von_neumann_operator_entropy_loss():

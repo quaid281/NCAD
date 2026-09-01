@@ -17,8 +17,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase
-from src.models.relational_gat_encoder import RelationalGATEncoder
-from src.models.ts_jepa import LatentPredictor, jepa_vicreg_loss
+from src.models.encoders.relational_gat_encoder import RelationalGATEncoder
+from src.models.jepa.ts_jepa import LatentPredictor, jepa_vicreg_loss
 
 
 class RelationalGAT_JEPAModel(JEPABase):

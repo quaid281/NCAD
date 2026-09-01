@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 import glob
 import os
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -21,13 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
-from src.models.ts_jepa import TSJEPAModel, jepa_vicreg_loss
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
-from src.models.train_model import split_train_validation as split_train_val
 from src.data.data_loader import DataLoader
-from src.models.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
-from src.utils.event_fusion import (
+from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.models.jepa.ts_jepa import TSJEPAModel, jepa_vicreg_loss
+from src.models.legacy.train_model import split_train_validation as split_train_val
+from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.scoring.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
     compute_metrics,
@@ -260,7 +260,7 @@ def main():
     channels = [c for c in bench_channels if c in channels]
 
     print("=" * 85)
-    print(f"GRAND SLAM BENCHMARK: Baseline NCAD vs TS-JEPA (Euclidean) vs TS-JEPA (Mahalanobis)")
+    print("GRAND SLAM BENCHMARK: Baseline NCAD vs TS-JEPA (Euclidean) vs TS-JEPA (Mahalanobis)")
     print(f"Dataset: {args.dataset} | Device: {device} | Channels: {channels} | Epochs: {args.epochs}")
     print("=" * 85)
 

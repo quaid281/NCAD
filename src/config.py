@@ -15,7 +15,7 @@ class CSMConfig:
     step: int = 1
     feature_dim: int = 64
     encoder_architecture: str = "hybrid_tcn"
-    model_type: str = "ts_jepa"  # Options: "ts_jepa", "patch_ts_jepa", "gat_jepa", "ncad"
+    model_type: str = "ts_jepa"  # Options: "ts_jepa", "patch_ts_jepa", "gat_jepa", "ncad", "flow_jepa", "patch_flow_jepa", "multiscale_ts_jepa"
     patch_size: int = 16
     use_mahalanobis: bool = True
     vicreg_cov_weight: float = 0.5

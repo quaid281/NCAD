@@ -128,11 +128,14 @@ class TranAD(nn.Module):
 
         Phase 1: Reconstruction loss for Decoder 1: (1 / n) * MSE(rec1, target).
         Phase 2: Epoch-weighted composite loss for Decoder 2:
-                 (1 / n) * MSE(rec1, target) + (1 - 1 / n) * MSE(rec2, target).
+                 (1 / n) * MSE(rec2, target) + (1 - 1 / n) * MSE(rec2, rec1.detach()).
+        The detached rec1 acts as a fixed coarse-reconstruction target, creating the
+        adversarial dynamic: rec2 must reconstruct the input while also matching the
+        coarse output. As n grows, the consistency term dominates.
         """
         n = max(epoch, 1)
         l1 = (1.0 / n) * torch.mean((rec1 - target) ** 2)
-        l2 = (1.0 / n) * torch.mean((rec1 - target) ** 2) + (1.0 - 1.0 / n) * torch.mean((rec2 - target) ** 2)
+        l2 = (1.0 / n) * torch.mean((rec2 - target) ** 2) + (1.0 - 1.0 / n) * torch.mean((rec2 - rec1.detach()) ** 2)
         return l1, l2
 
     def compute_anomaly_scores(self, x: torch.Tensor) -> torch.Tensor:

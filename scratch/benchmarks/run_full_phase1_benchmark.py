@@ -9,7 +9,7 @@ project_root = Path(__file__).resolve().parents[1]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from src.models.train_model import CSMConfig, run_experiment
+from src.models.legacy.train_model import CSMConfig, run_experiment
 
 print("=================== RUNNING FULL END-TO-END NCAD-CS BENCHMARK ===================")
 

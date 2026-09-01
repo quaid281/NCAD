@@ -19,9 +19,9 @@ import argparse
 import gc
 import glob
 import os
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -35,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.data.data_loader import DataLoader
 from src.models import (
     AnomalyInjectionConfig,
     AnomalyTransformer,
@@ -52,9 +53,8 @@ from src.models import (
     flow_matching_vicreg_loss,
     jepa_vicreg_loss,
 )
-from src.models.train_model import split_train_validation as split_train_val
-from src.data.data_loader import DataLoader
-from src.utils.event_fusion import (
+from src.models.legacy.train_model import split_train_validation as split_train_val
+from src.scoring.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
     compute_metrics,
@@ -117,7 +117,7 @@ def train_and_score_channel(
     suspect_size: int = 64,
     epochs: int = 50,
     batch_size: int = 32,
-    risk_level: float = 1e-3,
+    risk_level: float = 1e-2,
     use_mahalanobis: bool = True,
     mapping_method: str = "middle",
     device: torch.device = torch.device("cpu"),
@@ -257,7 +257,9 @@ def train_and_score_channel(
                 for i in range(0, len(arr), 256):
                     x = torch.from_numpy(arr[i : i + 256]).float().to(device)
                     scores = model.compute_anomaly_scores(x)
-                    res.append(scores[:, context_size:].mean(dim=-1).cpu().numpy())
+                    # AT uses softmax(-ass_dis) which is near one-hot; mean dilutes the
+                    # sparse signal across the suspect region. Use max to preserve it.
+                    res.append(scores[:, context_size:].max(dim=-1).values.cpu().numpy())
             return np.concatenate(res, axis=0)
 
     # =========================================================================
@@ -513,7 +515,7 @@ def train_and_score_channel(
     # 9. Conditional Flow Matching TS-JEPA (FlowTSJEPA)
     # =========================================================================
     elif model_name in ["flow_jepa", "ts_jepa_flow"]:
-        base_enc = HybridTCNEncoder(input_dim=input_dim, latent_dim=32, filters=48, tcn_layers=6, dropout=0.20)
+        base_enc = HybridTCNEncoder(input_dim=input_dim, latent_dim=32, filters=48, tcn_layers=3, dropout=0.20)
         model = FlowTSJEPA(
             context_encoder=base_enc,
             latent_dim=32,
@@ -579,10 +581,10 @@ def train_and_score_channel(
             patch_size=patch_size,
             d_model=48,
             n_heads=4,
-            n_layers=2,
+            n_layers=3,
             d_ff=96,
             n_target_patches=n_tgt_patches,
-            predictor_layers=2,
+            predictor_layers=3,
             ema_decay=0.996,
             dropout=0.10,
         ).to(device)
@@ -678,7 +680,7 @@ def train_and_score_channel(
     train_valid_scores = train_smoothed[train_valid_mask]
 
     # EVT Extreme Value Theory Tail Calibration
-    evt_res = calibrate_evt_threshold(train_valid_scores, risk_level=risk_level, init_percentile=98.0)
+    evt_res = calibrate_evt_threshold(train_valid_scores, risk_level=risk_level, init_percentile=95.0)
     evt_th = evt_res.threshold
 
     preds_evt = event_level_filter(test_scores, evt_th, valid_mask, min_run=2, extreme_factor=1.75) * valid_mask.astype(np.float32)
@@ -713,6 +715,8 @@ def train_and_score_channel(
         "epochs": epochs,
         "elapsed_sec": round(elapsed, 2),
         "threshold": float(evt_th),
+        "evt_method": evt_res.method,
+        "evt_is_fallback": bool(evt_res.is_fallback),
         "point_f1": m_pt.get("f1", 0.0),
         "point_precision": m_pt.get("precision", 0.0),
         "point_recall": m_pt.get("recall", 0.0),
@@ -792,9 +796,9 @@ def main():
                 continue
 
             ds_dir = ROOT / "mTSBench_data" / ds_name
-            print(f"\n=======================================================")
+            print("\n=======================================================")
             print(f"Evaluating {ds_name} ({len(channels)} channels) [Seed {seed}]")
-            print(f"=======================================================")
+            print("=======================================================")
 
             for chan in channels:
                 if chan == "default":
@@ -839,6 +843,7 @@ def main():
                         print(
                             f"Point-F1: {res['point_f1']:.4f} (P: {res['point_precision']:.4f}, R: {res['point_recall']:.4f}, TP: {res['tp']}, FP: {res['fp']}) | "
                             f"PA-F1: {res['pa_f1']:.4f} | Oracle: {res['oracle_pa_f1']:.4f} ({res['elapsed_sec']}s)"
+                            f" [EVT: {res['evt_method']}{'*' if res['evt_is_fallback'] else ''}]"
                         )
                     except Exception as e:
                         print(f"FAILED: {e}")

@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.data.data_loader import DataLoader
 from src.models import (
     FlowTSJEPA,
     HybridTCNEncoder,
@@ -40,9 +41,8 @@ from src.models import (
     flow_matching_vicreg_loss,
     jepa_vicreg_loss,
 )
-from src.data.data_loader import DataLoader
-from src.models.train_model import split_train_validation as split_train_val
-from src.utils.event_fusion import (
+from src.models.legacy.train_model import split_train_validation as split_train_val
+from src.scoring.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
     compute_metrics,
@@ -642,9 +642,9 @@ def main():
                 print(f"Skipping {ds_name} (no valid train/test series found)")
                 continue
 
-            print(f"\n=======================================================")
+            print("\n=======================================================")
             print(f"Ablation on {ds_name} ({len(series_pairs)} series pairs) [Seed {seed}]")
-            print(f"=======================================================")
+            print("=======================================================")
 
             for chan, train_p, test_p in series_pairs:
                 for var in args.variants:

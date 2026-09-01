@@ -4,18 +4,19 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
-import sys
 import shutil
+import sys
+from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
 import torch
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.decomposition import PCA
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -23,10 +24,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.models.tcn_encoder import HybridTCNEncoder
-from src.models.ts_jepa import TSJEPAModel, jepa_vicreg_loss
 from src.data.data_loader import DataLoader
-from src.utils.event_fusion import (
+from src.models.encoders.tcn_encoder import HybridTCNEncoder
+from src.models.jepa.ts_jepa import TSJEPAModel, jepa_vicreg_loss
+from src.scoring.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
     compute_metrics,

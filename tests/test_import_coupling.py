@@ -18,9 +18,9 @@ def _reload_without_plotting(module_name: str):
 
 
 def test_evt_calibrator_does_not_import_matplotlib():
-    mpl, pil = _reload_without_plotting("src.utils.evt_calibrator")
-    assert not mpl, "src.utils.evt_calibrator should not eagerly import matplotlib"
-    assert not pil, "src.utils.evt_calibrator should not eagerly import PIL"
+    mpl, pil = _reload_without_plotting("src.scoring.evt_calibrator")
+    assert not mpl, "src.scoring.evt_calibrator should not eagerly import matplotlib"
+    assert not pil, "src.scoring.evt_calibrator should not eagerly import PIL"
 
 
 def test_trainer_does_not_import_matplotlib():

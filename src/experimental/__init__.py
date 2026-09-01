@@ -22,7 +22,6 @@ from src.experimental.memoryless_context import (
 )
 from src.experimental.selective_ssm_encoder import (
     ExperimentalSSMContextEncoder,
-    SelectiveSSMContextEncoder,
     SelectiveStateSpaceBlock,
 )
 
@@ -37,6 +36,5 @@ __all__ = [
     "MemorylessContextResult",
     "MemorylessContextSubstitutor",
     "ExperimentalSSMContextEncoder",
-    "SelectiveSSMContextEncoder",
     "SelectiveStateSpaceBlock",
 ]

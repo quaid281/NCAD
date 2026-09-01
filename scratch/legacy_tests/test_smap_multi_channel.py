@@ -12,12 +12,12 @@ project_root = Path(__file__).resolve().parents[1]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from src.models.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
-from src.models.tcn_encoder import contrastive_loss
-from src.models.selective_ssm_encoder import SelectiveSSMContextEncoder
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
+from src.models.encoders.tcn_encoder import contrastive_loss
+from src.models.encoders.selective_ssm_encoder import SelectiveSSMContextEncoder
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
 from src.data.data_loader import DataLoader
-from src.utils.event_fusion import (
+from src.scoring.event_fusion import (
     adaptive_elbow_score_floor,
     aggregate_window_scores,
     compute_metrics,

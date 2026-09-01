@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from src.utils.event_fusion import robust_stats, positive_robust_z, local_deviation_scores, reconstruction_deviation_scores
+from src.scoring.event_fusion import robust_stats, positive_robust_z, local_deviation_scores, reconstruction_deviation_scores
 
 # Load CalIt2 validation dataset to analyze
 calit2_dir = Path('c:/Users/andre/OneDrive/Desktop/NCAD_CS/mTSBench_data/CalIt2')

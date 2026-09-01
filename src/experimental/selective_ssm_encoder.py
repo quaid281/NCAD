@@ -89,7 +89,3 @@ class ExperimentalSSMContextEncoder(nn.Module):
         std_features = torch.std(x, dim=1, unbiased=False)
         latent = self.pool_head(torch.cat([last_features, mean_features, max_features, std_features], dim=1))
         return torch.nan_to_num(latent)
-
-
-# Deprecated backward-compatibility alias
-SelectiveSSMContextEncoder = ExperimentalSSMContextEncoder

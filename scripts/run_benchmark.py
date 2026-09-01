@@ -13,9 +13,9 @@ from __future__ import annotations
 import argparse
 import glob
 import os
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -29,16 +29,16 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.data.data_loader import DataLoader
 from src.models import (
     HybridTCNEncoder,
-    RelationalGATEncoder,
     RelationalGAT_JEPAModel,
+    RelationalGATEncoder,
     TSJEPAModel,
     jepa_vicreg_loss,
 )
-from src.models.train_model import split_train_validation as split_train_val
-from src.data.data_loader import DataLoader
-from src.utils.event_fusion import (
+from src.models.legacy.train_model import split_train_validation as split_train_val
+from src.scoring.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
     compute_metrics,
@@ -48,7 +48,6 @@ from src.utils.event_fusion import (
     positive_robust_z,
     robust_stats,
 )
-
 
 DEFAULT_DATASET_CHANNELS = {
     "Daphnet": ["S01R01E1", "S02R01E0", "S02R02E0", "S03R01E0", "S03R01E1", "S03R02E0"],
@@ -230,7 +229,7 @@ def main():
     use_mahalanobis = (args.scoring == "mahalanobis")
 
     print("=" * 90)
-    print(f"TS-JEPA UNIFIED BENCHMARK SUITE")
+    print("TS-JEPA UNIFIED BENCHMARK SUITE")
     print(f"Datasets: {datasets_to_run} | Encoder: {args.encoder} | Scoring: {args.scoring}")
     print(f"Device: {device} | Epochs: {args.epochs}")
     print("=" * 90)
@@ -240,9 +239,9 @@ def main():
     for ds_name in datasets_to_run:
         channels = DEFAULT_DATASET_CHANNELS[ds_name]
         ds_dir = ROOT / "mTSBench_data" / ds_name
-        print(f"\n=======================================================")
+        print("\n=======================================================")
         print(f"Evaluating {ds_name} ({len(channels)} channels)")
-        print(f"=======================================================")
+        print("=======================================================")
 
         for chan in channels:
             print(f"  Channel: {chan:16s} ... ", end="", flush=True)
@@ -254,7 +253,7 @@ def main():
                 test_p = ds_dir / f"{ds_name}_{chan}_test.csv"
 
             if not train_p.exists() or not test_p.exists():
-                print(f"Skipping (files missing)")
+                print("Skipping (files missing)")
                 continue
 
             res = evaluate_channel(

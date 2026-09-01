@@ -12,8 +12,8 @@ sys.path.insert(0, str(ROOT))
 
 from src.models import PatchFlowJEPA, FlowTSJEPA
 from src.data.data_loader import DataLoader
-from src.models.train_model import split_train_validation as split_train_val
-from src.utils.event_fusion import (
+from src.models.legacy.train_model import split_train_validation as split_train_val
+from src.scoring.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
     compute_metrics,

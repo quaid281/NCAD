@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from src.data.data_loader import ChannelData, NormalizationStats
-from src.models.train_model import CSMConfig, run_channel
+from src.models.legacy.train_model import CSMConfig, run_channel
 
 
 def create_synthetic_channel() -> ChannelData:

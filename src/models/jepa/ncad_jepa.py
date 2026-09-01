@@ -18,8 +18,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase
-from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
-from src.models.ts_jepa import LatentPredictor, jepa_vicreg_loss
+from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.models.jepa.ts_jepa import LatentPredictor, jepa_vicreg_loss
 
 
 class NCADJEPAModel(JEPABase):

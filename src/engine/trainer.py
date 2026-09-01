@@ -11,18 +11,32 @@ import torch.nn as nn
 import torch.optim as optim
 
 from src.config import CSMConfig
-from src.models.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
-from src.models.gat_jepa import RelationalGAT_JEPAModel
-from src.models.multi_scale_tcn_encoder import MultiScaleTCNEncoder
-from src.models.patch_ts_jepa import PatchTSJEPA
-from src.models.relational_gat_encoder import RelationalGATEncoder
-from src.models.selective_ssm_encoder import SelectiveSSMContextEncoder
-from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
-from src.models.ts_jepa import TSJEPAModel, jepa_vicreg_loss
+from src.models.encoders.multi_scale_tcn_encoder import MultiScaleTCNEncoder
+from src.models.encoders.relational_gat_encoder import RelationalGATEncoder
+from src.models.encoders.selective_ssm_encoder import SelectiveSSMContextEncoder
+from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.models.jepa.flow_ts_jepa import FlowTSJEPAModel
+from src.models.jepa.gat_jepa import RelationalGAT_JEPAModel
+from src.models.jepa.multiscale_ts_jepa import MultiScaleTSJEPA
+from src.models.jepa.patch_flow_jepa import PatchFlowJEPA
+from src.models.jepa.patch_ts_jepa import PatchTSJEPA
+from src.models.jepa.ts_jepa import TSJEPAModel, jepa_vicreg_loss
+from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
 
 logger = logging.getLogger("NCAD.engine.trainer")
 
-EncoderModel = HybridTCNEncoder | MultiScaleTCNEncoder | RelationalGATEncoder | SelectiveSSMContextEncoder | TSJEPAModel | PatchTSJEPA | RelationalGAT_JEPAModel
+EncoderModel = (
+    HybridTCNEncoder
+    | MultiScaleTCNEncoder
+    | RelationalGATEncoder
+    | SelectiveSSMContextEncoder
+    | TSJEPAModel
+    | PatchTSJEPA
+    | RelationalGAT_JEPAModel
+    | FlowTSJEPAModel
+    | PatchFlowJEPA
+    | MultiScaleTSJEPA
+)
 
 
 def set_seed(seed: int) -> None:
@@ -122,7 +136,44 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
     elif canonical == "ncad":
         raise NotImplementedError(
             "The 'ncad' legacy model type is documented but not implemented in build_ts_jepa_model. "
-            "Use 'ts_jepa', 'patch_ts_jepa', or 'gat_jepa'."
+            "Use 'ts_jepa', 'patch_ts_jepa', 'gat_jepa', 'flow_jepa', 'patch_flow_jepa', or 'multiscale_ts_jepa'."
+        )
+    elif canonical == "flow_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = FlowTSJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            predictor_hidden_dim=max(64, config.latent_dim * 2),
+            predictor_layers=3,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "patch_flow_jepa":
+        patch_size = config.patch_size
+        n_tgt_patches = max(1, config.suspect_size // patch_size)
+        model = PatchFlowJEPA(
+            input_dim=input_dim,
+            patch_size=patch_size,
+            d_model=config.filters,
+            n_heads=4,
+            n_layers=3,
+            d_ff=config.filters * 2,
+            n_target_patches=n_tgt_patches,
+            predictor_layers=3,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "multiscale_ts_jepa":
+        model = MultiScaleTSJEPA(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            horizons=(config.suspect_size // 2, config.suspect_size),
+            filters=config.filters,
+            tcn_layers=config.tcn_layers,
+            kernel_size=config.kernel_size,
+            dropout=config.dropout,
+            predictor_hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
         )
     else:
         # Should be unreachable because canonical_model_type raises for unknowns,

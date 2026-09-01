@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
-from src.utils.evt_calibrator import EVTCalibrator, EVTThresholdResult
+from src.scoring.evt_calibrator import EVTCalibrator, EVTThresholdResult
 
 
 @dataclass

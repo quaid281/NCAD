@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.models import PatchFlowJEPA, FlowTSJEPA, flow_matching_vicreg_loss
 from src.data.data_loader import DataLoader
-from src.utils.event_fusion import (
+from src.scoring.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
     compute_metrics,
@@ -22,7 +22,7 @@ from src.utils.event_fusion import (
     positive_robust_z,
     robust_stats,
 )
-from src.models.train_model import split_train_validation as split_train_val
+from src.models.legacy.train_model import split_train_validation as split_train_val
 
 def inspect_score_distribution():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

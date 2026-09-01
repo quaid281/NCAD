@@ -54,6 +54,27 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         requires_patch_division=False,
         description="Legacy NCAD contrastive encoder (not a JEPA variant).",
     ),
+    ModelSpec(
+        canonical_name="flow_jepa",
+        aliases=("ts_jepa_flow",),
+        is_jepa=True,
+        requires_patch_division=False,
+        description="Conditional Flow Matching TS-JEPA with OT-CFM velocity field predictor.",
+    ),
+    ModelSpec(
+        canonical_name="patch_flow_jepa",
+        aliases=("ts_jepa_patch_flow",),
+        is_jepa=True,
+        requires_patch_division=True,
+        description="Patch-tokenized Flow Matching JEPA with cross-attention velocity predictor.",
+    ),
+    ModelSpec(
+        canonical_name="multiscale_ts_jepa",
+        aliases=("multiscale_jepa",),
+        is_jepa=True,
+        requires_patch_division=False,
+        description="Multi-horizon hierarchical TS-JEPA with parallel prediction heads.",
+    ),
 )
 
 

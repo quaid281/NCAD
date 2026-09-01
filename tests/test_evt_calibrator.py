@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from src.utils.evt_calibrator import (
+from src.scoring.evt_calibrator import (
     EVTCalibrator,
     _grimshaw_gpd_fit,
     _mle_gpd_fit,

@@ -137,19 +137,19 @@ print(f"Supervised Validation Optimized Threshold: {best_threshold:.5f} (Validat
         if cell['cell_type'] != 'code':
             continue
         src = ''.join(cell['source'])
-        if 'from src.utils.event_fusion import' in src:
+        if 'from src.scoring.event_fusion import' in src:
             # Add reconstruction_deviation_scores to imports if not already there
             if 'reconstruction_deviation_scores' not in src:
                 new_src = src.replace(
-                    'from src.utils.event_fusion import',
-                    'from src.utils.event_fusion import reconstruction_deviation_scores,\\\n   '
+                    'from src.scoring.event_fusion import',
+                    'from src.scoring.event_fusion import reconstruction_deviation_scores,\\\n   '
                 )
                 # Actually, let's do a cleaner replacement
                 # Find the import line and add to it
                 lines = cell['source'] if isinstance(cell['source'], list) else [cell['source']]
                 new_lines = []
                 for line in lines:
-                    if 'from src.utils.event_fusion import' in line and 'reconstruction_deviation_scores' not in line:
+                    if 'from src.scoring.event_fusion import' in line and 'reconstruction_deviation_scores' not in line:
                         # Insert the new import
                         line = line.rstrip('\n').rstrip('\r')
                         if line.endswith(')'):

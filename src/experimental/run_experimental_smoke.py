@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
 from src.experimental.causal_counterfactual import CounterfactualContextSubstitutor
 from src.experimental.hopfield_context import HopfieldContextMemory
 from src.experimental.memoryless_context import MemorylessContextConfig, MemorylessContextSubstitutor
-from src.experimental.selective_ssm_encoder import SelectiveSSMContextEncoder
+from src.experimental.selective_ssm_encoder import ExperimentalSSMContextEncoder
 
 
 def main() -> None:
@@ -40,7 +40,7 @@ def main() -> None:
     ).fit(normal_context, contaminated_context, normal_context)
     memoryless_result = memoryless.score(full_embeddings[0], contaminated_context[0])
 
-    ssm = SelectiveSSMContextEncoder(input_dim=4, latent_dim=16, hidden_dim=32, layers=2)
+    ssm = ExperimentalSSMContextEncoder(input_dim=4, latent_dim=16, hidden_dim=32, layers=2)
     latent = ssm(torch.randn(4, 32, 4))
 
     summary = {

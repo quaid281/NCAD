@@ -8,7 +8,7 @@ from pathlib import Path
 project_root = Path.cwd().resolve()
 sys.path.insert(0, str(project_root))
 
-from src.utils.event_fusion import event_level_filter, compute_metrics, moving_average, aggregate_window_scores
+from src.scoring.event_fusion import event_level_filter, compute_metrics, moving_average, aggregate_window_scores
 
 def evaluate_new_search(nb_path, dataset_name, step, context_size, suspect_size):
     print(f"\n=== Evaluating threshold search on {dataset_name} ===")

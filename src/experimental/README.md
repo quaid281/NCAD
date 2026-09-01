@@ -1,6 +1,6 @@
 # Isolated Novelty Experiments
 
-These files are research branches for NCAD-CS v3. They do not change the default `train.py` pipeline and are not imported by the production notebook unless we explicitly do so.
+These modules are research branches for NCAD-CS. They are isolated from the production pipeline and are not imported by the default training/evaluation flow unless explicitly requested.
 
 ## Idea A: Hopfield Context Memory
 
@@ -16,7 +16,9 @@ Reviewer framing: the core method becomes causal intervention over context, not 
 
 ## Idea D: Selective SSM Context Encoder
 
-`selective_ssm_encoder.py` provides a Mamba-inspired encoder with input-dependent state updates. It has the same input and output shape as the TCN encoder, so it can be tested as an isolated encoder branch.
+`selective_ssm_encoder.py` provides a Mamba-inspired encoder with input-dependent state updates (`ExperimentalSSMContextEncoder`). It has the same input and output shape as the TCN encoder, so it can be tested as an isolated encoder branch.
+
+Note: The production selective SSM encoder lives at `src.models.encoders.selective_ssm_encoder.SelectiveSSMContextEncoder`. The experimental version here is a slower token-by-token prototype for research comparison only.
 
 Reviewer framing: contaminated context is treated as a selective state update problem, where the model can learn which temporal inputs should update or be suppressed in the latent state.
 
@@ -31,5 +33,5 @@ Reviewer framing: this is a prototype-free context intervention model. The metho
 From the repository root:
 
 ```bash
-python notebooks_v3/experimental/run_experimental_smoke.py
+python -m src.experimental.run_experimental_smoke
 ```

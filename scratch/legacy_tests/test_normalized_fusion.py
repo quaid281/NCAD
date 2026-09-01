@@ -9,13 +9,13 @@ project_root = Path(__file__).resolve().parents[1]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from src.models.train_model import CSMConfig, run_experiment
+from src.models.legacy.train_model import CSMConfig, run_experiment
 from src.features.features import FeatureConfig, NCADFeatureExtractor
-from src.models.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
+from src.models.memory.successor_memory import CounterfactualSuccessorMemory, SuccessorMemoryConfig
 from src.data.data_loader import DataLoader
-from src.models.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
-from src.models.tcn_encoder import HybridTCNEncoder, contrastive_loss
-from src.utils.event_fusion import (
+from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
+from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.scoring.event_fusion import (
     adaptive_elbow_score_floor, aggregate_window_scores, compute_metrics,
     event_level_filter, fuse_evidence_scores, moving_average, robust_stats, positive_robust_z
 )

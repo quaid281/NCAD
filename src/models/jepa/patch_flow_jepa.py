@@ -19,9 +19,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase
-from src.models.flow_ts_jepa import TimestepEmbedding, _get_chebyshev_collocation_nodes
-from src.models.patch_ts_jepa import PatchSequenceEncoder, PositionalEncoding
-from src.models.ts_jepa import _vicreg_branch_loss
+from src.models.jepa.flow_ts_jepa import TimestepEmbedding, _get_chebyshev_collocation_nodes
+from src.models.jepa.patch_ts_jepa import PatchSequenceEncoder, PositionalEncoding
+from src.models.jepa.ts_jepa import _vicreg_branch_loss
 
 
 class PatchFlowPredictor(nn.Module):

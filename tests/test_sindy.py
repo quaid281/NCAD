@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.models.sindy_scorer import SINDyConfig, SINDyDynamicsScorer
+from src.models.memory.sindy_scorer import SINDyConfig, SINDyDynamicsScorer
 
 
 def test_sindy_polynomial_library():
