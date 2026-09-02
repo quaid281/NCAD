@@ -8,7 +8,7 @@
 \label{fig:flow_jepa_training}
 \end{figure*}
 
-This section details the architecture, continuous velocity field formulation, non-contrastive manifold regularization, and statistical inference framework of \textbf{Flow-JEPA} (Time-Series Flow-Matching Joint-Embedding Predictive Architecture).
+This section details the architecture, continuous velocity field formulation, non-contrastive manifold regularization, and statistical inference framework of Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture).
 
 \subsection{Architectural Formulation}
 \label{subsec:architecture}
@@ -21,13 +21,13 @@ Let $\mathbf{X} \in \mathbb{R}^{T \times K}$ denote a continuous multivariate ti
 Flow-JEPA consists of three interconnected modules operating in continuous representation space (illustrated in Fig.~\ref{fig:flow_jepa_training}):
 
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) or Patch Sequence Transformer with parameter weights $\theta$. The encoder maps the historical context $x_{\text{ctx}}$ to an abstract latent representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context duration without lookahead bias \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
-    \item \textbf{Momentum Target Encoder ($E_\phi$):} An architectural replica of the context encoder with parameter weights $\phi$, mapping the target window $x_{\text{tgt}}$ to the ground-truth target representation $z_{\text{tgt}} = E_\phi(x_{\text{tgt}}) \in \mathbb{R}^D$. Crucially, $\phi$ is updated without gradient backpropagation via an Exponential Moving Average (EMA) schedule at training step $k$:
+    \item \textit{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) or Patch Sequence Transformer with parameter weights $\theta$. The encoder maps the historical context $x_{\text{ctx}}$ to an abstract latent representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context duration without lookahead bias \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
+    \item \textit{Momentum Target Encoder ($E_\phi$):} An architectural replica of the context encoder with parameter weights $\phi$, mapping the target window $x_{\text{tgt}}$ to the ground-truth target representation $z_{\text{tgt}} = E_\phi(x_{\text{tgt}}) \in \mathbb{R}^D$. Crucially, $\phi$ is updated without gradient backpropagation via an Exponential Moving Average (EMA) schedule at training step $k$:
     \begin{equation}
         \phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k,
     \end{equation}
     where $m_k = m_{\text{base}} + (m_{\text{max}} - m_{\text{base}}) \cdot \frac{1}{2}\left(1 - \cos(\pi k / K_{\text{total}})\right)$ follows a cosine schedule from $0.996$ to $0.9995$.
-    \item \textbf{Conditional Flow Predictor ($v_\psi$):} A continuous velocity field network parameterized by $\psi$ with sinusoidal timestep embeddings $\mathbf{e}(t) \in \mathbb{R}^D$. Given an intermediate latent state $z_t$, continuous time $t \in [0, 1]$, and context embedding $z_{\text{ctx}}$, the velocity field network predicts the instantaneous tangent velocity:
+    \item \textit{Conditional Flow Predictor ($v_\psi$):} A continuous velocity field network parameterized by $\psi$ with sinusoidal timestep embeddings $\mathbf{e}(t) \in \mathbb{R}^D$. Given an intermediate latent state $z_t$, continuous time $t \in [0, 1]$, and context embedding $z_{\text{ctx}}$, the velocity field network predicts the instantaneous tangent velocity:
     \begin{equation}
         v_\psi(z_t, t, z_{\text{ctx}}) \in \mathbb{R}^D.
     \end{equation}
@@ -47,13 +47,14 @@ The unique ground-truth target velocity field along this optimal transport path 
 \end{equation}
 The neural velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ is trained to minimize the flow matching objective:
 \begin{equation}
-    \mathcal{L}_{\text{CFM}}(\psi) = \mathbb{E}_{t, z_0, z_{\text{tgt}}, z_{\text{ctx}}} \left[ \| v_\psi(z_t, t, z_{\text{ctx}}) - (z_{\text{tgt}} - z_0) \|_2^2 \right].
+    \mathcal{L}_{\text{CFM}}(\psi) = \mathbb{E} \left[ \| v_\psi(z_t, t, z_{\text{ctx}}) - (z_{\text{tgt}} - z_0) \|_2^2 \right],
 \end{equation}
+where the expectation is taken over $t \sim \mathcal{U}(0, 1)$, $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$, and data pairs $(x_{\text{ctx}}, x_{\text{tgt}})$.
+
 
 \subsection{Probability Flow ODEs vs. Stochastic Differential Equations (SDEs)}
 \label{subsec:ode_vs_sde}
-A fundamental question in generative modeling for physical time series is whether continuous dynamics should be modeled via Stochastic Differential Equations (SDEs) or Ordinary Differential Equations (ODEs). While physical processes exhibit stochasticity and multi-modality, Flow-JEPA leverages the \textbf{Probability Flow Theorem} \cite{song2020score, lipman2022flow}:
-
+A fundamental question in generative modeling for physical time series is whether continuous dynamics should be modeled via Stochastic Differential Equations (SDEs) or Ordinary Differential Equations (ODEs). While physical processes exhibit stochasticity and multi-modality, Flow-JEPA leverages the Probability Flow Theorem \cite{song2020score, lipman2022flow}:
 
 \begin{theorem}[Probability Flow Equivalence]
 Let $dz_t = f(z_t, t)dt + g(t)dw_t$ be an It\^o SDE governing a continuous diffusion process with marginal density $p_t(z)$. There exists an exact, deterministic Ordinary Differential Equation:
@@ -65,32 +66,37 @@ whose trajectories generate the identical marginal probability density $p_t(z)$ 
 
 This equivalence provides three decisive advantages for time-series representation and anomaly detection:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Stochasticity without Brownian Noise Injection:} Multi-modality and operational stochasticity are fully captured by sampling random boundary conditions from the base distribution $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$. Different initial points $z_0$ flow deterministically along non-intersecting characteristic curves into distinct operational branches of the target density $p(z_{\text{tgt}} \mid z_{\text{ctx}})$.
-    \item \textbf{Elimination of Inference Monte Carlo Variance:} In score-based SDEs, continuous Brownian perturbations $dw_t$ inject stochastic noise into test-time anomaly evaluations. On nominal signals, this artificial variance inflates the upper tail, severely degrading Extreme Value Theory (EVT) threshold calibration. By contrast, the Probability Flow ODE admits a 100\% deterministic vector field evaluation.
-    \item \textbf{Optimal Transport Geodesics (Straight Trajectories):} Unlike the chaotic Brownian random-walk paths of SDEs, OT-CFM defines straight constant-velocity trajectories ($u_t = z_{\text{tgt}} - z_0$). This allows numerical solvers to integrate trajectories in 1 to 4 steps, and enables exact single-pass evaluation at $t=0.5$.
+    \item \textit{Stochasticity without Brownian Noise Injection:} Multi-modality and operational stochasticity are fully captured by sampling random boundary conditions from the base distribution $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$. Different initial points $z_0$ flow deterministically along non-intersecting characteristic curves into distinct operational branches of the target density $p(z_{\text{tgt}} \mid z_{\text{ctx}})$.
+    \item \textit{Elimination of Inference Monte Carlo Variance:} In score-based SDEs, continuous Brownian perturbations $dw_t$ inject stochastic noise into test-time anomaly evaluations. On nominal signals, this artificial variance inflates the upper tail, severely degrading Extreme Value Theory (EVT) threshold calibration. By contrast, the Probability Flow ODE admits a 100\% deterministic vector field evaluation.
+    \item \textit{Optimal Transport Geodesics (Straight Trajectories):} Unlike the chaotic Brownian random-walk paths of SDEs, OT-CFM defines straight constant-velocity trajectories ($u_t = z_{\text{tgt}} - z_0$). This allows numerical solvers to integrate trajectories in 1 to 4 steps, and enables exact single-pass evaluation at $t=0.5$.
 \end{enumerate}
 
 \subsection{Information-Theoretic Manifold Regularization}
 \label{subsec:vicreg_loss}
 To prevent representation collapse (where the encoder collapses all temporal trajectories to a single point) while avoiding synthetic negative sampling biases, Flow-JEPA jointly optimizes a non-contrastive manifold objective:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Variance Hinge Regularization ($\mathcal{L}_{\text{var}}$):} Constrains the standard deviation of each latent dimension along the batch dimension to remain above $\gamma = 1.0$, guaranteeing representation diversity:
+    \item \textit{Variance Hinge Regularization ($\mathcal{L}_{\text{var}}$):} Constrains the standard deviation of each latent dimension along the batch dimension to remain above $\gamma = 1.0$, guaranteeing representation diversity:
     \begin{equation}
         \mathcal{L}_{\text{var}}(z) = \frac{1}{D} \sum_{j=1}^D \max\left(0, \gamma - \sqrt{\text{Var}(z_{\cdot, j}) + \epsilon}\right),
     \end{equation}
     where $\text{Var}(z_{\cdot, j}) = \frac{1}{B-1}\sum_{i=1}^B (z_{i, j} - \bar{z}_j)^2$ and $\epsilon = 10^{-4}$.
-    \item \textbf{Quantum Operator / Von Neumann Entropy Regularization ($\mathcal{L}_{\text{cov}}$):} Rather than penalizing only off-diagonal covariance entries via heuristic sum-of-squares, we measure the full spectral dispersion of the representation manifold via the \textbf{Operator Bregman Divergence} $D_{\text{Breg}}(\rho \parallel \frac{1}{D}\mathbf{I}_D)$ against the maximally disordered uniform state:
+    \item \textit{Quantum Operator / Von Neumann Entropy Regularization ($\mathcal{L}_{\text{cov}}$):} Rather than penalizing only off-diagonal covariance entries via heuristic sum-of-squares, we measure the full spectral dispersion of the representation manifold via the Operator Bregman Divergence $D_{\text{Breg}}(\rho \parallel \frac{1}{D}\mathbf{I}_D)$ against the maximally disordered uniform state:
     \begin{equation}
         \mathcal{L}_{\text{cov}}(z) = \log(D) + \sum_{i=1}^D \lambda_i \log \lambda_i,
     \end{equation}
     where $\lambda_i = \tilde{\lambda}_i / \sum_k \tilde{\lambda}_k$ are the normalized eigenvalues of the regularized empirical batch covariance $\mathbf{C}(z) = \frac{1}{B-1} \sum_{i=1}^B (z^{(i)} - \bar{z})(z^{(i)} - \bar{z})^T + \epsilon \mathbf{I}_D$. This divergence reaches its theoretical global minimum ($\mathcal{L}_{\text{cov}} = 0$) if and only if all $D$ latent eigenmodes have identical variance, providing an exact information-theoretic barrier against subspace collapse.
 \end{enumerate}
 
-The complete Flow-JEPA training loss is minimized over $\{\theta, \psi\}$:
+The complete Flow-JEPA training objective is minimized jointly over encoder parameters $\theta$ and flow predictor parameters $\psi$:
 \begin{equation}
-    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CFM}} + \lambda_{\text{var}}\left[\mathcal{L}_{\text{var}}(z_{\text{tgt}}) + \mathcal{L}_{\text{var}}(z_{\text{ctx}})\right] + \lambda_{\text{cov}}\left[\mathcal{L}_{\text{cov}}(z_{\text{tgt}}) + \mathcal{L}_{\text{cov}}(z_{\text{ctx}})\right],
+\begin{aligned}
+    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CFM}}(\psi) &+ \lambda_{\text{var}} \left[ \mathcal{L}_{\text{var}}(z_{\text{ctx}}) + \mathcal{L}_{\text{var}}(z_{\text{tgt}}) \right] \\
+    &+ \lambda_{\text{cov}} \left[ \mathcal{L}_{\text{cov}}(z_{\text{ctx}}) + \mathcal{L}_{\text{cov}}(z_{\text{tgt}}) \right],
+\end{aligned}
+\label{eq:total_loss}
 \end{equation}
-where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancing weights.
+where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancing hyperparameters.
+
 
 \begin{figure*}[t]
 \centering
@@ -101,7 +107,7 @@ where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancin
 
 \subsection{Deterministic Midpoint Velocity Discrepancy \& Chebyshev Collocation}
 \label{subsec:mahalanobis}
-Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical integration noise and Monte Carlo variance. To achieve deterministic, zero-variance anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the velocity field at the \textbf{Optimal Transport Midpoint} ($t=0.5$) or across a set of deterministic \textbf{Chebyshev--Lobatto Collocation Nodes} $t_k = \frac{1}{2}(1 - \cos\frac{k\pi}{K})$.
+Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical integration noise and Monte Carlo variance. To achieve deterministic, zero-variance anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the velocity field at the Optimal Transport Midpoint ($t=0.5$) or across a set of deterministic Chebyshev--Lobatto Collocation Nodes $t_k = \frac{1}{2}(1 - \cos\frac{k\pi}{K})$.
 
 
 
@@ -113,7 +119,8 @@ We compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb
 \begin{equation}
     \mathbf{\Sigma} = \frac{1}{N_{\text{cal}} - 1} \sum_{i=1}^{N_{\text{cal}}} \mathbf{e}^{(i)} (\mathbf{e}^{(i)})^T + \lambda_{\text{reg}} \mathbf{I}_D,
 \end{equation}
-where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical inversion. The \textbf{Covariance-Whitened Midpoint Discrepancy} for any test window is:
+where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical inversion. The Covariance-Whitened Midpoint Discrepancy for any test window is:
+
 \begin{equation}
     D_M(x_{\text{ctx}}, x_{\text{tgt}}) = \sqrt{(\hat{v}_{\text{mid}} - z_{\text{tgt}})^T \mathbf{\Sigma}^{-1} (\hat{v}_{\text{mid}} - z_{\text{tgt}})}.
 \end{equation}

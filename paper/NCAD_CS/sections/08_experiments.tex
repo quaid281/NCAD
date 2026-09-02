@@ -18,10 +18,11 @@ All experiments are implemented in PyTorch and executed on NVIDIA GPU hardware. 
 \subsection{Evaluation Metrics}
 To address the score-inflation critique of point adjustment in time-series anomaly detection literature \cite{schmidl2022anomaly}, we report dual evaluation metrics:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textbf{Point-Adjusted F1 Score (PA-F1):} Standard protocol where detecting any point within an anomaly segment marks the segment as detected.
-    \item \textbf{Unadjusted Point-Level F1 Score (Point-F1):} Exact, uninflated timestep-level precision and recall.
-    \item \textbf{Oracle Ceiling:} Upper-bound PA-F1 achievable via optimal post-hoc threshold scan over test set representations.
+    \item \textit{Point-Adjusted F1 Score (PA-F1):} Standard protocol where detecting any point within an anomaly segment marks the segment as detected.
+    \item \textit{Unadjusted Point-Level F1 Score (Point-F1):} Exact, uninflated timestep-level precision and recall.
+    \item \textit{Oracle Ceiling:} Upper-bound PA-F1 achievable via optimal post-hoc threshold scan over test set representations.
 \end{enumerate}
+
 
 \subsection{Multi-Domain Benchmark Performance}
 \label{subsec:benchmark_results}
@@ -29,7 +30,7 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 
 \begin{table*}[t]
 \centering
-\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Pt-F1) and Secondary Legacy Point-Adjusted F1 (PA-F1) across 1,300 total model-channel runs. Bold indicates the top-performing model.}
+\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Pt-F1) and Secondary Legacy Point-Adjusted F1 (PA-F1) across 1,300 total model-channel runs. Bold indicates the top-performing score for Pt-F1 (left) and PA-F1 (right) independently.}
 \label{tab:multidataset_benchmark}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lc ccccc ccccc@{}}
@@ -38,20 +39,21 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 \cmidrule(lr){3-7} \cmidrule(lr){8-12}
  & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{TS-JEPA} & \textbf{Patch-JEPA} & \textbf{Flow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-Flow} \\
 \midrule
-\textbf{SMAP} & 51 & 0.183 / 0.220 & 0.178 / 0.289 & 0.048 / 0.117 & 0.137 / 0.289 & 0.126 / 0.347 & 0.265 / 0.375 & 0.126 / 0.172 & 0.285 / 0.459 & 0.121 / 0.203 & \textbf{0.294} / 0.455 \\
-\textbf{MSL} & 26 & 0.206 / 0.378 & 0.174 / 0.365 & 0.106 / 0.218 & 0.064 / 0.251 & 0.066 / 0.193 & 0.217 / 0.499 & 0.130 / 0.390 & \textbf{0.265} / 0.470 & 0.143 / 0.409 & 0.254 / 0.519 \\
-\textbf{Daphnet} & 26 & 0.103 / 0.276 & 0.146 / 0.355 & 0.111 / 0.518 & 0.118 / 0.417 & 0.071 / 0.425 & 0.211 / 0.396 & \textbf{0.275} / 0.557 & 0.234 / 0.402 & 0.235 / 0.532 & 0.182 / 0.358 \\
-\textbf{GHL} & 14 & 0.008 / 0.075 & 0.025 / 0.031 & 0.030 / 0.201 & 0.000 / 0.000 & 0.005 / 0.104 & 0.107 / 0.181 & 0.190 / 0.200 & 0.104 / 0.115 & \textbf{0.225} / 0.262 & 0.001 / 0.007 \\
-\textbf{cicids} & 6 & 0.105 / 0.192 & 0.186 / 0.216 & 0.020 / 0.059 & 0.004 / 0.004 & 0.084 / 0.285 & 0.043 / 0.271 & 0.040 / 0.232 & 0.111 / 0.355 & 0.018 / 0.204 & \textbf{0.260} / 0.367 \\
-\textbf{room-occupancy} & 2 & \textbf{0.635} / 0.718 & 0.525 / 0.535 & 0.318 / 0.426 & 0.213 / 0.320 & 0.088 / 0.373 & 0.356 / 0.356 & 0.338 / 0.338 & 0.338 / 0.338 & 0.368 / 0.368 & 0.338 / 0.339 \\
-\textbf{GECCO} & 1 & 0.030 / 0.030 & 0.030 / 0.030 & 0.125 / 0.172 & \textbf{0.360} / 0.364 & 0.255 / 0.545 & 0.262 / 0.328 & 0.180 / 0.528 & 0.320 / 0.321 & 0.244 / 0.505 & 0.040 / 0.044 \\
-\textbf{Genesis} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.164} / 0.164 & 0.000 / 0.000 & 0.000 / 0.000 & 0.026 / 0.057 & 0.154 / 0.180 & 0.019 / 0.116 & 0.144 / 0.144 & 0.038 / 0.225 \\
-\textbf{swan} & 1 & 0.354 / 0.681 & 0.261 / 0.654 & 0.091 / 0.724 & 0.016 / 0.017 & 0.060 / 0.721 & 0.221 / 0.681 & 0.154 / 0.699 & 0.346 / 0.620 & 0.124 / 0.712 & \textbf{0.629} / 0.705 \\
-\textbf{CalIt2} & 1 & 0.147 / 0.150 & 0.135 / 0.170 & \textbf{0.179} / 0.179 & 0.080 / 0.177 & 0.090 / 0.090 & 0.121 / 0.154 & 0.179 / 0.211 & 0.091 / 0.109 & 0.136 / 0.175 & 0.077 / 0.077 \\
-\textbf{metro} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.004} / 0.004 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 \\
+\textbf{SMAP} & 51 & 0.183 / 0.220 & 0.178 / 0.289 & 0.048 / 0.117 & 0.137 / 0.289 & 0.126 / 0.347 & 0.265 / 0.375 & 0.126 / 0.172 & 0.285 / \textbf{0.459} & 0.121 / 0.203 & \textbf{0.294} / 0.455 \\
+\textbf{MSL} & 26 & 0.206 / 0.378 & 0.174 / 0.365 & 0.106 / 0.218 & 0.064 / 0.251 & 0.066 / 0.193 & 0.217 / 0.499 & 0.130 / 0.390 & \textbf{0.265} / 0.470 & 0.143 / 0.409 & 0.254 / \textbf{0.519} \\
+\textbf{Daphnet} & 26 & 0.103 / 0.276 & 0.146 / 0.355 & 0.111 / 0.518 & 0.118 / 0.417 & 0.071 / 0.425 & 0.211 / 0.396 & \textbf{0.275} / \textbf{0.557} & 0.234 / 0.402 & 0.235 / 0.532 & 0.182 / 0.358 \\
+\textbf{GHL} & 14 & 0.008 / 0.075 & 0.025 / 0.031 & 0.030 / 0.201 & 0.000 / 0.000 & 0.005 / 0.104 & 0.107 / 0.181 & 0.190 / 0.200 & 0.104 / 0.115 & \textbf{0.225} / \textbf{0.262} & 0.001 / 0.007 \\
+\textbf{cicids} & 6 & 0.105 / 0.192 & 0.186 / 0.216 & 0.020 / 0.059 & 0.004 / 0.004 & 0.084 / 0.285 & 0.043 / 0.271 & 0.040 / 0.232 & 0.111 / 0.355 & 0.018 / 0.204 & \textbf{0.260} / \textbf{0.367} \\
+\textbf{room-occupancy} & 2 & \textbf{0.635} / \textbf{0.718} & 0.525 / 0.535 & 0.318 / 0.426 & 0.213 / 0.320 & 0.088 / 0.373 & 0.356 / 0.356 & 0.338 / 0.338 & 0.338 / 0.338 & 0.368 / 0.368 & 0.338 / 0.339 \\
+\textbf{GECCO} & 1 & 0.030 / 0.030 & 0.030 / 0.030 & 0.125 / 0.172 & \textbf{0.360} / 0.364 & 0.255 / \textbf{0.545} & 0.262 / 0.328 & 0.180 / 0.528 & 0.320 / 0.321 & 0.244 / 0.505 & 0.040 / 0.044 \\
+\textbf{Genesis} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.164} / 0.164 & 0.000 / 0.000 & 0.000 / 0.000 & 0.026 / 0.057 & 0.154 / 0.180 & 0.019 / 0.116 & 0.144 / 0.144 & 0.038 / \textbf{0.225} \\
+\textbf{swan} & 1 & 0.354 / 0.681 & 0.261 / 0.654 & 0.091 / \textbf{0.724} & 0.016 / 0.017 & 0.060 / 0.721 & 0.221 / 0.681 & 0.154 / 0.699 & 0.346 / 0.620 & 0.124 / 0.712 & \textbf{0.629} / 0.705 \\
+\textbf{CalIt2} & 1 & 0.147 / 0.150 & 0.135 / 0.170 & \textbf{0.179} / 0.179 & 0.080 / 0.177 & 0.090 / 0.090 & 0.121 / 0.154 & \textbf{0.179} / \textbf{0.211} & 0.091 / 0.109 & 0.136 / 0.175 & 0.077 / 0.077 \\
+\textbf{metro} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.004} / \textbf{0.004} & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 \\
 \midrule
 \textbf{Grand Macro Avg} & \textbf{130} & 0.1529 / 0.2517 & 0.1566 / 0.2853 & 0.0756 / 0.2334 & 0.0971 / 0.2564 & 0.0859 / 0.3000 & 0.2137 / 0.3731 & 0.1632 / 0.3065 & \textbf{0.2389} / \textbf{0.3973} & 0.1587 / 0.3230 & 0.2258 / 0.3849 \\
 \bottomrule
 \end{tabular}%
 }
 \end{table*}
+
