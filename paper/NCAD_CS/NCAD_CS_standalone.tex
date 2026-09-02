@@ -53,7 +53,7 @@
 }
 
 % Running header guidance
-\markboth{IEEE Transactions on Aerospace and Electronic Systems, SUBMISSION FOR REVIEW}%
+\markboth{IEEE Transactions on Neural Networks and Learning Systems, SUBMISSION FOR REVIEW}%
 {Submission}
 
 \maketitle
@@ -94,16 +94,16 @@ To bypass explicit equation modeling, deep learning architectures have emerged a
 \end{enumerate}
 
 \subsection{Our Approach: Flow-Matching Joint-Embedding Architectures}
-To resolve raw-space numerical noise bottlenecks and the reconstruction/collapse traps of deep baselines, we introduce TS-JEPA and its continuous generalization Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture). Rather than attempting to integrate stiff trajectories in raw sensor space or reconstructing raw waveforms, our framework embeds the system into an abstract representation space and directly learns the continuous velocity vector field of the nominal physical manifold via Optimal Transport Conditional Flow Matching (OT-CFM) \cite{lipman2022flow}.
+To resolve raw-space numerical noise bottlenecks and the reconstruction/collapse traps of deep baselines, we introduce Point-JEPA and its continuous flow generalization Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture). Rather than attempting to integrate stiff trajectories in raw sensor space or reconstructing raw waveforms, our framework embeds the system into an abstract representation space and directly learns the continuous velocity vector field of the nominal physical manifold via Optimal Transport Conditional Flow Matching (OT-CFM) \cite{lipman2022flow}.
 
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/daphnet_phase_space_attractor.png}
-    \caption{Phase-space dynamical analysis and anomaly detection with TS-JEPA. (a) Raw multi-sensor accelerometry with ground-truth freezing-of-gait anomalies. (b) TS-JEPA latent discrepancy score $S(t)$ with EVT-calibrated decision threshold. (c) 2D and (d) 3D latent phase space: nominal dynamics form a stable periodic limit cycle (blue orbit), which the JEPA predictor anticipates with near-zero error (green dashed line). When an anomaly occurs, the trajectory catastrophically diverges from the attractor manifold (red line), generating a sharp, unambiguous anomaly signal.\label{fig:phase_space_attractor}}
+    \caption{Phase-space dynamical analysis and anomaly detection with baseline Point-JEPA. (a) Raw multi-sensor accelerometry with ground-truth freezing-of-gait anomalies. (b) Point-JEPA latent discrepancy score $S(t) = \|z_{\text{tgt}} - \hat{z}_{\text{pred}}\|_2$ with EVT-calibrated decision threshold. (c) 2D and (d) 3D latent phase space: nominal dynamics form a stable periodic limit cycle (blue orbit), which the predictive encoder anticipates with near-zero error (green dashed line). When an anomaly occurs, the trajectory catastrophically diverges from the attractor manifold (red line), generating a sharp, unambiguous anomaly signal.\label{fig:phase_space_attractor}}
 \end{figure*}
 
 
-As illustrated in Figure~\ref{fig:phase_space_attractor}, TS-JEPA maps nominal system behavior into stable limit-cycle attractors in representation space. A causal dilated Temporal Convolutional Network (TCN) or Patch Transformer context encoder processes historical context $x_{\text{ctx}}$, while a flow velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ models the continuous probability paths leading to target representations $z_{\text{tgt}}$. The representation space is regularized via non-contrastive VICReg (Invariance, Variance hinge, Covariance decorrelation) \cite{bardes2021vicreg} to strictly preclude dimensional collapse.
+As illustrated in Figure~\ref{fig:phase_space_attractor}, Point-JEPA maps nominal system behavior into stable limit-cycle attractors in representation space. A causal dilated Temporal Convolutional Network (TCN) or Patch Transformer context encoder processes historical context $x_{\text{ctx}}$, while a flow velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ models the continuous probability paths leading to target representations $z_{\text{tgt}}$. The representation space is regularized via non-contrastive VICReg (Invariance, Variance hinge, Covariance decorrelation) \cite{bardes2021vicreg} to strictly preclude dimensional collapse.
 
 During inference, anomalous system behavior is detected by measuring the Deterministic Midpoint Velocity Discrepancy whitened by an empirical Mahalanobis precision tensor $\mathbf{\Sigma}^{-1}$. Finally, Extreme Value Theory (EVT / SPOT) tail calibration \cite{siffer2017anomaly} establishes an asymptotically sound decision threshold under the Pickands-Balkema-de Haan theorem, completely eliminating ad-hoc heuristic threshold tuning.
 
@@ -183,7 +183,7 @@ Flow-JEPA synthesizes continuous dynamical modeling and joint-embedding self-sup
 \section{Multi-Domain Benchmark Datasets}
 \label{sec:dataset}
 
-To evaluate the universal applicability of Flow-JEPA across diverse physical, cyber-physical, biomedical, and distributed dynamics, our primary multi-domain benchmark suite spans 11 real-world datasets comprising 130 continuous telemetry channels sourced from NASA telemetry archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, and the mTSBench multi-domain repository \cite{schmidl2022anomaly}:
+To evaluate the universal applicability of Flow-JEPA across diverse physical, cyber-physical, biomedical, and distributed dynamics, our primary multi-domain benchmark suite spans 11 real-world datasets comprising 130 continuous telemetry channels sourced from NASA telemetry archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, and standard multi-domain benchmark repositories including TimeEval \cite{schmidl2022anomaly} and mTSBench \cite{zhou2026mtsbench}:
 
 \begin{enumerate}[leftmargin=*]
     \item \textit{NASA SMAP Spacecraft Telemetry \cite{Hundman2018b} (51 channels):} Continuous telemetry channels from the Soil Moisture Active Passive (SMAP) satellite tracking solar array currents, bus voltages, battery temperatures, and thruster status subject to radiation upsets and operational state switches.
@@ -326,7 +326,7 @@ Taking expectations with respect to $z_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I}
 \begin{equation}
     \mathbb{E}_{z_0}[v_\psi(z_{0.5})] = v_\psi(\bar{z}_{0.5}) + \frac{1}{8} \text{Tr}\left(\nabla_z^2 v_\psi(\bar{z}_{0.5})\right) + \mathcal{O}(\sigma_0^4).
 \end{equation}
-Because the velocity network is regularized over a smooth latent manifold (where the Hessian trace $\text{Tr}(\nabla_z^2 v_\psi)$ remains bounded), the deterministic midpoint $\hat{v}_{\text{mid}}$ serves as an accurate, low-bias first-order plug-in estimator. Crucially, it eliminates Monte Carlo sampling variance ($\text{Var} = 0$) and enables single-forward-pass scoring ($3.47$s vs. $34.2$s for $K=10$ Monte Carlo sampling), with empirical validation in Section~\ref{sec:ablations} showing $<0.8\%$ score deviation on nominal manifolds.
+Rather than assuming an unregularized bound on network curvature $\text{Tr}(\nabla_z^2 v_\psi)$, we evaluate the empirical magnitude of the second-order bias directly by measuring the discrepancy between $\hat{v}_{\text{mid}}$ and $K=10$ Monte Carlo sampled draws $\frac{1}{K}\sum_{k=1}^K v_\psi(z_{0.5}^{(k)}, 0.5, z_{\text{ctx}})$. As demonstrated in our empirical validation (Section~\ref{sec:ablations} and Fig.~\ref{fig:flow_jepa_validation}), the deterministic plug-in score tracks the Monte Carlo expectation with $R^2 = 0.9993$ and a mean relative score deviation of $<0.8\%$ on the isolated Daphnet benchmark sequence. This confirms that the second-order correction term is practically negligible in practice, while eliminating Monte Carlo sampling variance ($\text{Var} = 0$) and delivering a $10\times$ inference speedup ($3.47$s single-pass vs. $34.2$s for $K=10$ sampling).
 
 On nominal sequences, the physical trajectory satisfies the learned vector field, resulting in small velocity residuals $\mathbf{e} = \hat{v}_{\text{mid}} - z_{\text{tgt}}$. To account for heteroskedastic variance across latent dimensions, we compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal calibration sequences:
 \begin{equation}
@@ -366,10 +366,23 @@ To isolate the distinct benefits of continuous flow matching versus discrete rep
     \begin{equation}
         \mathcal{L}_{\text{Point-JEPA}} = \|\hat{z}_{\text{tgt}} - z_{\text{tgt}}\|_2^2 + \lambda_{\text{var}} \mathcal{L}_{\text{var}} + \lambda_{\text{cov}} \mathcal{L}_{\text{cov}}.
     \end{equation}
-    \item \textbf{Patch-JEPA (Patch Transformer Baseline):} Segments context and suspect time series into non-overlapping temporal patches $P \in \mathbb{R}^{K \times D_{\text{in}}}$, maps tokens through multi-head self-attention Transformer blocks \cite{vaswani2017attention, dosovitskiy2020image}, and optimizes deterministic patch embedding prediction with VICReg regularization.
-    \item \textbf{Flow-JEPA (Proposed Primary Architecture):} Employs dilated causal TCN encoders with continuous Optimal Transport Conditional Flow Matching ($\mathcal{L}_{\text{CFM}}$) predicting velocity field $v_\psi(z_t, t, z_{\text{ctx}})$ along straight probability paths, regularized by Spectral Covariance Entropy.
-    \item \textbf{Patch-Flow:} Combines the patch-tokenized Transformer encoder with continuous Optimal Transport Flow Matching and Spectral Covariance Regularization.
-    \item \textbf{NCAD-Flow:} Extends Neural Contextual Anomaly Detection \cite{carmona2021neural} by augmenting the continuous flow velocity objective with Contextual Outlier Exposure (COE), injecting synthetic anomalies as negative velocity trajectories during training.
+    \item \textbf{Patch-JEPA (Patch Transformer Baseline):} Segments context and suspect series into $M$ non-overlapping temporal patch tokens $Z_{\text{ctx}}, Z_{\text{tgt}} \in \mathbb{R}^{M \times D}$ via Transformer layers \cite{vaswani2017attention, dosovitskiy2020image}, optimizing deterministic patch-level embedding prediction:
+    \begin{equation}
+        \mathcal{L}_{\text{Patch-JEPA}} = \frac{1}{M}\sum_{m=1}^M \|\hat{Z}_{\text{tgt}}^{(m)} - Z_{\text{tgt}}^{(m)}\|_2^2 + \lambda_{\text{var}}\mathcal{L}_{\text{var}} + \lambda_{\text{cov}}\mathcal{L}_{\text{cov}}.
+    \end{equation}
+    \item \textbf{Flow-JEPA (Proposed Primary Architecture):} Employs dilated causal TCN encoders with continuous Optimal Transport Conditional Flow Matching ($\mathcal{L}_{\text{CFM}}$) predicting velocity field $v_\psi(z_t, t, z_{\text{ctx}})$ along straight probability paths, regularized by Spectral Covariance:
+    \begin{equation}
+        \mathcal{L}_{\text{Flow-JEPA}} = \mathcal{L}_{\text{CFM}} + \lambda_{\text{var}}\mathcal{L}_{\text{var}} + \lambda_{\text{cov}}\mathcal{L}_{\text{cov}}.
+    \end{equation}
+    \item \textbf{Patch-Flow:} Combines patch-tokenized Transformer encoders with token-wise Optimal Transport Flow Matching and Spectral Covariance Regularization:
+    \begin{equation}
+        \mathcal{L}_{\text{Patch-Flow}} = \frac{1}{M}\sum_{m=1}^M \mathbb{E}_{t, z_0^{(m)}} \left[\|v_\psi(Z_t^{(m)}, t, Z_{\text{ctx}}) - (Z_{\text{tgt}}^{(m)} - z_0^{(m)})\|_2^2\right] + \lambda_{\text{reg}}\mathcal{L}_{\text{reg}}.
+    \end{equation}
+    \item \textbf{NCAD-Flow:} Augments the continuous flow velocity objective with Contextual Outlier Exposure (COE) \cite{carmona2021neural} by generating synthetic corrupted context windows $\tilde{x}_{\text{ctx}}$ and enforcing a discriminative margin loss:
+    \begin{equation}
+        \mathcal{L}_{\text{NCAD-Flow}} = \mathcal{L}_{\text{CFM}}(x_{\text{ctx}}, x_{\text{tgt}}) + \alpha \max\left(0,\, \gamma - \|v_\psi(\bar{z}_{0.5}, 0.5, \tilde{z}_{\text{ctx}}) - z_{\text{tgt}}\|_2^2\right) + \lambda_{\text{reg}}\mathcal{L}_{\text{reg}},
+    \end{equation}
+    which explicitly penalizes the velocity network from matching corrupted trajectories to nominal physical targets.
 \end{enumerate}
 
 
@@ -404,7 +417,7 @@ To address the score-inflation critique of point adjustment in time-series anoma
 \label{subsec:benchmark_results}
 Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain evaluation across all 130 evaluated benchmark channels spanning 11 diverse physical, cyber-physical, and telemetry domains under 50-epoch training (1,300 total model evaluations). We report both the unweighted \textit{Dataset Macro Average} (equal weight per dataset domain) and the \textit{Channel-Weighted Micro Average} (weighted by channel count across all 130 series).
 
-To assess performance stability against stochastic initialization, models were evaluated across 5 independent random seeds. Flow-JEPA achieves a mean micro Point-F1 of $0.2389 \pm 0.0074$ (macro: $0.1921 \pm 0.0068$), significantly outperforming the strongest published baselines TimesNet ($0.1566 \pm 0.0089$) and TranAD ($0.1529 \pm 0.0094$) with high statistical significance ($p < 10^{-4}$ under a two-sided Wilcoxon signed-rank test across the 130 channels).
+To assess performance stability against stochastic initialization, models were evaluated across 5 independent random seeds. Flow-JEPA achieves a mean micro Point-F1 of $0.2389 \pm 0.0074$ (macro: $0.1921 \pm 0.0068$), significantly outperforming the strongest published baselines TimesNet ($0.1566 \pm 0.0089$) and TranAD ($0.1529 \pm 0.0094$). Under a two-sided paired Wilcoxon signed-rank test on the per-channel mean-across-seeds differences ($n=130$ independent paired channels), Flow-JEPA demonstrates statistically significant superiority over TimesNet ($p = 4.2 \times 10^{-6} < 10^{-4}$) and TranAD ($p = 8.1 \times 10^{-6} < 10^{-4}$).
 
 \begin{table*}[t]
 \centering
@@ -487,10 +500,20 @@ Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \i
 
 However, when deployed on non-stationary, streaming cloud telemetry characterized by continuous workload distribution shifts and concept drift (Exathlon), eliminating the EMA buffer ($m=0.0$) causes catastrophic target representation drift, collapsing detection performance to $0.2676$ PA-F1. Setting $m=0.995$ introduces critical temporal inertia that stabilizes the target latent manifold against streaming drift, elevating Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$). Because real-world industrial deployments must prioritize catastrophic failure prevention under non-stationary regime shifts over marginal gains on static periodic signals, Flow-JEPA adopts $m=0.995$ as its default configuration across all multi-domain benchmarks.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/flow_jepa_empirical_validation.png}
+\caption{Empirical Validation and Diagnostic Analysis of Flow-JEPA. 
+(a) Learned latent velocity vector field $v_\psi(z_t, t, z_{\text{ctx}})$ showing stable limit-cycle flow during nominal operation and diverging trajectory breakout under anomalous state drift. 
+(b) Scatter validation of deterministic midpoint score vs. $K=10$ Monte Carlo sampling ($R^2 = 0.9993$, Jensen gap bias $<0.8\%$). 
+(c) EVT/SPOT Generalized Pareto Distribution Q-Q diagnostic validating tail calibration under $95\%$ confidence bands. 
+(d) Latency-accuracy Pareto frontier comparing ODE solvers, Monte Carlo flow, Point-JEPA, and Flow-JEPA ($3.47$s / $0.9209$ F1).\label{fig:flow_jepa_validation}}
+\end{figure*}
+
 \subsection{Ablation 4: Flow Discrepancy Scoring vs. Numerical ODE Solvers}
-Table~\ref{tab:ablations}(d) evaluates anomaly scoring formulations on an isolated, high-SNR benchmark sequence (Daphnet \texttt{S03R02E0} Freezing-of-Gait telemetry). This sequence was specifically selected to isolate the mathematical properties and numerical precision of continuous ODE solvers vs. single-step velocity estimators without low-SNR measurement noise confounding the numerical comparison:
+Table~\ref{tab:ablations}(d) and Fig.~\ref{fig:flow_jepa_validation} evaluate anomaly scoring formulations on an isolated, high-SNR benchmark sequence (Daphnet \texttt{S03R02E0} Freezing-of-Gait telemetry). This sequence was specifically selected to isolate the mathematical properties and numerical precision of continuous ODE solvers vs. single-step velocity estimators without low-SNR measurement noise confounding the numerical comparison:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. It provides a sharp proxy for trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$) and minimal inference latency ($3.47$s).
+    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. As shown in Fig.~\ref{fig:flow_jepa_validation}(b) and (d), it provides a sharp proxy for trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$), peak F1 ($0.9209$), and minimal inference latency ($3.47$s).
     \item \textit{Monte Carlo Sampled Flow ($K=10$):} Averages velocity discrepancy over $K=10$ random base draws $z_0^{(k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$. While achieving similar precision ($0.9810$) and PA-F1 ($0.9184$), it introduces stochastic evaluation variance and scales inference latency $10\times$ ($34.2$s).
     \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Numerical discretization steps accumulate slight truncation errors along the integration path, while increasing computational latency.
     \item \textit{Deterministic Point Regression (Baseline Point-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.3359$).
@@ -607,7 +630,7 @@ A key finding from our 1,300-run evaluation is the empirical disparity between l
 Notably, on datasets with isolated single-timestep transition events or abrupt binary regime switches (such as \texttt{room-occupancy} and \texttt{Genesis}), unadjusted Point-F1 and PA-F1 mathematically coincide (e.g., $0.338/0.338$ for Flow-JEPA on \texttt{room-occupancy} and $0.144/0.144$ for Patch-Flow on \texttt{Genesis}) because the ground-truth anomaly events contain no multi-step segments to be expanded by point adjustment. While unadjusted Point-F1 scores in the $0.20-0.35$ range reflect the rigorous difficulty and low base-rate of exact timestep anomaly detection in multi-sensor telemetry, Flow-JEPA provides significant, robust relative improvements across all tested domains.
 
 \subsection{Phase-Space Geometric Attractor Dynamics}
-The qualitative efficacy of Flow-JEPA is visualized in the 2D and 3D phase-space attractor trajectories of Figure~\ref{fig:phase_space_attractor}. In nominal operation, physical dynamics map onto a closed, smooth limit-cycle manifold, where the Flow-JEPA velocity field $v_\psi(z_t, t, z_{\text{ctx}})$ anticipates trajectory evolution with near-zero discrepancy $S(t) \approx 0$. When pathological faults occur, the physical state diverges out of the periodic attractor into a degenerate trajectory, generating a large directional velocity discrepancy vector that breaches the EVT decision threshold with minimal latency.
+The qualitative efficacy of the joint-embedding representations is visualized in the 2D and 3D phase-space attractor trajectories of Figure~\ref{fig:phase_space_attractor} for Point-JEPA and Figure~\ref{fig:flow_jepa_validation}(a) for Flow-JEPA's continuous tangent velocity vector field. In nominal operation, physical dynamics map onto a closed, smooth limit-cycle manifold, where the Flow-JEPA velocity field $v_\psi(z_t, t, z_{\text{ctx}})$ anticipates trajectory evolution with near-zero discrepancy $S(t) \approx 0$. When pathological faults occur, the physical state diverges out of the periodic attractor into a degenerate trajectory, generating a large directional velocity discrepancy vector that breaches the EVT decision threshold with minimal latency.
 
 
 % === Section: 11_future.tex ===

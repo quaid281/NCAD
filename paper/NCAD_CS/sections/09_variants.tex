@@ -19,10 +19,20 @@ Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \i
 
 However, when deployed on non-stationary, streaming cloud telemetry characterized by continuous workload distribution shifts and concept drift (Exathlon), eliminating the EMA buffer ($m=0.0$) causes catastrophic target representation drift, collapsing detection performance to $0.2676$ PA-F1. Setting $m=0.995$ introduces critical temporal inertia that stabilizes the target latent manifold against streaming drift, elevating Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$). Because real-world industrial deployments must prioritize catastrophic failure prevention under non-stationary regime shifts over marginal gains on static periodic signals, Flow-JEPA adopts $m=0.995$ as its default configuration across all multi-domain benchmarks.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/flow_jepa_empirical_validation.png}
+\caption{Empirical Validation and Diagnostic Analysis of Flow-JEPA. 
+(a) Learned latent velocity vector field $v_\psi(z_t, t, z_{\text{ctx}})$ showing stable limit-cycle flow during nominal operation and diverging trajectory breakout under anomalous state drift. 
+(b) Scatter validation of deterministic midpoint score vs. $K=10$ Monte Carlo sampling ($R^2 = 0.9993$, Jensen gap bias $<0.8\%$). 
+(c) EVT/SPOT Generalized Pareto Distribution Q-Q diagnostic validating tail calibration under $95\%$ confidence bands. 
+(d) Latency-accuracy Pareto frontier comparing ODE solvers, Monte Carlo flow, Point-JEPA, and Flow-JEPA ($3.47$s / $0.9209$ F1).\label{fig:flow_jepa_validation}}
+\end{figure*}
+
 \subsection{Ablation 4: Flow Discrepancy Scoring vs. Numerical ODE Solvers}
-Table~\ref{tab:ablations}(d) evaluates anomaly scoring formulations on an isolated, high-SNR benchmark sequence (Daphnet \texttt{S03R02E0} Freezing-of-Gait telemetry). This sequence was specifically selected to isolate the mathematical properties and numerical precision of continuous ODE solvers vs. single-step velocity estimators without low-SNR measurement noise confounding the numerical comparison:
+Table~\ref{tab:ablations}(d) and Fig.~\ref{fig:flow_jepa_validation} evaluate anomaly scoring formulations on an isolated, high-SNR benchmark sequence (Daphnet \texttt{S03R02E0} Freezing-of-Gait telemetry). This sequence was specifically selected to isolate the mathematical properties and numerical precision of continuous ODE solvers vs. single-step velocity estimators without low-SNR measurement noise confounding the numerical comparison:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. It provides a sharp proxy for trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$) and minimal inference latency ($3.47$s).
+    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. As shown in Fig.~\ref{fig:flow_jepa_validation}(b) and (d), it provides a sharp proxy for trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$), peak F1 ($0.9209$), and minimal inference latency ($3.47$s).
     \item \textit{Monte Carlo Sampled Flow ($K=10$):} Averages velocity discrepancy over $K=10$ random base draws $z_0^{(k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$. While achieving similar precision ($0.9810$) and PA-F1 ($0.9184$), it introduces stochastic evaluation variance and scales inference latency $10\times$ ($34.2$s).
     \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Numerical discretization steps accumulate slight truncation errors along the integration path, while increasing computational latency.
     \item \textit{Deterministic Point Regression (Baseline Point-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.3359$).

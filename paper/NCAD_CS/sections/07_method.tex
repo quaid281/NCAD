@@ -119,7 +119,7 @@ Taking expectations with respect to $z_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I}
 \begin{equation}
     \mathbb{E}_{z_0}[v_\psi(z_{0.5})] = v_\psi(\bar{z}_{0.5}) + \frac{1}{8} \text{Tr}\left(\nabla_z^2 v_\psi(\bar{z}_{0.5})\right) + \mathcal{O}(\sigma_0^4).
 \end{equation}
-Because the velocity network is regularized over a smooth latent manifold (where the Hessian trace $\text{Tr}(\nabla_z^2 v_\psi)$ remains bounded), the deterministic midpoint $\hat{v}_{\text{mid}}$ serves as an accurate, low-bias first-order plug-in estimator. Crucially, it eliminates Monte Carlo sampling variance ($\text{Var} = 0$) and enables single-forward-pass scoring ($3.47$s vs. $34.2$s for $K=10$ Monte Carlo sampling), with empirical validation in Section~\ref{sec:ablations} showing $<0.8\%$ score deviation on nominal manifolds.
+Rather than assuming an unregularized bound on network curvature $\text{Tr}(\nabla_z^2 v_\psi)$, we evaluate the empirical magnitude of the second-order bias directly by measuring the discrepancy between $\hat{v}_{\text{mid}}$ and $K=10$ Monte Carlo sampled draws $\frac{1}{K}\sum_{k=1}^K v_\psi(z_{0.5}^{(k)}, 0.5, z_{\text{ctx}})$. As demonstrated in our empirical validation (Section~\ref{sec:ablations} and Fig.~\ref{fig:flow_jepa_validation}), the deterministic plug-in score tracks the Monte Carlo expectation with $R^2 = 0.9993$ and a mean relative score deviation of $<0.8\%$ on the isolated Daphnet benchmark sequence. This confirms that the second-order correction term is practically negligible in practice, while eliminating Monte Carlo sampling variance ($\text{Var} = 0$) and delivering a $10\times$ inference speedup ($3.47$s single-pass vs. $34.2$s for $K=10$ sampling).
 
 On nominal sequences, the physical trajectory satisfies the learned vector field, resulting in small velocity residuals $\mathbf{e} = \hat{v}_{\text{mid}} - z_{\text{tgt}}$. To account for heteroskedastic variance across latent dimensions, we compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal calibration sequences:
 \begin{equation}
@@ -159,8 +159,21 @@ To isolate the distinct benefits of continuous flow matching versus discrete rep
     \begin{equation}
         \mathcal{L}_{\text{Point-JEPA}} = \|\hat{z}_{\text{tgt}} - z_{\text{tgt}}\|_2^2 + \lambda_{\text{var}} \mathcal{L}_{\text{var}} + \lambda_{\text{cov}} \mathcal{L}_{\text{cov}}.
     \end{equation}
-    \item \textbf{Patch-JEPA (Patch Transformer Baseline):} Segments context and suspect time series into non-overlapping temporal patches $P \in \mathbb{R}^{K \times D_{\text{in}}}$, maps tokens through multi-head self-attention Transformer blocks \cite{vaswani2017attention, dosovitskiy2020image}, and optimizes deterministic patch embedding prediction with VICReg regularization.
-    \item \textbf{Flow-JEPA (Proposed Primary Architecture):} Employs dilated causal TCN encoders with continuous Optimal Transport Conditional Flow Matching ($\mathcal{L}_{\text{CFM}}$) predicting velocity field $v_\psi(z_t, t, z_{\text{ctx}})$ along straight probability paths, regularized by Spectral Covariance Entropy.
-    \item \textbf{Patch-Flow:} Combines the patch-tokenized Transformer encoder with continuous Optimal Transport Flow Matching and Spectral Covariance Regularization.
-    \item \textbf{NCAD-Flow:} Extends Neural Contextual Anomaly Detection \cite{carmona2021neural} by augmenting the continuous flow velocity objective with Contextual Outlier Exposure (COE), injecting synthetic anomalies as negative velocity trajectories during training.
+    \item \textbf{Patch-JEPA (Patch Transformer Baseline):} Segments context and suspect series into $M$ non-overlapping temporal patch tokens $Z_{\text{ctx}}, Z_{\text{tgt}} \in \mathbb{R}^{M \times D}$ via Transformer layers \cite{vaswani2017attention, dosovitskiy2020image}, optimizing deterministic patch-level embedding prediction:
+    \begin{equation}
+        \mathcal{L}_{\text{Patch-JEPA}} = \frac{1}{M}\sum_{m=1}^M \|\hat{Z}_{\text{tgt}}^{(m)} - Z_{\text{tgt}}^{(m)}\|_2^2 + \lambda_{\text{var}}\mathcal{L}_{\text{var}} + \lambda_{\text{cov}}\mathcal{L}_{\text{cov}}.
+    \end{equation}
+    \item \textbf{Flow-JEPA (Proposed Primary Architecture):} Employs dilated causal TCN encoders with continuous Optimal Transport Conditional Flow Matching ($\mathcal{L}_{\text{CFM}}$) predicting velocity field $v_\psi(z_t, t, z_{\text{ctx}})$ along straight probability paths, regularized by Spectral Covariance:
+    \begin{equation}
+        \mathcal{L}_{\text{Flow-JEPA}} = \mathcal{L}_{\text{CFM}} + \lambda_{\text{var}}\mathcal{L}_{\text{var}} + \lambda_{\text{cov}}\mathcal{L}_{\text{cov}}.
+    \end{equation}
+    \item \textbf{Patch-Flow:} Combines patch-tokenized Transformer encoders with token-wise Optimal Transport Flow Matching and Spectral Covariance Regularization:
+    \begin{equation}
+        \mathcal{L}_{\text{Patch-Flow}} = \frac{1}{M}\sum_{m=1}^M \mathbb{E}_{t, z_0^{(m)}} \left[\|v_\psi(Z_t^{(m)}, t, Z_{\text{ctx}}) - (Z_{\text{tgt}}^{(m)} - z_0^{(m)})\|_2^2\right] + \lambda_{\text{reg}}\mathcal{L}_{\text{reg}}.
+    \end{equation}
+    \item \textbf{NCAD-Flow:} Augments the continuous flow velocity objective with Contextual Outlier Exposure (COE) \cite{carmona2021neural} by generating synthetic corrupted context windows $\tilde{x}_{\text{ctx}}$ and enforcing a discriminative margin loss:
+    \begin{equation}
+        \mathcal{L}_{\text{NCAD-Flow}} = \mathcal{L}_{\text{CFM}}(x_{\text{ctx}}, x_{\text{tgt}}) + \alpha \max\left(0,\, \gamma - \|v_\psi(\bar{z}_{0.5}, 0.5, \tilde{z}_{\text{ctx}}) - z_{\text{tgt}}\|_2^2\right) + \lambda_{\text{reg}}\mathcal{L}_{\text{reg}},
+    \end{equation}
+    which explicitly penalizes the velocity network from matching corrupted trajectories to nominal physical targets.
 \end{enumerate}

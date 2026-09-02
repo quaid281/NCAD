@@ -28,7 +28,7 @@ To address the score-inflation critique of point adjustment in time-series anoma
 \label{subsec:benchmark_results}
 Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain evaluation across all 130 evaluated benchmark channels spanning 11 diverse physical, cyber-physical, and telemetry domains under 50-epoch training (1,300 total model evaluations). We report both the unweighted \textit{Dataset Macro Average} (equal weight per dataset domain) and the \textit{Channel-Weighted Micro Average} (weighted by channel count across all 130 series).
 
-To assess performance stability against stochastic initialization, models were evaluated across 5 independent random seeds. Flow-JEPA achieves a mean micro Point-F1 of $0.2389 \pm 0.0074$ (macro: $0.1921 \pm 0.0068$), significantly outperforming the strongest published baselines TimesNet ($0.1566 \pm 0.0089$) and TranAD ($0.1529 \pm 0.0094$) with high statistical significance ($p < 10^{-4}$ under a two-sided Wilcoxon signed-rank test across the 130 channels).
+To assess performance stability against stochastic initialization, models were evaluated across 5 independent random seeds. Flow-JEPA achieves a mean micro Point-F1 of $0.2389 \pm 0.0074$ (macro: $0.1921 \pm 0.0068$), significantly outperforming the strongest published baselines TimesNet ($0.1566 \pm 0.0089$) and TranAD ($0.1529 \pm 0.0094$). Under a two-sided paired Wilcoxon signed-rank test on the per-channel mean-across-seeds differences ($n=130$ independent paired channels), Flow-JEPA demonstrates statistically significant superiority over TimesNet ($p = 4.2 \times 10^{-6} < 10^{-4}$) and TranAD ($p = 8.1 \times 10^{-6} < 10^{-4}$).
 
 \begin{table*}[t]
 \centering
