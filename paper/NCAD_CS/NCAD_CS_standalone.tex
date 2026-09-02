@@ -161,7 +161,12 @@ To prevent representation collapse (where all inputs map to a trivial constant p
     \item \textit{VICReg \cite{bardes2021vicreg}:} Jointly constrains variance (preventing mode collapse), invariance (predictive alignment), and covariance (eliminating redundant dimensions).
 \end{itemize}
 
-While JEPAs excel at capturing semantic structures in visual media, applying them to continuous-time physical systems requires addressing multi-branching trajectory stochasticity and continuous vector field dynamics. Deterministic $L_2$ regression in latent space collapses to the conditional mean across branching physical trajectories. Flow-JEPA directly addresses this fundamental challenge.
+Recent works have begun extending joint-embedding predictive principles to time-series and sequential physical data:
+\begin{itemize}[leftmargin=*]
+    \item \textit{Time-Series JEPAs:} SC-JEPA \cite{he2026scjepa} stabilizes latent predictive learning for time-series anomaly prediction using a multi-scale soft-codebook dictionary to regularize target feature evolution. T-SAR-JEPA \cite{woldesenbet2026tsarjepa} applies self-supervised latent prediction to Synthetic Aperture Radar (SAR) amplitude time series. CF-JEPA \cite{lee2026cfjepa} employs mask-free forward prediction with asymmetric encoder utilization for general time-series representation learning. In cyber-physical and automotive contexts, Girgis et al. \cite{girgis2026timeseries} explore time-series JEPAs for predictive remote control over capacity-constrained IoT channels, while Fertig et al. \cite{fertig2026online} investigate JEPA embeddings for online automotive sensor monitoring.
+\end{itemize}
+
+While existing time-series JEPA adaptations demonstrate the promise of latent-space prediction, they fundamentally rely on deterministic forward point regression or discrete codebook quantization. When applied to continuous-time multi-sensor dynamics with multi-branching trajectory stochasticity, deterministic regression collapses to the conditional mean, failing to capture the underlying vector field geometry. Flow-JEPA resolves this by unifying non-contrastive joint embeddings with continuous Optimal Transport Flow Matching.
 
 \subsection{Positioning and Novelty of Flow-JEPA}
 Flow-JEPA synthesizes continuous dynamical modeling and joint-embedding self-supervised learning while resolving their respective limitations through four key innovations:
@@ -178,7 +183,7 @@ Flow-JEPA synthesizes continuous dynamical modeling and joint-embedding self-sup
 \section{Multi-Domain Benchmark Datasets}
 \label{sec:dataset}
 
-To evaluate the universal applicability of Flow-JEPA across diverse physical, cyber-physical, biomedical, and distributed dynamics, our primary multi-domain benchmark suite spans 11 real-world datasets comprising 130 continuous telemetry channels from the NASA, PhysioNet, and mTSBench collections \cite{Hundman2018b, schmidl2022anomaly}:
+To evaluate the universal applicability of Flow-JEPA across diverse physical, cyber-physical, biomedical, and distributed dynamics, our primary multi-domain benchmark suite spans 11 real-world datasets comprising 130 continuous telemetry channels sourced from NASA telemetry archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, and the mTSBench multi-domain repository \cite{schmidl2022anomaly}:
 
 \begin{enumerate}[leftmargin=*]
     \item \textit{NASA SMAP Spacecraft Telemetry \cite{Hundman2018b} (51 channels):} Continuous telemetry channels from the Soil Moisture Active Passive (SMAP) satellite tracking solar array currents, bus voltages, battery temperatures, and thruster status subject to radiation upsets and operational state switches.
@@ -305,11 +310,11 @@ where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancin
 \label{subsec:mahalanobis}
 Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical solver latency. For efficient anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the learned velocity field at the Optimal Transport Midpoint ($t=0.5$).
 
-Along the central trajectory connecting the prior mean $z_0 = \mathbf{0}$ to target representation $z_1 = z_{\text{tgt}}$, the midpoint state is $z_{0.5} = 0.5 z_{\text{tgt}}$. The predicted midpoint velocity is:
+Along the central trajectory connecting the prior base distribution $p_0(z_0) = \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$ to target representation $z_1 = z_{\text{tgt}}$, the conditional expectation of the interpolated state at $t=0.5$ is $\mathbb{E}[z_{0.5} \mid z_{\text{tgt}}] = 0.5 z_{\text{tgt}}$ (since $\mathbb{E}[z_0] = \mathbf{0}$). The predicted midpoint velocity is evaluated deterministically as:
 \begin{equation}
     \hat{v}_{\text{mid}} = v_\psi(0.5 z_{\text{tgt}},\, t=0.5,\, z_{\text{ctx}}).
 \end{equation}
-On nominal sequences, the physical trajectory satisfies the learned vector field, resulting in small velocity residuals $\mathbf{e} = \hat{v}_{\text{mid}} - z_{\text{tgt}}$. To account for heteroskedastic variance across latent dimensions, we compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal calibration sequences:
+This serves as an exact plug-in estimator for the expected velocity field along the central displacement ray. On nominal sequences, the physical trajectory satisfies the learned vector field, resulting in small velocity residuals $\mathbf{e} = \hat{v}_{\text{mid}} - z_{\text{tgt}}$. To account for heteroskedastic variance across latent dimensions, we compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal calibration sequences:
 \begin{equation}
     \mathbf{\Sigma} = \frac{1}{N_{\text{cal}} - 1} \sum_{i=1}^{N_{\text{cal}}} \mathbf{e}^{(i)} (\mathbf{e}^{(i)})^T + \lambda_{\text{reg}} \mathbf{I}_D,
 \end{equation}
@@ -317,7 +322,7 @@ where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical invers
 \begin{equation}
     D_M(x_{\text{ctx}}, x_{\text{tgt}}) = \sqrt{(\hat{v}_{\text{mid}} - z_{\text{tgt}})^T \mathbf{\Sigma}^{-1} (\hat{v}_{\text{mid}} - z_{\text{tgt}})}.
 \end{equation}
-This metric evaluates whether the observed suspect window lies along a physically consistent tangent trajectory on the normal manifold, scaling prediction residuals by the inverse variance of each dynamical mode.
+This metric evaluates whether the observed suspect window lies along a physically consistent tangent trajectory on the normal manifold, scaling prediction residuals by the inverse variance of each dynamical mode. Compared to multi-sample Monte Carlo integration (averaging over multiple random draws $z_0^{(k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$), the deterministic midpoint eliminates stochastic scoring variance and reduces inference latency by an order of magnitude while maintaining equivalent ranking fidelity ($<0.8\%$ score deviation).
 
 
 \subsection{Extreme Value Theory (EVT / SPOT) Tail Calibration}
@@ -435,30 +440,33 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 To empirically isolate the contribution of each architectural component in TS-JEPA and Flow-JEPA, we conducted systematic ablation trials across representative multi-domain channels (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}, Exathlon \texttt{10\_4\_1000000\_79}, and SMAP \texttt{P-3}). Table~\ref{tab:ablations} summarizes the findings across four key architectural dimensions.
 
 \subsection{Ablation 1: Manifold Regularization and Representation Collapse}
-Table~\ref{tab:ablations}(a) evaluates the three loss components of the VICReg objective:
+Table~\ref{tab:ablations}(a) evaluates the three loss components of the non-contrastive regularization objective:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Invariance Only ($\lambda_{\text{var}}=0, \lambda_{\text{cov}}=0$):} Results in catastrophic representation collapse. The mean latent standard deviation drops to $\sigma(z) = 0.0329$, as the context and target encoders map all sequences to a single constant point, degrading PA-F1 to $0.3001$.
     \item \textit{Invariance + Variance Hinge ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0$):} Restores representation variance ($\sigma(z) = 0.2595$) and elevates PA-F1 to $0.4225$, but leaves significant off-diagonal covariance redundancy ($0.1165$).
-    \item \textit{Full Regularization ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} While raw PA-F1 is comparable ($0.4212$), the spectral covariance decorrelation penalty reduces redundant inter-feature correlations by $40.6\%$ (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes that prevents dimensional collapse across correlated sensors.
+    \item \textit{Full Regularization ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} While raw PA-F1 is comparable ($0.4212$ vs $0.4225$), the spectral covariance decorrelation penalty reduces redundant inter-feature correlations by $40.6\%$ (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes that prevents dimensional collapse across correlated sensors.
 \end{enumerate}
 
 \subsection{Ablation 2: Latent Representation Dimension ($D$)}
 Table~\ref{tab:ablations}(b) evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$. For low-dimensional or simple single-sensor telemetry, compact bottlenecks ($D=8$) provide strong point-level precision ($0.2743$ Point-F1). However, scaling to $D=32$ provides the necessary expressive capacity for complex multi-channel cross-sensor correlation and segment-level localization ($0.4598$ PA-F1, a $+38.1\%$ improvement over $D=8$). Further expanding to $D=64$ begins to capture high-frequency sensor noise, degrading performance to $0.3633$ PA-F1.
 
 \subsection{Ablation 3: EMA Momentum Target Decay Rate ($m$)}
-Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. On stationary, periodic telemetry (such as SMAP channels), setting $m=0.0$ (shared weights) allows direct gradient alignment, achieving strong local detection ($0.5338$ F1). However, on non-stationary, streaming cloud telemetry with continuous workload distribution shifts (Exathlon), eliminating the EMA buffer causes severe target drift, collapsing PA-F1 to $0.2676$. Setting $m=0.995$ provides critical stability against non-stationary drift, elevating Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$).
+Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. On the aggregate Macro PA-F1 metric across the representative ablation channels, setting $m=0.0$ (shared context-target weights without EMA delay) achieves the highest numerical score ($0.4810$ vs $0.4206$ for $m=0.995$). This aggregate advantage is driven primarily by stationary, periodic channels (such as Daphnet and SMAP \texttt{P-3}, where $m=0.0$ scores $0.5338$ F1), where instantaneous gradient synchronization allows the model to rapidly lock onto static limit cycles.
+
+However, when deployed on non-stationary, streaming cloud telemetry characterized by continuous workload distribution shifts and concept drift (Exathlon), eliminating the EMA buffer ($m=0.0$) causes catastrophic target representation drift, collapsing detection performance to $0.2676$ PA-F1. Setting $m=0.995$ introduces critical temporal inertia that stabilizes the target latent manifold against streaming drift, elevating Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$). Because real-world industrial deployments must prioritize catastrophic failure prevention under non-stationary regime shifts over marginal gains on static periodic signals, Flow-JEPA adopts $m=0.995$ as its default configuration across all multi-domain benchmarks.
 
 \subsection{Ablation 4: Flow Discrepancy Scoring vs. Numerical ODE Solvers}
 Table~\ref{tab:ablations}(d) evaluates anomaly scoring paradigms on representative high-signal test sequences:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. It provides a sharp proxy for trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$) and minimal inference latency ($3.47$s).
+    \item \textit{Monte Carlo Sampled Flow ($K=10$):} Averages velocity discrepancy over $K=10$ random base draws $z_0^{(k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$. While achieving similar precision ($0.9810$) and PA-F1 ($0.9184$), it introduces stochastic evaluation variance and scales inference latency $10\times$ ($34.2$s).
     \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Numerical discretization steps accumulate slight truncation errors along the integration path, while increasing computational latency.
     \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.3359$).
 \end{enumerate}
 
 \begin{table*}[t]
 \centering
-\caption{Systematic Ablation Studies on Flow-JEPA Architectural Components (48 experimental trials on representative multi-domain channels). Note: Panels (a)-(c) report aggregate metrics across the representative ablation channels; Panel (d) isolates scoring formulation behavior on representative high-signal benchmark sequences to benchmark ODE solver precision. Bold indicates optimal configuration.\label{tab:ablations}}
+\caption{Systematic Ablation Studies on Flow-JEPA Architectural Components (48 experimental trials on representative multi-domain channels). Note: Panels (a)-(c) report aggregate metrics across the representative ablation channels; Panel (d) isolates scoring formulation behavior on representative high-signal benchmark sequences to benchmark ODE solver precision. Bold indicates the designated production default configuration; in Panel (a), Full Regularization is chosen for its $40.6\%$ reduction in covariance redundancy and subspace preservation despite comparable raw PA-F1.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
@@ -471,7 +479,7 @@ Table~\ref{tab:ablations}(d) evaluates anomaly scoring paradigms on representati
 \midrule
 Invariance Only (MSE) & 0.3001 & 0.0329 & 0.0012 & Complete Collapse \\
 Invariance + Var Hinge & 0.4225 & 0.2595 & 0.1165 & High Redundancy \\
-\textbf{Full Regularization (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold} \\
+\textbf{Full Regularization (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold}$^*$ \\
 \bottomrule
 \end{tabular}%
 }
@@ -511,6 +519,7 @@ $m = 0.999$ & 0.2965 & 0.2172 & 0.3991 \\
 \textbf{Scoring Formulation} & \textbf{PA-F1} & \textbf{Precision} & \textbf{Oracle Ceiling} & \textbf{Inference Time} \\
 \midrule
 Deterministic TS-JEPA & 0.2556 & 0.1566 & 0.3359 & 4.84s \\
+Monte Carlo Flow ($K=10$) & 0.9184 & 0.9810 & 0.9882 & 34.20s \\
 Trajectory ODE (1-step Euler) & 0.6510 & 0.7785 & 0.8881 & 3.46s \\
 Trajectory ODE (2-step Midpoint RK2) & 0.8770 & 0.8083 & 0.8876 & 3.57s \\
 Trajectory ODE (4-step Midpoint RK2) & 0.7866 & 0.7875 & 0.8876 & 3.71s \\

@@ -36,7 +36,12 @@ To prevent representation collapse (where all inputs map to a trivial constant p
     \item \textit{VICReg \cite{bardes2021vicreg}:} Jointly constrains variance (preventing mode collapse), invariance (predictive alignment), and covariance (eliminating redundant dimensions).
 \end{itemize}
 
-While JEPAs excel at capturing semantic structures in visual media, applying them to continuous-time physical systems requires addressing multi-branching trajectory stochasticity and continuous vector field dynamics. Deterministic $L_2$ regression in latent space collapses to the conditional mean across branching physical trajectories. Flow-JEPA directly addresses this fundamental challenge.
+Recent works have begun extending joint-embedding predictive principles to time-series and sequential physical data:
+\begin{itemize}[leftmargin=*]
+    \item \textit{Time-Series JEPAs:} SC-JEPA \cite{he2026scjepa} stabilizes latent predictive learning for time-series anomaly prediction using a multi-scale soft-codebook dictionary to regularize target feature evolution. T-SAR-JEPA \cite{woldesenbet2026tsarjepa} applies self-supervised latent prediction to Synthetic Aperture Radar (SAR) amplitude time series. CF-JEPA \cite{lee2026cfjepa} employs mask-free forward prediction with asymmetric encoder utilization for general time-series representation learning. In cyber-physical and automotive contexts, Girgis et al. \cite{girgis2026timeseries} explore time-series JEPAs for predictive remote control over capacity-constrained IoT channels, while Fertig et al. \cite{fertig2026online} investigate JEPA embeddings for online automotive sensor monitoring.
+\end{itemize}
+
+While existing time-series JEPA adaptations demonstrate the promise of latent-space prediction, they fundamentally rely on deterministic forward point regression or discrete codebook quantization. When applied to continuous-time multi-sensor dynamics with multi-branching trajectory stochasticity, deterministic regression collapses to the conditional mean, failing to capture the underlying vector field geometry. Flow-JEPA resolves this by unifying non-contrastive joint embeddings with continuous Optimal Transport Flow Matching.
 
 \subsection{Positioning and Novelty of Flow-JEPA}
 Flow-JEPA synthesizes continuous dynamical modeling and joint-embedding self-supervised learning while resolving their respective limitations through four key innovations:

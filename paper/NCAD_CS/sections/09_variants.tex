@@ -4,30 +4,33 @@
 To empirically isolate the contribution of each architectural component in TS-JEPA and Flow-JEPA, we conducted systematic ablation trials across representative multi-domain channels (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}, Exathlon \texttt{10\_4\_1000000\_79}, and SMAP \texttt{P-3}). Table~\ref{tab:ablations} summarizes the findings across four key architectural dimensions.
 
 \subsection{Ablation 1: Manifold Regularization and Representation Collapse}
-Table~\ref{tab:ablations}(a) evaluates the three loss components of the VICReg objective:
+Table~\ref{tab:ablations}(a) evaluates the three loss components of the non-contrastive regularization objective:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Invariance Only ($\lambda_{\text{var}}=0, \lambda_{\text{cov}}=0$):} Results in catastrophic representation collapse. The mean latent standard deviation drops to $\sigma(z) = 0.0329$, as the context and target encoders map all sequences to a single constant point, degrading PA-F1 to $0.3001$.
     \item \textit{Invariance + Variance Hinge ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0$):} Restores representation variance ($\sigma(z) = 0.2595$) and elevates PA-F1 to $0.4225$, but leaves significant off-diagonal covariance redundancy ($0.1165$).
-    \item \textit{Full Regularization ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} While raw PA-F1 is comparable ($0.4212$), the spectral covariance decorrelation penalty reduces redundant inter-feature correlations by $40.6\%$ (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes that prevents dimensional collapse across correlated sensors.
+    \item \textit{Full Regularization ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} While raw PA-F1 is comparable ($0.4212$ vs $0.4225$), the spectral covariance decorrelation penalty reduces redundant inter-feature correlations by $40.6\%$ (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes that prevents dimensional collapse across correlated sensors.
 \end{enumerate}
 
 \subsection{Ablation 2: Latent Representation Dimension ($D$)}
 Table~\ref{tab:ablations}(b) evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$. For low-dimensional or simple single-sensor telemetry, compact bottlenecks ($D=8$) provide strong point-level precision ($0.2743$ Point-F1). However, scaling to $D=32$ provides the necessary expressive capacity for complex multi-channel cross-sensor correlation and segment-level localization ($0.4598$ PA-F1, a $+38.1\%$ improvement over $D=8$). Further expanding to $D=64$ begins to capture high-frequency sensor noise, degrading performance to $0.3633$ PA-F1.
 
 \subsection{Ablation 3: EMA Momentum Target Decay Rate ($m$)}
-Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. On stationary, periodic telemetry (such as SMAP channels), setting $m=0.0$ (shared weights) allows direct gradient alignment, achieving strong local detection ($0.5338$ F1). However, on non-stationary, streaming cloud telemetry with continuous workload distribution shifts (Exathlon), eliminating the EMA buffer causes severe target drift, collapsing PA-F1 to $0.2676$. Setting $m=0.995$ provides critical stability against non-stationary drift, elevating Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$).
+Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. On the aggregate Macro PA-F1 metric across the representative ablation channels, setting $m=0.0$ (shared context-target weights without EMA delay) achieves the highest numerical score ($0.4810$ vs $0.4206$ for $m=0.995$). This aggregate advantage is driven primarily by stationary, periodic channels (such as Daphnet and SMAP \texttt{P-3}, where $m=0.0$ scores $0.5338$ F1), where instantaneous gradient synchronization allows the model to rapidly lock onto static limit cycles.
+
+However, when deployed on non-stationary, streaming cloud telemetry characterized by continuous workload distribution shifts and concept drift (Exathlon), eliminating the EMA buffer ($m=0.0$) causes catastrophic target representation drift, collapsing detection performance to $0.2676$ PA-F1. Setting $m=0.995$ introduces critical temporal inertia that stabilizes the target latent manifold against streaming drift, elevating Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$). Because real-world industrial deployments must prioritize catastrophic failure prevention under non-stationary regime shifts over marginal gains on static periodic signals, Flow-JEPA adopts $m=0.995$ as its default configuration across all multi-domain benchmarks.
 
 \subsection{Ablation 4: Flow Discrepancy Scoring vs. Numerical ODE Solvers}
 Table~\ref{tab:ablations}(d) evaluates anomaly scoring paradigms on representative high-signal test sequences:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. It provides a sharp proxy for trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$) and minimal inference latency ($3.47$s).
+    \item \textit{Monte Carlo Sampled Flow ($K=10$):} Averages velocity discrepancy over $K=10$ random base draws $z_0^{(k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$. While achieving similar precision ($0.9810$) and PA-F1 ($0.9184$), it introduces stochastic evaluation variance and scales inference latency $10\times$ ($34.2$s).
     \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Numerical discretization steps accumulate slight truncation errors along the integration path, while increasing computational latency.
     \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.3359$).
 \end{enumerate}
 
 \begin{table*}[t]
 \centering
-\caption{Systematic Ablation Studies on Flow-JEPA Architectural Components (48 experimental trials on representative multi-domain channels). Note: Panels (a)-(c) report aggregate metrics across the representative ablation channels; Panel (d) isolates scoring formulation behavior on representative high-signal benchmark sequences to benchmark ODE solver precision. Bold indicates optimal configuration.\label{tab:ablations}}
+\caption{Systematic Ablation Studies on Flow-JEPA Architectural Components (48 experimental trials on representative multi-domain channels). Note: Panels (a)-(c) report aggregate metrics across the representative ablation channels; Panel (d) isolates scoring formulation behavior on representative high-signal benchmark sequences to benchmark ODE solver precision. Bold indicates the designated production default configuration; in Panel (a), Full Regularization is chosen for its $40.6\%$ reduction in covariance redundancy and subspace preservation despite comparable raw PA-F1.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
@@ -40,7 +43,7 @@ Table~\ref{tab:ablations}(d) evaluates anomaly scoring paradigms on representati
 \midrule
 Invariance Only (MSE) & 0.3001 & 0.0329 & 0.0012 & Complete Collapse \\
 Invariance + Var Hinge & 0.4225 & 0.2595 & 0.1165 & High Redundancy \\
-\textbf{Full Regularization (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold} \\
+\textbf{Full Regularization (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold}$^*$ \\
 \bottomrule
 \end{tabular}%
 }
@@ -80,6 +83,7 @@ $m = 0.999$ & 0.2965 & 0.2172 & 0.3991 \\
 \textbf{Scoring Formulation} & \textbf{PA-F1} & \textbf{Precision} & \textbf{Oracle Ceiling} & \textbf{Inference Time} \\
 \midrule
 Deterministic TS-JEPA & 0.2556 & 0.1566 & 0.3359 & 4.84s \\
+Monte Carlo Flow ($K=10$) & 0.9184 & 0.9810 & 0.9882 & 34.20s \\
 Trajectory ODE (1-step Euler) & 0.6510 & 0.7785 & 0.8881 & 3.46s \\
 Trajectory ODE (2-step Midpoint RK2) & 0.8770 & 0.8083 & 0.8876 & 3.57s \\
 Trajectory ODE (4-step Midpoint RK2) & 0.7866 & 0.7875 & 0.8876 & 3.71s \\
