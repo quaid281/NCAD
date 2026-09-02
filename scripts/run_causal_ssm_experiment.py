@@ -283,8 +283,14 @@ def run_causal_ssm_experiment(
     point_scores = point_scores / counts
 
     # Compute metrics under EVT and Conformal Thresholds
-    evt_metrics = compute_metrics(test_labels, point_scores, evt_res.threshold)
-    conformal_metrics = compute_metrics(test_labels, point_scores, conf_res.threshold)
+    evt_binary = (point_scores > evt_res.threshold).astype(np.float32)
+    conf_binary = (point_scores > conf_res.threshold).astype(np.float32)
+
+    evt_point = compute_metrics(test_labels, evt_binary, use_pa=False)
+    evt_pa = compute_metrics(test_labels, evt_binary, use_pa=True)
+
+    conf_point = compute_metrics(test_labels, conf_binary, use_pa=False)
+    conf_pa = compute_metrics(test_labels, conf_binary, use_pa=True)
 
     # Compute empirical false alarm rate on normal timesteps
     nominal_mask = test_labels == 0
@@ -302,33 +308,32 @@ def run_causal_ssm_experiment(
     logger.info("=" * 80)
     logger.info(f"EXPERIMENT RESULTS: {dataset_name} (Channel: {channel_name}) in {elapsed:.2f}s")
     logger.info("=" * 80)
-    logger.info(f"1. Strict Point-F1 (EVT):       {evt_metrics.point_f1:.4f} (Precision: {evt_metrics.point_precision:.4f}, Recall: {evt_metrics.point_recall:.4f})")
-    logger.info(f"2. Legacy PA-F1 (EVT):          {evt_metrics.pa_f1:.4f} (Precision: {evt_metrics.pa_precision:.4f}, Recall: {evt_metrics.pa_recall:.4f})")
-    logger.info(f"3. Strict Point-F1 (Conformal): {conformal_metrics.point_f1:.4f} (Precision: {conformal_metrics.point_precision:.4f}, Recall: {conformal_metrics.point_recall:.4f})")
-    logger.info(f"4. Legacy PA-F1 (Conformal):    {conformal_metrics.pa_f1:.4f} (Precision: {conformal_metrics.pa_precision:.4f}, Recall: {conformal_metrics.pa_recall:.4f})")
+    logger.info(f"1. Strict Point-F1 (EVT):       {evt_point.get('f1', 0.0):.4f} (Precision: {evt_point.get('precision', 0.0):.4f}, Recall: {evt_point.get('recall', 0.0):.4f})")
+    logger.info(f"2. Legacy PA-F1 (EVT):          {evt_pa.get('f1', 0.0):.4f} (Precision: {evt_pa.get('precision', 0.0):.4f}, Recall: {evt_pa.get('recall', 0.0):.4f})")
+    logger.info(f"3. Strict Point-F1 (Conformal): {conf_point.get('f1', 0.0):.4f} (Precision: {conf_point.get('precision', 0.0):.4f}, Recall: {conf_point.get('recall', 0.0):.4f})")
+    logger.info(f"4. Legacy PA-F1 (Conformal):    {conf_pa.get('f1', 0.0):.4f} (Precision: {conf_pa.get('precision', 0.0):.4f}, Recall: {conf_pa.get('recall', 0.0):.4f})")
     logger.info(f"5. Conformal Guarantees:        Target alpha={alpha:.4f} | Empirical False Alarm Rate={conf_fa_rate:.4f} | Anomaly Detection Rate={conf_recall:.4f}")
     if n_channels > 1 and len(top_causes_list) > 0:
         top_causes_arr = np.array(top_causes_list)
-        # Find root cause channels during actual anomaly segments
         anom_window_indices = np.where(raw_window_scores > conf_res.threshold)[0]
         if len(anom_window_indices) > 0:
             active_top_causes = top_causes_arr[anom_window_indices, 0]
             top_ch, counts = np.unique(active_top_causes, return_counts=True)
             top_order = np.argsort(counts)[::-1]
-            root_cause_str = ", ".join([f"Channel {top_ch[k]} ({100 * counts[top_order[k]] / len(active_top_causes):.1f}%)" for k in range(min(3, len(top_ch)))])
+            root_cause_str = ", ".join([f"Channel {top_ch[top_order[k]]} ({100 * counts[top_order[k]] / len(active_top_causes):.1f}%)" for k in range(min(3, len(top_ch)))])
             logger.info(f"6. Causal Root-Cause Attribution: Top Fault Contributors: {root_cause_str}")
 
-    logger.info(f"7. Learned Causal Graph Adjacency Shape: {mean_adj.shape} | Matrix Sparsity: {100 * np.mean(mean_adj < 0.05):.1f}%")
+    logger.info(f"7. Learned Causal Graph Adjacency Shape: {mean_adj.shape} | Matrix Sparsity (<0.05): {100 * np.mean(mean_adj < 0.05):.1f}%")
     logger.info("=" * 80)
 
     return {
         "dataset": dataset_name,
         "channel": channel_name,
         "elapsed_sec": elapsed,
-        "point_f1_evt": evt_metrics.point_f1,
-        "pa_f1_evt": evt_metrics.pa_f1,
-        "point_f1_conformal": conformal_metrics.point_f1,
-        "pa_f1_conformal": conformal_metrics.pa_f1,
+        "point_f1_evt": evt_point.get("f1", 0.0),
+        "pa_f1_evt": evt_pa.get("f1", 0.0),
+        "point_f1_conformal": conf_point.get("f1", 0.0),
+        "pa_f1_conformal": conf_pa.get("f1", 0.0),
         "conformal_fa_rate": conf_fa_rate,
         "conformal_recall": conf_recall,
         "mean_adjacency": mean_adj,
