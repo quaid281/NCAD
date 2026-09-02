@@ -26,9 +26,9 @@ To resolve raw-space numerical noise bottlenecks and the reconstruction/collapse
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/daphnet_phase_space_attractor.png}
-    \caption{Phase-space dynamical analysis and anomaly detection with TS-JEPA. (a) Raw multi-sensor accelerometry with ground-truth freezing-of-gait anomalies. (b) TS-JEPA latent discrepancy score $S(t)$ with EVT-calibrated decision threshold. (c) 2D and (d) 3D latent phase space: nominal dynamics form a stable periodic limit cycle (blue orbit), which the JEPA predictor anticipates with near-zero error (green dashed line). When an anomaly occurs, the trajectory catastrophically diverges from the attractor manifold (red line), generating a sharp, unambiguous anomaly signal.}
-    \label{fig:phase_space_attractor}
+    \caption{Phase-space dynamical analysis and anomaly detection with TS-JEPA. (a) Raw multi-sensor accelerometry with ground-truth freezing-of-gait anomalies. (b) TS-JEPA latent discrepancy score $S(t)$ with EVT-calibrated decision threshold. (c) 2D and (d) 3D latent phase space: nominal dynamics form a stable periodic limit cycle (blue orbit), which the JEPA predictor anticipates with near-zero error (green dashed line). When an anomaly occurs, the trajectory catastrophically diverges from the attractor manifold (red line), generating a sharp, unambiguous anomaly signal.\label{fig:phase_space_attractor}}
 \end{figure*}
+
 
 As illustrated in Figure~\ref{fig:phase_space_attractor}, TS-JEPA maps nominal system behavior into stable limit-cycle attractors in representation space. A causal dilated Temporal Convolutional Network (TCN) or Patch Transformer context encoder processes historical context $x_{\text{ctx}}$, while a flow velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ models the continuous probability paths leading to target representations $z_{\text{tgt}}$. The representation space is regularized via non-contrastive VICReg (Invariance, Variance hinge, Covariance decorrelation) \cite{bardes2021vicreg} to strictly preclude dimensional collapse.
 

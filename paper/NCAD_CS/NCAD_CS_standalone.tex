@@ -7,10 +7,9 @@
 \usepackage{amsmath}
 \usepackage{amssymb}        % Math symbols
 \usepackage{amsfonts}       % Math fonts
-\usepackage{amsthm}        % Theorem environments
+\usepackage{amsthm}         % Theorem environments
 \usepackage{bm}             % Bold math symbols (\bm)
 \usepackage{graphicx}       % Include graphics
-\usepackage{caption}        % Custom captions
 \usepackage{microtype}      % Improved typography and justification
 \usepackage{cite}           % Handles citations like [1]-[3]
 \usepackage{soul}           % For \hl{} highlighting
@@ -32,7 +31,7 @@
 \newtheorem{lemma}{Lemma}
 
 \sethlcolor{yellow}
-\captionsetup{font=footnotesize, labelfont=bf, skip=4pt}
+
 
 
 
@@ -97,9 +96,9 @@ To resolve raw-space numerical noise bottlenecks and the reconstruction/collapse
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/daphnet_phase_space_attractor.png}
-    \caption{Phase-space dynamical analysis and anomaly detection with TS-JEPA. (a) Raw multi-sensor accelerometry with ground-truth freezing-of-gait anomalies. (b) TS-JEPA latent discrepancy score $S(t)$ with EVT-calibrated decision threshold. (c) 2D and (d) 3D latent phase space: nominal dynamics form a stable periodic limit cycle (blue orbit), which the JEPA predictor anticipates with near-zero error (green dashed line). When an anomaly occurs, the trajectory catastrophically diverges from the attractor manifold (red line), generating a sharp, unambiguous anomaly signal.}
-    \label{fig:phase_space_attractor}
+    \caption{Phase-space dynamical analysis and anomaly detection with TS-JEPA. (a) Raw multi-sensor accelerometry with ground-truth freezing-of-gait anomalies. (b) TS-JEPA latent discrepancy score $S(t)$ with EVT-calibrated decision threshold. (c) 2D and (d) 3D latent phase space: nominal dynamics form a stable periodic limit cycle (blue orbit), which the JEPA predictor anticipates with near-zero error (green dashed line). When an anomaly occurs, the trajectory catastrophically diverges from the attractor manifold (red line), generating a sharp, unambiguous anomaly signal.\label{fig:phase_space_attractor}}
 \end{figure*}
+
 
 As illustrated in Figure~\ref{fig:phase_space_attractor}, TS-JEPA maps nominal system behavior into stable limit-cycle attractors in representation space. A causal dilated Temporal Convolutional Network (TCN) or Patch Transformer context encoder processes historical context $x_{\text{ctx}}$, while a flow velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ models the continuous probability paths leading to target representations $z_{\text{tgt}}$. The representation space is regularized via non-contrastive VICReg (Invariance, Variance hinge, Covariance decorrelation) \cite{bardes2021vicreg} to strictly preclude dimensional collapse.
 
@@ -207,9 +206,9 @@ Each benchmark series provides pre-split training sequences (consisting exclusiv
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/flow_jepa_training.png}
-\caption{\textbf{Flow-JEPA self-supervised training architecture.} The context window $\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{C \times K}$ and target window $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{S \times K}$ are mapped to latent space by context encoder $E_\theta$ (trained with active gradients $\nabla_\theta$) and momentum target encoder $E_\phi$ (EMA replica with stop-gradient $\bot$). Straight Optimal Transport probability paths $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_{\text{tgt}}$ are sampled between base prior $\mathbf{z}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and target $\mathbf{z}_{\text{tgt}}$. The continuous flow predictor $v_\psi$ learns the instantaneous velocity field conditioned on $\mathbf{z}_{\text{ctx}}$ and sinusoidal time $\mathbf{e}(t)$, optimized under joint Flow-Matching ($\mathcal{L}_{\text{CFM}}$), Variance Hinge ($\mathcal{L}_{\text{var}}$), and Quantum Von Neumann Operator Entropy ($\mathcal{L}_{\text{cov}}$) regularization.}
-\label{fig:flow_jepa_training}
+\caption{Flow-JEPA self-supervised training architecture. The context window $\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{C \times K}$ and target window $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{S \times K}$ are mapped to latent space by context encoder $E_\theta$ (trained with active gradients $\nabla_\theta$) and momentum target encoder $E_\phi$ (EMA replica with stop-gradient $\bot$). Straight Optimal Transport probability paths $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_{\text{tgt}}$ are sampled between base prior $\mathbf{z}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and target $\mathbf{z}_{\text{tgt}}$. The continuous flow predictor $v_\psi$ learns the instantaneous velocity field conditioned on $\mathbf{z}_{\text{ctx}}$ and sinusoidal time $\mathbf{e}(t)$, optimized under joint Flow-Matching ($\mathcal{L}_{\text{CFM}}$), Variance Hinge ($\mathcal{L}_{\text{var}}$), and Quantum Von Neumann Operator Entropy ($\mathcal{L}_{\text{cov}}$) regularization.\label{fig:flow_jepa_training}}
 \end{figure*}
+
 
 This section details the architecture, continuous velocity field formulation, non-contrastive manifold regularization, and statistical inference framework of Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture).
 
@@ -292,21 +291,20 @@ To prevent representation collapse (where the encoder collapses all temporal tra
 
 The complete Flow-JEPA training objective is minimized jointly over encoder parameters $\theta$ and flow predictor parameters $\psi$:
 \begin{equation}
+\label{eq:total_loss}
 \begin{aligned}
     \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CFM}}(\psi) &+ \lambda_{\text{var}} \left[ \mathcal{L}_{\text{var}}(z_{\text{ctx}}) + \mathcal{L}_{\text{var}}(z_{\text{tgt}}) \right] \\
     &+ \lambda_{\text{cov}} \left[ \mathcal{L}_{\text{cov}}(z_{\text{ctx}}) + \mathcal{L}_{\text{cov}}(z_{\text{tgt}}) \right],
 \end{aligned}
-\label{eq:total_loss}
 \end{equation}
 where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancing hyperparameters.
-
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/flow_jepa_inference.png}
-\caption{\textbf{Deterministic zero-variance inference and Extreme Value Theory (EVT) tail calibration pipeline.} \textbf{(1) Optimal Transport Midpoint ($t=0.5$):} Setting prior mean $\mathbf{z}_0 = \mathbf{0}$ defines a deterministic ray to the midpoint $\mathbf{z}_{0.5} = 0.5\mathbf{z}_{\text{tgt}}$, evaluated in a single forward pass without Monte Carlo sampling variance. \textbf{(2) Dynamic Velocity Residual:} Discrepancy $\mathbf{e} = \hat{\mathbf{v}}_{\text{mid}} - \mathbf{z}_{\text{tgt}}$ measures physical deviation from nominal tangent trajectories. \textbf{(3) Covariance Whitening:} Nominal residuals calibrate the precision matrix $\mathbf{\Sigma}^{-1}$, yielding mode-variance normalized Mahalanobis distance $D_M$. \textbf{(4) EVT Tail Calibration:} Upper $2\%$ nominal tail is fitted to a Generalized Pareto Distribution (GPD), yielding exact analytical threshold $\tau_{\text{EVT}}$ without test-label leakage.}
-\label{fig:flow_jepa_inference}
+\caption{Deterministic zero-variance inference and Extreme Value Theory (EVT) tail calibration pipeline. (1) Optimal Transport Midpoint ($t=0.5$): Setting prior mean $\mathbf{z}_0 = \mathbf{0}$ defines a deterministic ray to the midpoint $\mathbf{z}_{0.5} = 0.5\mathbf{z}_{\text{tgt}}$, evaluated in a single forward pass without Monte Carlo sampling variance. (2) Dynamic Velocity Residual: Discrepancy $\mathbf{e} = \hat{\mathbf{v}}_{\text{mid}} - \mathbf{z}_{\text{tgt}}$ measures physical deviation from nominal tangent trajectories. (3) Covariance Whitening: Nominal residuals calibrate the precision matrix $\mathbf{\Sigma}^{-1}$, yielding mode-variance normalized Mahalanobis distance $D_M$. (4) EVT Tail Calibration: Upper $2\%$ nominal tail is fitted to a Generalized Pareto Distribution (GPD), yielding exact analytical threshold $\tau_{\text{EVT}}$ without test-label leakage.\label{fig:flow_jepa_inference}}
 \end{figure*}
+
 
 \subsection{Deterministic Midpoint Velocity Discrepancy \& Chebyshev Collocation}
 \label{subsec:mahalanobis}
@@ -383,32 +381,56 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 
 \begin{table*}[t]
 \centering
-\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Pt-F1) and Secondary Legacy Point-Adjusted F1 (PA-F1) across 1,300 total model-channel runs. Bold indicates the top-performing score for Pt-F1 (left) and PA-F1 (right) independently.}
-\label{tab:multidataset_benchmark}
+\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Panel a) and Secondary Legacy Point-Adjusted F1 (Panel b) across 1,300 total model-channel runs. Bold indicates the top-performing model per row.\label{tab:multidataset_benchmark}}
+\vspace{2pt}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lc ccccc ccccc@{}}
 \toprule
-\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published SOTA Baselines (Pt-F1 / PA-F1)}} & \multicolumn{5}{c}{\textbf{Our Proposed Joint-Embedding \& Flow Frameworks (Pt-F1 / PA-F1)}} \\
+\multicolumn{12}{c}{\textbf{(a) Primary Unadjusted Point-F1 Score (Pt-F1) --- Strict Timestep-Level Metric}} \\
+\midrule
+\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published SOTA Baselines}} & \multicolumn{5}{c}{\textbf{Our Proposed Joint-Embedding \& Flow Frameworks}} \\
 \cmidrule(lr){3-7} \cmidrule(lr){8-12}
  & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{TS-JEPA} & \textbf{Patch-JEPA} & \textbf{Flow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-Flow} \\
 \midrule
-\textbf{SMAP} & 51 & 0.183 / 0.220 & 0.178 / 0.289 & 0.048 / 0.117 & 0.137 / 0.289 & 0.126 / 0.347 & 0.265 / 0.375 & 0.126 / 0.172 & 0.285 / \textbf{0.459} & 0.121 / 0.203 & \textbf{0.294} / 0.455 \\
-\textbf{MSL} & 26 & 0.206 / 0.378 & 0.174 / 0.365 & 0.106 / 0.218 & 0.064 / 0.251 & 0.066 / 0.193 & 0.217 / 0.499 & 0.130 / 0.390 & \textbf{0.265} / 0.470 & 0.143 / 0.409 & 0.254 / \textbf{0.519} \\
-\textbf{Daphnet} & 26 & 0.103 / 0.276 & 0.146 / 0.355 & 0.111 / 0.518 & 0.118 / 0.417 & 0.071 / 0.425 & 0.211 / 0.396 & \textbf{0.275} / \textbf{0.557} & 0.234 / 0.402 & 0.235 / 0.532 & 0.182 / 0.358 \\
-\textbf{GHL} & 14 & 0.008 / 0.075 & 0.025 / 0.031 & 0.030 / 0.201 & 0.000 / 0.000 & 0.005 / 0.104 & 0.107 / 0.181 & 0.190 / 0.200 & 0.104 / 0.115 & \textbf{0.225} / \textbf{0.262} & 0.001 / 0.007 \\
-\textbf{cicids} & 6 & 0.105 / 0.192 & 0.186 / 0.216 & 0.020 / 0.059 & 0.004 / 0.004 & 0.084 / 0.285 & 0.043 / 0.271 & 0.040 / 0.232 & 0.111 / 0.355 & 0.018 / 0.204 & \textbf{0.260} / \textbf{0.367} \\
-\textbf{room-occupancy} & 2 & \textbf{0.635} / \textbf{0.718} & 0.525 / 0.535 & 0.318 / 0.426 & 0.213 / 0.320 & 0.088 / 0.373 & 0.356 / 0.356 & 0.338 / 0.338 & 0.338 / 0.338 & 0.368 / 0.368 & 0.338 / 0.339 \\
-\textbf{GECCO} & 1 & 0.030 / 0.030 & 0.030 / 0.030 & 0.125 / 0.172 & \textbf{0.360} / 0.364 & 0.255 / \textbf{0.545} & 0.262 / 0.328 & 0.180 / 0.528 & 0.320 / 0.321 & 0.244 / 0.505 & 0.040 / 0.044 \\
-\textbf{Genesis} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.164} / 0.164 & 0.000 / 0.000 & 0.000 / 0.000 & 0.026 / 0.057 & 0.154 / 0.180 & 0.019 / 0.116 & 0.144 / 0.144 & 0.038 / \textbf{0.225} \\
-\textbf{swan} & 1 & 0.354 / 0.681 & 0.261 / 0.654 & 0.091 / \textbf{0.724} & 0.016 / 0.017 & 0.060 / 0.721 & 0.221 / 0.681 & 0.154 / 0.699 & 0.346 / 0.620 & 0.124 / 0.712 & \textbf{0.629} / 0.705 \\
-\textbf{CalIt2} & 1 & 0.147 / 0.150 & 0.135 / 0.170 & \textbf{0.179} / 0.179 & 0.080 / 0.177 & 0.090 / 0.090 & 0.121 / 0.154 & \textbf{0.179} / \textbf{0.211} & 0.091 / 0.109 & 0.136 / 0.175 & 0.077 / 0.077 \\
-\textbf{metro} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.004} / \textbf{0.004} & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 \\
+\textbf{SMAP} & 51 & 0.183 & 0.178 & 0.048 & 0.137 & 0.126 & 0.265 & 0.126 & 0.285 & 0.121 & \textbf{0.294} \\
+\textbf{MSL} & 26 & 0.206 & 0.174 & 0.106 & 0.064 & 0.066 & 0.217 & 0.130 & \textbf{0.265} & 0.143 & 0.254 \\
+\textbf{Daphnet} & 26 & 0.103 & 0.146 & 0.111 & 0.118 & 0.071 & 0.211 & \textbf{0.275} & 0.234 & 0.235 & 0.182 \\
+\textbf{GHL} & 14 & 0.008 & 0.025 & 0.030 & 0.000 & 0.005 & 0.107 & 0.190 & 0.104 & \textbf{0.225} & 0.001 \\
+\textbf{cicids} & 6 & 0.105 & 0.186 & 0.020 & 0.004 & 0.084 & 0.043 & 0.040 & 0.111 & 0.018 & \textbf{0.260} \\
+\textbf{room-occupancy} & 2 & \textbf{0.635} & 0.525 & 0.318 & 0.213 & 0.088 & 0.356 & 0.338 & 0.338 & 0.368 & 0.338 \\
+\textbf{GECCO} & 1 & 0.030 & 0.030 & 0.125 & \textbf{0.360} & 0.255 & 0.262 & 0.180 & 0.320 & 0.244 & 0.040 \\
+\textbf{Genesis} & 1 & 0.000 & 0.000 & \textbf{0.164} & 0.000 & 0.000 & 0.026 & 0.154 & 0.019 & 0.144 & 0.038 \\
+\textbf{swan} & 1 & 0.354 & 0.261 & 0.091 & 0.016 & 0.060 & 0.221 & 0.154 & 0.346 & 0.124 & \textbf{0.629} \\
+\textbf{CalIt2} & 1 & 0.147 & 0.135 & \textbf{0.179} & 0.080 & 0.090 & 0.121 & \textbf{0.179} & 0.091 & 0.136 & 0.077 \\
+\textbf{metro} & 1 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & \textbf{0.004} & 0.000 & 0.000 & 0.000 & 0.000 \\
 \midrule
-\textbf{Grand Macro Avg} & \textbf{130} & 0.1529 / 0.2517 & 0.1566 / 0.2853 & 0.0756 / 0.2334 & 0.0971 / 0.2564 & 0.0859 / 0.3000 & 0.2137 / 0.3731 & 0.1632 / 0.3065 & \textbf{0.2389} / \textbf{0.3973} & 0.1587 / 0.3230 & 0.2258 / 0.3849 \\
+\textbf{Grand Macro Avg} & \textbf{130} & 0.1529 & 0.1566 & 0.0756 & 0.0971 & 0.0859 & 0.2137 & 0.1632 & \textbf{0.2389} & 0.1587 & 0.2258 \\
+\bottomrule
+\toprule
+\multicolumn{12}{c}{\textbf{(b) Secondary Legacy Point-Adjusted F1 Score (PA-F1) --- Segment-Adjusted Metric}} \\
+\midrule
+\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published SOTA Baselines}} & \multicolumn{5}{c}{\textbf{Our Proposed Joint-Embedding \& Flow Frameworks}} \\
+\cmidrule(lr){3-7} \cmidrule(lr){8-12}
+ & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{TS-JEPA} & \textbf{Patch-JEPA} & \textbf{Flow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-Flow} \\
+\midrule
+\textbf{SMAP} & 51 & 0.220 & 0.289 & 0.117 & 0.289 & 0.347 & 0.375 & 0.172 & \textbf{0.459} & 0.203 & 0.455 \\
+\textbf{MSL} & 26 & 0.378 & 0.365 & 0.218 & 0.251 & 0.193 & 0.499 & 0.390 & 0.470 & 0.409 & \textbf{0.519} \\
+\textbf{Daphnet} & 26 & 0.276 & 0.355 & 0.518 & 0.417 & 0.425 & 0.396 & \textbf{0.557} & 0.402 & 0.532 & 0.358 \\
+\textbf{GHL} & 14 & 0.075 & 0.031 & 0.201 & 0.000 & 0.104 & 0.181 & 0.200 & 0.115 & \textbf{0.262} & 0.007 \\
+\textbf{cicids} & 6 & 0.192 & 0.216 & 0.059 & 0.004 & 0.285 & 0.271 & 0.232 & 0.355 & 0.204 & \textbf{0.367} \\
+\textbf{room-occupancy} & 2 & \textbf{0.718} & 0.535 & 0.426 & 0.320 & 0.373 & 0.356 & 0.338 & 0.338 & 0.368 & 0.339 \\
+\textbf{GECCO} & 1 & 0.030 & 0.030 & 0.172 & 0.364 & \textbf{0.545} & 0.328 & 0.528 & 0.321 & 0.505 & 0.044 \\
+\textbf{Genesis} & 1 & 0.000 & 0.000 & 0.164 & 0.000 & 0.000 & 0.057 & 0.180 & 0.116 & 0.144 & \textbf{0.225} \\
+\textbf{swan} & 1 & 0.681 & 0.654 & \textbf{0.724} & 0.017 & 0.721 & 0.681 & 0.699 & 0.620 & 0.712 & 0.705 \\
+\textbf{CalIt2} & 1 & 0.150 & 0.170 & 0.179 & 0.177 & 0.090 & 0.154 & \textbf{0.211} & 0.109 & 0.175 & 0.077 \\
+\textbf{metro} & 1 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & \textbf{0.004} & 0.000 & 0.000 & 0.000 & 0.000 \\
+\midrule
+\textbf{Grand Macro Avg} & \textbf{130} & 0.2517 & 0.2853 & 0.2334 & 0.2564 & 0.3000 & 0.3731 & 0.3065 & \textbf{0.3973} & 0.3230 & 0.3849 \\
 \bottomrule
 \end{tabular}%
 }
 \end{table*}
+
 
 
 
@@ -419,7 +441,7 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 To empirically isolate the contribution of each architectural component in TS-JEPA and Flow-JEPA, we conducted 48 systematic ablation trials across representative multi-domain channels (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}, Exathlon \texttt{10\_4\_1000000\_79}, and SMAP \texttt{P-3}). Table~\ref{tab:ablations} summarizes the findings across four key architectural dimensions.
 
 \subsection{Ablation 1: VICReg Loss Formulations and Representation Collapse}
-Table~\ref{tab:ablation_vicreg} evaluates the three loss components of the VICReg objective:
+Table~\ref{tab:ablations}(a) evaluates the three loss components of the VICReg objective:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Invariance Only ($\lambda_{\text{var}}=0, \lambda_{\text{cov}}=0$):} Results in catastrophic representation collapse. The mean latent standard deviation drops to $\sigma(z) = 0.0329$, as the context and target encoders map all sequences to a single constant point, degrading PA-F1 to $0.3001$.
     \item \textit{Invariance + Variance Hinge ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0$):} Restores representation variance ($\sigma(z) = 0.2595$) and elevates PA-F1 to $0.4225$, but suffers from high off-diagonal covariance redundancy ($0.1165$).
@@ -427,13 +449,13 @@ Table~\ref{tab:ablation_vicreg} evaluates the three loss components of the VICRe
 \end{enumerate}
 
 \subsection{Ablation 2: Latent Representation Dimension ($D$)}
-Table~\ref{tab:ablation_dim} evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$. An information bottleneck at $D=8$ limits multi-sensor temporal expressive capacity ($0.3330$ PA-F1). Scaling to $D=32$ delivers peak performance ($0.4598$ PA-F1, a $+38.1\%$ improvement), while expanding to $D=64$ causes mild overfitting to local sensor jitter ($0.3633$ PA-F1).
+Table~\ref{tab:ablations}(b) evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$. An information bottleneck at $D=8$ limits multi-sensor temporal expressive capacity ($0.3330$ PA-F1). Scaling to $D=32$ delivers peak performance ($0.4598$ PA-F1, a $+38.1\%$ improvement), while expanding to $D=64$ causes mild overfitting to local sensor jitter ($0.3633$ PA-F1).
 
 \subsection{Ablation 3: EMA Momentum Target Decay Rate ($m$)}
-Table~\ref{tab:ablation_ema} investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. Eliminating the EMA buffer ($m=0.0$, shared weights) causes severe target drift and instability on non-stationary cloud streaming traces (Exathlon PA-F1 drops to $0.2676$). The default setting of $m=0.995$ strikes the optimal balance between target stability and representation plasticity, raising Exathlon detection to $0.4901$ ($+83.1\%$ gain over $m=0.0$).
+Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. Eliminating the EMA buffer ($m=0.0$, shared weights) causes severe target drift and instability on non-stationary cloud streaming traces (Exathlon PA-F1 drops to $0.2676$). The default setting of $m=0.995$ strikes the optimal balance between target stability and representation plasticity, raising Exathlon detection to $0.4901$ ($+83.1\%$ gain over $m=0.0$).
 
 \subsection{Ablation 4: Flow Discrepancy Metrics vs. Numerical ODE Integration}
-Table~\ref{tab:ablation_ode} compares four anomaly scoring paradigms for continuous flow matching:
+Table~\ref{tab:ablations}(d) compares four anomaly scoring paradigms for continuous flow matching:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. Achieves the highest precision and Oracle ceilings ($0.9897$ on Daphnet \texttt{S03R02E0}) with zero Monte Carlo noise and minimal inference latency ($3.47$s).
     \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Discretization errors accumulate across integration steps, slightly blurring the nominal decision boundary (Oracle drops from $0.9897$ to $0.8876$).
@@ -442,15 +464,12 @@ Table~\ref{tab:ablation_ode} compares four anomaly scoring paradigms for continu
 
 \begin{table*}[t]
 \centering
-\caption{Comprehensive Multi-Domain Ablation Studies on Flow-JEPA Architectural Components (48 Systematic Experimental Trials). Bold indicates optimal configuration.}
-\label{tab:ablations}
+\caption{Comprehensive Multi-Domain Ablation Studies on Flow-JEPA Architectural Components (48 Systematic Experimental Trials). Bold indicates optimal configuration.\label{tab:ablations}}
 \vspace{2pt}
-% Row 1: Loss and Latent Capacity
-\begin{minipage}[t]{0.485\textwidth}
-\centering
-\caption*{(a) VICReg Loss Formulations and Collapse Behavior}
-\label{tab:ablation_vicreg}
-\vspace{-4pt}
+\begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
+\toprule
+\multicolumn{1}{c}{\textbf{(a) VICReg Loss Formulations and Collapse Behavior}} & \multicolumn{1}{c}{\textbf{(b) Sensitivity to Latent Dimension Capacity $D$}} \\
+\cmidrule(r){1-1} \cmidrule(l){2-2}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
@@ -462,13 +481,7 @@ Invariance + Var Hinge & 0.4225 & 0.2595 & 0.1165 & High Redundancy \\
 \bottomrule
 \end{tabular}%
 }
-\end{minipage}%
-\hfill
-\begin{minipage}[t]{0.485\textwidth}
-\centering
-\caption*{(b) Sensitivity to Latent Dimension Capacity $D$}
-\label{tab:ablation_dim}
-\vspace{-4pt}
+&
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
@@ -481,16 +494,9 @@ $D = 64$ & 0.3633 & 0.2452 & 0.6756 & Noise Overfitting \\
 \bottomrule
 \end{tabular}%
 }
-\end{minipage}
-
-\vspace{8pt}
-
-% Row 2: Momentum Decay and Flow Scoring
-\begin{minipage}[t]{0.485\textwidth}
-\centering
-\caption*{(c) Impact of Target Encoder Momentum Decay $m$}
-\label{tab:ablation_ema}
-\vspace{-4pt}
+\\[14pt]
+\multicolumn{1}{c}{\textbf{(c) Impact of Target Encoder Momentum Decay $m$}} & \multicolumn{1}{c}{\textbf{(d) Flow Discrepancy Scoring vs. Numerical ODE Solvers}} \\
+\cmidrule(r){1-1} \cmidrule(l){2-2}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -504,13 +510,7 @@ $m = 0.999$ & 0.2965 & 0.2172 & 0.3991 \\
 \bottomrule
 \end{tabular}%
 }
-\end{minipage}%
-\hfill
-\begin{minipage}[t]{0.485\textwidth}
-\centering
-\caption*{(d) Flow Discrepancy Scoring vs. Numerical ODE Solvers}
-\label{tab:ablation_ode}
-\vspace{-4pt}
+&
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
@@ -524,9 +524,11 @@ Trajectory ODE (4-step Midpoint RK2) & 0.7866 & 0.7875 & 0.8876 & 3.71s \\
 \bottomrule
 \end{tabular}%
 }
-\end{minipage}
-\vspace{2pt}
+\\
+\bottomrule
+\end{tabular}
 \end{table*}
+
 
 
 
@@ -587,6 +589,6 @@ Promising avenues for future research include:
 
 % === Bibliography ===
 \bibliographystyle{IEEEtran}
-\bibliography{IEEEabrv,export}
+\bibliography{export}
 
 \end{document}

@@ -4,9 +4,9 @@
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/flow_jepa_training.png}
-\caption{\textbf{Flow-JEPA self-supervised training architecture.} The context window $\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{C \times K}$ and target window $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{S \times K}$ are mapped to latent space by context encoder $E_\theta$ (trained with active gradients $\nabla_\theta$) and momentum target encoder $E_\phi$ (EMA replica with stop-gradient $\bot$). Straight Optimal Transport probability paths $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_{\text{tgt}}$ are sampled between base prior $\mathbf{z}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and target $\mathbf{z}_{\text{tgt}}$. The continuous flow predictor $v_\psi$ learns the instantaneous velocity field conditioned on $\mathbf{z}_{\text{ctx}}$ and sinusoidal time $\mathbf{e}(t)$, optimized under joint Flow-Matching ($\mathcal{L}_{\text{CFM}}$), Variance Hinge ($\mathcal{L}_{\text{var}}$), and Quantum Von Neumann Operator Entropy ($\mathcal{L}_{\text{cov}}$) regularization.}
-\label{fig:flow_jepa_training}
+\caption{Flow-JEPA self-supervised training architecture. The context window $\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{C \times K}$ and target window $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{S \times K}$ are mapped to latent space by context encoder $E_\theta$ (trained with active gradients $\nabla_\theta$) and momentum target encoder $E_\phi$ (EMA replica with stop-gradient $\bot$). Straight Optimal Transport probability paths $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_{\text{tgt}}$ are sampled between base prior $\mathbf{z}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and target $\mathbf{z}_{\text{tgt}}$. The continuous flow predictor $v_\psi$ learns the instantaneous velocity field conditioned on $\mathbf{z}_{\text{ctx}}$ and sinusoidal time $\mathbf{e}(t)$, optimized under joint Flow-Matching ($\mathcal{L}_{\text{CFM}}$), Variance Hinge ($\mathcal{L}_{\text{var}}$), and Quantum Von Neumann Operator Entropy ($\mathcal{L}_{\text{cov}}$) regularization.\label{fig:flow_jepa_training}}
 \end{figure*}
+
 
 This section details the architecture, continuous velocity field formulation, non-contrastive manifold regularization, and statistical inference framework of Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture).
 
@@ -89,21 +89,20 @@ To prevent representation collapse (where the encoder collapses all temporal tra
 
 The complete Flow-JEPA training objective is minimized jointly over encoder parameters $\theta$ and flow predictor parameters $\psi$:
 \begin{equation}
+\label{eq:total_loss}
 \begin{aligned}
     \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CFM}}(\psi) &+ \lambda_{\text{var}} \left[ \mathcal{L}_{\text{var}}(z_{\text{ctx}}) + \mathcal{L}_{\text{var}}(z_{\text{tgt}}) \right] \\
     &+ \lambda_{\text{cov}} \left[ \mathcal{L}_{\text{cov}}(z_{\text{ctx}}) + \mathcal{L}_{\text{cov}}(z_{\text{tgt}}) \right],
 \end{aligned}
-\label{eq:total_loss}
 \end{equation}
 where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancing hyperparameters.
-
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/flow_jepa_inference.png}
-\caption{\textbf{Deterministic zero-variance inference and Extreme Value Theory (EVT) tail calibration pipeline.} \textbf{(1) Optimal Transport Midpoint ($t=0.5$):} Setting prior mean $\mathbf{z}_0 = \mathbf{0}$ defines a deterministic ray to the midpoint $\mathbf{z}_{0.5} = 0.5\mathbf{z}_{\text{tgt}}$, evaluated in a single forward pass without Monte Carlo sampling variance. \textbf{(2) Dynamic Velocity Residual:} Discrepancy $\mathbf{e} = \hat{\mathbf{v}}_{\text{mid}} - \mathbf{z}_{\text{tgt}}$ measures physical deviation from nominal tangent trajectories. \textbf{(3) Covariance Whitening:} Nominal residuals calibrate the precision matrix $\mathbf{\Sigma}^{-1}$, yielding mode-variance normalized Mahalanobis distance $D_M$. \textbf{(4) EVT Tail Calibration:} Upper $2\%$ nominal tail is fitted to a Generalized Pareto Distribution (GPD), yielding exact analytical threshold $\tau_{\text{EVT}}$ without test-label leakage.}
-\label{fig:flow_jepa_inference}
+\caption{Deterministic zero-variance inference and Extreme Value Theory (EVT) tail calibration pipeline. (1) Optimal Transport Midpoint ($t=0.5$): Setting prior mean $\mathbf{z}_0 = \mathbf{0}$ defines a deterministic ray to the midpoint $\mathbf{z}_{0.5} = 0.5\mathbf{z}_{\text{tgt}}$, evaluated in a single forward pass without Monte Carlo sampling variance. (2) Dynamic Velocity Residual: Discrepancy $\mathbf{e} = \hat{\mathbf{v}}_{\text{mid}} - \mathbf{z}_{\text{tgt}}$ measures physical deviation from nominal tangent trajectories. (3) Covariance Whitening: Nominal residuals calibrate the precision matrix $\mathbf{\Sigma}^{-1}$, yielding mode-variance normalized Mahalanobis distance $D_M$. (4) EVT Tail Calibration: Upper $2\%$ nominal tail is fitted to a Generalized Pareto Distribution (GPD), yielding exact analytical threshold $\tau_{\text{EVT}}$ without test-label leakage.\label{fig:flow_jepa_inference}}
 \end{figure*}
+
 
 \subsection{Deterministic Midpoint Velocity Discrepancy \& Chebyshev Collocation}
 \label{subsec:mahalanobis}
