@@ -7,7 +7,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}        % Math symbols
 \usepackage{amsfonts}       % Math fonts
-\usepackage{amsthm}         % Theorem environments
+\usepackage{amsthm}        % Theorem environments
 \usepackage{bm}             % Bold math symbols (\bm)
 \usepackage{graphicx}       % Include graphics
 \usepackage{caption}        % Custom captions
@@ -28,13 +28,13 @@
 \usepackage{hyperref}
 
 \newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+
 \sethlcolor{yellow}
 \captionsetup{font=footnotesize, labelfont=bf, skip=4pt}
 
 
-
-
-\begin{document}
 
 % === Section: 02_title.tex ===
 % Title and author
@@ -59,8 +59,9 @@
 
 % === Section: 03_abstract.tex ===
 \begin{abstract}
-Unsupervised anomaly detection in complex multi-sensor time series is a critical capability across aerospace, cyber-physical infrastructure, industrial IoT, and digital health. However, prevailing paradigms suffer from fundamental dilemmas: symbolic equation discovery (e.g., SINDy) fails on noisy, partially-observed, high-dimensional telemetry; reconstructive deep models (e.g., Autoencoders, Masked Transformers) over-allocate capacity memorizing high-frequency stochastic sensor jitter; and deterministic predictors collapse to the unphysical conditional mean on multi-branching operational regimes. To address these challenges, we introduce \textbf{Flow-JEPA} (Time-Series Flow-Matching Joint-Embedding Predictive Architecture), a continuous self-supervised framework that reformulates anomaly detection as tangent velocity vector field modeling on a regularized latent dynamical manifold. Flow-JEPA couples a causal context encoder with an Exponential Moving Average (EMA) momentum target encoder, training a continuous velocity network via \textbf{Optimal Transport Conditional Flow Matching (OT-CFM)} regularized by non-contrastive VICReg (Variance hinge, Covariance decorrelation) to strictly prevent dimensional collapse without synthetic negative sampling. To achieve zero-variance anomaly scoring at test time, we derive a \textbf{Deterministic Midpoint Velocity Discrepancy} evaluated at $t=0.5$, whitened by an empirical Mahalanobis precision tensor and asymptotically thresholded via \textbf{Extreme Value Theory (EVT / SPOT)} under the Pickands-Balkema-de Haan theorem. Comprehensive multi-domain benchmarking across 1,300 model-channel evaluations on 11 real-world datasets (NASA SMAP/MSL spacecraft telemetry, Daphnet Parkinsonian gait dynamics, GHL separation plant, cicids network intrusion, SWAN, room-occupancy IoT, GECCO, Genesis, CalIt2, and metro) demonstrates that Flow-JEPA consistently surpasses published SOTA baselines (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD), achieving a grand macro Point-F1 of $\mathbf{0.2389}$ (+52.5\% over TimesNet and +56.2\% over TranAD). Phase-space dynamical analyses confirm that Flow-JEPA models nominal physical dynamics as stable limit cycles, providing clear geometric and physical interpretability for anomaly breakout.
+Unsupervised anomaly detection in complex multi-sensor time series is a critical capability across aerospace, cyber-physical infrastructure, industrial IoT, and digital health. However, prevailing paradigms suffer from fundamental dilemmas: reconstructive deep models (e.g., Autoencoders, Masked Transformers) over-allocate capacity memorizing high-frequency stochastic sensor jitter; contrastive detectors rely on heuristic synthetic corruption; and deterministic predictors collapse to the unphysical conditional mean on multi-branching operational regimes. To address these challenges, we introduce Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture), a continuous self-supervised framework that reformulates anomaly detection as tangent velocity vector field modeling on a regularized latent dynamical manifold. Flow-JEPA couples a causal context encoder with an Exponential Moving Average (EMA) momentum target encoder, training a continuous velocity network via Optimal Transport Conditional Flow Matching (OT-CFM) regularized by non-contrastive VICReg (Variance hinge, Covariance decorrelation) to strictly prevent dimensional collapse without synthetic negative sampling. To achieve zero-variance anomaly scoring at test time, we derive a Deterministic Midpoint Velocity Discrepancy evaluated at $t=0.5$, whitened by an empirical Mahalanobis precision tensor and asymptotically thresholded via Extreme Value Theory (EVT / SPOT) under the Pickands-Balkema-de Haan theorem. Comprehensive multi-domain benchmarking across 1,300 model-channel evaluations on 11 real-world datasets (NASA SMAP/MSL spacecraft telemetry, Daphnet Parkinsonian gait dynamics, GHL separation plant, cicids network intrusion, SWAN, room-occupancy IoT, GECCO, Genesis, CalIt2, and metro) demonstrates that Flow-JEPA consistently surpasses published SOTA baselines (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD), achieving a grand macro Point-F1 of $0.2389$ (+52.5\% over TimesNet and +56.2\% over TranAD). Phase-space dynamical analyses confirm that Flow-JEPA models nominal physical dynamics as stable limit cycles, providing clear geometric and physical interpretability for anomaly breakout.
 \end{abstract}
+
 
 \begin{IEEEkeywords}
 Time-Series Anomaly Detection, Joint-Embedding Predictive Architecture (JEPA), Flow Matching, Optimal Transport, Continuous Dynamical Systems, Non-Contrastive Learning, Spacecraft Telemetry, VICReg, Mahalanobis Distance, Extreme Value Theory.
@@ -73,25 +74,25 @@ Time-Series Anomaly Detection, Joint-Embedding Predictive Architecture (JEPA), F
 
 Autonomous anomaly detection in complex multi-sensor time series is essential for safeguarding mission-critical systems across aerospace, cyber-physical infrastructure, industrial Internet-of-Things (IoT), and digital healthcare \cite{meng2019spacecraft, chalapathy2019deep}. In modern cyber-physical deployments---such as the NASA Soil Moisture Active Passive (SMAP) spacecraft, Mars Science Laboratory (MSL) rovers, and wearable biomedical monitors---dozens to hundreds of continuous sensors concurrently track mechanical vibrations, electrical telemetry, thermal gradients, and kinematics \cite{Hundman2018b}. When unexpected operational faults develop, autonomous monitoring systems must identify subtle dynamical breakdowns before catastrophic hardware failure occurs \cite{cuellar2024explainable}.
 
-\subsection{The Dilemma of Dynamical Systems and Equation Discovery}
-From a classical physics perspective, multi-sensor telemetry reflects the state trajectory of an underlying dynamical system $\dot{x}(t) = \mathbf{f}(x(t))$. While symbolic equation discovery frameworks such as Sparse Identification of Nonlinear Dynamics (SINDy) \cite{brunton2016discovering} have succeeded in discovering closed-form ODEs for clean, low-dimensional mechanical systems, they break down when applied to arbitrary multi-domain telemetry due to four fundamental roadblocks:
+\subsection{The Dilemma of Modeling Complex Physical Telemetry}
+From a classical physics perspective, multi-sensor telemetry reflects the state trajectory of an underlying continuous dynamical system $\dot{x}(t) = \mathbf{f}(x(t))$. However, attempting to model continuous dynamical laws directly in raw observation space faces four fundamental roadblocks:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{The Numerical Derivative Explosion:} SINDy requires estimating instantaneous time derivatives $\dot{x} \approx \frac{\Delta x}{\Delta t}$. On noisy, real-world sensor streams, finite differencing amplifies high-frequency measurement noise, catastrophically destabilizing sparse regression.
-    \item \textbf{Partial Observability \& Hidden States:} SINDy assumes the observed variables span the complete state space. Real-world telemetry captures only a low-dimensional, noisy surface projection of unmeasured internal thermodynamic, electrical, and environmental states.
-    \item \textbf{Combinatorial Library Explosion:} In a $K$-variable system ($K \ge 50$), candidate polynomial and trigonometric libraries $\mathbf{\Theta}(x)$ grow combinatorially ($\binom{K+3}{3} > 23,000$ terms), rendering sparse regression intractable and severely prone to overfitting.
-    \item \textbf{Stochastic Regime Transitions:} Real-world systems undergo discrete operational mode shifts (e.g., spacecraft thruster firings, Parkinsonian gait freezing, cloud server garbage collection) that violate smooth, autonomous differential equations.
+    \item \textit{The Numerical Derivative Explosion:} Estimating instantaneous time derivatives $\dot{x} \approx \frac{\Delta x}{\Delta t}$ on noisy, discrete sensor streams amplifies high-frequency measurement noise, catastrophically destabilizing continuous trajectory tracking.
+    \item \textit{Partial Observability \& Hidden States:} Physical telemetry captures only a low-dimensional, noisy surface projection of unmeasured internal thermodynamic, electrical, and environmental states, violating full-state observability.
+    \item \textit{High-Dimensional Non-Linear Coupling:} In multi-channel systems ($K \ge 50$), complex cross-channel dependencies and non-linear interactions cannot be adequately represented by rigid, hand-crafted functional forms in raw signal space.
+    \item \textit{Stochastic Regime Transitions:} Real-world systems undergo discrete operational mode shifts (e.g., spacecraft thruster firings, Parkinsonian gait freezing, cloud server garbage collection) that violate smooth, single-mode differential equations.
 \end{enumerate}
 
 \subsection{Architectural Limitations of Deep Anomaly Detectors}
-To bypass explicit symbolic equation discovery, deep learning models have emerged as data-driven alternatives, yet they remain constrained by three fundamental architectural dilemmas:
+To bypass explicit equation modeling, deep learning architectures have emerged as data-driven alternatives, yet they remain constrained by three fundamental dilemmas:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{The Reconstruction Memorization Dilemma:} Traditional generative models (e.g., Autoencoders, VAEs, Masked Transformers) minimize point-level $L_1/L_2$ errors in raw signal space \cite{Hundman2018b, hoh2025rethinking, wen2025lgat}. Because reconstruction loss penalizes every point discrepancy equally, autoencoders expend substantial capacity memorizing high-frequency stochastic sensor jitter rather than learning the macro-scale dynamical laws governing nominal transitions.
-    \item \textbf{The Synthetic Contrastive Trap:} Contrastive frameworks like Neural Contextual Anomaly Detection (NCAD) \cite{carmona2021neural} train encoders via Contextual Outlier Exposure (COE) using heuristic synthetic perturbations (e.g., Gaussian noise spikes, sequence splicing). However, real physical faults manifest as subtle topological breakouts from nominal dynamical attractors. Synthetic injections distort the learned embedding geometry, inducing artificial decision boundaries that produce excessive false alarms.
-    \item \textbf{Conditional Mean Collapse in Multi-Branch Dynamics:} Deterministic predictive encoders trained with MSE loss $\mathbb{E}[\|\hat{z} - z\|^2]$ are mathematically constrained to predict the \textit{conditional mean} $\mathbb{E}[z_{\text{tgt}} \mid z_{\text{ctx}}]$. When physical systems possess multiple valid operational branches, the conditional mean lands in unphysical, empty latent space, triggering false alarms during legitimate state transitions.
+    \item \textit{The Reconstruction Memorization Dilemma:} Traditional generative models (e.g., Autoencoders, VAEs, Masked Transformers) minimize point-level $L_1/L_2$ errors in raw signal space \cite{Hundman2018b, hoh2025rethinking, wen2025lgat}. Because reconstruction loss penalizes every point discrepancy equally, autoencoders expend substantial capacity memorizing high-frequency stochastic sensor jitter rather than learning the macro-scale dynamical laws governing nominal transitions.
+    \item \textit{The Synthetic Contrastive Trap:} Contrastive frameworks like Neural Contextual Anomaly Detection (NCAD) \cite{carmona2021neural} train encoders via Contextual Outlier Exposure (COE) using heuristic synthetic perturbations (e.g., Gaussian noise spikes, sequence splicing). However, real physical faults manifest as subtle topological breakouts from nominal dynamical attractors. Synthetic injections distort the learned embedding geometry, inducing artificial decision boundaries that produce excessive false alarms.
+    \item \textit{Conditional Mean Collapse in Multi-Branch Dynamics:} Deterministic predictive encoders trained with MSE loss $\mathbb{E}[\|\hat{z} - z\|^2]$ are mathematically constrained to predict the \textit{conditional mean} $\mathbb{E}[z_{\text{tgt}} \mid z_{\text{ctx}}]$. When physical systems possess multiple valid operational branches, the conditional mean lands in unphysical, empty latent space, triggering false alarms during legitimate state transitions.
 \end{enumerate}
 
 \subsection{Our Approach: Flow-Matching Joint-Embedding Architectures}
-To resolve both the equation-discovery bottlenecks of SINDy and the reconstruction/collapse traps of deep baselines, we introduce \textbf{TS-JEPA} and its continuous generalization \textbf{Flow-JEPA} (Time-Series Flow-Matching Joint-Embedding Predictive Architecture). Rather than attempting to extract symbolic formulas in raw sensor space or reconstructing raw waveforms, our framework embeds the system into an abstract representation space and directly learns the continuous velocity vector field of the nominal physical manifold via \textbf{Optimal Transport Conditional Flow Matching (OT-CFM)} \cite{lipman2022flow}.
+To resolve raw-space numerical noise bottlenecks and the reconstruction/collapse traps of deep baselines, we introduce TS-JEPA and its continuous generalization Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture). Rather than attempting to integrate stiff trajectories in raw sensor space or reconstructing raw waveforms, our framework embeds the system into an abstract representation space and directly learns the continuous velocity vector field of the nominal physical manifold via Optimal Transport Conditional Flow Matching (OT-CFM) \cite{lipman2022flow}.
 
 \begin{figure*}[t]
     \centering
@@ -102,18 +103,21 @@ To resolve both the equation-discovery bottlenecks of SINDy and the reconstructi
 
 As illustrated in Figure~\ref{fig:phase_space_attractor}, TS-JEPA maps nominal system behavior into stable limit-cycle attractors in representation space. A causal dilated Temporal Convolutional Network (TCN) or Patch Transformer context encoder processes historical context $x_{\text{ctx}}$, while a flow velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ models the continuous probability paths leading to target representations $z_{\text{tgt}}$. The representation space is regularized via non-contrastive VICReg (Invariance, Variance hinge, Covariance decorrelation) \cite{bardes2021vicreg} to strictly preclude dimensional collapse.
 
-During inference, anomalous system behavior is detected by measuring the \textbf{Deterministic Midpoint Velocity Discrepancy} whitened by an empirical Mahalanobis precision tensor $\mathbf{\Sigma}^{-1}$. Finally, Extreme Value Theory (EVT / SPOT) tail calibration \cite{siffer2017anomaly} establishes an asymptotically sound decision threshold under the Pickands-Balkema-de Haan theorem, completely eliminating ad-hoc heuristic threshold tuning.
+During inference, anomalous system behavior is detected by measuring the Deterministic Midpoint Velocity Discrepancy whitened by an empirical Mahalanobis precision tensor $\mathbf{\Sigma}^{-1}$. Finally, Extreme Value Theory (EVT / SPOT) tail calibration \cite{siffer2017anomaly} establishes an asymptotically sound decision threshold under the Pickands-Balkema-de Haan theorem, completely eliminating ad-hoc heuristic threshold tuning.
 
 \subsection{Key Contributions}
 The primary contributions of this work are as follows:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Latent Continuous Dynamical Generalization of SINDy:} We reframe unsupervised time-series anomaly detection as continuous vector field learning on a joint-embedding manifold, overcoming SINDy's derivative explosion and partial observability while eliminating deep autoencoder reconstruction traps.
-    \item \textbf{Optimal Transport Flow-Matching in JEPA Space (Flow-JEPA):} We formulate Optimal Transport Conditional Flow Matching within an EMA-regularized latent space, modeling complex multi-branching operational regimes without conditional-mean collapse.
-    \item \textbf{Deterministic Midpoint Evaluation \& Mahalanobis Whitening:} We derive a zero-variance deterministic velocity discrepancy metric evaluated at the Optimal Transport midpoint ($t=0.5$), enabling Generalized Pareto Distribution (GPD) extreme value calibration to lock onto true tail risks with mathematical precision.
-    \item \textbf{Comprehensive Multi-Domain Benchmark Validation:} Evaluated across all 19 benchmark datasets and 348 series pairs spanning aerospace, industrial IoT, cloud streaming clusters, and biomedical kinematics, our framework establishes new state-of-the-art results, surpassing modern deep baselines (TimesNet, TranAD, Anomaly Transformer, DCdetector, NCAD).
+    \item \textit{Continuous Dynamical Flow Matching on Latent Manifolds:} We reframe unsupervised time-series anomaly detection as continuous tangent velocity field learning on a joint-embedding manifold, bypassing stiff raw-space numerical integration and eliminating deep autoencoder reconstruction traps.
+    \item \textit{Optimal Transport Flow-Matching in JEPA Space (Flow-JEPA):} We formulate Optimal Transport Conditional Flow Matching within an EMA-regularized latent space, modeling complex multi-branching operational regimes without conditional-mean collapse.
+    \item \textit{Deterministic Midpoint Evaluation \& Mahalanobis Whitening:} We derive a zero-variance deterministic velocity discrepancy metric evaluated at the Optimal Transport midpoint ($t=0.5$), enabling Generalized Pareto Distribution (GPD) extreme value calibration to lock onto true tail risks with mathematical precision.
+    \item \textit{Comprehensive Multi-Domain Benchmark Validation:} Evaluated across all 19 benchmark datasets and 348 series pairs spanning aerospace, industrial IoT, cloud streaming clusters, and biomedical kinematics, our framework establishes new state-of-the-art results, surpassing modern deep baselines (TimesNet, TranAD, Anomaly Transformer, DCdetector, NCAD).
 \end{itemize}
 
-The remainder of this paper is structured as follows. Section~\ref{sec:related} reviews related work across equation discovery, reconstruction, contrastive learning, and JEPAs. Section~\ref{sec:proposed_method} details the Flow-JEPA architecture, Optimal Transport flow matching, VICReg regularization, and Mahalanobis EVT scoring. Section~\ref{sec:exp} describes the comprehensive benchmark suite. Section~\ref{sec:results} presents quantitative results and phase-space dynamics. Finally, Section~\ref{sec:conclusion} concludes the paper.
+
+
+The remainder of this paper is structured as follows. Section~\ref{sec:related} reviews related work across equation discovery, reconstruction, contrastive learning, and JEPAs. Section~\ref{sec:dataset} describes the multi-domain benchmark datasets. Section~\ref{sec:proposed_method} details the Flow-JEPA architecture, Optimal Transport flow matching, VICReg regularization, and Mahalanobis EVT scoring. Section~\ref{sec:exp} presents the experimental setup, baselines, and grand benchmark evaluation. Section~\ref{sec:ablations} provides systematic ablation studies on loss formulations, latent capacity, and velocity discrepancy. Section~\ref{sec:results} discusses domain-by-domain insights, point-adjustment dynamics, and phase-space attractors. Finally, Section~\ref{sec:conclusion} concludes the paper and outlines future directions.
+
 
 
 % === Section: 05_related.tex ===
@@ -122,20 +126,19 @@ The remainder of this paper is structured as follows. Section~\ref{sec:related} 
 
 Unsupervised time-series anomaly detection has evolved through dynamical equation discovery, reconstructive generative modeling, contrastive representation learning, and predictive world models. This section reviews these developments and clearly differentiates Flow-JEPA from prior art.
 
-\subsection{Dynamical Systems, SINDy, and Neural ODEs}
-The physical modeling of multi-sensor time series has long pursued the identification of continuous governing equations $\dot{x}(t) = \mathbf{f}(x(t))$.
+\subsection{Continuous Dynamical Systems and Neural ODEs}
+The physical modeling of multi-sensor time series has long sought to capture system behavior as continuous dynamical trajectories governed by differential equations $\dot{x}(t) = \mathbf{f}(x(t))$.
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Sparse Identification of Nonlinear Dynamics (SINDy) \cite{brunton2016discovering}:} Employs sparse regression over candidate non-linear function libraries to discover symbolic ODEs. While transformative for low-dimensional closed systems (e.g., fluid dynamics, celestial mechanics), SINDy fails on real-world industrial telemetry. Calculating numerical derivatives $\dot{x} \approx \frac{\Delta x}{\Delta t}$ on noisy discrete measurements amplifies measurement noise exponentially; unobserved hidden states violate full-state Markov assumptions; and high sensor dimensionality ($K \ge 50$) triggers a combinatorial explosion of candidate terms ($\binom{K+3}{3} > 23,000$).
-    \item \textbf{Neural Ordinary Differential Equations (Neural ODEs) \cite{chen2018neural}:} Parameterize the continuous velocity field using neural networks $\frac{dx}{dt} = f_\theta(x(t), t)$ and solve trajectories via numerical ODE integrators. While Neural ODEs eliminate hand-crafted function libraries, fitting them directly in raw sensor space forces the integrator to solve stiff equations caused by high-frequency sensor noise, leading to slow training and numerical instability.
-    \item \textbf{Flow Matching on Latent Manifolds \cite{lipman2022flow}:} Continuous Normalizing Flows and Conditional Flow Matching (CFM) train neural velocity vector fields $v_\psi(z_t, t)$ along straight Optimal Transport probability paths. Flow-JEPA represents the first architecture to marry Optimal Transport Flow Matching with non-contrastive Joint-Embedding representations, learning continuous dynamical vector fields purely in regularized latent space without raw-space noise integration.
+    \item \textit{Neural Ordinary Differential Equations (Neural ODEs) \cite{chen2018neural}:} Parameterize continuous velocity fields using neural networks $\frac{dx}{dt} = f_\theta(x(t), t)$ and solve trajectories via numerical ODE integrators. While Neural ODEs learn flexible vector fields, fitting them directly in raw sensor space forces the numerical solver to integrate through high-frequency stochastic sensor noise, leading to numerical stiffness, slow training, and extreme sensitivity to measurement noise.
+    \item \textit{Flow Matching on Latent Manifolds \cite{lipman2022flow}:} Continuous Normalizing Flows and Conditional Flow Matching (CFM) train neural velocity vector fields $v_\psi(z_t, t)$ along straight Optimal Transport probability paths. Flow-JEPA represents the first architecture to marry Optimal Transport Flow Matching with non-contrastive Joint-Embedding representations, learning continuous dynamical vector fields purely in regularized latent space without raw-space noise integration.
 \end{itemize}
 
 \subsection{Reconstructive Anomaly Detection Paradigms}
 The predominant deep learning paradigm in time-series anomaly detection relies on learning nominal patterns through raw signal reconstruction. Early seminal work by Hundman et al. \cite{Hundman2018b} introduced LSTM-based prediction coupled with non-parametric dynamic thresholding for NASA spacecraft telemetry (SMAP/MSL). Modern architectures incorporate specialized attention and frequency-domain transformations:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Anomaly Transformer \cite{xu2022anomaly}:} Introduces Anomaly-Attention to quantify the \textit{Association Discrepancy} between local prior Gaussian kernel associations and global series self-attention. While effective for isolated point anomalies, it still couples discrepancy with point-level waveform reconstruction.
-    \item \textbf{TimesNet \cite{wu2023timesnet}:} Decomposes 1D multivariate time series into 2D temporal variations using Fast Fourier Transform (FFT) periodicity discovery and 2D Inception blocks. However, optimizing point-level 2D reconstruction makes it susceptible to over-fitting high-frequency sensor noise.
-    \item \textbf{TranAD \cite{tuli2022tranad}:} Employs a two-phase adversarial Transformer with sub-series attention and focus scoring to amplify subtle reconstruction errors, but remains vulnerable to phase-drift in continuous dynamical systems.
+    \item \textit{Anomaly Transformer \cite{xu2022anomaly}:} Introduces Anomaly-Attention to quantify the \textit{Association Discrepancy} between local prior Gaussian kernel associations and global series self-attention. While effective for isolated point anomalies, it still couples discrepancy with point-level waveform reconstruction.
+    \item \textit{TimesNet \cite{wu2023timesnet}:} Decomposes 1D multivariate time series into 2D temporal variations using Fast Fourier Transform (FFT) periodicity discovery and 2D Inception blocks. However, optimizing point-level 2D reconstruction makes it susceptible to over-fitting high-frequency sensor noise.
+    \item \textit{TranAD \cite{tuli2022tranad}:} Employs a two-phase adversarial Transformer with sub-series attention and focus scoring to amplify subtle reconstruction errors, but remains vulnerable to phase-drift in continuous dynamical systems.
 \end{itemize}
 
 Despite architectural advancements, all reconstructive methods share a fundamental vulnerability: \textit{signal-level reconstruction memorization}. Because loss functions optimize point-level $L_1$ or $L_2$ differences in raw signal space, reconstructive networks are biased toward fitting high-frequency stochastic noise rather than learning invariant dynamical laws. Furthermore, during sustained anomalies, corrupted observations contaminate the context window, causing the reconstructor to adapt and reconstruct the anomaly as the "new normal."
@@ -143,55 +146,56 @@ Despite architectural advancements, all reconstructive methods share a fundament
 \subsection{Contrastive Learning and Representation-Based Detection}
 To avoid reconstructing raw noise, contrastive methods learn discriminative representations by separating nominal sequences from anomalous perturbations:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Neural Contextual Anomaly Detection (NCAD) \cite{carmona2021neural}:} Uses Temporal Convolutional Networks (TCNs) trained with Contextual Outlier Exposure (COE). Artificial synthetic anomalies (Gaussian noise, point spikes, trend shifts) are injected into training windows to create negative pairs. However, synthetic injections distort the physical dynamical manifold and fail to generalize to subtle real-world physical faults (e.g., gradual thermal dissipation or gait freezing).
-    \item \textbf{DCdetector \cite{yang2023dcdetector}:} Replaces reconstruction with multi-scale dual-attention (patch-wise and channel-wise) contrastive representation learning, maximizing cross-scale representation consistency. While DCdetector eliminates artificial injection heuristics, contrastive objectives require careful scale selection and representation pooling.
+    \item \textit{Neural Contextual Anomaly Detection (NCAD) \cite{carmona2021neural}:} Uses Temporal Convolutional Networks (TCNs) trained with Contextual Outlier Exposure (COE). Artificial synthetic anomalies (Gaussian noise, point spikes, trend shifts) are injected into training windows to create negative pairs. However, synthetic injections distort the physical dynamical manifold and fail to generalize to subtle real-world physical faults (e.g., gradual thermal dissipation or gait freezing).
+    \item \textit{DCdetector \cite{yang2023dcdetector}:} Replaces reconstruction with multi-scale dual-attention (patch-wise and channel-wise) contrastive representation learning, maximizing cross-scale representation consistency. While DCdetector eliminates artificial injection heuristics, contrastive objectives require careful scale selection and representation pooling.
 \end{itemize}
 
 \subsection{Emerging Joint-Embedding Predictive Architectures (JEPA)}
 Joint-Embedding Predictive Architectures (JEPA), originally proposed by LeCun \cite{lecun2022path} and demonstrated in computer vision by I-JEPA \cite{assran2023self} and V-JEPA \cite{bardes2024vjepa}, represent a paradigm shift. Rather than reconstructing raw signals, JEPAs predict the representation of a target observation from a context observation entirely within latent space.
 Recent preliminary exploratory works have investigated JEPA concepts in time-series analysis:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{SC-JEPA \cite{he2026scjepa}:} Introduces a Sequential Codebook JEPA for time-series forecasting. However, SC-JEPA relies on discrete Vector Quantization (VQ) codebooks, converting continuous signals into finite discrete tokens. For continuous dynamical systems governed by smooth trajectories, discrete tokenization introduces severe quantization error and loses fine-grained phase-space geometry.
-    \item \textbf{T-SAR-JEPA \cite{woldesenbet2026tsarjepa} and CF-JEPA \cite{lee2026cfjepa}:} Apply joint-embedding objectives to multimodal Synthetic Aperture Radar (SAR) remote sensing or counterfactual causal graphs. However, they rely on heuristic cosine-distance scoring and lack continuous velocity field modeling and statistical threshold calibration.
+    \item \textit{SC-JEPA \cite{he2026scjepa}:} Introduces a Sequential Codebook JEPA for time-series forecasting. However, SC-JEPA relies on discrete Vector Quantization (VQ) codebooks, converting continuous signals into finite discrete tokens. For continuous dynamical systems governed by smooth trajectories, discrete tokenization introduces severe quantization error and loses fine-grained phase-space geometry.
+    \item \textit{T-SAR-JEPA \cite{woldesenbet2026tsarjepa} and CF-JEPA \cite{lee2026cfjepa}:} Apply joint-embedding objectives to multimodal Synthetic Aperture Radar (SAR) remote sensing or counterfactual causal graphs. However, they rely on heuristic cosine-distance scoring and lack continuous velocity field modeling and statistical threshold calibration.
 \end{itemize}
 
 \subsection{Positioning and Novelty of Flow-JEPA}
 Flow-JEPA synthesizes the strengths of continuous dynamical modeling and joint-embedding self-supervised learning while resolving their respective limitations through four innovations:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Continuous Latent Vector Field Modeling:} Instead of symbolic equation fitting (SINDy) or discrete codebooks (SC-JEPA), Flow-JEPA learns the continuous tangent velocity field of the physical manifold via Optimal Transport Conditional Flow Matching directly in an abstract latent space.
-    \item \textbf{Non-Contrastive VICReg Regularization:} Replaces synthetic negative injection heuristics (NCAD) with non-contrastive variance and covariance penalties, mathematically precluding dimensional collapse while preserving smooth attractor geometry.
-    \item \textbf{Deterministic Midpoint Velocity Discrepancy:} Eliminates stochastic Monte Carlo inference sampling noise by evaluating the velocity field at the exact Optimal Transport midpoint ($t=0.5$), enabling high-precision Mahalanobis whitening.
-    \item \textbf{Asymptotic Extreme Value Tail Calibration:} Applies Extreme Value Theory (EVT / SPOT) under the Pickands-Balkema-de Haan theorem to fit Generalized Pareto tails on nominal velocity residuals, establishing optimal decision boundaries without manual tuning.
+    \item \textit{Continuous Latent Vector Field Modeling:} Instead of raw-space differential equation solving or discrete codebooks (SC-JEPA), Flow-JEPA learns the continuous tangent velocity field of the physical manifold via Optimal Transport Conditional Flow Matching directly in an abstract latent space.
+    \item \textit{Non-Contrastive VICReg Regularization:} Replaces synthetic negative injection heuristics (NCAD) with non-contrastive variance and covariance penalties, mathematically precluding dimensional collapse while preserving smooth attractor geometry.
+    \item \textit{Deterministic Midpoint Velocity Discrepancy:} Eliminates stochastic Monte Carlo inference sampling noise by evaluating the velocity field at the exact Optimal Transport midpoint ($t=0.5$), enabling high-precision Mahalanobis whitening.
+    \item \textit{Asymptotic Extreme Value Tail Calibration:} Applies Extreme Value Theory (EVT / SPOT) under the Pickands-Balkema-de Haan theorem to fit Generalized Pareto tails on nominal velocity residuals, establishing optimal decision boundaries without manual tuning.
 \end{enumerate}
+
 
 
 % === Section: 06_dataset.tex ===
 \section{Multi-Domain Benchmark Datasets}
 \label{sec:dataset}
 
-To evaluate the universal applicability of Flow-JEPA across diverse physical, cyber-physical, biomedical, and distributed dynamics, our benchmark suite encompasses \textbf{19 benchmark datasets comprising 348 train/test series pairs} from the NASA, PhysioNet, and mTSBench collections \cite{Hundman2018b, schmidl2022anomaly}:
-
+To evaluate the universal applicability of Flow-JEPA across diverse physical, cyber-physical, biomedical, and distributed dynamics, our benchmark suite encompasses 19 benchmark datasets comprising 348 train/test series pairs from the NASA, PhysioNet, and mTSBench collections \cite{Hundman2018b, schmidl2022anomaly}:
 
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{NASA SMAP \& MSL Spacecraft Telemetry \cite{Hundman2018b} (77 series):} High-consequence telemetry from the Soil Moisture Active Passive (SMAP) satellite and the Mars Science Laboratory (MSL) Curiosity rover. Continuous channels record radiative temperatures, battery currents, bus voltages, and actuator torques subject to radiation events, sensor malfunctions, and operational mode switches.
-    \item \textbf{Biomedical Rhythm \& Kinematic Databases (151 series):}
+    \item \textit{NASA SMAP \& MSL Spacecraft Telemetry \cite{Hundman2018b} (77 series):} High-consequence telemetry from the Soil Moisture Active Passive (SMAP) satellite and the Mars Science Laboratory (MSL) Curiosity rover. Continuous channels record radiative temperatures, battery currents, bus voltages, and actuator torques subject to radiation events, sensor malfunctions, and operational mode switches.
+    \item \textit{Biomedical Rhythm \& Kinematic Databases (151 series):}
     \begin{itemize}[noitemsep, topsep=0pt]
         \item \textit{Daphnet Parkinsonian Gait Dynamics \cite{bachlin2010wearable} (26 series):} Tri-axial accelerometry from body-worn sensor nodes (shank, thigh, trunk; 9 continuous dimensions) tracking Freezing-of-Gait (FoG) breakdown events.
         \item \textit{SVDB \& MITDB Arrhythmia ECG (125 series):} High-frequency electrocardiogram telemetry from the MIT-BIH Supraventricular Arrhythmia and Arrhythmia databases capturing complex cardiac conduction faults.
     \end{itemize}
-    \item \textbf{Exathlon Distributed Cloud Logs \cite{jacob2021exathlon} (30 series):} Telemetry traces from large-scale Apache Spark streaming clusters. Metrics include JVM heap utilization, memory leaks, thread starvation, and network I/O bottlenecks.
-    \item \textbf{Industrial Process \& Cyber-Physical Control (20 series):}
+    \item \textit{Exathlon Distributed Cloud Logs \cite{jacob2021exathlon} (30 series):} Telemetry traces from large-scale Apache Spark streaming clusters. Metrics include JVM heap utilization, memory leaks, thread starvation, and network I/O bottlenecks.
+    \item \textit{Industrial Process \& Cyber-Physical Control (20 series):}
     \begin{itemize}[noitemsep, topsep=0pt]
         \item \textit{GHL Separation Plant (14 series):} Multi-phase gas-oil-water separation process control telemetry.
         \item \textit{cicids Network Intrusion (6 series):} Network flow telemetry with DDoS and port-scan attack anomalies.
     \end{itemize}
-    \item \textbf{Environmental IoT \& Human Activity Wearables (15 series):}
+    \item \textit{Environmental IoT \& Human Activity Wearables (15 series):}
     \begin{itemize}[noitemsep, topsep=0pt]
         \item \textit{Room-Occupancy IoT \cite{candanedo2016accurate} (2 series):} Indoor environmental telemetry ($\text{CO}_2$, temperature, humidity, light) recording occupant-induced regime shifts.
         \item \textit{OPPORTUNITY Wearables \cite{roggen2010collecting} (13 series):} 77 body-worn motion and environmental sensors capturing non-stationary human activities of daily living (ADL).
     \end{itemize}
-    \item \textbf{Synthetic \& Specialized Benchmarks (55 series):} Including GutenTAG (30 series), SMD Server Machine Dataset (18 series), PSM Public Server Metric (1 series), CalIt2, creditcard, GECCO, Genesis, metro, and swan.
+    \item \textit{Synthetic \& Specialized Benchmarks (55 series):} Including GutenTAG (30 series), SMD Server Machine Dataset (18 series), PSM Public Server Metric (1 series), CalIt2, creditcard, GECCO, Genesis, metro, and swan.
 \end{enumerate}
+
 
 Each benchmark series provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled ground-truth anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$) using robust epsilon floors $\max(\bm{\sigma}, 10^{-2})$ to prevent division by zero during flat-line operational phases.
 
@@ -207,7 +211,7 @@ Each benchmark series provides pre-split training sequences (consisting exclusiv
 \label{fig:flow_jepa_training}
 \end{figure*}
 
-This section details the architecture, continuous velocity field formulation, non-contrastive manifold regularization, and statistical inference framework of \textbf{Flow-JEPA} (Time-Series Flow-Matching Joint-Embedding Predictive Architecture).
+This section details the architecture, continuous velocity field formulation, non-contrastive manifold regularization, and statistical inference framework of Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture).
 
 \subsection{Architectural Formulation}
 \label{subsec:architecture}
@@ -220,13 +224,13 @@ Let $\mathbf{X} \in \mathbb{R}^{T \times K}$ denote a continuous multivariate ti
 Flow-JEPA consists of three interconnected modules operating in continuous representation space (illustrated in Fig.~\ref{fig:flow_jepa_training}):
 
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) or Patch Sequence Transformer with parameter weights $\theta$. The encoder maps the historical context $x_{\text{ctx}}$ to an abstract latent representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context duration without lookahead bias \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
-    \item \textbf{Momentum Target Encoder ($E_\phi$):} An architectural replica of the context encoder with parameter weights $\phi$, mapping the target window $x_{\text{tgt}}$ to the ground-truth target representation $z_{\text{tgt}} = E_\phi(x_{\text{tgt}}) \in \mathbb{R}^D$. Crucially, $\phi$ is updated without gradient backpropagation via an Exponential Moving Average (EMA) schedule at training step $k$:
+    \item \textit{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) or Patch Sequence Transformer with parameter weights $\theta$. The encoder maps the historical context $x_{\text{ctx}}$ to an abstract latent representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context duration without lookahead bias \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
+    \item \textit{Momentum Target Encoder ($E_\phi$):} An architectural replica of the context encoder with parameter weights $\phi$, mapping the target window $x_{\text{tgt}}$ to the ground-truth target representation $z_{\text{tgt}} = E_\phi(x_{\text{tgt}}) \in \mathbb{R}^D$. Crucially, $\phi$ is updated without gradient backpropagation via an Exponential Moving Average (EMA) schedule at training step $k$:
     \begin{equation}
         \phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k,
     \end{equation}
     where $m_k = m_{\text{base}} + (m_{\text{max}} - m_{\text{base}}) \cdot \frac{1}{2}\left(1 - \cos(\pi k / K_{\text{total}})\right)$ follows a cosine schedule from $0.996$ to $0.9995$.
-    \item \textbf{Conditional Flow Predictor ($v_\psi$):} A continuous velocity field network parameterized by $\psi$ with sinusoidal timestep embeddings $\mathbf{e}(t) \in \mathbb{R}^D$. Given an intermediate latent state $z_t$, continuous time $t \in [0, 1]$, and context embedding $z_{\text{ctx}}$, the velocity field network predicts the instantaneous tangent velocity:
+    \item \textit{Conditional Flow Predictor ($v_\psi$):} A continuous velocity field network parameterized by $\psi$ with sinusoidal timestep embeddings $\mathbf{e}(t) \in \mathbb{R}^D$. Given an intermediate latent state $z_t$, continuous time $t \in [0, 1]$, and context embedding $z_{\text{ctx}}$, the velocity field network predicts the instantaneous tangent velocity:
     \begin{equation}
         v_\psi(z_t, t, z_{\text{ctx}}) \in \mathbb{R}^D.
     \end{equation}
@@ -246,12 +250,14 @@ The unique ground-truth target velocity field along this optimal transport path 
 \end{equation}
 The neural velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ is trained to minimize the flow matching objective:
 \begin{equation}
-    \mathcal{L}_{\text{CFM}}(\psi) = \mathbb{E}_{t, z_0, z_{\text{tgt}}, z_{\text{ctx}}} \left[ \| v_\psi(z_t, t, z_{\text{ctx}}) - (z_{\text{tgt}} - z_0) \|_2^2 \right].
+    \mathcal{L}_{\text{CFM}}(\psi) = \mathbb{E} \left[ \| v_\psi(z_t, t, z_{\text{ctx}}) - (z_{\text{tgt}} - z_0) \|_2^2 \right],
 \end{equation}
+where the expectation is taken over $t \sim \mathcal{U}(0, 1)$, $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$, and data pairs $(x_{\text{ctx}}, x_{\text{tgt}})$.
+
 
 \subsection{Probability Flow ODEs vs. Stochastic Differential Equations (SDEs)}
 \label{subsec:ode_vs_sde}
-A fundamental question in generative modeling for physical time series is whether continuous dynamics should be modeled via Stochastic Differential Equations (SDEs) or Ordinary Differential Equations (ODEs). While physical processes exhibit stochasticity and multi-modality, Flow-JEPA leverages the \textbf{Probability Flow Theorem} \cite{song2020score, lipman2022flow}:
+A fundamental question in generative modeling for physical time series is whether continuous dynamics should be modeled via Stochastic Differential Equations (SDEs) or Ordinary Differential Equations (ODEs). While physical processes exhibit stochasticity and multi-modality, Flow-JEPA leverages the Probability Flow Theorem \cite{song2020score, lipman2022flow}:
 
 \begin{theorem}[Probability Flow Equivalence]
 Let $dz_t = f(z_t, t)dt + g(t)dw_t$ be an It\^o SDE governing a continuous diffusion process with marginal density $p_t(z)$. There exists an exact, deterministic Ordinary Differential Equation:
@@ -263,32 +269,37 @@ whose trajectories generate the identical marginal probability density $p_t(z)$ 
 
 This equivalence provides three decisive advantages for time-series representation and anomaly detection:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Stochasticity without Brownian Noise Injection:} Multi-modality and operational stochasticity are fully captured by sampling random boundary conditions from the base distribution $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$. Different initial points $z_0$ flow deterministically along non-intersecting characteristic curves into distinct operational branches of the target density $p(z_{\text{tgt}} \mid z_{\text{ctx}})$.
-    \item \textbf{Elimination of Inference Monte Carlo Variance:} In score-based SDEs, continuous Brownian perturbations $dw_t$ inject stochastic noise into test-time anomaly evaluations. On nominal signals, this artificial variance inflates the upper tail, severely degrading Extreme Value Theory (EVT) threshold calibration. By contrast, the Probability Flow ODE admits a 100\% deterministic vector field evaluation.
-    \item \textbf{Optimal Transport Geodesics (Straight Trajectories):} Unlike the chaotic Brownian random-walk paths of SDEs, OT-CFM defines straight constant-velocity trajectories ($u_t = z_{\text{tgt}} - z_0$). This allows numerical solvers to integrate trajectories in 1 to 4 steps, and enables exact single-pass evaluation at $t=0.5$.
+    \item \textit{Stochasticity without Brownian Noise Injection:} Multi-modality and operational stochasticity are fully captured by sampling random boundary conditions from the base distribution $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$. Different initial points $z_0$ flow deterministically along non-intersecting characteristic curves into distinct operational branches of the target density $p(z_{\text{tgt}} \mid z_{\text{ctx}})$.
+    \item \textit{Elimination of Inference Monte Carlo Variance:} In score-based SDEs, continuous Brownian perturbations $dw_t$ inject stochastic noise into test-time anomaly evaluations. On nominal signals, this artificial variance inflates the upper tail, severely degrading Extreme Value Theory (EVT) threshold calibration. By contrast, the Probability Flow ODE admits a 100\% deterministic vector field evaluation.
+    \item \textit{Optimal Transport Geodesics (Straight Trajectories):} Unlike the chaotic Brownian random-walk paths of SDEs, OT-CFM defines straight constant-velocity trajectories ($u_t = z_{\text{tgt}} - z_0$). This allows numerical solvers to integrate trajectories in 1 to 4 steps, and enables exact single-pass evaluation at $t=0.5$.
 \end{enumerate}
 
 \subsection{Information-Theoretic Manifold Regularization}
 \label{subsec:vicreg_loss}
 To prevent representation collapse (where the encoder collapses all temporal trajectories to a single point) while avoiding synthetic negative sampling biases, Flow-JEPA jointly optimizes a non-contrastive manifold objective:
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Variance Hinge Regularization ($\mathcal{L}_{\text{var}}$):} Constrains the standard deviation of each latent dimension along the batch dimension to remain above $\gamma = 1.0$, guaranteeing representation diversity:
+    \item \textit{Variance Hinge Regularization ($\mathcal{L}_{\text{var}}$):} Constrains the standard deviation of each latent dimension along the batch dimension to remain above $\gamma = 1.0$, guaranteeing representation diversity:
     \begin{equation}
         \mathcal{L}_{\text{var}}(z) = \frac{1}{D} \sum_{j=1}^D \max\left(0, \gamma - \sqrt{\text{Var}(z_{\cdot, j}) + \epsilon}\right),
     \end{equation}
     where $\text{Var}(z_{\cdot, j}) = \frac{1}{B-1}\sum_{i=1}^B (z_{i, j} - \bar{z}_j)^2$ and $\epsilon = 10^{-4}$.
-    \item \textbf{Quantum Operator / Von Neumann Entropy Regularization ($\mathcal{L}_{\text{cov}}$):} Rather than penalizing only off-diagonal covariance entries via heuristic sum-of-squares, we measure the full spectral dispersion of the representation manifold via the \textbf{Operator Bregman Divergence} $D_{\text{Breg}}(\rho \parallel \frac{1}{D}\mathbf{I}_D)$ against the maximally disordered uniform state:
+    \item \textit{Quantum Operator / Von Neumann Entropy Regularization ($\mathcal{L}_{\text{cov}}$):} Rather than penalizing only off-diagonal covariance entries via heuristic sum-of-squares, we measure the full spectral dispersion of the representation manifold via the Operator Bregman Divergence $D_{\text{Breg}}(\rho \parallel \frac{1}{D}\mathbf{I}_D)$ against the maximally disordered uniform state:
     \begin{equation}
         \mathcal{L}_{\text{cov}}(z) = \log(D) + \sum_{i=1}^D \lambda_i \log \lambda_i,
     \end{equation}
     where $\lambda_i = \tilde{\lambda}_i / \sum_k \tilde{\lambda}_k$ are the normalized eigenvalues of the regularized empirical batch covariance $\mathbf{C}(z) = \frac{1}{B-1} \sum_{i=1}^B (z^{(i)} - \bar{z})(z^{(i)} - \bar{z})^T + \epsilon \mathbf{I}_D$. This divergence reaches its theoretical global minimum ($\mathcal{L}_{\text{cov}} = 0$) if and only if all $D$ latent eigenmodes have identical variance, providing an exact information-theoretic barrier against subspace collapse.
 \end{enumerate}
 
-The complete Flow-JEPA training loss is minimized over $\{\theta, \psi\}$:
+The complete Flow-JEPA training objective is minimized jointly over encoder parameters $\theta$ and flow predictor parameters $\psi$:
 \begin{equation}
-    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CFM}} + \lambda_{\text{var}}\left[\mathcal{L}_{\text{var}}(z_{\text{tgt}}) + \mathcal{L}_{\text{var}}(z_{\text{ctx}})\right] + \lambda_{\text{cov}}\left[\mathcal{L}_{\text{cov}}(z_{\text{tgt}}) + \mathcal{L}_{\text{cov}}(z_{\text{ctx}})\right],
+\begin{aligned}
+    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CFM}}(\psi) &+ \lambda_{\text{var}} \left[ \mathcal{L}_{\text{var}}(z_{\text{ctx}}) + \mathcal{L}_{\text{var}}(z_{\text{tgt}}) \right] \\
+    &+ \lambda_{\text{cov}} \left[ \mathcal{L}_{\text{cov}}(z_{\text{ctx}}) + \mathcal{L}_{\text{cov}}(z_{\text{tgt}}) \right],
+\end{aligned}
+\label{eq:total_loss}
 \end{equation}
-where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancing weights.
+where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancing hyperparameters.
+
 
 \begin{figure*}[t]
 \centering
@@ -299,7 +310,7 @@ where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancin
 
 \subsection{Deterministic Midpoint Velocity Discrepancy \& Chebyshev Collocation}
 \label{subsec:mahalanobis}
-Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical integration noise and Monte Carlo variance. To achieve deterministic, zero-variance anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the velocity field at the \textbf{Optimal Transport Midpoint} ($t=0.5$) or across a set of deterministic \textbf{Chebyshev--Lobatto Collocation Nodes} $t_k = \frac{1}{2}(1 - \cos\frac{k\pi}{K})$.
+Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical integration noise and Monte Carlo variance. To achieve deterministic, zero-variance anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the velocity field at the Optimal Transport Midpoint ($t=0.5$) or across a set of deterministic Chebyshev--Lobatto Collocation Nodes $t_k = \frac{1}{2}(1 - \cos\frac{k\pi}{K})$.
 
 
 
@@ -311,7 +322,8 @@ We compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb
 \begin{equation}
     \mathbf{\Sigma} = \frac{1}{N_{\text{cal}} - 1} \sum_{i=1}^{N_{\text{cal}}} \mathbf{e}^{(i)} (\mathbf{e}^{(i)})^T + \lambda_{\text{reg}} \mathbf{I}_D,
 \end{equation}
-where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical inversion. The \textbf{Covariance-Whitened Midpoint Discrepancy} for any test window is:
+where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical inversion. The Covariance-Whitened Midpoint Discrepancy for any test window is:
+
 \begin{equation}
     D_M(x_{\text{ctx}}, x_{\text{tgt}}) = \sqrt{(\hat{v}_{\text{mid}} - z_{\text{tgt}})^T \mathbf{\Sigma}^{-1} (\hat{v}_{\text{mid}} - z_{\text{tgt}})}.
 \end{equation}
@@ -359,10 +371,11 @@ All experiments are implemented in PyTorch and executed on NVIDIA GPU hardware. 
 \subsection{Evaluation Metrics}
 To address the score-inflation critique of point adjustment in time-series anomaly detection literature \cite{schmidl2022anomaly}, we report dual evaluation metrics:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textbf{Point-Adjusted F1 Score (PA-F1):} Standard protocol where detecting any point within an anomaly segment marks the segment as detected.
-    \item \textbf{Unadjusted Point-Level F1 Score (Point-F1):} Exact, uninflated timestep-level precision and recall.
-    \item \textbf{Oracle Ceiling:} Upper-bound PA-F1 achievable via optimal post-hoc threshold scan over test set representations.
+    \item \textit{Point-Adjusted F1 Score (PA-F1):} Standard protocol where detecting any point within an anomaly segment marks the segment as detected.
+    \item \textit{Unadjusted Point-Level F1 Score (Point-F1):} Exact, uninflated timestep-level precision and recall.
+    \item \textit{Oracle Ceiling:} Upper-bound PA-F1 achievable via optimal post-hoc threshold scan over test set representations.
 \end{enumerate}
+
 
 \subsection{Multi-Domain Benchmark Performance}
 \label{subsec:benchmark_results}
@@ -370,7 +383,7 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 
 \begin{table*}[t]
 \centering
-\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Pt-F1) and Secondary Legacy Point-Adjusted F1 (PA-F1) across 1,300 total model-channel runs. Bold indicates the top-performing model.}
+\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Pt-F1) and Secondary Legacy Point-Adjusted F1 (PA-F1) across 1,300 total model-channel runs. Bold indicates the top-performing score for Pt-F1 (left) and PA-F1 (right) independently.}
 \label{tab:multidataset_benchmark}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lc ccccc ccccc@{}}
@@ -379,17 +392,17 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 \cmidrule(lr){3-7} \cmidrule(lr){8-12}
  & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{TS-JEPA} & \textbf{Patch-JEPA} & \textbf{Flow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-Flow} \\
 \midrule
-\textbf{SMAP} & 51 & 0.183 / 0.220 & 0.178 / 0.289 & 0.048 / 0.117 & 0.137 / 0.289 & 0.126 / 0.347 & 0.265 / 0.375 & 0.126 / 0.172 & 0.285 / 0.459 & 0.121 / 0.203 & \textbf{0.294} / 0.455 \\
-\textbf{MSL} & 26 & 0.206 / 0.378 & 0.174 / 0.365 & 0.106 / 0.218 & 0.064 / 0.251 & 0.066 / 0.193 & 0.217 / 0.499 & 0.130 / 0.390 & \textbf{0.265} / 0.470 & 0.143 / 0.409 & 0.254 / 0.519 \\
-\textbf{Daphnet} & 26 & 0.103 / 0.276 & 0.146 / 0.355 & 0.111 / 0.518 & 0.118 / 0.417 & 0.071 / 0.425 & 0.211 / 0.396 & \textbf{0.275} / 0.557 & 0.234 / 0.402 & 0.235 / 0.532 & 0.182 / 0.358 \\
-\textbf{GHL} & 14 & 0.008 / 0.075 & 0.025 / 0.031 & 0.030 / 0.201 & 0.000 / 0.000 & 0.005 / 0.104 & 0.107 / 0.181 & 0.190 / 0.200 & 0.104 / 0.115 & \textbf{0.225} / 0.262 & 0.001 / 0.007 \\
-\textbf{cicids} & 6 & 0.105 / 0.192 & 0.186 / 0.216 & 0.020 / 0.059 & 0.004 / 0.004 & 0.084 / 0.285 & 0.043 / 0.271 & 0.040 / 0.232 & 0.111 / 0.355 & 0.018 / 0.204 & \textbf{0.260} / 0.367 \\
-\textbf{room-occupancy} & 2 & \textbf{0.635} / 0.718 & 0.525 / 0.535 & 0.318 / 0.426 & 0.213 / 0.320 & 0.088 / 0.373 & 0.356 / 0.356 & 0.338 / 0.338 & 0.338 / 0.338 & 0.368 / 0.368 & 0.338 / 0.339 \\
-\textbf{GECCO} & 1 & 0.030 / 0.030 & 0.030 / 0.030 & 0.125 / 0.172 & \textbf{0.360} / 0.364 & 0.255 / 0.545 & 0.262 / 0.328 & 0.180 / 0.528 & 0.320 / 0.321 & 0.244 / 0.505 & 0.040 / 0.044 \\
-\textbf{Genesis} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.164} / 0.164 & 0.000 / 0.000 & 0.000 / 0.000 & 0.026 / 0.057 & 0.154 / 0.180 & 0.019 / 0.116 & 0.144 / 0.144 & 0.038 / 0.225 \\
-\textbf{swan} & 1 & 0.354 / 0.681 & 0.261 / 0.654 & 0.091 / 0.724 & 0.016 / 0.017 & 0.060 / 0.721 & 0.221 / 0.681 & 0.154 / 0.699 & 0.346 / 0.620 & 0.124 / 0.712 & \textbf{0.629} / 0.705 \\
-\textbf{CalIt2} & 1 & 0.147 / 0.150 & 0.135 / 0.170 & \textbf{0.179} / 0.179 & 0.080 / 0.177 & 0.090 / 0.090 & 0.121 / 0.154 & 0.179 / 0.211 & 0.091 / 0.109 & 0.136 / 0.175 & 0.077 / 0.077 \\
-\textbf{metro} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.004} / 0.004 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 \\
+\textbf{SMAP} & 51 & 0.183 / 0.220 & 0.178 / 0.289 & 0.048 / 0.117 & 0.137 / 0.289 & 0.126 / 0.347 & 0.265 / 0.375 & 0.126 / 0.172 & 0.285 / \textbf{0.459} & 0.121 / 0.203 & \textbf{0.294} / 0.455 \\
+\textbf{MSL} & 26 & 0.206 / 0.378 & 0.174 / 0.365 & 0.106 / 0.218 & 0.064 / 0.251 & 0.066 / 0.193 & 0.217 / 0.499 & 0.130 / 0.390 & \textbf{0.265} / 0.470 & 0.143 / 0.409 & 0.254 / \textbf{0.519} \\
+\textbf{Daphnet} & 26 & 0.103 / 0.276 & 0.146 / 0.355 & 0.111 / 0.518 & 0.118 / 0.417 & 0.071 / 0.425 & 0.211 / 0.396 & \textbf{0.275} / \textbf{0.557} & 0.234 / 0.402 & 0.235 / 0.532 & 0.182 / 0.358 \\
+\textbf{GHL} & 14 & 0.008 / 0.075 & 0.025 / 0.031 & 0.030 / 0.201 & 0.000 / 0.000 & 0.005 / 0.104 & 0.107 / 0.181 & 0.190 / 0.200 & 0.104 / 0.115 & \textbf{0.225} / \textbf{0.262} & 0.001 / 0.007 \\
+\textbf{cicids} & 6 & 0.105 / 0.192 & 0.186 / 0.216 & 0.020 / 0.059 & 0.004 / 0.004 & 0.084 / 0.285 & 0.043 / 0.271 & 0.040 / 0.232 & 0.111 / 0.355 & 0.018 / 0.204 & \textbf{0.260} / \textbf{0.367} \\
+\textbf{room-occupancy} & 2 & \textbf{0.635} / \textbf{0.718} & 0.525 / 0.535 & 0.318 / 0.426 & 0.213 / 0.320 & 0.088 / 0.373 & 0.356 / 0.356 & 0.338 / 0.338 & 0.338 / 0.338 & 0.368 / 0.368 & 0.338 / 0.339 \\
+\textbf{GECCO} & 1 & 0.030 / 0.030 & 0.030 / 0.030 & 0.125 / 0.172 & \textbf{0.360} / 0.364 & 0.255 / \textbf{0.545} & 0.262 / 0.328 & 0.180 / 0.528 & 0.320 / 0.321 & 0.244 / 0.505 & 0.040 / 0.044 \\
+\textbf{Genesis} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.164} / 0.164 & 0.000 / 0.000 & 0.000 / 0.000 & 0.026 / 0.057 & 0.154 / 0.180 & 0.019 / 0.116 & 0.144 / 0.144 & 0.038 / \textbf{0.225} \\
+\textbf{swan} & 1 & 0.354 / 0.681 & 0.261 / 0.654 & 0.091 / \textbf{0.724} & 0.016 / 0.017 & 0.060 / 0.721 & 0.221 / 0.681 & 0.154 / 0.699 & 0.346 / 0.620 & 0.124 / 0.712 & \textbf{0.629} / 0.705 \\
+\textbf{CalIt2} & 1 & 0.147 / 0.150 & 0.135 / 0.170 & \textbf{0.179} / 0.179 & 0.080 / 0.177 & 0.090 / 0.090 & 0.121 / 0.154 & \textbf{0.179} / \textbf{0.211} & 0.091 / 0.109 & 0.136 / 0.175 & 0.077 / 0.077 \\
+\textbf{metro} & 1 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & \textbf{0.004} / \textbf{0.004} & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 & 0.000 / 0.000 \\
 \midrule
 \textbf{Grand Macro Avg} & \textbf{130} & 0.1529 / 0.2517 & 0.1566 / 0.2853 & 0.0756 / 0.2334 & 0.0971 / 0.2564 & 0.0859 / 0.3000 & 0.2137 / 0.3731 & 0.1632 / 0.3065 & \textbf{0.2389} / \textbf{0.3973} & 0.1587 / 0.3230 & 0.2258 / 0.3849 \\
 \bottomrule
@@ -398,24 +411,47 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 \end{table*}
 
 
+
 % === Section: 09_variants.tex ===
 \section{Ablation Studies and Analysis}
 \label{sec:ablations}
 
-To empirically isolate the contribution of each architectural component in TS-JEPA, we conducted 48 systematic ablation trials across representative multi-domain channels (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}, Exathlon \texttt{10\_4\_1000000\_79}, and SMAP \texttt{P-3}).
+To empirically isolate the contribution of each architectural component in TS-JEPA and Flow-JEPA, we conducted 48 systematic ablation trials across representative multi-domain channels (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}, Exathlon \texttt{10\_4\_1000000\_79}, and SMAP \texttt{P-3}). Table~\ref{tab:ablations} summarizes the findings across four key architectural dimensions.
 
 \subsection{Ablation 1: VICReg Loss Formulations and Representation Collapse}
 Table~\ref{tab:ablation_vicreg} evaluates the three loss components of the VICReg objective:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Invariance Only ($\lambda_{\text{var}}=0, \lambda_{\text{cov}}=0$):} Results in catastrophic representation collapse. The mean latent standard deviation drops to $\sigma(z) = 0.0329$, as the context and target encoders map all sequences to a single constant point, degrading PA-F1 to $0.3001$.
     \item \textit{Invariance + Variance Hinge ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0$):} Restores representation variance ($\sigma(z) = 0.2595$) and elevates PA-F1 to $0.4225$, but suffers from high off-diagonal covariance redundancy ($0.1165$).
-    \item \textit{Full VICReg ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} The covariance decorrelation penalty reduces redundant inter-feature correlations by \textbf{40.6\%} (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes.
+    \item \textit{Full VICReg ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} The covariance decorrelation penalty reduces redundant inter-feature correlations by $40.6\%$ (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes.
 \end{enumerate}
 
-\begin{table}[h!]
+\subsection{Ablation 2: Latent Representation Dimension ($D$)}
+Table~\ref{tab:ablation_dim} evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$. An information bottleneck at $D=8$ limits multi-sensor temporal expressive capacity ($0.3330$ PA-F1). Scaling to $D=32$ delivers peak performance ($0.4598$ PA-F1, a $+38.1\%$ improvement), while expanding to $D=64$ causes mild overfitting to local sensor jitter ($0.3633$ PA-F1).
+
+\subsection{Ablation 3: EMA Momentum Target Decay Rate ($m$)}
+Table~\ref{tab:ablation_ema} investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. Eliminating the EMA buffer ($m=0.0$, shared weights) causes severe target drift and instability on non-stationary cloud streaming traces (Exathlon PA-F1 drops to $0.2676$). The default setting of $m=0.995$ strikes the optimal balance between target stability and representation plasticity, raising Exathlon detection to $0.4901$ ($+83.1\%$ gain over $m=0.0$).
+
+\subsection{Ablation 4: Flow Discrepancy Metrics vs. Numerical ODE Integration}
+Table~\ref{tab:ablation_ode} compares four anomaly scoring paradigms for continuous flow matching:
+\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. Achieves the highest precision and Oracle ceilings ($0.9897$ on Daphnet \texttt{S03R02E0}) with zero Monte Carlo noise and minimal inference latency ($3.47$s).
+    \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Discretization errors accumulate across integration steps, slightly blurring the nominal decision boundary (Oracle drops from $0.9897$ to $0.8876$).
+    \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.4881$).
+\end{enumerate}
+
+\begin{table*}[t]
 \centering
-\caption{Ablation of VICReg loss components on representation health.}
+\caption{Comprehensive Multi-Domain Ablation Studies on Flow-JEPA Architectural Components (48 Systematic Experimental Trials). Bold indicates optimal configuration.}
+\label{tab:ablations}
+\vspace{2pt}
+% Row 1: Loss and Latent Capacity
+\begin{minipage}[t]{0.485\textwidth}
+\centering
+\caption*{(a) VICReg Loss Formulations and Collapse Behavior}
 \label{tab:ablation_vicreg}
+\vspace{-4pt}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Configuration} & \textbf{Mean PA-F1} & \textbf{Latent $\sigma(z)$} & \textbf{Off-Diag Cov} & \textbf{Outcome} \\
@@ -424,17 +460,16 @@ Invariance Only (MSE) & 0.3001 & 0.0329 & 0.0012 & Complete Collapse \\
 Invariance + Var Hinge & 0.4225 & 0.2595 & 0.1165 & High Redundancy \\
 \textbf{Full VICReg (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold} \\
 \bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Ablation 2: Latent Representation Dimension ($D$)}
-Table~\ref{tab:ablation_dim} evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$.
-An information bottleneck at $D=8$ limits multi-sensor temporal expressive capacity ($0.3330$ PA-F1). Scaling to $D=32$ delivers peak performance ($\mathbf{0.4598}$ PA-F1, a \textbf{+38.1\% improvement}), while expanding to $D=64$ causes mild overfitting to local sensor jitter ($0.3633$ PA-F1).
-
-\begin{table}[h!]
+\end{tabular}%
+}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.485\textwidth}
 \centering
-\caption{Sensitivity to Latent Representation Dimension $D$.}
+\caption*{(b) Sensitivity to Latent Dimension Capacity $D$}
 \label{tab:ablation_dim}
+\vspace{-4pt}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Dimension} & \textbf{Mean PA-F1} & \textbf{Mean Point-F1} & \textbf{Oracle Ceiling} & \textbf{Behavior} \\
@@ -444,17 +479,19 @@ $D = 16$ & 0.3504 & 0.2235 & 0.7761 & Intermediate \\
 \textbf{$D = 32$ (Default)} & \textbf{0.4598} & \textbf{0.2279} & \textbf{0.7367} & \textbf{Optimal Capacity} \\
 $D = 64$ & 0.3633 & 0.2452 & 0.6756 & Noise Overfitting \\
 \bottomrule
-\end{tabular}
-\end{table}
+\end{tabular}%
+}
+\end{minipage}
 
-\subsection{Ablation 3: EMA Momentum Target Decay Rate ($m$)}
-Table~\ref{tab:ablation_ema} investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$.
-Eliminating the EMA buffer ($m=0.0$, shared weights) causes severe target drift and instability on non-stationary cloud streaming traces (Exathlon PA-F1 drops to $0.2676$). The default setting of $m=0.995$ strikes the optimal balance between target stability and representation plasticity, raising Exathlon detection to $\mathbf{0.4901}$ (\textbf{+83.1\% gain} over $m=0.0$).
+\vspace{8pt}
 
-\begin{table}[h!]
+% Row 2: Momentum Decay and Flow Scoring
+\begin{minipage}[t]{0.485\textwidth}
 \centering
-\caption{Impact of Target Encoder Momentum Decay $m$.}
+\caption*{(c) Impact of Target Encoder Momentum Decay $m$}
 \label{tab:ablation_ema}
+\vspace{-4pt}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lccc@{}}
 \toprule
 \textbf{Momentum Factor} & \textbf{Macro PA-F1} & \textbf{Exathlon Streaming F1} & \textbf{SMAP Spacecraft F1} \\
@@ -465,21 +502,16 @@ $m = 0.99$ & 0.3481 & 0.2624 & 0.4163 \\
 \textbf{$m = 0.995$ (Default)} & \textbf{0.4206} & \textbf{0.4901 (+83.1\%)} & \textbf{0.4809} \\
 $m = 0.999$ & 0.2965 & 0.2172 & 0.3991 \\
 \bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Ablation 4: Flow Discrepancy Metrics vs. Numerical ODE Integration}
-Table~\ref{tab:ablation_ode} compares four anomaly scoring paradigms for continuous flow matching:
-\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. Achieves the highest precision and Oracle ceilings ($\mathbf{0.9897}$ on Daphnet \texttt{S03R02E0}) with zero Monte Carlo noise and minimal inference latency ($3.47$s).
-    \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Discretization errors accumulate across integration steps, slightly blurring the nominal decision boundary (Oracle drops from $0.9897$ to $0.8876$).
-    \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.4881$).
-\end{enumerate}
-
-\begin{table}[h!]
+\end{tabular}%
+}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.485\textwidth}
 \centering
-\caption{Comparison of Flow Discrepancy Metrics on Daphnet \texttt{S03R02E0}.}
+\caption*{(d) Flow Discrepancy Scoring vs. Numerical ODE Solvers}
 \label{tab:ablation_ode}
+\vspace{-4pt}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Scoring Formulation} & \textbf{PA-F1} & \textbf{Precision} & \textbf{Oracle Ceiling} & \textbf{Inference Time} \\
@@ -490,8 +522,14 @@ Trajectory ODE (2-step Midpoint RK2) & 0.8770 & 0.8083 & 0.8876 & 3.57s \\
 Trajectory ODE (4-step Midpoint RK2) & 0.7866 & 0.7875 & 0.8876 & 3.71s \\
 \textbf{Deterministic Midpoint Flow (Ours)} & \textbf{0.9209} & \textbf{0.9861} & \textbf{0.9897} & \textbf{3.47s} \\
 \bottomrule
-\end{tabular}
-\end{table}
+\end{tabular}%
+}
+\end{minipage}
+\vspace{2pt}
+\end{table*}
+
+
+
 
 
 % === Section: 10_results.tex ===
@@ -504,22 +542,22 @@ This section provides granular qualitative and quantitative analysis of our Join
 As evidenced in Table~\ref{tab:multidataset_benchmark}, our proposed JEPA and Continuous Flow Matching frameworks capture the top 5 global positions in macro Point-F1:
 
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{NASA Spacecraft Telemetry (SMAP \& MSL -- 77 channels):} On high-consequence NASA satellite and Mars rover telemetry, \texttt{flow\_jepa} and \texttt{ncad\_flow\_jepa} achieve the highest Point-F1 across all models ($\mathbf{0.285}$ and $\mathbf{0.294}$ on SMAP; $\mathbf{0.265}$ and $\mathbf{0.254}$ on MSL), significantly surpassing TranAD ($0.183$ and $0.206$) and TimesNet ($0.178$ and $0.174$). On SMAP channel \texttt{A-7}, \texttt{ncad\_flow\_jepa} achieves an extraordinary $\mathbf{0.9841}$ Point-F1 with $\mathbf{1.0000}$ precision and $0.9688$ recall, proving that Optimal Transport velocity modeling resolves complex operational mode transitions without false alarms.
-    \item \textbf{Biomedical Gait Dynamics (Daphnet -- 26 channels):} On Parkinsonian Freezing-of-Gait accelerometry, \texttt{patch\_ts\_jepa} ($\mathbf{0.275}$ Point-F1, $\mathbf{0.557}$ PA-F1) and \texttt{patch\_flow\_jepa} ($\mathbf{0.235}$ Point-F1, $\mathbf{0.532}$ PA-F1) outperform all published baselines (TimesNet: $0.146$, DCdetector: $0.118$, TranAD: $0.103$). On channel \texttt{S08R01E3}, \texttt{patch\_ts\_jepa} reaches $\mathbf{0.7624}$ Point-F1 with $90.26\%$ recall, while \texttt{patch\_flow\_jepa} achieves a perfect $\mathbf{1.0000}$ Oracle ceiling on \texttt{S08R01E1}.
-    \item \textbf{Industrial Process Control (GHL -- 14 channels):} In multi-phase gas-oil loop telemetry, subtle temperature and level drifts cause standard contrastive and heuristic models to collapse (\texttt{dcdetector}: $0.000$, \texttt{ncad}: $0.005$). In contrast, \texttt{patch\_flow\_jepa} ($\mathbf{0.225}$ Point-F1) and \texttt{patch\_ts\_jepa} ($\mathbf{0.190}$ Point-F1) maintain high sensitivity and achieve $100\%$ recall across multiple fault channels with low false alarm rates.
-    \item \textbf{Cybersecurity Network Intrusion (cicids -- 6 channels):} On complex network flow telemetry subject to port scans and DDoS bursts, \texttt{ncad\_flow\_jepa} achieves $\mathbf{0.260}$ macro Point-F1. On Channel 7, it achieves $\mathbf{0.8988}$ Point-F1 with $\mathbf{99.03\%}$ precision ($89,179$ true positives vs only $878$ false positives) and $\mathbf{0.9960}$ PA-F1, whereas TimesNet fires $6,413$ false alarms and DCdetector collapses to $0.000$.
-    \item \textbf{Hydrological Telemetry (swan -- 1 channel):} On SWAN telemetry, \texttt{ncad\_flow\_jepa} achieves $\mathbf{0.629}$ Point-F1, nearly doubling the performance of the strongest baseline (TranAD: $0.354$, TimesNet: $0.261$).
+    \item \textit{NASA Spacecraft Telemetry (SMAP \& MSL -- 77 channels):} On high-consequence NASA satellite and Mars rover telemetry, \texttt{flow\_jepa} and \texttt{ncad\_flow\_jepa} achieve the highest Point-F1 across all models ($0.285$ and $0.294$ on SMAP; $0.265$ and $0.254$ on MSL), significantly surpassing TranAD ($0.183$ and $0.206$) and TimesNet ($0.178$ and $0.174$). On SMAP channel \texttt{A-7}, \texttt{ncad\_flow\_jepa} achieves an extraordinary $0.9841$ Point-F1 with $1.0000$ precision and $0.9688$ recall, proving that Optimal Transport velocity modeling resolves complex operational mode transitions without false alarms.
+    \item \textit{Biomedical Gait Dynamics (Daphnet -- 26 channels):} On Parkinsonian Freezing-of-Gait accelerometry, \texttt{patch\_ts\_jepa} ($0.275$ Point-F1, $0.557$ PA-F1) and \texttt{patch\_flow\_jepa} ($0.235$ Point-F1, $0.532$ PA-F1) outperform all published baselines (TimesNet: $0.146$, DCdetector: $0.118$, TranAD: $0.103$). On channel \texttt{S08R01E3}, \texttt{patch\_ts\_jepa} reaches $0.7624$ Point-F1 with $90.26\%$ recall, while \texttt{patch\_flow\_jepa} achieves a perfect $1.0000$ Oracle ceiling on \texttt{S08R01E1}.
+    \item \textit{Industrial Process Control (GHL -- 14 channels):} In multi-phase gas-oil loop telemetry, subtle temperature and level drifts cause standard contrastive and heuristic models to collapse (\texttt{dcdetector}: $0.000$, \texttt{ncad}: $0.005$). In contrast, \texttt{patch\_flow\_jepa} ($0.225$ Point-F1) and \texttt{patch\_ts\_jepa} ($0.190$ Point-F1) maintain high sensitivity and achieve $100\%$ recall across multiple fault channels with low false alarm rates.
+    \item \textit{Cybersecurity Network Intrusion (cicids -- 6 channels):} On complex network flow telemetry subject to port scans and DDoS bursts, \texttt{ncad\_flow\_jepa} achieves $0.260$ macro Point-F1. On Channel 7, it achieves $0.8988$ Point-F1 with $99.03\%$ precision ($89,179$ true positives vs only $878$ false positives) and $0.9960$ PA-F1, whereas TimesNet fires $6,413$ false alarms and DCdetector collapses to $0.000$.
+    \item \textit{Hydrological Telemetry (swan -- 1 channel):} On SWAN telemetry, \texttt{ncad\_flow\_jepa} achieves $0.629$ Point-F1, nearly doubling the performance of the strongest baseline (TranAD: $0.354$, TimesNet: $0.261$).
 \end{enumerate}
 
 \subsection{Comparative Analysis Against Modern SOTA Baselines}
-As detailed in Table~\ref{tab:multidataset_benchmark}, \texttt{flow\_jepa} achieves the highest grand macro Point-F1 ($\mathbf{0.2389}$), representing a \textbf{+52.5\% improvement over TimesNet} ($0.1566$), \textbf{+56.2\% over TranAD} ($0.1529$), \textbf{+146\% over DCdetector} ($0.0971$), and \textbf{+216\% over Anomaly Transformer} ($0.0756$):
-
+As detailed in Table~\ref{tab:multidataset_benchmark}, \texttt{flow\_jepa} achieves the highest grand macro Point-F1 ($0.2389$), representing a $+52.5\%$ improvement over TimesNet ($0.1566$), $+56.2\%$ over TranAD ($0.1529$), $+146\%$ over DCdetector ($0.0971$), and $+216\%$ over Anomaly Transformer ($0.0756$):
 
 \begin{enumerate}[leftmargin=*]
-    \item \textbf{Flow-JEPA vs. DCdetector (Contrastive Learning):} While DCdetector \cite{yang2023dcdetector} demonstrates moderate performance on periodic signals, it experiences complete detection collapse ($0.0000$ Point-F1) on non-stationary, sparse channels across GHL, Genesis, and cicids. Its reliance on contrastive dual-branch KL alignment causes representation collapse when anomalies lack strong cross-scale frequency divergence. In contrast, Flow-JEPA's non-contrastive VICReg loss prevents dimensional collapse across all 11 domains.
-    \item \textbf{Flow-JEPA vs. Anomaly Transformer \& TimesNet (Reconstructive Models):} Reconstructive architectures \cite{xu2022anomaly, wu2023timesnet} optimize raw signal reconstruction $x \to \hat{x}$. On non-stationary channels, they trigger massive false alarm bursts (e.g., TimesNet produces $76,264$ false positives on \texttt{cicids-0} and $55,186$ on \texttt{GHL-17}). By operating purely in abstract representation space, Flow-JEPA filters high-frequency sensor noise and models physical dynamics directly.
-    \item \textbf{Additive Value of Patch Tokenization and Flow Matching:} The progression from base \texttt{ncad} ($0.0859$) $\to$ \texttt{ts\_jepa} ($0.2137$) $\to$ \texttt{flow\_jepa} ($\mathbf{0.2389}$) confirms that continuous Optimal Transport velocity modeling provides substantial gains over deterministic regression.
+    \item \textit{Flow-JEPA vs. DCdetector (Contrastive Learning):} While DCdetector \cite{yang2023dcdetector} demonstrates moderate performance on periodic signals, it experiences complete detection collapse ($0.0000$ Point-F1) on non-stationary, sparse channels across GHL, Genesis, and cicids. Its reliance on contrastive dual-branch KL alignment causes representation collapse when anomalies lack strong cross-scale frequency divergence. In contrast, Flow-JEPA's non-contrastive VICReg loss prevents dimensional collapse across all 11 domains.
+    \item \textit{Flow-JEPA vs. Anomaly Transformer \& TimesNet (Reconstructive Models):} Reconstructive architectures \cite{xu2022anomaly, wu2023timesnet} optimize raw signal reconstruction $x \to \hat{x}$. On non-stationary channels, they trigger massive false alarm bursts (e.g., TimesNet produces $76,264$ false positives on \texttt{cicids-0} and $55,186$ on \texttt{GHL-17}). By operating purely in abstract representation space, Flow-JEPA filters high-frequency sensor noise and models physical dynamics directly.
+    \item \textit{Additive Value of Patch Tokenization and Flow Matching:} The progression from base \texttt{ncad} ($0.0859$) $\to$ \texttt{ts\_jepa} ($0.2137$) $\to$ \texttt{flow\_jepa} ($0.2389$) confirms that continuous Optimal Transport velocity modeling provides substantial gains over deterministic regression.
 \end{enumerate}
+
 
 \subsection{The Point-Adjustment Flaw vs. Rigorous Point-Level Evaluation}
 A key finding from our 1,300-run evaluation is the empirical disparity between legacy Point-Adjusted F1 (PA-F1) and strict Point-Level F1 (Point-F1). Under PA-F1, baselines like TimesNet and TranAD report respectable scores ($0.2853$ and $0.2517$) because single incidental spikes within an anomaly window turn entire segments into true positives. However, under unadjusted Point-F1, their precision drops severely due to tens of thousands of false positives. Our Flow-JEPA models maintain high precision and true point-level temporal localization across all evaluated benchmarks.
@@ -532,21 +570,23 @@ The qualitative efficacy of Flow-JEPA is visualized in the 2D and 3D phase-space
 \section{Conclusion and Future Horizons}
 \label{sec:conclusion}
 
-We introduced \textbf{Flow-JEPA} (Time-Series Flow-Matching Joint-Embedding Predictive Architecture), a continuous self-supervised framework that reformulates unsupervised multivariate anomaly detection as vector field modeling on a regularized latent dynamical manifold. By moving beyond symbolic equation discovery (SINDy) and eliminating raw signal-level reconstruction traps, Flow-JEPA models physical systems as smooth, continuous tangent velocity fields. Non-contrastive VICReg regularization enforces representation diversity while decorrelating latent dynamical modes. Coupled with a Deterministic Midpoint Velocity discrepancy metric, Mahalanobis covariance whitening, and Extreme Value Theory (EVT / SPOT) tail calibration, Flow-JEPA establishes asymptotically sound, threshold-free anomaly alarms.
+We introduced Flow-JEPA (Time-Series Flow-Matching Joint-Embedding Predictive Architecture), a continuous self-supervised framework that reformulates unsupervised multivariate anomaly detection as vector field modeling on a regularized latent dynamical manifold. By moving beyond raw-space ODE integration and eliminating signal-level reconstruction traps, Flow-JEPA models physical systems as smooth, continuous tangent velocity fields. Non-contrastive VICReg regularization enforces representation diversity while decorrelating latent dynamical modes. Coupled with a Deterministic Midpoint Velocity discrepancy metric, Mahalanobis covariance whitening, and Extreme Value Theory (EVT / SPOT) tail calibration, Flow-JEPA establishes asymptotically sound, threshold-free anomaly alarms.
 
-Empirical evaluations across multi-domain real-world benchmarks (NASA spacecraft telemetry, distributed cloud streaming logs, environmental IoT, biomedical gait dynamics, and high-dimensional wearables) establish that Flow-JEPA consistently outperforms baseline contrastive and reconstructive architectures (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD). Systematic ablations confirm that Optimal Transport Flow Matching resolves conditional-mean collapse on multi-branching dynamics, raising Oracle detection ceilings to record levels ($\mathbf{0.9897}$).
+
+Empirical evaluations across multi-domain real-world benchmarks (NASA spacecraft telemetry, distributed cloud streaming logs, environmental IoT, biomedical gait dynamics, and high-dimensional wearables) establish that Flow-JEPA consistently outperforms baseline contrastive and reconstructive architectures (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD). Systematic ablations confirm that Optimal Transport Flow Matching resolves conditional-mean collapse on multi-branching dynamics, raising Oracle detection ceilings to record levels ($0.9897$).
 
 Promising avenues for future research include:
 \begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textbf{Differentiable KKT Physical Constraint Layers:} For specialized physical domains where governing laws are known \textit{a priori} (e.g., Kirchhoff circuit laws in power grids or kinematics in robotics), integrating differentiable Karush-Kuhn-Tucker (KKT) constraint layers directly into the Flow-JEPA latent velocity field to guarantee exact boundary compliance.
-    \item \textbf{Continuous Online Streaming Adaptation:} Developing continuous test-time momentum updates to track gradual seasonal or orbital regime drifts without catastrophic forgetting.
-    \item \textbf{Edge Hardware Quantization:} Deploying lightweight integer-quantized (INT8) Flow-JEPA encoders directly on radiation-hardened spacecraft microcontrollers and wearable biomedical sensors.
-    \item \textbf{Foundation Models for Cyber-Physical Telemetry:} Pretraining large-scale multi-domain Flow-JEPA world models on massive multi-mission telemetry archives for zero-shot downstream fault diagnosis.
+    \item \textit{Differentiable KKT Physical Constraint Layers:} For specialized physical domains where governing laws are known \textit{a priori} (e.g., Kirchhoff circuit laws in power grids or kinematics in robotics), integrating differentiable Karush-Kuhn-Tucker (KKT) constraint layers directly into the Flow-JEPA latent velocity field to guarantee exact boundary compliance.
+    \item \textit{Continuous Online Streaming Adaptation:} Developing continuous test-time momentum updates to track gradual seasonal or orbital regime drifts without catastrophic forgetting.
+    \item \textit{Edge Hardware Quantization:} Deploying lightweight integer-quantized (INT8) Flow-JEPA encoders directly on radiation-hardened spacecraft microcontrollers and wearable biomedical sensors.
+    \item \textit{Foundation Models for Cyber-Physical Telemetry:} Pretraining large-scale multi-domain Flow-JEPA world models on massive multi-mission telemetry archives for zero-shot downstream fault diagnosis.
 \end{itemize}
 
 
 
+% === Bibliography ===
 \bibliographystyle{IEEEtran}
-\bibliography{export}
+\bibliography{IEEEabrv,export}
 
 \end{document}
