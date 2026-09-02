@@ -39,6 +39,7 @@ from src.data.data_loader import DataLoader
 from src.models import (
     AnomalyInjectionConfig,
     AnomalyTransformer,
+    CausalSSMFlowJEPA,
     ContextualAnomalyInjector,
     DCdetector,
     FlowTSJEPA,
@@ -709,6 +710,60 @@ def train_and_score_channel(
                     res.append(disc)
             return np.concatenate(res, axis=0)
 
+    # =========================================================================
+    # 12. Causal State-Space Flow-JEPA (CausalSSMFlowJEPA)
+    # =========================================================================
+    elif model_name in ["causal_ssm_flow_jepa", "causal_flow_jepa", "causal_jepa"]:
+        model = CausalSSMFlowJEPA(
+            in_channels=input_dim,
+            latent_dim=32,
+            hidden_dim=48,
+            node_dim=32,
+            ssm_layers=2,
+            gat_layers=2,
+            num_heads=min(4, max(1, input_dim)),
+            flow_layers=3,
+            dropout=0.10,
+            ema_decay=0.996,
+            vicreg_weight=0.10,
+            graph_sparsity_weight=1e-4,
+        ).to(device)
+        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
+
+        total_steps = epochs * max(1, len(training_data) // batch_size)
+        global_step = 0
+
+        for epoch in range(1, epochs + 1):
+            model.train()
+            perm = np.random.permutation(len(training_data))
+            for b in range(0, len(perm), batch_size):
+                global_step += 1
+                batch_arr = training_data[perm[b : b + batch_size]]
+                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
+                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
+
+                loss = model(ctx, tgt)
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                optimizer.step()
+
+                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
+                model.update_target_encoder(momentum=ema_val)
+            scheduler.step()
+
+        def compute_discrepancy(arr):
+            model.eval()
+            res = []
+            with torch.no_grad():
+                for i in range(0, len(arr), 256):
+                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
+                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
+                    disc = model.compute_anomaly_score(ctx, tgt).cpu().numpy()
+                    res.append(disc)
+            return np.concatenate(res, axis=0)
+
     else:
         raise ValueError(f"Unknown model_name: {model_name}")
 
@@ -811,7 +866,7 @@ def main():
         "--models",
         nargs="+",
         default=["ts_jepa", "anomaly_transformer", "timesnet", "dcdetector", "tranad", "ncad"],
-        help="Models: ts_jepa, patch_ts_jepa, flow_jepa, patch_flow_jepa, ncad_flow_jepa, anomaly_transformer, timesnet, dcdetector, tranad, ncad",
+        help="Models: ts_jepa, patch_ts_jepa, flow_jepa, patch_flow_jepa, ncad_flow_jepa, causal_ssm_flow_jepa, anomaly_transformer, timesnet, dcdetector, tranad, ncad",
     )
     parser.add_argument(
         "--dataset",
@@ -826,7 +881,12 @@ def main():
     parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs (default 50)")
     parser.add_argument("--seeds", nargs="+", type=int, default=[42], help="Random seeds to evaluate")
     parser.add_argument("--device", type=str, default="auto")
-    parser.add_argument("--resume", action="store_true", default=False, help="Skip runs already present in output CSV")
+    parser.add_argument(
+        "--resume",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Skip runs already present in output CSV and append new runs (default: True)",
+    )
     parser.add_argument("--output_csv", type=str, default="reports/sota_baseline_comparison.csv")
     args = parser.parse_args()
 
@@ -927,11 +987,21 @@ def main():
                         gc.collect()
 
     if all_results:
-        df = pd.DataFrame(all_results)
+        df_new = pd.DataFrame(all_results)
         out_p = ROOT / args.output_csv
         out_p.parent.mkdir(parents=True, exist_ok=True)
+        if out_p.exists():
+            try:
+                df_existing = pd.read_csv(out_p)
+                df = pd.concat([df_existing, df_new], ignore_index=True).drop_duplicates(
+                    subset=["dataset", "channel", "model", "seed"], keep="last"
+                )
+            except Exception:
+                df = df_new
+        else:
+            df = df_new
         df.to_csv(out_p, index=False)
-        print(f"\n[Saved full results to {out_p}]")
+        print(f"\n[Saved full results ({len(df)} total runs) to {out_p}]")
 
         print("\n" + "=" * 90)
         print("PRIMARY REAL-WORLD METRICS: UNADJUSTED POINT-F1 (MEAN +/- STD)")

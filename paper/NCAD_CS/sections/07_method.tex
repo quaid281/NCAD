@@ -52,7 +52,8 @@ The neural velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ is trained to minim
 
 \subsection{Probability Flow ODEs vs. Stochastic Differential Equations (SDEs)}
 \label{subsec:ode_vs_sde}
-A fundamental question in generative modeling for physical time series is whether continuous dynamics should be modeled via Stochastic Differential Equations (SDEs) or Ordinary Differential Equations (ODEs). While physical processes exhibit stochasticity and multi-modality, Flow-JEPA leverages the **Probability Flow Theorem** \cite{song2020score, lipman2022flow}:
+A fundamental question in generative modeling for physical time series is whether continuous dynamics should be modeled via Stochastic Differential Equations (SDEs) or Ordinary Differential Equations (ODEs). While physical processes exhibit stochasticity and multi-modality, Flow-JEPA leverages the \textbf{Probability Flow Theorem} \cite{song2020score, lipman2022flow}:
+
 
 \begin{theorem}[Probability Flow Equivalence]
 Let $dz_t = f(z_t, t)dt + g(t)dw_t$ be an It\^o SDE governing a continuous diffusion process with marginal density $p_t(z)$. There exists an exact, deterministic Ordinary Differential Equation:
@@ -78,7 +79,7 @@ To prevent representation collapse (where the encoder collapses all temporal tra
         \mathcal{L}_{\text{var}}(z) = \frac{1}{D} \sum_{j=1}^D \max\left(0, \gamma - \sqrt{\text{Var}(z_{\cdot, j}) + \epsilon}\right),
     \end{equation}
     where $\text{Var}(z_{\cdot, j}) = \frac{1}{B-1}\sum_{i=1}^B (z_{i, j} - \bar{z}_j)^2$ and $\epsilon = 10^{-4}$.
-    \item \textbf{Quantum Operator / Von Neumann Entropy Regularization ($\mathcal{L}_{\text{cov}}$):} Rather than penalizing only off-diagonal covariance entries via heuristic sum-of-squares, we measure the full spectral dispersion of the representation manifold via the **Operator Bregman Divergence** $D_{\text{Breg}}(\rho \parallel \frac{1}{D}\mathbf{I}_D)$ against the maximally disordered uniform state:
+    \item \textbf{Quantum Operator / Von Neumann Entropy Regularization ($\mathcal{L}_{\text{cov}}$):} Rather than penalizing only off-diagonal covariance entries via heuristic sum-of-squares, we measure the full spectral dispersion of the representation manifold via the \textbf{Operator Bregman Divergence} $D_{\text{Breg}}(\rho \parallel \frac{1}{D}\mathbf{I}_D)$ against the maximally disordered uniform state:
     \begin{equation}
         \mathcal{L}_{\text{cov}}(z) = \log(D) + \sum_{i=1}^D \lambda_i \log \lambda_i,
     \end{equation}
@@ -100,7 +101,8 @@ where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancin
 
 \subsection{Deterministic Midpoint Velocity Discrepancy \& Chebyshev Collocation}
 \label{subsec:mahalanobis}
-Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical integration noise and Monte Carlo variance. To achieve deterministic, zero-variance anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the velocity field at the **Optimal Transport Midpoint** ($t=0.5$) or across a set of deterministic **Chebyshev--Lobatto Collocation Nodes** $t_k = \frac{1}{2}(1 - \cos\frac{k\pi}{K})$.
+Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical integration noise and Monte Carlo variance. To achieve deterministic, zero-variance anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the velocity field at the \textbf{Optimal Transport Midpoint} ($t=0.5$) or across a set of deterministic \textbf{Chebyshev--Lobatto Collocation Nodes} $t_k = \frac{1}{2}(1 - \cos\frac{k\pi}{K})$.
+
 
 
 Along the straight Optimal Transport ray connecting prior mean $z_0 = \mathbf{0}$ to target representation $z_1 = z_{\text{tgt}}$, the midpoint state is $z_{0.5} = 0.5 z_{\text{tgt}}$ with ground-truth velocity $u = z_{\text{tgt}}$. The deterministic velocity prediction is:

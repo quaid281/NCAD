@@ -11,10 +11,11 @@ Table~\ref{tab:ablation_vicreg} evaluates the three loss components of the VICRe
     \item \textit{Full VICReg ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} The covariance decorrelation penalty reduces redundant inter-feature correlations by \textbf{40.6\%} (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes.
 \end{enumerate}
 
-\begin{table}[h!]
+\begin{table}[t]
 \centering
 \caption{Ablation of VICReg loss components on representation health.}
 \label{tab:ablation_vicreg}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Configuration} & \textbf{Mean PA-F1} & \textbf{Latent $\sigma(z)$} & \textbf{Off-Diag Cov} & \textbf{Outcome} \\
@@ -23,17 +24,19 @@ Invariance Only (MSE) & 0.3001 & 0.0329 & 0.0012 & Complete Collapse \\
 Invariance + Var Hinge & 0.4225 & 0.2595 & 0.1165 & High Redundancy \\
 \textbf{Full VICReg (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Ablation 2: Latent Representation Dimension ($D$)}
 Table~\ref{tab:ablation_dim} evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$.
 An information bottleneck at $D=8$ limits multi-sensor temporal expressive capacity ($0.3330$ PA-F1). Scaling to $D=32$ delivers peak performance ($\mathbf{0.4598}$ PA-F1, a \textbf{+38.1\% improvement}), while expanding to $D=64$ causes mild overfitting to local sensor jitter ($0.3633$ PA-F1).
 
-\begin{table}[h!]
+\begin{table}[t]
 \centering
 \caption{Sensitivity to Latent Representation Dimension $D$.}
 \label{tab:ablation_dim}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Dimension} & \textbf{Mean PA-F1} & \textbf{Mean Point-F1} & \textbf{Oracle Ceiling} & \textbf{Behavior} \\
@@ -43,17 +46,19 @@ $D = 16$ & 0.3504 & 0.2235 & 0.7761 & Intermediate \\
 \textbf{$D = 32$ (Default)} & \textbf{0.4598} & \textbf{0.2279} & \textbf{0.7367} & \textbf{Optimal Capacity} \\
 $D = 64$ & 0.3633 & 0.2452 & 0.6756 & Noise Overfitting \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Ablation 3: EMA Momentum Target Decay Rate ($m$)}
 Table~\ref{tab:ablation_ema} investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$.
 Eliminating the EMA buffer ($m=0.0$, shared weights) causes severe target drift and instability on non-stationary cloud streaming traces (Exathlon PA-F1 drops to $0.2676$). The default setting of $m=0.995$ strikes the optimal balance between target stability and representation plasticity, raising Exathlon detection to $\mathbf{0.4901}$ (\textbf{+83.1\% gain} over $m=0.0$).
 
-\begin{table}[h!]
+\begin{table}[t]
 \centering
 \caption{Impact of Target Encoder Momentum Decay $m$.}
 \label{tab:ablation_ema}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lccc@{}}
 \toprule
 \textbf{Momentum Factor} & \textbf{Macro PA-F1} & \textbf{Exathlon Streaming F1} & \textbf{SMAP Spacecraft F1} \\
@@ -64,7 +69,8 @@ $m = 0.99$ & 0.3481 & 0.2624 & 0.4163 \\
 \textbf{$m = 0.995$ (Default)} & \textbf{0.4206} & \textbf{0.4901 (+83.1\%)} & \textbf{0.4809} \\
 $m = 0.999$ & 0.2965 & 0.2172 & 0.3991 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Ablation 4: Flow Discrepancy Metrics vs. Numerical ODE Integration}
@@ -75,10 +81,11 @@ Table~\ref{tab:ablation_ode} compares four anomaly scoring paradigms for continu
     \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.4881$).
 \end{enumerate}
 
-\begin{table}[h!]
+\begin{table}[t]
 \centering
 \caption{Comparison of Flow Discrepancy Metrics on Daphnet \texttt{S03R02E0}.}
 \label{tab:ablation_ode}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Scoring Formulation} & \textbf{PA-F1} & \textbf{Precision} & \textbf{Oracle Ceiling} & \textbf{Inference Time} \\
@@ -89,5 +96,7 @@ Trajectory ODE (2-step Midpoint RK2) & 0.8770 & 0.8083 & 0.8876 & 3.57s \\
 Trajectory ODE (4-step Midpoint RK2) & 0.7866 & 0.7875 & 0.8876 & 3.71s \\
 \textbf{Deterministic Midpoint Flow (Ours)} & \textbf{0.9209} & \textbf{0.9861} & \textbf{0.9897} & \textbf{3.47s} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
+

@@ -23,6 +23,8 @@ from src.models.encoders import (
     contrastive_loss,
 )
 from src.models.jepa import (
+    CausalSSMContextEncoder,
+    CausalSSMFlowJEPA,
     FlowLatentPredictor,
     FlowTSJEPA,
     FlowTSJEPAModel,
@@ -72,6 +74,8 @@ __all__ = [
     "FlowTSJEPA",
     "FlowTSJEPAModel",
     "FlowLatentPredictor",
+    "CausalSSMFlowJEPA",
+    "CausalSSMContextEncoder",
     "flow_matching_vicreg_loss",
     "von_neumann_operator_entropy_loss",
     "PatchFlowJEPA",

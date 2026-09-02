@@ -15,7 +15,8 @@ As evidenced in Table~\ref{tab:multidataset_benchmark}, our proposed JEPA and Co
 \end{enumerate}
 
 \subsection{Comparative Analysis Against Modern SOTA Baselines}
-As detailed in Table~\ref{tab:multidataset_benchmark}, \texttt{flow\_jepa} achieves the highest grand macro Point-F1 ($\mathbf{0.2389}$), representing a **+52.5\% improvement over TimesNet** ($0.1566$), **+56.2\% over TranAD** ($0.1529$), **+146\% over DCdetector** ($0.0971$), and **+216\% over Anomaly Transformer** ($0.0756$):
+As detailed in Table~\ref{tab:multidataset_benchmark}, \texttt{flow\_jepa} achieves the highest grand macro Point-F1 ($\mathbf{0.2389}$), representing a \textbf{+52.5\% improvement over TimesNet} ($0.1566$), \textbf{+56.2\% over TranAD} ($0.1529$), \textbf{+146\% over DCdetector} ($0.0971$), and \textbf{+216\% over Anomaly Transformer} ($0.0756$):
+
 
 \begin{enumerate}[leftmargin=*]
     \item \textbf{Flow-JEPA vs. DCdetector (Contrastive Learning):} While DCdetector \cite{yang2023dcdetector} demonstrates moderate performance on periodic signals, it experiences complete detection collapse ($0.0000$ Point-F1) on non-stationary, sparse channels across GHL, Genesis, and cicids. Its reliance on contrastive dual-branch KL alignment causes representation collapse when anomalies lack strong cross-scale frequency divergence. In contrast, Flow-JEPA's non-contrastive VICReg loss prevents dimensional collapse across all 11 domains.
