@@ -15,6 +15,7 @@ from src.models.encoders.multi_scale_tcn_encoder import MultiScaleTCNEncoder
 from src.models.encoders.relational_gat_encoder import RelationalGATEncoder
 from src.models.encoders.selective_ssm_encoder import SelectiveSSMContextEncoder
 from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.models.jepa.causal_ssm_flow_jepa import CausalSSMFlowJEPA
 from src.models.jepa.flow_ts_jepa import FlowTSJEPAModel
 from src.models.jepa.gat_jepa import RelationalGAT_JEPAModel
 from src.models.jepa.multiscale_ts_jepa import MultiScaleTSJEPA
@@ -40,6 +41,7 @@ EncoderModel = (
     | MultiScaleTSJEPA
     | NCADJEPAModel
     | NCADFlowJEPAModel
+    | CausalSSMFlowJEPA
 )
 
 
@@ -204,6 +206,19 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             kernel_size=config.kernel_size,
             dropout=config.dropout,
             predictor_hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+        )
+    elif canonical == "causal_ssm_flow_jepa":
+        model = CausalSSMFlowJEPA(
+            in_channels=input_dim,
+            latent_dim=config.latent_dim,
+            hidden_dim=config.filters,
+            node_dim=max(16, config.latent_dim),
+            ssm_layers=2,
+            gat_layers=2,
+            num_heads=4,
+            flow_layers=3,
+            dropout=config.dropout,
             ema_decay=0.996,
         )
     else:

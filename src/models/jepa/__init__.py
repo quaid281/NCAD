@@ -1,5 +1,4 @@
-"""JEPA-family models: joint-embedding predictive architectures for anomaly detection."""
-
+from src.models.jepa.causal_ssm_flow_jepa import CausalSSMContextEncoder, CausalSSMFlowJEPA
 from src.models.jepa.flow_ts_jepa import (
     FlowLatentPredictor,
     FlowTSJEPA,

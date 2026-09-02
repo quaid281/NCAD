@@ -89,6 +89,13 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         requires_patch_division=False,
         description="Multi-horizon hierarchical TS-JEPA with parallel prediction heads.",
     ),
+    ModelSpec(
+        canonical_name="causal_ssm_flow_jepa",
+        aliases=("causal_flow_jepa", "causal_jepa"),
+        is_jepa=True,
+        requires_patch_division=False,
+        description="Causal State-Space Flow-Matching JEPA with Relational GAT and Selective SSM.",
+    ),
 )
 
 

@@ -25,11 +25,14 @@ from src.scoring.event_fusion import (
     robust_stats,
     successor_manifold_uncertainty_scores,
 )
+from src.scoring.conformal_calibrator import ConformalThresholdResult, SplitConformalCalibrator
 from src.scoring.evt_calibrator import EVTCalibrator, EVTThresholdResult
 
 __all__ = [
     "AdaptiveScoreFloor",
     "RobustStats",
+    "ConformalThresholdResult",
+    "SplitConformalCalibrator",
     "EVTCalibrator",
     "EVTThresholdResult",
     "adaptive_elbow_score_floor",
