@@ -1,24 +1,24 @@
 \section{Related Work}
 \label{sec:related}
 
-Unsupervised time-series anomaly detection has evolved through dynamical equation discovery, reconstructive generative modeling, contrastive representation learning, and predictive world models. This section reviews these developments and clearly differentiates Flow-JEPA from prior art.
+Unsupervised time-series anomaly detection has evolved through dynamical equation discovery, reconstructive generative modeling, contrastive representation learning, and predictive world models. This section reviews these developments and establishes the technical positioning of Flow-JEPA.
 
-\subsection{Continuous Dynamical Systems and Neural ODEs}
-The physical modeling of multi-sensor time series has long sought to capture system behavior as continuous dynamical trajectories governed by differential equations $\dot{x}(t) = \mathbf{f}(x(t))$.
+\subsection{Continuous Dynamical Systems and Flow Matching}
+The physical modeling of multi-sensor telemetry has long sought to capture system behavior as continuous dynamical trajectories governed by differential equations $\dot{x}(t) = \mathbf{f}(x(t))$ \cite{brunton2016discovering}.
 \begin{itemize}[leftmargin=*]
-    \item \textit{Neural Ordinary Differential Equations (Neural ODEs) \cite{chen2018neural}:} Parameterize continuous velocity fields using neural networks $\frac{dx}{dt} = f_\theta(x(t), t)$ and solve trajectories via numerical ODE integrators. While Neural ODEs learn flexible vector fields, fitting them directly in raw sensor space forces the numerical solver to integrate through high-frequency stochastic sensor noise, leading to numerical stiffness, slow training, and extreme sensitivity to measurement noise.
-    \item \textit{Flow Matching on Latent Manifolds \cite{lipman2022flow}:} Continuous Normalizing Flows and Conditional Flow Matching (CFM) train neural velocity vector fields $v_\psi(z_t, t)$ along straight Optimal Transport probability paths. Flow-JEPA represents the first architecture to marry Optimal Transport Flow Matching with non-contrastive Joint-Embedding representations, learning continuous dynamical vector fields purely in regularized latent space without raw-space noise integration.
+    \item \textit{Neural Ordinary Differential Equations (Neural ODEs) \cite{chen2018neural}:} Parameterize continuous velocity fields using neural networks $\frac{dx}{dt} = f_\theta(x(t), t)$ and solve trajectories via numerical ODE integrators. While Neural ODEs learn flexible vector fields, fitting them directly in raw sensor space forces numerical solvers to integrate through high-frequency stochastic sensor noise, leading to numerical stiffness, slow training, and extreme sensitivity to measurement noise.
+    \item \textit{Conditional Flow Matching (CFM) \cite{lipman2022flow, tong2023improving}:} Continuous Normalizing Flows and Optimal Transport Conditional Flow Matching (OT-CFM) train neural velocity vector fields $v_\psi(z_t, t)$ along straight probability paths. Stochastic interpolant frameworks \cite{albergo2022building} provide efficient simulation-free training objectives. Flow-JEPA couples Optimal Transport Flow Matching with non-contrastive Joint-Embedding representations, learning continuous dynamical vector fields purely in regularized latent space without raw-space noise integration.
 \end{itemize}
 
 \subsection{Reconstructive Anomaly Detection Paradigms}
 The predominant deep learning paradigm in time-series anomaly detection relies on learning nominal patterns through raw signal reconstruction. Early seminal work by Hundman et al. \cite{Hundman2018b} introduced LSTM-based prediction coupled with non-parametric dynamic thresholding for NASA spacecraft telemetry (SMAP/MSL). Modern architectures incorporate specialized attention and frequency-domain transformations:
 \begin{itemize}[leftmargin=*]
-    \item \textit{Anomaly Transformer \cite{xu2022anomaly}:} Introduces Anomaly-Attention to quantify the \textit{Association Discrepancy} between local prior Gaussian kernel associations and global series self-attention. While effective for isolated point anomalies, it still couples discrepancy with point-level waveform reconstruction.
+    \item \textit{Anomaly Transformer \cite{xu2022anomaly}:} Introduces Anomaly-Attention to quantify the \textit{Association Discrepancy} between local prior Gaussian kernel associations and global series self-attention. While effective for isolated point anomalies, it couples discrepancy with point-level waveform reconstruction.
     \item \textit{TimesNet \cite{wu2023timesnet}:} Decomposes 1D multivariate time series into 2D temporal variations using Fast Fourier Transform (FFT) periodicity discovery and 2D Inception blocks. However, optimizing point-level 2D reconstruction makes it susceptible to over-fitting high-frequency sensor noise.
     \item \textit{TranAD \cite{tuli2022tranad}:} Employs a two-phase adversarial Transformer with sub-series attention and focus scoring to amplify subtle reconstruction errors, but remains vulnerable to phase-drift in continuous dynamical systems.
 \end{itemize}
 
-Despite architectural advancements, all reconstructive methods share a fundamental vulnerability: \textit{signal-level reconstruction memorization}. Because loss functions optimize point-level $L_1$ or $L_2$ differences in raw signal space, reconstructive networks are biased toward fitting high-frequency stochastic noise rather than learning invariant dynamical laws. Furthermore, during sustained anomalies, corrupted observations contaminate the context window, causing the reconstructor to adapt and reconstruct the anomaly as the "new normal."
+Despite architectural advancements, reconstructive methods share a fundamental vulnerability: \textit{signal-level reconstruction memorization}. Because loss functions optimize point-level $L_1$ or $L_2$ differences in raw signal space, reconstructive networks are biased toward fitting high-frequency stochastic noise rather than learning invariant dynamical laws. Furthermore, during sustained anomalies, corrupted observations contaminate the context window, causing the reconstructor to adapt and reconstruct the anomaly as the "new normal."
 
 \subsection{Contrastive Learning and Representation-Based Detection}
 To avoid reconstructing raw noise, contrastive methods learn discriminative representations by separating nominal sequences from anomalous perturbations:
@@ -27,20 +27,23 @@ To avoid reconstructing raw noise, contrastive methods learn discriminative repr
     \item \textit{DCdetector \cite{yang2023dcdetector}:} Replaces reconstruction with multi-scale dual-attention (patch-wise and channel-wise) contrastive representation learning, maximizing cross-scale representation consistency. While DCdetector eliminates artificial injection heuristics, contrastive objectives require careful scale selection and representation pooling.
 \end{itemize}
 
-\subsection{Emerging Joint-Embedding Predictive Architectures (JEPA)}
-Joint-Embedding Predictive Architectures (JEPA), originally proposed by LeCun \cite{lecun2022path} and demonstrated in computer vision by I-JEPA \cite{assran2023self} and V-JEPA \cite{bardes2024vjepa}, represent a paradigm shift. Rather than reconstructing raw signals, JEPAs predict the representation of a target observation from a context observation entirely within latent space.
-Recent preliminary exploratory works have investigated JEPA concepts in time-series analysis:
+\subsection{Non-Contrastive Learning and Joint-Embedding Architectures}
+Joint-Embedding Predictive Architectures (JEPA), originally proposed by LeCun \cite{lecun2022path} and demonstrated in computer vision by I-JEPA \cite{assran2023self} and V-JEPA \cite{bardes2024vjepa}, represent a foundational shift. Rather than reconstructing raw pixels or signals, JEPAs predict representations of target regions from context entirely within abstract latent space.
+
+To prevent representation collapse (where all inputs map to a trivial constant point) without computationally expensive negative pair mining, non-contrastive objectives have been developed:
 \begin{itemize}[leftmargin=*]
-    \item \textit{SC-JEPA \cite{he2026scjepa}:} Introduces a Sequential Codebook JEPA for time-series forecasting. However, SC-JEPA relies on discrete Vector Quantization (VQ) codebooks, converting continuous signals into finite discrete tokens. For continuous dynamical systems governed by smooth trajectories, discrete tokenization introduces severe quantization error and loses fine-grained phase-space geometry.
-    \item \textit{T-SAR-JEPA \cite{woldesenbet2026tsarjepa} and CF-JEPA \cite{lee2026cfjepa}:} Apply joint-embedding objectives to multimodal Synthetic Aperture Radar (SAR) remote sensing or counterfactual causal graphs. However, they rely on heuristic cosine-distance scoring and lack continuous velocity field modeling and statistical threshold calibration.
+    \item \textit{Redundancy Reduction and Whitening:} Methods such as Barlow Twins \cite{zbontar2021barlow} and W-MSE \cite{ermolov2021whitening} enforce cross-correlation decorrelation or explicit batch whitening.
+    \item \textit{VICReg \cite{bardes2021vicreg}:} Jointly constrains variance (preventing mode collapse), invariance (predictive alignment), and covariance (eliminating redundant dimensions).
 \end{itemize}
 
+While JEPAs excel at capturing semantic structures in visual media, applying them to continuous-time physical systems requires addressing multi-branching trajectory stochasticity and continuous vector field dynamics. Deterministic $L_2$ regression in latent space collapses to the conditional mean across branching physical trajectories. Flow-JEPA directly addresses this fundamental challenge.
+
 \subsection{Positioning and Novelty of Flow-JEPA}
-Flow-JEPA synthesizes the strengths of continuous dynamical modeling and joint-embedding self-supervised learning while resolving their respective limitations through four innovations:
+Flow-JEPA synthesizes continuous dynamical modeling and joint-embedding self-supervised learning while resolving their respective limitations through four key innovations:
 \begin{enumerate}[leftmargin=*]
-    \item \textit{Continuous Latent Vector Field Modeling:} Instead of raw-space differential equation solving or discrete codebooks (SC-JEPA), Flow-JEPA learns the continuous tangent velocity field of the physical manifold via Optimal Transport Conditional Flow Matching directly in an abstract latent space.
-    \item \textit{Non-Contrastive VICReg Regularization:} Replaces synthetic negative injection heuristics (NCAD) with non-contrastive variance and covariance penalties, mathematically precluding dimensional collapse while preserving smooth attractor geometry.
-    \item \textit{Deterministic Midpoint Velocity Discrepancy:} Eliminates stochastic Monte Carlo inference sampling noise by evaluating the velocity field at the exact Optimal Transport midpoint ($t=0.5$), enabling high-precision Mahalanobis whitening.
-    \item \textit{Asymptotic Extreme Value Tail Calibration:} Applies Extreme Value Theory (EVT / SPOT) under the Pickands-Balkema-de Haan theorem to fit Generalized Pareto tails on nominal velocity residuals, establishing optimal decision boundaries without manual tuning.
+    \item \textit{Continuous Latent Vector Field Modeling:} Instead of raw-space differential equation solving or deterministic point regression, Flow-JEPA learns the continuous tangent velocity field of the physical manifold via Optimal Transport Conditional Flow Matching directly in regularized latent space.
+    \item \textit{Non-Contrastive Manifold Regularization:} Replaces synthetic negative injection heuristics with non-contrastive variance and spectral covariance penalties, mathematically precluding dimensional collapse while preserving smooth attractor geometry.
+    \item \textit{Deterministic Midpoint Velocity Discrepancy:} Evaluates the velocity field at the Optimal Transport midpoint ($t=0.5$), providing an efficient, zero-Monte-Carlo-variance proxy for trajectory deviation whitened by an empirical Mahalanobis precision tensor.
+    \item \textit{Asymptotic Extreme Value Tail Calibration:} Applies Extreme Value Theory (EVT / SPOT) \cite{siffer2017anomaly} under the Pickands-Balkema-de Haan theorem \cite{balkema1974residual} to fit Generalized Pareto tails on nominal velocity residuals, establishing principled decision boundaries without manual tuning.
 \end{enumerate}
 

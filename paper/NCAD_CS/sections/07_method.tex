@@ -4,7 +4,7 @@
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/flow_jepa_training.png}
-\caption{Flow-JEPA self-supervised training architecture. The context window $\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{C \times K}$ and target window $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{S \times K}$ are mapped to latent space by context encoder $E_\theta$ (trained with active gradients $\nabla_\theta$) and momentum target encoder $E_\phi$ (EMA replica with stop-gradient $\bot$). Straight Optimal Transport probability paths $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_{\text{tgt}}$ are sampled between base prior $\mathbf{z}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and target $\mathbf{z}_{\text{tgt}}$. The continuous flow predictor $v_\psi$ learns the instantaneous velocity field conditioned on $\mathbf{z}_{\text{ctx}}$ and sinusoidal time $\mathbf{e}(t)$, optimized under joint Flow-Matching ($\mathcal{L}_{\text{CFM}}$), Variance Hinge ($\mathcal{L}_{\text{var}}$), and Quantum Von Neumann Operator Entropy ($\mathcal{L}_{\text{cov}}$) regularization.\label{fig:flow_jepa_training}}
+\caption{Flow-JEPA self-supervised training architecture. The context window $\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{C \times K}$ and target window $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{S \times K}$ are mapped to latent space by context encoder $E_\theta$ (trained with active gradients $\nabla_\theta$) and momentum target encoder $E_\phi$ (EMA replica with stop-gradient $\bot$). Straight Optimal Transport probability paths $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_{\text{tgt}}$ are sampled between base prior $\mathbf{z}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$ and target $\mathbf{z}_{\text{tgt}}$. The continuous flow predictor $v_\psi$ learns the instantaneous velocity field conditioned on $\mathbf{z}_{\text{ctx}}$ and sinusoidal time $\mathbf{e}(t)$, optimized under joint Flow-Matching ($\mathcal{L}_{\text{CFM}}$), Variance Hinge ($\mathcal{L}_{\text{var}}$), and Spectral Covariance Entropy ($\mathcal{L}_{\text{cov}}$) regularization.\label{fig:flow_jepa_training}}
 \end{figure*}
 
 
@@ -21,7 +21,7 @@ Let $\mathbf{X} \in \mathbb{R}^{T \times K}$ denote a continuous multivariate ti
 Flow-JEPA consists of three interconnected modules operating in continuous representation space (illustrated in Fig.~\ref{fig:flow_jepa_training}):
 
 \begin{enumerate}[leftmargin=*]
-    \item \textit{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) or Patch Sequence Transformer with parameter weights $\theta$. The encoder maps the historical context $x_{\text{ctx}}$ to an abstract latent representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context duration without lookahead bias \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
+    \item \textit{Context Encoder ($E_\theta$):} A deep dilated causal Temporal Convolutional Network (TCN) or Patch Sequence Transformer with parameter weights $\theta$. The encoder maps historical context $x_{\text{ctx}}$ to an abstract latent representation vector $z_{\text{ctx}} = E_\theta(x_{\text{ctx}}) \in \mathbb{R}^D$. Dilated causal convolutions with dilation factors $d \in \{1, 2, 4, 8\}$ ensure an exponential receptive field covering the entire context duration without lookahead bias \cite{bai2018empirical}. Layer Normalization \cite{ba2016layernormalization} is applied across channel dimensions after each residual block to stabilize internal activations on flat-line or low-volatility telemetry regimes.
     \item \textit{Momentum Target Encoder ($E_\phi$):} An architectural replica of the context encoder with parameter weights $\phi$, mapping the target window $x_{\text{tgt}}$ to the ground-truth target representation $z_{\text{tgt}} = E_\phi(x_{\text{tgt}}) \in \mathbb{R}^D$. Crucially, $\phi$ is updated without gradient backpropagation via an Exponential Moving Average (EMA) schedule at training step $k$:
     \begin{equation}
         \phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k,
@@ -35,56 +35,51 @@ Flow-JEPA consists of three interconnected modules operating in continuous repre
 
 \subsection{Optimal Transport Conditional Flow Matching (OT-CFM)}
 \label{subsec:flow_matching}
-Instead of regressing to a single deterministic point $\hat{z}_{\text{tgt}}$ (which collapses to the conditional mean on multi-branching systems), Flow-JEPA defines a continuous probability path $p_t(z)$ connecting a standard Gaussian base distribution $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$ at $t=0$ to the target representation distribution $z_1 = z_{\text{tgt}}$ at $t=1$.
+Instead of regressing to a single deterministic point $\hat{z}_{\text{tgt}}$ (which collapses to the conditional mean on multi-branching physical systems), Flow-JEPA defines a continuous probability path $p_t(z)$ connecting a standard Gaussian base distribution $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$ at $t=0$ to the target representation distribution $z_1 = z_{\text{tgt}}$ at $t=1$.
 
-Under Optimal Transport Conditional Flow Matching (OT-CFM) \cite{lipman2022flow}, the conditional probability path follows the straight-line trajectory:
+Under Optimal Transport Conditional Flow Matching (OT-CFM) \cite{lipman2022flow, tong2023improving}, the conditional probability path is defined by the linear displacement interpolation:
 \begin{equation}
-    z_t = (1 - t) z_0 + t z_{\text{tgt}}, \quad t \sim \mathcal{U}(0, 1).
+    z_t = \psi_t(z_0 \mid z_{\text{tgt}}) = (1 - t) z_0 + t z_{\text{tgt}}, \quad t \sim \mathcal{U}(0, 1).
 \end{equation}
-The unique ground-truth target velocity field along this optimal transport path is constant with respect to time:
+Along this path, the unique conditional velocity vector field is constant with respect to time:
 \begin{equation}
     u_t(z_t \mid z_0, z_{\text{tgt}}) = \frac{d z_t}{d t} = z_{\text{tgt}} - z_0.
 \end{equation}
-The neural velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ is trained to minimize the flow matching objective:
+The neural velocity network $v_\psi(z_t, t, z_{\text{ctx}})$ is trained via simulation-free regression to match the conditional vector field:
 \begin{equation}
-    \mathcal{L}_{\text{CFM}}(\psi) = \mathbb{E} \left[ \| v_\psi(z_t, t, z_{\text{ctx}}) - (z_{\text{tgt}} - z_0) \|_2^2 \right],
+    \mathcal{L}_{\text{CFM}}(\psi) = \mathbb{E}_{t, z_0, (x_{\text{ctx}}, x_{\text{tgt}})} \left[ \| v_\psi(z_t, t, z_{\text{ctx}}) - (z_{\text{tgt}} - z_0) \|_2^2 \right],
 \end{equation}
-where the expectation is taken over $t \sim \mathcal{U}(0, 1)$, $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$, and data pairs $(x_{\text{ctx}}, x_{\text{tgt}})$.
+where $t \sim \mathcal{U}(0, 1)$, $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$, and $z_{\text{tgt}} = E_\phi(x_{\text{tgt}})$. 
 
-
-\subsection{Probability Flow ODEs vs. Stochastic Differential Equations (SDEs)}
-\label{subsec:ode_vs_sde}
-A fundamental question in generative modeling for physical time series is whether continuous dynamics should be modeled via Stochastic Differential Equations (SDEs) or Ordinary Differential Equations (ODEs). While physical processes exhibit stochasticity and multi-modality, Flow-JEPA leverages the Probability Flow Theorem \cite{song2020score, lipman2022flow}:
-
-\begin{theorem}[Probability Flow Equivalence]
-Let $dz_t = f(z_t, t)dt + g(t)dw_t$ be an It\^o SDE governing a continuous diffusion process with marginal density $p_t(z)$. There exists an exact, deterministic Ordinary Differential Equation:
+By the Conditional Flow Matching theorem \cite{lipman2022flow}, optimizing $\mathcal{L}_{\text{CFM}}$ guarantees that $v_\psi(z, t, z_{\text{ctx}})$ converges to the marginal velocity field:
 \begin{equation}
-    \frac{dz_t}{dt} = f(z_t, t) - \frac{1}{2} g(t)^2 \nabla_z \log p_t(z),
+    v(z, t, z_{\text{ctx}}) = \mathbb{E}_{z_0, z_{\text{tgt}}} \left[ z_{\text{tgt}} - z_0 \mid z_t = z,\, z_{\text{ctx}} \right],
 \end{equation}
-whose trajectories generate the identical marginal probability density $p_t(z)$ at every continuous time $t \in [0, 1]$.
-\end{theorem}
+which generates the true marginal probability path $p_t(z \mid z_{\text{ctx}})$ transitioning smoothly from prior noise to the structured target latent manifold.
 
-This equivalence provides three decisive advantages for time-series representation and anomaly detection:
+\subsection{Properties of Optimal Transport Latent Vector Fields}
+\label{subsec:ot_properties}
+Learning continuous dynamics via Optimal Transport Flow Matching on latent manifolds offers three structural advantages over raw-space differential equation solvers:
 \begin{enumerate}[leftmargin=*]
-    \item \textit{Stochasticity without Brownian Noise Injection:} Multi-modality and operational stochasticity are fully captured by sampling random boundary conditions from the base distribution $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$. Different initial points $z_0$ flow deterministically along non-intersecting characteristic curves into distinct operational branches of the target density $p(z_{\text{tgt}} \mid z_{\text{ctx}})$.
-    \item \textit{Elimination of Inference Monte Carlo Variance:} In score-based SDEs, continuous Brownian perturbations $dw_t$ inject stochastic noise into test-time anomaly evaluations. On nominal signals, this artificial variance inflates the upper tail, severely degrading Extreme Value Theory (EVT) threshold calibration. By contrast, the Probability Flow ODE admits a 100\% deterministic vector field evaluation.
-    \item \textit{Optimal Transport Geodesics (Straight Trajectories):} Unlike the chaotic Brownian random-walk paths of SDEs, OT-CFM defines straight constant-velocity trajectories ($u_t = z_{\text{tgt}} - z_0$). This allows numerical solvers to integrate trajectories in 1 to 4 steps, and enables exact single-pass evaluation at $t=0.5$.
+    \item \textit{Noise-Free Manifold Integration:} In contrast to raw-space Neural ODEs that must numerically integrate through high-frequency sensor noise, the Flow-JEPA velocity field operates strictly within regularized latent representations where high-frequency jitter has been filtered.
+    \item \textit{Straight Geodesics and Minimal Curvature:} The OT path $z_t = (1-t)z_0 + t z_{\text{tgt}}$ minimizes the dynamical kinetic action $\int_0^1 \|u_t\|^2 dt$. Straight trajectories eliminate path-crossing and turbulent vector field curvature, enabling rapid inference.
+    \item \textit{Representation of Multi-Branching Operational Modes:} By sampling initial boundary conditions $z_0 \sim \mathcal{N}(0, \mathbf{I}_D)$ during training, the velocity field learns to map from the base distribution into multi-modal target configurations $p(z_{\text{tgt}} \mid z_{\text{ctx}})$, avoiding the mode-averaging collapse of standard $L_2$ prediction.
 \end{enumerate}
 
-\subsection{Information-Theoretic Manifold Regularization}
+\subsection{Non-Contrastive Manifold Regularization}
 \label{subsec:vicreg_loss}
-To prevent representation collapse (where the encoder collapses all temporal trajectories to a single point) while avoiding synthetic negative sampling biases, Flow-JEPA jointly optimizes a non-contrastive manifold objective:
+To prevent representation collapse (where the encoder collapses all temporal trajectories to a single point) without requiring synthetic negative sampling heuristics (COE), Flow-JEPA jointly optimizes a non-contrastive manifold objective:
 \begin{enumerate}[leftmargin=*]
     \item \textit{Variance Hinge Regularization ($\mathcal{L}_{\text{var}}$):} Constrains the standard deviation of each latent dimension along the batch dimension to remain above $\gamma = 1.0$, guaranteeing representation diversity:
     \begin{equation}
         \mathcal{L}_{\text{var}}(z) = \frac{1}{D} \sum_{j=1}^D \max\left(0, \gamma - \sqrt{\text{Var}(z_{\cdot, j}) + \epsilon}\right),
     \end{equation}
     where $\text{Var}(z_{\cdot, j}) = \frac{1}{B-1}\sum_{i=1}^B (z_{i, j} - \bar{z}_j)^2$ and $\epsilon = 10^{-4}$.
-    \item \textit{Quantum Operator / Von Neumann Entropy Regularization ($\mathcal{L}_{\text{cov}}$):} Rather than penalizing only off-diagonal covariance entries via heuristic sum-of-squares, we measure the full spectral dispersion of the representation manifold via the Operator Bregman Divergence $D_{\text{Breg}}(\rho \parallel \frac{1}{D}\mathbf{I}_D)$ against the maximally disordered uniform state:
+    \item \textit{Spectral Covariance Entropy Regularization ($\mathcal{L}_{\text{cov}}$):} To eliminate inter-feature redundancy and maximize representation dimensionality, we apply an eigenvalue entropy penalty on the empirical batch covariance matrix $\mathbf{C}(z) = \frac{1}{B-1} \sum_{i=1}^B (z^{(i)} - \bar{z})(z^{(i)} - \bar{z})^T + \epsilon \mathbf{I}_D$:
     \begin{equation}
         \mathcal{L}_{\text{cov}}(z) = \log(D) + \sum_{i=1}^D \lambda_i \log \lambda_i,
     \end{equation}
-    where $\lambda_i = \tilde{\lambda}_i / \sum_k \tilde{\lambda}_k$ are the normalized eigenvalues of the regularized empirical batch covariance $\mathbf{C}(z) = \frac{1}{B-1} \sum_{i=1}^B (z^{(i)} - \bar{z})(z^{(i)} - \bar{z})^T + \epsilon \mathbf{I}_D$. This divergence reaches its theoretical global minimum ($\mathcal{L}_{\text{cov}} = 0$) if and only if all $D$ latent eigenmodes have identical variance, providing an exact information-theoretic barrier against subspace collapse.
+    where $\lambda_i = \tilde{\lambda}_i / \sum_k \tilde{\lambda}_k$ are the normalized eigenvalues of $\mathbf{C}(z)$. This entropy penalty reaches its theoretical global minimum ($\mathcal{L}_{\text{cov}} = 0$) if and only if all $D$ latent eigenmodes have equal variance (spherical covariance), establishing a rigorous barrier against subspace collapse \cite{zbontar2021barlow, bardes2021vicreg}.
 \end{enumerate}
 
 The complete Flow-JEPA training objective is minimized jointly over encoder parameters $\theta$ and flow predictor parameters $\psi$:
@@ -100,35 +95,32 @@ where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancin
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/flow_jepa_inference.png}
-\caption{Deterministic zero-variance inference and Extreme Value Theory (EVT) tail calibration pipeline. (1) Optimal Transport Midpoint ($t=0.5$): Setting prior mean $\mathbf{z}_0 = \mathbf{0}$ defines a deterministic ray to the midpoint $\mathbf{z}_{0.5} = 0.5\mathbf{z}_{\text{tgt}}$, evaluated in a single forward pass without Monte Carlo sampling variance. (2) Dynamic Velocity Residual: Discrepancy $\mathbf{e} = \hat{\mathbf{v}}_{\text{mid}} - \mathbf{z}_{\text{tgt}}$ measures physical deviation from nominal tangent trajectories. (3) Covariance Whitening: Nominal residuals calibrate the precision matrix $\mathbf{\Sigma}^{-1}$, yielding mode-variance normalized Mahalanobis distance $D_M$. (4) EVT Tail Calibration: Upper $2\%$ nominal tail is fitted to a Generalized Pareto Distribution (GPD), yielding exact analytical threshold $\tau_{\text{EVT}}$ without test-label leakage.\label{fig:flow_jepa_inference}}
+\caption{Deterministic inference and Extreme Value Theory (EVT) tail calibration pipeline. (1) Optimal Transport Midpoint ($t=0.5$): Using prior mean $\mathbf{z}_0 = \mathbf{0}$ yields the central midpoint $\mathbf{z}_{0.5} = 0.5\mathbf{z}_{\text{tgt}}$, evaluated in a single forward pass without Monte Carlo sampling variance. (2) Dynamic Velocity Residual: Discrepancy $\mathbf{e} = \hat{\mathbf{v}}_{\text{mid}} - \mathbf{z}_{\text{tgt}}$ measures physical deviation from nominal tangent trajectories. (3) Covariance Whitening: Nominal validation residuals calibrate the precision matrix $\mathbf{\Sigma}^{-1}$, yielding mode-variance normalized Mahalanobis distance $D_M$. (4) EVT Tail Calibration: Upper $2\%$ nominal tail is fitted to a Generalized Pareto Distribution (GPD), yielding exact analytical threshold $\tau_{\text{EVT}}$ without test-label leakage.\label{fig:flow_jepa_inference}}
 \end{figure*}
 
 
-\subsection{Deterministic Midpoint Velocity Discrepancy \& Chebyshev Collocation}
+\subsection{Deterministic Midpoint Velocity Discrepancy}
 \label{subsec:mahalanobis}
-Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical integration noise and Monte Carlo variance. To achieve deterministic, zero-variance anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the velocity field at the Optimal Transport Midpoint ($t=0.5$) or across a set of deterministic Chebyshev--Lobatto Collocation Nodes $t_k = \frac{1}{2}(1 - \cos\frac{k\pi}{K})$.
+Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical solver latency. For efficient anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the learned velocity field at the Optimal Transport Midpoint ($t=0.5$).
 
-
-
-Along the straight Optimal Transport ray connecting prior mean $z_0 = \mathbf{0}$ to target representation $z_1 = z_{\text{tgt}}$, the midpoint state is $z_{0.5} = 0.5 z_{\text{tgt}}$ with ground-truth velocity $u = z_{\text{tgt}}$. The deterministic velocity prediction is:
+Along the central trajectory connecting the prior mean $z_0 = \mathbf{0}$ to target representation $z_1 = z_{\text{tgt}}$, the midpoint state is $z_{0.5} = 0.5 z_{\text{tgt}}$. The predicted midpoint velocity is:
 \begin{equation}
     \hat{v}_{\text{mid}} = v_\psi(0.5 z_{\text{tgt}},\, t=0.5,\, z_{\text{ctx}}).
 \end{equation}
-We compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal validation velocity residuals $\mathbf{e}^{(i)} = \hat{v}_{\text{mid}}^{(i)} - z_{\text{tgt}}^{(i)}$:
+On nominal sequences, the physical trajectory satisfies the learned vector field, resulting in small velocity residuals $\mathbf{e} = \hat{v}_{\text{mid}} - z_{\text{tgt}}$. To account for heteroskedastic variance across latent dimensions, we compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal calibration sequences:
 \begin{equation}
     \mathbf{\Sigma} = \frac{1}{N_{\text{cal}} - 1} \sum_{i=1}^{N_{\text{cal}}} \mathbf{e}^{(i)} (\mathbf{e}^{(i)})^T + \lambda_{\text{reg}} \mathbf{I}_D,
 \end{equation}
-where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical inversion. The Covariance-Whitened Midpoint Discrepancy for any test window is:
-
+where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical inversion. The Covariance-Whitened Midpoint Discrepancy for any test window is then computed as the Mahalanobis distance:
 \begin{equation}
     D_M(x_{\text{ctx}}, x_{\text{tgt}}) = \sqrt{(\hat{v}_{\text{mid}} - z_{\text{tgt}})^T \mathbf{\Sigma}^{-1} (\hat{v}_{\text{mid}} - z_{\text{tgt}})}.
 \end{equation}
-This metric evaluates whether the observed suspect window lies along a physically valid tangent vector on the normal manifold, scaling prediction residuals by the inverse variance of each dynamical mode.
+This metric evaluates whether the observed suspect window lies along a physically consistent tangent trajectory on the normal manifold, scaling prediction residuals by the inverse variance of each dynamical mode.
 
 
 \subsection{Extreme Value Theory (EVT / SPOT) Tail Calibration}
 \label{subsec:evt_calibration}
-To establish an optimal decision threshold without manual tuning or label leakage, Flow-JEPA applies Extreme Value Theory (EVT) via the Streaming Peaks-Over-Threshold (SPOT) framework \cite{siffer2017anomaly}.
+To establish an optimal decision threshold without manual tuning or test-label leakage, Flow-JEPA applies Extreme Value Theory (EVT) via the Streaming Peaks-Over-Threshold (SPOT) framework \cite{siffer2017anomaly}.
 
 According to the Pickands-Balkema-de Haan theorem \cite{balkema1974residual}, the score excesses $Y = S - u$ over an initial high threshold $u$ asymptotically follow a Generalized Pareto Distribution (GPD):
 \begin{equation}

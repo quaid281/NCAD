@@ -18,19 +18,19 @@ All experiments are implemented in PyTorch and executed on NVIDIA GPU hardware. 
 \subsection{Evaluation Metrics}
 To address the score-inflation critique of point adjustment in time-series anomaly detection literature \cite{schmidl2022anomaly}, we report dual evaluation metrics:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Point-Adjusted F1 Score (PA-F1):} Standard protocol where detecting any point within an anomaly segment marks the segment as detected.
     \item \textit{Unadjusted Point-Level F1 Score (Point-F1):} Exact, uninflated timestep-level precision and recall.
+    \item \textit{Point-Adjusted F1 Score (PA-F1):} Standard protocol where detecting any point within an anomaly segment marks the segment as detected.
     \item \textit{Oracle Ceiling:} Upper-bound PA-F1 achievable via optimal post-hoc threshold scan over test set representations.
 \end{enumerate}
 
 
 \subsection{Multi-Domain Benchmark Performance}
 \label{subsec:benchmark_results}
-Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain evaluation across all 130 evaluated benchmark channels spanning 11 diverse physical, cyber-physical, and telemetry domains under 50-epoch training (1,300 total model evaluations).
+Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain evaluation across all 130 evaluated benchmark channels spanning 11 diverse physical, cyber-physical, and telemetry domains under 50-epoch training (1,300 total model evaluations). We report both the unweighted \textit{Dataset Macro Average} (equal weight per dataset domain) and the \textit{Channel-Weighted Micro Average} (weighted by channel count across all 130 series).
 
 \begin{table*}[t]
 \centering
-\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Panel a) and Secondary Legacy Point-Adjusted F1 (Panel b) across 1,300 total model-channel runs. Bold indicates the top-performing model per row.\label{tab:multidataset_benchmark}}
+\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Panel a) and Secondary Legacy Point-Adjusted F1 (Panel b) across 1,300 total model-channel runs. We report both the unweighted Dataset Macro Average (11 domains) and Channel-Weighted Micro Average (130 channels). Bold indicates the top-performing model per row.\label{tab:multidataset_benchmark}}
 \vspace{2pt}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lc ccccc ccccc@{}}
@@ -53,7 +53,8 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 \textbf{CalIt2} & 1 & 0.147 & 0.135 & \textbf{0.179} & 0.080 & 0.090 & 0.121 & \textbf{0.179} & 0.091 & 0.136 & 0.077 \\
 \textbf{metro} & 1 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & \textbf{0.004} & 0.000 & 0.000 & 0.000 & 0.000 \\
 \midrule
-\textbf{Grand Macro Avg} & \textbf{130} & 0.1529 & 0.1566 & 0.0756 & 0.0971 & 0.0859 & 0.2137 & 0.1632 & \textbf{0.2389} & 0.1587 & 0.2258 \\
+\textbf{Dataset Macro Avg} & \textbf{11} & 0.1610 & 0.1510 & 0.1083 & 0.0902 & 0.0770 & 0.1668 & 0.1606 & 0.1921 & 0.1598 & \textbf{0.1922} \\
+\textbf{Channel Micro Avg} & \textbf{130} & 0.1529 & 0.1566 & 0.0756 & 0.0971 & 0.0859 & 0.2137 & 0.1632 & \textbf{0.2389} & 0.1587 & 0.2258 \\
 \bottomrule
 \toprule
 \multicolumn{12}{c}{\textbf{(b) Secondary Legacy Point-Adjusted F1 Score (PA-F1) --- Segment-Adjusted Metric}} \\
@@ -74,7 +75,8 @@ Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain ev
 \textbf{CalIt2} & 1 & 0.150 & 0.170 & 0.179 & 0.177 & 0.090 & 0.154 & \textbf{0.211} & 0.109 & 0.175 & 0.077 \\
 \textbf{metro} & 1 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & \textbf{0.004} & 0.000 & 0.000 & 0.000 & 0.000 \\
 \midrule
-\textbf{Grand Macro Avg} & \textbf{130} & 0.2517 & 0.2853 & 0.2334 & 0.2564 & 0.3000 & 0.3731 & 0.3065 & \textbf{0.3973} & 0.3230 & 0.3849 \\
+\textbf{Dataset Macro Avg} & \textbf{11} & 0.2474 & 0.2405 & 0.2525 & 0.1672 & 0.2802 & 0.3002 & 0.3186 & 0.3004 & \textbf{0.3195} & 0.2816 \\
+\textbf{Channel Micro Avg} & \textbf{130} & 0.2517 & 0.2853 & 0.2334 & 0.2564 & 0.3000 & 0.3731 & 0.3065 & \textbf{0.3973} & 0.3230 & 0.3849 \\
 \bottomrule
 \end{tabular}%
 }

@@ -1,37 +1,37 @@
 \section{Ablation Studies and Analysis}
 \label{sec:ablations}
 
-To empirically isolate the contribution of each architectural component in TS-JEPA and Flow-JEPA, we conducted 48 systematic ablation trials across representative multi-domain channels (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}, Exathlon \texttt{10\_4\_1000000\_79}, and SMAP \texttt{P-3}). Table~\ref{tab:ablations} summarizes the findings across four key architectural dimensions.
+To empirically isolate the contribution of each architectural component in TS-JEPA and Flow-JEPA, we conducted systematic ablation trials across representative multi-domain channels (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}, Exathlon \texttt{10\_4\_1000000\_79}, and SMAP \texttt{P-3}). Table~\ref{tab:ablations} summarizes the findings across four key architectural dimensions.
 
-\subsection{Ablation 1: VICReg Loss Formulations and Representation Collapse}
+\subsection{Ablation 1: Manifold Regularization and Representation Collapse}
 Table~\ref{tab:ablations}(a) evaluates the three loss components of the VICReg objective:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Invariance Only ($\lambda_{\text{var}}=0, \lambda_{\text{cov}}=0$):} Results in catastrophic representation collapse. The mean latent standard deviation drops to $\sigma(z) = 0.0329$, as the context and target encoders map all sequences to a single constant point, degrading PA-F1 to $0.3001$.
-    \item \textit{Invariance + Variance Hinge ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0$):} Restores representation variance ($\sigma(z) = 0.2595$) and elevates PA-F1 to $0.4225$, but suffers from high off-diagonal covariance redundancy ($0.1165$).
-    \item \textit{Full VICReg ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} The covariance decorrelation penalty reduces redundant inter-feature correlations by $40.6\%$ (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes.
+    \item \textit{Invariance + Variance Hinge ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0$):} Restores representation variance ($\sigma(z) = 0.2595$) and elevates PA-F1 to $0.4225$, but leaves significant off-diagonal covariance redundancy ($0.1165$).
+    \item \textit{Full Regularization ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} While raw PA-F1 is comparable ($0.4212$), the spectral covariance decorrelation penalty reduces redundant inter-feature correlations by $40.6\%$ (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes that prevents dimensional collapse across correlated sensors.
 \end{enumerate}
 
 \subsection{Ablation 2: Latent Representation Dimension ($D$)}
-Table~\ref{tab:ablations}(b) evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$. An information bottleneck at $D=8$ limits multi-sensor temporal expressive capacity ($0.3330$ PA-F1). Scaling to $D=32$ delivers peak performance ($0.4598$ PA-F1, a $+38.1\%$ improvement), while expanding to $D=64$ causes mild overfitting to local sensor jitter ($0.3633$ PA-F1).
+Table~\ref{tab:ablations}(b) evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$. For low-dimensional or simple single-sensor telemetry, compact bottlenecks ($D=8$) provide strong point-level precision ($0.2743$ Point-F1). However, scaling to $D=32$ provides the necessary expressive capacity for complex multi-channel cross-sensor correlation and segment-level localization ($0.4598$ PA-F1, a $+38.1\%$ improvement over $D=8$). Further expanding to $D=64$ begins to capture high-frequency sensor noise, degrading performance to $0.3633$ PA-F1.
 
 \subsection{Ablation 3: EMA Momentum Target Decay Rate ($m$)}
-Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. Eliminating the EMA buffer ($m=0.0$, shared weights) causes severe target drift and instability on non-stationary cloud streaming traces (Exathlon PA-F1 drops to $0.2676$). The default setting of $m=0.995$ strikes the optimal balance between target stability and representation plasticity, raising Exathlon detection to $0.4901$ ($+83.1\%$ gain over $m=0.0$).
+Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. On stationary, periodic telemetry (such as SMAP channels), setting $m=0.0$ (shared weights) allows direct gradient alignment, achieving strong local detection ($0.5338$ F1). However, on non-stationary, streaming cloud telemetry with continuous workload distribution shifts (Exathlon), eliminating the EMA buffer causes severe target drift, collapsing PA-F1 to $0.2676$. Setting $m=0.995$ provides critical stability against non-stationary drift, elevating Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$).
 
-\subsection{Ablation 4: Flow Discrepancy Metrics vs. Numerical ODE Integration}
-Table~\ref{tab:ablations}(d) compares four anomaly scoring paradigms for continuous flow matching:
+\subsection{Ablation 4: Flow Discrepancy Scoring vs. Numerical ODE Solvers}
+Table~\ref{tab:ablations}(d) evaluates anomaly scoring paradigms on representative high-signal test sequences:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. Achieves the highest precision and Oracle ceilings ($0.9897$ on Daphnet \texttt{S03R02E0}) with zero Monte Carlo noise and minimal inference latency ($3.47$s).
-    \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Discretization errors accumulate across integration steps, slightly blurring the nominal decision boundary (Oracle drops from $0.9897$ to $0.8876$).
-    \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.4881$).
+    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. It provides a sharp proxy for trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$) and minimal inference latency ($3.47$s).
+    \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Numerical discretization steps accumulate slight truncation errors along the integration path, while increasing computational latency.
+    \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.3359$).
 \end{enumerate}
 
 \begin{table*}[t]
 \centering
-\caption{Comprehensive Multi-Domain Ablation Studies on Flow-JEPA Architectural Components (48 Systematic Experimental Trials). Bold indicates optimal configuration.\label{tab:ablations}}
+\caption{Systematic Ablation Studies on Flow-JEPA Architectural Components (48 experimental trials on representative multi-domain channels). Note: Panels (a)-(c) report aggregate metrics across the representative ablation channels; Panel (d) isolates scoring formulation behavior on representative high-signal benchmark sequences to benchmark ODE solver precision. Bold indicates optimal configuration.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) VICReg Loss Formulations and Collapse Behavior}} & \multicolumn{1}{c}{\textbf{(b) Sensitivity to Latent Dimension Capacity $D$}} \\
+\multicolumn{1}{c}{\textbf{(a) Regularization Formulations and Collapse Behavior}} & \multicolumn{1}{c}{\textbf{(b) Sensitivity to Latent Dimension Capacity $D$}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
@@ -40,7 +40,7 @@ Table~\ref{tab:ablations}(d) compares four anomaly scoring paradigms for continu
 \midrule
 Invariance Only (MSE) & 0.3001 & 0.0329 & 0.0012 & Complete Collapse \\
 Invariance + Var Hinge & 0.4225 & 0.2595 & 0.1165 & High Redundancy \\
-\textbf{Full VICReg (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold} \\
+\textbf{Full Regularization (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold} \\
 \bottomrule
 \end{tabular}%
 }
