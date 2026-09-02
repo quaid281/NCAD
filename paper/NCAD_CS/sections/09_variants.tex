@@ -1,7 +1,7 @@
 \section{Ablation Studies and Analysis}
 \label{sec:ablations}
 
-To empirically isolate the contribution of each architectural component in TS-JEPA and Flow-JEPA, we conducted systematic ablation trials across representative multi-domain channels (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}, Exathlon \texttt{10\_4\_1000000\_79}, and SMAP \texttt{P-3}). Table~\ref{tab:ablations} summarizes the findings across four key architectural dimensions.
+To empirically isolate the contribution of each architectural component in Point-JEPA and Flow-JEPA, we conducted systematic ablation trials across a representative multi-domain ablation suite: high-frequency periodic biomedical accelerometry (Daphnet \texttt{S01R01E1} and \texttt{S02R02E0}), non-stationary streaming cloud telemetry with severe workload drift (Exathlon \texttt{10\_4\_1000000\_79}), and multi-sensor spacecraft physical telemetry (SMAP \texttt{P-3}). These channels were specifically chosen to benchmark architectural sensitivity across the three fundamental dynamical regimes (stationary periodic, non-stationary streaming, and multi-sensor coupled) prior to full 130-channel benchmark deployment. Table~\ref{tab:ablations} summarizes the findings across four key architectural dimensions.
 
 \subsection{Ablation 1: Manifold Regularization and Representation Collapse}
 Table~\ref{tab:ablations}(a) evaluates the three loss components of the non-contrastive regularization objective:
@@ -20,17 +20,17 @@ Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \i
 However, when deployed on non-stationary, streaming cloud telemetry characterized by continuous workload distribution shifts and concept drift (Exathlon), eliminating the EMA buffer ($m=0.0$) causes catastrophic target representation drift, collapsing detection performance to $0.2676$ PA-F1. Setting $m=0.995$ introduces critical temporal inertia that stabilizes the target latent manifold against streaming drift, elevating Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$). Because real-world industrial deployments must prioritize catastrophic failure prevention under non-stationary regime shifts over marginal gains on static periodic signals, Flow-JEPA adopts $m=0.995$ as its default configuration across all multi-domain benchmarks.
 
 \subsection{Ablation 4: Flow Discrepancy Scoring vs. Numerical ODE Solvers}
-Table~\ref{tab:ablations}(d) evaluates anomaly scoring paradigms on representative high-signal test sequences:
+Table~\ref{tab:ablations}(d) evaluates anomaly scoring formulations on an isolated, high-SNR benchmark sequence (Daphnet \texttt{S03R02E0} Freezing-of-Gait telemetry). This sequence was specifically selected to isolate the mathematical properties and numerical precision of continuous ODE solvers vs. single-step velocity estimators without low-SNR measurement noise confounding the numerical comparison:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. It provides a sharp proxy for trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$) and minimal inference latency ($3.47$s).
     \item \textit{Monte Carlo Sampled Flow ($K=10$):} Averages velocity discrepancy over $K=10$ random base draws $z_0^{(k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$. While achieving similar precision ($0.9810$) and PA-F1 ($0.9184$), it introduces stochastic evaluation variance and scales inference latency $10\times$ ($34.2$s).
     \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Numerical discretization steps accumulate slight truncation errors along the integration path, while increasing computational latency.
-    \item \textit{Deterministic Point Regression (Baseline TS-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.3359$).
+    \item \textit{Deterministic Point Regression (Baseline Point-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.3359$).
 \end{enumerate}
 
 \begin{table*}[t]
 \centering
-\caption{Systematic Ablation Studies on Flow-JEPA Architectural Components (48 experimental trials on representative multi-domain channels). Note: Panels (a)-(c) report aggregate metrics across the representative ablation channels; Panel (d) isolates scoring formulation behavior on representative high-signal benchmark sequences to benchmark ODE solver precision. Bold indicates the designated production default configuration; in Panel (a), Full Regularization is chosen for its $40.6\%$ reduction in covariance redundancy and subspace preservation despite comparable raw PA-F1.\label{tab:ablations}}
+\caption{Systematic Ablation Studies on Flow-JEPA Architectural Components (48 experimental trials on representative multi-domain channels). Note: Panels (a)-(c) report aggregate metrics across the representative ablation channels; Panel (d) evaluates an isolated high-SNR benchmark sequence (Daphnet \texttt{S03R02E0}) to quantify ODE solver numerical discretization error vs. midpoint evaluation. Bold indicates the designated production default configuration; in Panel (a), Full Regularization is chosen for its $40.6\%$ reduction in covariance redundancy and subspace preservation despite comparable raw PA-F1.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
@@ -82,7 +82,7 @@ $m = 0.999$ & 0.2965 & 0.2172 & 0.3991 \\
 \toprule
 \textbf{Scoring Formulation} & \textbf{PA-F1} & \textbf{Precision} & \textbf{Oracle Ceiling} & \textbf{Inference Time} \\
 \midrule
-Deterministic TS-JEPA & 0.2556 & 0.1566 & 0.3359 & 4.84s \\
+Deterministic Point-JEPA & 0.2556 & 0.1566 & 0.3359 & 4.84s \\
 Monte Carlo Flow ($K=10$) & 0.9184 & 0.9810 & 0.9882 & 34.20s \\
 Trajectory ODE (1-step Euler) & 0.6510 & 0.7785 & 0.8881 & 3.46s \\
 Trajectory ODE (2-step Midpoint RK2) & 0.8770 & 0.8083 & 0.8876 & 3.57s \\

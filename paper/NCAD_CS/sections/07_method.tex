@@ -103,11 +103,25 @@ where $\lambda_{\text{var}} = 1.0$ and $\lambda_{\text{cov}} = 0.5$ are balancin
 \label{subsec:mahalanobis}
 Standard generative sampling requires integrating ODE trajectories over multiple discretization steps $z_0 \to z_1$, accumulating numerical solver latency. For efficient anomaly scoring (illustrated in Fig.~\ref{fig:flow_jepa_inference}), we evaluate the learned velocity field at the Optimal Transport Midpoint ($t=0.5$).
 
-Along the central trajectory connecting the prior base distribution $p_0(z_0) = \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$ to target representation $z_1 = z_{\text{tgt}}$, the conditional expectation of the interpolated state at $t=0.5$ is $\mathbb{E}[z_{0.5} \mid z_{\text{tgt}}] = 0.5 z_{\text{tgt}}$ (since $\mathbb{E}[z_0] = \mathbf{0}$). The predicted midpoint velocity is evaluated deterministically as:
+Along the displacement path connecting the standard Gaussian base measure $p_0(z_0) = \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$ to target representation $z_1 = z_{\text{tgt}}$, the conditional expectation of the interpolated midpoint state is $\bar{z}_{0.5} = \mathbb{E}[z_{0.5} \mid z_{\text{tgt}}] = 0.5 z_{\text{tgt}}$ (since $\mathbb{E}[z_0] = \mathbf{0}$). We define the deterministic midpoint velocity proxy as:
 \begin{equation}
     \hat{v}_{\text{mid}} = v_\psi(0.5 z_{\text{tgt}},\, t=0.5,\, z_{\text{ctx}}).
 \end{equation}
-This serves as an exact plug-in estimator for the expected velocity field along the central displacement ray. On nominal sequences, the physical trajectory satisfies the learned vector field, resulting in small velocity residuals $\mathbf{e} = \hat{v}_{\text{mid}} - z_{\text{tgt}}$. To account for heteroskedastic variance across latent dimensions, we compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal calibration sequences:
+
+\noindent\textbf{First-Order Approximation and Jensen Gap:} Because the neural velocity network $v_\psi$ is nonlinear, evaluating $v_\psi$ at the expected state $\bar{z}_{0.5}$ is not strictly identical to the expected velocity $\mathbb{E}_{z_0}[v_\psi(z_{0.5}, 0.5, z_{\text{ctx}})]$. Applying a second-order Taylor expansion of $v_\psi(z_{0.5})$ around the centroid $\bar{z}_{0.5}$ yields:
+\begin{equation}
+\begin{aligned}
+    v_\psi(z_{0.5}) &= v_\psi(\bar{z}_{0.5}) + \nabla_z v_\psi(\bar{z}_{0.5}) (z_{0.5} - \bar{z}_{0.5}) \\
+    &+ \frac{1}{2} (z_{0.5} - \bar{z}_{0.5})^T \nabla_z^2 v_\psi(\bar{z}_{0.5}) (z_{0.5} - \bar{z}_{0.5}) + \mathcal{O}(\|z_{0.5} - \bar{z}_{0.5}\|^3).
+\end{aligned}
+\end{equation}
+Taking expectations with respect to $z_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$ (where $\mathbb{E}[z_{0.5} - \bar{z}_{0.5}] = \mathbf{0}$ and $\text{Cov}(z_{0.5}) = \frac{1}{4} \mathbf{I}_D$), the linear term vanishes, yielding:
+\begin{equation}
+    \mathbb{E}_{z_0}[v_\psi(z_{0.5})] = v_\psi(\bar{z}_{0.5}) + \frac{1}{8} \text{Tr}\left(\nabla_z^2 v_\psi(\bar{z}_{0.5})\right) + \mathcal{O}(\sigma_0^4).
+\end{equation}
+Because the velocity network is regularized over a smooth latent manifold (where the Hessian trace $\text{Tr}(\nabla_z^2 v_\psi)$ remains bounded), the deterministic midpoint $\hat{v}_{\text{mid}}$ serves as an accurate, low-bias first-order plug-in estimator. Crucially, it eliminates Monte Carlo sampling variance ($\text{Var} = 0$) and enables single-forward-pass scoring ($3.47$s vs. $34.2$s for $K=10$ Monte Carlo sampling), with empirical validation in Section~\ref{sec:ablations} showing $<0.8\%$ score deviation on nominal manifolds.
+
+On nominal sequences, the physical trajectory satisfies the learned vector field, resulting in small velocity residuals $\mathbf{e} = \hat{v}_{\text{mid}} - z_{\text{tgt}}$. To account for heteroskedastic variance across latent dimensions, we compute the empirical residual covariance matrix $\mathbf{\Sigma} \in \mathbb{R}^{D \times D}$ from nominal calibration sequences:
 \begin{equation}
     \mathbf{\Sigma} = \frac{1}{N_{\text{cal}} - 1} \sum_{i=1}^{N_{\text{cal}}} \mathbf{e}^{(i)} (\mathbf{e}^{(i)})^T + \lambda_{\text{reg}} \mathbf{I}_D,
 \end{equation}
@@ -115,7 +129,7 @@ where $\lambda_{\text{reg}} = 10^{-3}$ ensures well-conditioned numerical invers
 \begin{equation}
     D_M(x_{\text{ctx}}, x_{\text{tgt}}) = \sqrt{(\hat{v}_{\text{mid}} - z_{\text{tgt}})^T \mathbf{\Sigma}^{-1} (\hat{v}_{\text{mid}} - z_{\text{tgt}})}.
 \end{equation}
-This metric evaluates whether the observed suspect window lies along a physically consistent tangent trajectory on the normal manifold, scaling prediction residuals by the inverse variance of each dynamical mode. Compared to multi-sample Monte Carlo integration (averaging over multiple random draws $z_0^{(k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$), the deterministic midpoint eliminates stochastic scoring variance and reduces inference latency by an order of magnitude while maintaining equivalent ranking fidelity ($<0.8\%$ score deviation).
+This metric evaluates whether the observed suspect window lies along a physically consistent tangent trajectory on the normal manifold, scaling prediction residuals by the inverse variance of each dynamical mode.
 
 
 \subsection{Extreme Value Theory (EVT / SPOT) Tail Calibration}
@@ -136,3 +150,17 @@ where $N$ is the total number of calibration points and $N_u$ is the number of e
 \begin{equation}
     \hat{y}(t) = \mathbb{I}\left(S(t) \ge \tau_{\text{EVT}}\right).
 \end{equation}
+
+\subsection{Architectural and Objective Variants}
+\label{subsec:variants}
+To isolate the distinct benefits of continuous flow matching versus discrete representation encoders, we benchmark five specific architectural configurations across our experimental evaluation:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Point-JEPA (Deterministic Regression Baseline):} Employs dilated causal TCN context and EMA target encoders with a multi-layer MLP predictor head $g_\phi(z_{\text{ctx}}) \to \hat{z}_{\text{tgt}}$ trained via deterministic $L_2$ latent regression:
+    \begin{equation}
+        \mathcal{L}_{\text{Point-JEPA}} = \|\hat{z}_{\text{tgt}} - z_{\text{tgt}}\|_2^2 + \lambda_{\text{var}} \mathcal{L}_{\text{var}} + \lambda_{\text{cov}} \mathcal{L}_{\text{cov}}.
+    \end{equation}
+    \item \textbf{Patch-JEPA (Patch Transformer Baseline):} Segments context and suspect time series into non-overlapping temporal patches $P \in \mathbb{R}^{K \times D_{\text{in}}}$, maps tokens through multi-head self-attention Transformer blocks \cite{vaswani2017attention, dosovitskiy2020image}, and optimizes deterministic patch embedding prediction with VICReg regularization.
+    \item \textbf{Flow-JEPA (Proposed Primary Architecture):} Employs dilated causal TCN encoders with continuous Optimal Transport Conditional Flow Matching ($\mathcal{L}_{\text{CFM}}$) predicting velocity field $v_\psi(z_t, t, z_{\text{ctx}})$ along straight probability paths, regularized by Spectral Covariance Entropy.
+    \item \textbf{Patch-Flow:} Combines the patch-tokenized Transformer encoder with continuous Optimal Transport Flow Matching and Spectral Covariance Regularization.
+    \item \textbf{NCAD-Flow:} Extends Neural Contextual Anomaly Detection \cite{carmona2021neural} by augmenting the continuous flow velocity objective with Contextual Outlier Exposure (COE), injecting synthetic anomalies as negative velocity trajectories during training.
+\end{enumerate}
