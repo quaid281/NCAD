@@ -209,6 +209,14 @@ def calibrate_event_threshold(
         threshold = float(evt_res.threshold)
         threshold_method_name = f"evt_gpd_{evt_res.method}"
         evt_info = evt_res.to_dict()
+    elif config.threshold_method == "conformal":
+        from src.scoring.conformal_calibrator import SplitConformalCalibrator
+
+        conformal_calibrator = SplitConformalCalibrator(alpha=config.conformal_alpha)
+        conformal_res = conformal_calibrator.calibrate(valid_scores)
+        threshold = float(conformal_res.threshold)
+        threshold_method_name = f"split_conformal_alpha_{config.conformal_alpha}"
+        evt_info = conformal_res.to_dict()
     else:
         threshold = float(np.percentile(valid_scores, config.event_threshold_percentile))
         threshold_method_name = "counterfactual_successor_training_distribution"
@@ -309,6 +317,14 @@ def calibrate_jepa_threshold(
         threshold = float(evt_res.threshold)
         threshold_method_name = f"evt_gpd_{evt_res.method}"
         evt_info = evt_res.to_dict()
+    elif config.threshold_method == "conformal":
+        from src.scoring.conformal_calibrator import SplitConformalCalibrator
+
+        conformal_calibrator = SplitConformalCalibrator(alpha=config.conformal_alpha)
+        conformal_res = conformal_calibrator.calibrate(valid_scores)
+        threshold = float(conformal_res.threshold)
+        threshold_method_name = f"split_conformal_alpha_{config.conformal_alpha}"
+        evt_info = conformal_res.to_dict()
     else:
         threshold = float(np.percentile(valid_scores, config.event_threshold_percentile))
         threshold_method_name = "jepa_training_distribution"

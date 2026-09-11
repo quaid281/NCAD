@@ -314,3 +314,39 @@ class RelationalGATEncoder(nn.Module):
 
         features = torch.cat([mean, std, skew, kurtosis, energy, zero_crossing], dim=1)
         return torch.nan_to_num(features)
+
+
+def compute_layer_entropy_potential(attn_weights: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
+    """Compute Shannon entropy potential of graph attention weights for a layer (Chapter 10).
+
+    Args:
+        attn_weights: Tensor of shape (B, H, N, N) containing row-stochastic attention weights.
+
+    Returns:
+        entropy: Scalar mean entropy potential across batch, heads, and nodes.
+    """
+    p = torch.clamp(attn_weights, min=eps)
+    entropy = -torch.sum(p * torch.log2(p), dim=-1)  # (B, H, N)
+    return entropy.mean()
+
+
+def layer_entropy_contraction_loss(attentions: list[torch.Tensor], margin: float = 0.05) -> torch.Tensor:
+    """Layer-wise entropy contraction regularizer (Chapter 10 of Ten Advances).
+
+    Penalizes entropy increases between consecutive graph attention layers:
+        L = sum_{l=1}^{L-1} ReLU(Phi_{l+1} - Phi_l + margin)
+
+    Enforces monotonic refinement of inter-variable graph dependencies and prevents
+    over-smoothing and spurious feedback cycles across multi-sensor networks.
+    """
+    if len(attentions) < 2:
+        if len(attentions) == 1:
+            return torch.tensor(0.0, device=attentions[0].device)
+        return torch.tensor(0.0)
+
+    potentials = [compute_layer_entropy_potential(att) for att in attentions]
+    loss = torch.tensor(0.0, device=potentials[0].device)
+    for l in range(len(potentials) - 1):
+        loss = loss + F.relu(potentials[l + 1] - potentials[l] + margin)
+    return loss
+

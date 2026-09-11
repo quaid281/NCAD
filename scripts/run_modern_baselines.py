@@ -35,28 +35,19 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.config import CSMConfig
 from src.data.data_loader import DataLoader
-from src.models import (
-    AnomalyInjectionConfig,
+from src.engine.trainer import build_ts_jepa_model
+from src.engine.trainer import split_train_validation as split_train_val
+from src.models.baselines import (
     AnomalyTransformer,
-    CausalSSMFlowJEPA,
-    ContextualAnomalyInjector,
     DCdetector,
-    FlowTSJEPA,
-    HybridTCNEncoder,
-    NCADFlowJEPAModel,
-    NCADJEPAModel,
-    PatchFlowJEPA,
-    PatchTSJEPA,
-    RelationalGAT_JEPAModel,
     TimesNet,
     TranAD,
-    TSJEPAModel,
-    contrastive_loss,
-    flow_matching_vicreg_loss,
-    jepa_vicreg_loss,
 )
-from src.models.legacy.train_model import split_train_validation as split_train_val
+from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
+from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
+from src.models.registry import is_jepa_model
 from src.scoring.event_fusion import (
     aggregate_window_scores,
     calibrate_evt_threshold,
@@ -119,6 +110,7 @@ def train_and_score_channel(
     context_size: int = 256,
     suspect_size: int = 64,
     epochs: int = 50,
+    patience: Optional[int] = None,
     batch_size: int = 32,
     risk_level: float = 1e-2,
     use_mahalanobis: bool = True,
@@ -173,23 +165,39 @@ def train_and_score_channel(
     train_windows = DataLoader.create_windows(train_scaled, window_size, step=10)
     test_windows = DataLoader.create_windows(test_scaled, window_size, step=1)
 
-    training_data, _ = split_train_val(train_windows, val_split=0.1, seed=seed, window_size=window_size, step=10)
+    training_data, val_data = split_train_val(train_windows, val_split=0.1, seed=seed, window_size=window_size, step=10)
     input_dim = len(numeric_cols)
     t0 = time.time()
 
     # =========================================================================
     # 1. TS-JEPA (Ours)
-    # =========================================================================
-    model = None  # assigned in one of the branches below; ruff cannot trace this
-    compute_discrepancy = None
-    if model_name == "ts_jepa":
-        base_enc = HybridTCNEncoder(input_dim=input_dim, latent_dim=32, filters=48, tcn_layers=6, dropout=0.20)
-        model = TSJEPAModel(context_encoder=base_enc, latent_dim=32, predictor_hidden_dim=64, ema_decay=0.996).to(device)
+    if is_jepa_model(model_name):
+        config = CSMConfig(
+            model_type=model_name,
+            context_size=context_size,
+            suspect_size=suspect_size,
+            patch_size=16,
+            latent_dim=32,
+            filters=48,
+            tcn_layers=6 if model_name == "ts_jepa" else 3,
+            epochs=epochs,
+            batch_size=batch_size,
+            use_mahalanobis=use_mahalanobis,
+            dropout=0.20 if model_name not in ["causal_ssm_flow_jepa", "recurrent_koopman_jepa"] else 0.10,
+        )
+        model = build_ts_jepa_model(config, input_dim=input_dim, device=device)
         optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
+        injector = ContextualAnomalyInjector(
+            AnomalyInjectionConfig(injection_ratio=0.5, min_anomaly_len=16, max_anomaly_len=64),
+            seed=seed,
+        )
 
         total_steps = epochs * max(1, len(training_data) // batch_size)
         global_step = 0
+        best_val_loss = float("inf")
+        patience_counter = 0
+        best_state_dict = None
 
         for epoch in range(1, epochs + 1):
             model.train()
@@ -199,8 +207,9 @@ def train_and_score_channel(
                 batch_arr = training_data[perm[b : b + batch_size]]
                 ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
                 tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
-                z_ctx, z_tgt_true, z_tgt_pred = model(ctx, tgt)
-                loss = jepa_vicreg_loss(z_tgt_pred, z_tgt_true, z_context=z_ctx, cov_weight=0.5)
+                loss, _ = model.compute_objective(
+                    ctx, tgt, config, injector=injector, full_batch=batch_arr
+                )
 
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
@@ -211,18 +220,46 @@ def train_and_score_channel(
                 model.update_target_encoder(decay=ema_val)
             scheduler.step()
 
+            # Early stopping validation check if patience is specified
+            if patience is not None and patience > 0 and len(val_data) > 0:
+                model.eval()
+                val_loss_sum = 0.0
+                val_batches = 0
+                with torch.no_grad():
+                    for vb in range(0, len(val_data), batch_size):
+                        v_arr = val_data[vb : vb + batch_size]
+                        v_ctx = torch.from_numpy(v_arr[:, :context_size]).float().to(device)
+                        v_tgt = torch.from_numpy(v_arr[:, context_size:]).float().to(device)
+                        v_loss, _ = model.compute_objective(v_ctx, v_tgt, config)
+                        val_loss_sum += v_loss.item()
+                        val_batches += 1
+                val_loss = val_loss_sum / max(val_batches, 1)
+
+                if val_loss < best_val_loss - 1e-4:
+                    best_val_loss = val_loss
+                    patience_counter = 0
+                    best_state_dict = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+                else:
+                    patience_counter += 1
+                    if patience_counter >= patience:
+                        break
+
+        if patience is not None and patience > 0 and best_state_dict is not None:
+            model.load_state_dict({k: v.to(device) for k, v in best_state_dict.items()})
+
         if use_mahalanobis:
             ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
             tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
             model.fit_mahalanobis_covariance(ctx_all, tgt_all)
 
-        def compute_discrepancy(arr):
+        def compute_discrepancy(arr, model=model):
             model.eval()
             res = []
+            chunk_size = 4096 if "koopman" in model_name else 256
             with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
-                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
+                for i in range(0, len(arr), chunk_size):
+                    ctx = torch.from_numpy(arr[i : i + chunk_size, :context_size]).float().to(device)
+                    tgt = torch.from_numpy(arr[i : i + chunk_size, context_size:]).float().to(device)
                     disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
                     res.append(disc)
             return np.concatenate(res, axis=0)
@@ -255,7 +292,7 @@ def train_and_score_channel(
                 optimizer.step()
             scheduler.step()
 
-        def compute_discrepancy(arr):
+        def compute_discrepancy(arr, model=model):
             model.eval()
             res = []
             with torch.no_grad():
@@ -289,7 +326,7 @@ def train_and_score_channel(
                 optimizer.step()
             scheduler.step()
 
-        def compute_discrepancy(arr):
+        def compute_discrepancy(arr, model=model):
             model.eval()
             res = []
             with torch.no_grad():
@@ -321,7 +358,7 @@ def train_and_score_channel(
                 optimizer.step()
             scheduler.step()
 
-        def compute_discrepancy(arr):
+        def compute_discrepancy(arr, model=model):
             model.eval()
             res = []
             with torch.no_grad():
@@ -354,7 +391,7 @@ def train_and_score_channel(
                 optimizer.step()
             scheduler.step()
 
-        def compute_discrepancy(arr):
+        def compute_discrepancy(arr, model=model):
             model.eval()
             res = []
             with torch.no_grad():
@@ -391,7 +428,7 @@ def train_and_score_channel(
                 optimizer.step()
             scheduler.step()
 
-        def compute_discrepancy(arr):
+        def compute_discrepancy(arr, model=model):
             model.eval()
             res = []
             with torch.no_grad():
@@ -404,368 +441,13 @@ def train_and_score_channel(
                     res.append(disc)
             return np.concatenate(res, axis=0)
 
-    # =========================================================================
-    # 7. Patch-Level Sequence JEPA (Idea 1)
-    # =========================================================================
-    elif model_name in ["patch_ts_jepa", "patch_jepa"]:
-        patch_size = 16
-        n_tgt_patches = suspect_size // patch_size
-        model = PatchTSJEPA(
-            input_dim=input_dim,
-            patch_size=patch_size,
-            d_model=48,
-            n_heads=4,
-            n_layers=2,
-            d_ff=96,
-            n_target_patches=n_tgt_patches,
-            ema_decay=0.996,
-            dropout=0.10,
-        ).to(device)
-        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
-
-        total_steps = epochs * max(1, len(training_data) // batch_size)
-        global_step = 0
-
-        for epoch in range(1, epochs + 1):
-            model.train()
-            perm = np.random.permutation(len(training_data))
-            for b in range(0, len(perm), batch_size):
-                global_step += 1
-                batch_arr = training_data[perm[b : b + batch_size]]
-                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
-                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
-                h_ctx, h_tgt_true, h_tgt_pred = model(ctx, tgt)
-                loss = model.compute_patch_loss(h_tgt_pred, h_tgt_true, h_ctx=h_ctx, cov_weight=0.5)
-
-                optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                optimizer.step()
-
-                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
-                model.update_target_encoder(decay=ema_val)
-            scheduler.step()
-
-        if use_mahalanobis:
-            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
-            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
-            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
-
-        def compute_discrepancy(arr):
-            model.eval()
-            res = []
-            with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
-                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
-                    disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
-                    res.append(disc)
-            return np.concatenate(res, axis=0)
-
-    # =========================================================================
-    # 8. Relational Graph Attention JEPA (Idea 3)
-    # =========================================================================
-    elif model_name in ["gat_jepa", "relational_gat_jepa"]:
-        model = RelationalGAT_JEPAModel(
-            input_dim=input_dim,
-            latent_dim=32,
-            filters=48,
-            tcn_layers=3,
-            gat_layers=2,
-            gat_heads=4,
-            dropout=0.20,
-            ema_decay=0.996,
-        ).to(device)
-        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
-
-        total_steps = epochs * max(1, len(training_data) // batch_size)
-        global_step = 0
-
-        for epoch in range(1, epochs + 1):
-            model.train()
-            perm = np.random.permutation(len(training_data))
-            for b in range(0, len(perm), batch_size):
-                global_step += 1
-                batch_arr = training_data[perm[b : b + batch_size]]
-                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
-                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
-                loss = model.compute_loss(ctx, tgt, cov_weight=0.5)
-
-                optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                optimizer.step()
-
-                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
-                model.update_target_encoder(decay=ema_val)
-            scheduler.step()
-
-        if use_mahalanobis:
-            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
-            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
-            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
-
-        def compute_discrepancy(arr):
-            model.eval()
-            res = []
-            with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
-                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
-                    disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
-                    res.append(disc)
-            return np.concatenate(res, axis=0)
-
-    # =========================================================================
-    # 9. Conditional Flow Matching TS-JEPA (FlowTSJEPA)
-    # =========================================================================
-    elif model_name in ["flow_jepa", "ts_jepa_flow"]:
-        base_enc = HybridTCNEncoder(input_dim=input_dim, latent_dim=32, filters=48, tcn_layers=3, dropout=0.20)
-        model = FlowTSJEPA(
-            context_encoder=base_enc,
-            latent_dim=32,
-            predictor_hidden_dim=64,
-            predictor_layers=3,
-            ema_decay=0.996,
-        ).to(device)
-        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
-
-        total_steps = epochs * max(1, len(training_data) // batch_size)
-        global_step = 0
-
-        for epoch in range(1, epochs + 1):
-            model.train()
-            perm = np.random.permutation(len(training_data))
-            for b in range(0, len(perm), batch_size):
-                global_step += 1
-                batch_arr = training_data[perm[b : b + batch_size]]
-                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
-                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
-                z_ctx, z_tgt_true, v_pred, v_target = model(ctx, tgt)
-                loss, _ = flow_matching_vicreg_loss(
-                    v_pred=v_pred,
-                    v_target=v_target,
-                    z_ctx=z_ctx,
-                    z_tgt_true=z_tgt_true,
-                    cov_weight=0.5,
-                )
-
-                optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                optimizer.step()
-
-                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
-                model.update_target_encoder(decay=ema_val)
-            scheduler.step()
-
-        if use_mahalanobis:
-            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
-            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
-            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
-
-        def compute_discrepancy(arr):
-            model.eval()
-            res = []
-            with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
-                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
-                    disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
-                    res.append(disc)
-            return np.concatenate(res, axis=0)
-
-    # =========================================================================
-    # 10. Patch Sequence Flow Matching JEPA (PatchFlowJEPA)
-    # =========================================================================
-    elif model_name in ["patch_flow_jepa", "ts_jepa_patch_flow"]:
-        patch_size = 16
-        n_tgt_patches = suspect_size // patch_size
-        model = PatchFlowJEPA(
-            input_dim=input_dim,
-            patch_size=patch_size,
-            d_model=48,
-            n_heads=4,
-            n_layers=3,
-            d_ff=96,
-            n_target_patches=n_tgt_patches,
-            predictor_layers=3,
-            ema_decay=0.996,
-            dropout=0.10,
-        ).to(device)
-        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
-
-        total_steps = epochs * max(1, len(training_data) // batch_size)
-        global_step = 0
-
-        for epoch in range(1, epochs + 1):
-            model.train()
-            perm = np.random.permutation(len(training_data))
-            for b in range(0, len(perm), batch_size):
-                global_step += 1
-                batch_arr = training_data[perm[b : b + batch_size]]
-                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
-                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
-                h_ctx, z_tgt_true, v_pred, v_target = model(ctx, tgt)
-                loss, _ = flow_matching_vicreg_loss(
-                    v_pred=v_pred.reshape(-1, 48),
-                    v_target=v_target.reshape(-1, 48),
-                    z_ctx=h_ctx.reshape(-1, 48),
-                    z_tgt_true=z_tgt_true.reshape(-1, 48),
-                    cov_weight=0.5,
-                )
-
-                optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                optimizer.step()
-
-                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
-                model.update_target_encoder(decay=ema_val)
-            scheduler.step()
-
-        if use_mahalanobis:
-            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
-            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
-            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
-
-        def compute_discrepancy(arr):
-            model.eval()
-            res = []
-            with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
-                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
-                    disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
-                    res.append(disc)
-            return np.concatenate(res, axis=0)
-
-    # =========================================================================
-    # 11. NCAD-Flow-JEPA (Flow Matching + Contextual Anomaly Injection)
-    # =========================================================================
-    elif model_name in ["ncad_flow_jepa", "ncad_flow_jepa_v1"]:
-        model = NCADFlowJEPAModel(
-            input_dim=input_dim,
-            latent_dim=32,
-            filters=48,
-            tcn_layers=3,
-            dropout=0.20,
-            predictor_hidden_dim=64,
-            predictor_layers=3,
-            ema_decay=0.996,
-        ).to(device)
-        injector = ContextualAnomalyInjector(
-            AnomalyInjectionConfig(injection_ratio=0.5, min_anomaly_len=16, max_anomaly_len=64),
-            seed=seed,
-        )
-        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
-
-        total_steps = epochs * max(1, len(training_data) // batch_size)
-        global_step = 0
-
-        for epoch in range(1, epochs + 1):
-            model.train()
-            perm = np.random.permutation(len(training_data))
-            for b in range(0, len(perm), batch_size):
-                global_step += 1
-                batch_arr = training_data[perm[b : b + batch_size]]
-                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
-                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
-                injected_full, lbl = injector.inject_batch(batch_arr, context_size)
-                injected_tensor = torch.from_numpy(injected_full).float().to(device)
-                label_tensor = torch.from_numpy(lbl).float().to(device)
-
-                # Flow matching pass
-                z_ctx, z_tgt_true, v_pred, v_target = model(ctx, tgt)
-                loss_flow, _ = flow_matching_vicreg_loss(
-                    v_pred=v_pred, v_target=v_target, z_ctx=z_ctx, z_tgt_true=z_tgt_true, cov_weight=0.5,
-                )
-                # Contrastive injection pass
-                z_injected = model.context_encoder(injected_tensor)
-                loss_contrastive = contrastive_loss(z_injected, z_ctx, label_tensor)
-                loss = loss_flow + model.injection_loss_weight * loss_contrastive
-
-                optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                optimizer.step()
-
-                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
-                model.update_target_encoder(decay=ema_val)
-            scheduler.step()
-
-        if use_mahalanobis:
-            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
-            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
-            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
-
-        def compute_discrepancy(arr):
-            model.eval()
-            res = []
-            with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
-                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
-                    disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
-                    res.append(disc)
-            return np.concatenate(res, axis=0)
-
-    # =========================================================================
-    # 12. Causal State-Space Flow-JEPA (CausalSSMFlowJEPA)
-    # =========================================================================
-    elif model_name in ["causal_ssm_flow_jepa", "causal_flow_jepa", "causal_jepa"]:
-        model = CausalSSMFlowJEPA(
-            in_channels=input_dim,
-            latent_dim=32,
-            hidden_dim=48,
-            node_dim=32,
-            ssm_layers=2,
-            gat_layers=2,
-            num_heads=min(4, max(1, input_dim)),
-            flow_layers=3,
-            dropout=0.10,
-            ema_decay=0.996,
-            vicreg_weight=0.10,
-            graph_sparsity_weight=1e-4,
-        ).to(device)
-        optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
-
-        total_steps = epochs * max(1, len(training_data) // batch_size)
-        global_step = 0
-
-        for epoch in range(1, epochs + 1):
-            model.train()
-            perm = np.random.permutation(len(training_data))
-            for b in range(0, len(perm), batch_size):
-                global_step += 1
-                batch_arr = training_data[perm[b : b + batch_size]]
-                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
-                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
-
-                loss = model(ctx, tgt)
-                optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                optimizer.step()
-
-                ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
-                model.update_target_encoder(momentum=ema_val)
-            scheduler.step()
-
-        def compute_discrepancy(arr):
-            model.eval()
-            res = []
-            with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
-                    tgt = torch.from_numpy(arr[i : i + 256, context_size:]).float().to(device)
-                    disc = model.compute_anomaly_score(ctx, tgt).cpu().numpy()
-                    res.append(disc)
-            return np.concatenate(res, axis=0)
-
     else:
         raise ValueError(f"Unknown model_name: {model_name}")
+
+
+
+
+
 
     # =========================================================================
     # Discrepancy Normalization & EVT Calibration
@@ -866,8 +548,10 @@ def main():
         "--models",
         nargs="+",
         default=["ts_jepa", "anomaly_transformer", "timesnet", "dcdetector", "tranad", "ncad"],
-        help="Models: ts_jepa, patch_ts_jepa, flow_jepa, patch_flow_jepa, ncad_flow_jepa, causal_ssm_flow_jepa, anomaly_transformer, timesnet, dcdetector, tranad, ncad",
+        help="Models: tangent_harmonic_jepa, ts_jepa, patch_ts_jepa, flow_jepa, patch_flow_jepa, ncad_flow_jepa, causal_ssm_flow_jepa, potential_flow_jepa, harmonic_spring_jepa, cosine_jepa, prototype_graph_jepa, anomaly_transformer, timesnet, dcdetector, tranad, ncad",
     )
+
+
     parser.add_argument(
         "--dataset",
         nargs="+",
@@ -877,8 +561,14 @@ def main():
     parser.add_argument("--channels", nargs="*", default=None, help="Specific channels or 'all'")
     parser.add_argument("--subset", action="store_true", help="Run only the 6-channel development subset per dataset")
     parser.add_argument("--causal", action="store_true", help="Use strict causal trailing window alignment (zero lookahead)")
-    parser.add_argument("--batch_size", type=int, default=64, help="Mini-batch size for GPU training (default 64)")
+    parser.add_argument("--batch_size", type=int, default=16, help="Mini-batch size for GPU training (default 16)")
     parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs (default 50)")
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=None,
+        help="Early stopping patience in epochs (monitors 10% validation loss). If None, trains full epochs.",
+    )
     parser.add_argument("--seeds", nargs="+", type=int, default=[42], help="Random seeds to evaluate")
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument(
@@ -961,6 +651,7 @@ def main():
                             test_path=test_p,
                             seed=seed,
                             epochs=args.epochs,
+                            patience=args.patience,
                             batch_size=args.batch_size,
                             mapping_method=mapping_method,
                             device=device,

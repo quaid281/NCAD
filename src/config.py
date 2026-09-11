@@ -57,10 +57,19 @@ class CSMConfig:
     device: str = "auto"
     mapping_method: str = "trailing"  # Causal trailing window alignment (zero lookahead)
     use_pa: bool = True
+    rank: int = 4  # Low-rank stiffness dimension for harmonic_spring_jepa
+    harmonic_alpha: float = 1.0  # Tangent projector weight for tangent_harmonic_jepa
+    harmonic_beta: float = 0.5  # Degree-2 Gegenbauer weight for tangent_harmonic_jepa
+    use_mellin_damping: bool = False  # Two-shell Mellin damping for Flow-JEPA
+    use_resolvent_covariance: bool = True  # Resolvent operator precision vs standard pinv
 
-    _VALID_MODEL_TYPES = None  # populated lazily from the registry
+    n_regimes: int = 4  # Number of Grassmannian discrete regime subspaces for potential_flow_jepa
+    subspace_dim: int = 8  # Dimension of each regime subspace for potential_flow_jepa
+    use_regimes: bool = True  # Whether to use discrete regime projections in potential_flow_jepa
+    conformal_alpha: float = 0.01  # Target significance level (false alarm bound) for conformal thresholding
+
     _VALID_ENCODERS = {"hybrid_tcn", "multi_scale_tcn", "relational_gat", "selective_ssm", "ssm"}
-    _VALID_THRESHOLD_METHODS = {"evt", "adaptive_elbow", "percentile"}
+    _VALID_THRESHOLD_METHODS = {"evt", "conformal", "adaptive_elbow", "percentile"}
     _VALID_MAPPING_METHODS = {"smear", "last", "trailing", "first", "leading", "middle", "center", "suspect_trailing"}
 
     def __post_init__(self) -> None:
@@ -94,6 +103,8 @@ class CSMConfig:
             raise ValueError(f"event_threshold_percentile must be in (0, 100], got {self.event_threshold_percentile}")
         if not 0.0 < self.evt_init_percentile <= 100.0:
             raise ValueError(f"evt_init_percentile must be in (0, 100], got {self.evt_init_percentile}")
+        if not 0.0 < self.conformal_alpha < 1.0:
+            raise ValueError(f"conformal_alpha must be in (0, 1), got {self.conformal_alpha}")
         if requires_patch_division(self.model_type):
             if self.context_size % self.patch_size != 0:
                 raise ValueError(

@@ -41,7 +41,9 @@
 | **Flow-JEPA** | `flow_jepa` | OT-CFM + VICReg | TCN | Conditional Flow Matching with velocity field predictor |
 | **Patch-Flow-JEPA** | `patch_flow_jepa` | OT-CFM + VICReg | Patch Transformer | Patch-tokenized Flow Matching with cross-attention predictor |
 | **MultiScale-TS-JEPA** | `multiscale_ts_jepa` | JEPA + VICReg | Multi-Scale TCN | Multi-horizon hierarchical prediction heads |
+| **Tangent-Harmonic-JEPA** | `tangent_harmonic_jepa` | Tangent Harmonics + VICReg | TCN | Moving tangent-harmonic projection on S^{D-1} with Gegenbauer discrepancy |
 | **NCAD** | `ncad` | Contrastive | TCN | Legacy NCAD contrastive encoder baseline |
+
 
 ### SOTA Baselines (for comparison)
 

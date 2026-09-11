@@ -59,7 +59,7 @@ def _calibrate_threshold(
 
     Mutates *calibration* in-place with threshold metadata.
     """
-    if config.threshold_method == "evt" or is_jepa:
+    if config.threshold_method == "evt":
         training_event_threshold = float(calibration["event_threshold"])
         calibration["training_event_threshold"] = training_event_threshold
         calibration["score_floor_threshold"] = training_event_threshold
@@ -68,7 +68,13 @@ def _calibrate_threshold(
             anomaly_probabilities = evt_calibrator.predict_anomaly_probability(smoothed_scores)
         else:
             anomaly_probabilities = np.zeros_like(smoothed_scores)
-    elif config.score_floor_percentile is None:
+    elif config.threshold_method == "conformal":
+        training_event_threshold = float(calibration["event_threshold"])
+        calibration["training_event_threshold"] = training_event_threshold
+        calibration["score_floor_threshold"] = training_event_threshold
+        calibration["score_floor_method"] = "conformal"
+        anomaly_probabilities = np.zeros_like(smoothed_scores)
+    elif config.threshold_method == "adaptive_elbow" or (config.threshold_method != "percentile" and config.score_floor_percentile is None):
         score_floor = adaptive_elbow_score_floor(valid_smoothed_scores)
         score_floor_threshold = score_floor.threshold
         training_event_threshold = float(calibration["event_threshold"])
@@ -80,7 +86,7 @@ def _calibrate_threshold(
         calibration["score_floor_details"] = score_floor.to_dict()
         if score_floor_threshold > training_event_threshold:
             calibration["event_threshold"] = score_floor_threshold
-            calibration["threshold_method"] = f"counterfactual_successor_training_plus_{score_floor.method}"
+            calibration["threshold_method"] = f"training_plus_{score_floor.method}"
         anomaly_probabilities = np.zeros_like(smoothed_scores)
     else:
         score_floor = percentile_score_floor(valid_smoothed_scores, config.score_floor_percentile)
@@ -94,7 +100,7 @@ def _calibrate_threshold(
         calibration["score_floor_details"] = score_floor.to_dict()
         if score_floor_threshold > training_event_threshold:
             calibration["event_threshold"] = score_floor_threshold
-            calibration["threshold_method"] = f"counterfactual_successor_training_plus_{score_floor.method}"
+            calibration["threshold_method"] = f"training_plus_{score_floor.method}"
         anomaly_probabilities = np.zeros_like(smoothed_scores)
     return anomaly_probabilities
 

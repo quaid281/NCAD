@@ -10,7 +10,9 @@ outlier probabilities without requiring labeled anomaly data.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
+
 from typing import Optional, Tuple
 
 import numpy as np
@@ -339,6 +341,11 @@ class EVTCalibrator:
             term = np.power(ratio, -gamma) - 1.0
             excess_q = (sigma / gamma) * term
 
+        # Operator entropy damping (Chapter 6): prevents threshold explosion when n_t is small
+        max_excess = sigma * (10.0 + math.log(max(float(n) / max(float(n_t), 1.0), 1.0)))
+        if excess_q > max_excess:
+            excess_q = max_excess
+
         threshold = float(t + excess_q)
 
         # Safety bound: threshold cannot be lower than baseline t or negative
@@ -346,6 +353,7 @@ class EVTCalibrator:
             threshold = float(t + sigma * np.log(max(n_t / (q * n), 1.1)))
 
         threshold = max(threshold, self.degenerate_epsilon)
+
 
         return EVTThresholdResult(
             threshold=threshold,

@@ -49,7 +49,13 @@ class DataLoader:
     def __init__(self, data_dir: Optional[str | Path] = None, labels_file: str = "labeled_anomalies.csv"):
         if data_dir is None:
             # Go up two levels to get to project root from src/data/data_loader.py
-            data_dir = Path(__file__).resolve().parents[2] / "data"
+            project_root = Path(__file__).resolve().parents[2]
+            candidate_data = project_root / "data"
+            candidate_bench = project_root / "mTSBench_data"
+            if not candidate_data.exists() and candidate_bench.exists():
+                data_dir = candidate_bench
+            else:
+                data_dir = candidate_data
 
         self.data_dir = Path(data_dir).resolve()
         self.train_dir = self.data_dir / "raw" / "train"
@@ -59,7 +65,10 @@ class DataLoader:
 
     def list_channels(self) -> List[str]:
         if not self.train_dir.exists():
-            raise FileNotFoundError(f"Training data directory not found: {self.train_dir}")
+            raise FileNotFoundError(
+                f"Training data directory not found: {self.train_dir}. "
+                "Ensure telemetry data exists under data/raw/train or specify --data-dir."
+            )
 
         channels = []
         for train_file in self.train_dir.glob("*.npy"):

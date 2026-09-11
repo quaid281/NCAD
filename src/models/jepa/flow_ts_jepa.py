@@ -56,6 +56,32 @@ class TimestepEmbedding(nn.Module):
         return self.mlp(embedding)
 
 
+class MellinShellDamping(nn.Module):
+    """Mellin Two-Shell Radial Damping for Flow Matching (Chapter 1 of Ten Advances).
+
+    Stabilizes continuous velocity fields v_psi(z_t, t, z_ctx) by applying
+    a dual-shell radial damping factor based on the Fourier sign-uncertainty critical
+    radius R* = (1 / pi) * sqrt(D).
+
+    The inner shell concentrates nominal limit cycles within R*, while the distant
+    positive shell prevents high-frequency trajectory explosion during numerical ODE integration.
+    """
+
+    def __init__(self, latent_dim: int, damping_factor: float = 0.5):
+        super().__init__()
+        self.latent_dim = latent_dim
+        self.r_crit = (1.0 / math.pi) * math.sqrt(float(latent_dim))
+        self.r_outer = 2.0 * self.r_crit
+        self.damping_factor = damping_factor
+
+    def forward(self, v: torch.Tensor, z_t: torch.Tensor) -> torch.Tensor:
+        """Apply radial damping to velocity field v given intermediate state z_t."""
+        r = torch.linalg.norm(z_t, dim=-1, keepdim=True)
+        outer_excess = F.relu(r - self.r_outer)
+        damping = torch.exp(-self.damping_factor * torch.square(outer_excess / max(self.r_crit, 1e-4)))
+        return v * damping
+
+
 class FlowLatentPredictor(nn.Module):
     """Continuous Velocity Field Predictor v_psi(z_t, t, z_ctx).
     
@@ -69,10 +95,14 @@ class FlowLatentPredictor(nn.Module):
         hidden_dim: int = 64,
         num_layers: int = 3,
         dropout: float = 0.10,
+        use_mellin_damping: bool = False,
     ):
         super().__init__()
         self.latent_dim = latent_dim
+        self.use_mellin_damping = use_mellin_damping
         self.time_embed = TimestepEmbedding(embed_dim=hidden_dim)
+        if use_mellin_damping:
+            self.mellin_damping = MellinShellDamping(latent_dim=latent_dim)
 
         # Joint input projection: [z_t, z_ctx] -> hidden_dim
         self.input_proj = nn.Linear(latent_dim * 2, hidden_dim)
@@ -95,6 +125,7 @@ class FlowLatentPredictor(nn.Module):
 
         self.out_norm = nn.LayerNorm(hidden_dim)
         self.out_proj = nn.Linear(hidden_dim, latent_dim)
+
 
     def forward(
         self,
@@ -128,7 +159,11 @@ class FlowLatentPredictor(nn.Module):
             x = residual + h
 
         x = self.out_norm(x)
-        return self.out_proj(x)
+        v = self.out_proj(x)
+        if self.use_mellin_damping:
+            v = self.mellin_damping(v, z_t)
+        return v
+
 
 
 def von_neumann_operator_entropy_loss(z: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
@@ -279,11 +314,13 @@ class FlowTSJEPAModel(JEPABase):
         predictor_layers: int = 3,
         ema_decay: float = 0.995,
         dropout: float = 0.10,
+        use_mellin_damping: bool = False,
     ):
         super().__init__()
         self.context_encoder = context_encoder
         self.latent_dim = latent_dim
         self.ema_decay = ema_decay
+        self.use_mellin_damping = use_mellin_damping
 
         # Target encoder is an EMA copy of context encoder
         self.target_encoder = self.init_target_encoder(context_encoder)
@@ -293,7 +330,9 @@ class FlowTSJEPAModel(JEPABase):
             hidden_dim=predictor_hidden_dim,
             num_layers=predictor_layers,
             dropout=dropout,
+            use_mellin_damping=use_mellin_damping,
         )
+
 
         # Buffers for Mahalanobis-whitened flow scoring
         self.register_mahalanobis_buffers(latent_dim)

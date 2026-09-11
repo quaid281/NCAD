@@ -7,34 +7,44 @@ utilities does not pull in the full orchestration (and plotting) stack.
 from src.engine.evaluator import (
     build_successor_memory,
     calibrate_event_threshold,
+    calibrate_jepa_threshold,
+    compute_jepa_discrepancy,
     score_windows,
 )
 from src.engine.trainer import (
     EncoderModel,
     build_encoder,
+    build_ts_jepa_model,
     encode_windows,
     evaluate_contrastive_loss,
+    evaluate_ts_jepa_loss,
     limit_windows,
     resolve_device,
     set_seed,
     split_train_validation,
     train_encoder,
+    train_ts_jepa,
 )
 
 __all__ = [
     # Trainer
     "EncoderModel",
     "build_encoder",
+    "build_ts_jepa_model",
     "encode_windows",
     "evaluate_contrastive_loss",
+    "evaluate_ts_jepa_loss",
     "limit_windows",
     "resolve_device",
     "set_seed",
     "split_train_validation",
     "train_encoder",
+    "train_ts_jepa",
     # Evaluator
     "build_successor_memory",
     "calibrate_event_threshold",
+    "calibrate_jepa_threshold",
+    "compute_jepa_discrepancy",
     "score_windows",
     # Orchestrator (lazy)
     "default_output_dir",

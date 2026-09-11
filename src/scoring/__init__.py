@@ -5,6 +5,7 @@ This subpackage contains the statistical scoring pipeline:
 - Window-to-point score aggregation and event-level filtering (``event_fusion``)
 """
 
+from src.scoring.conformal_calibrator import ConformalThresholdResult, SplitConformalCalibrator
 from src.scoring.event_fusion import (
     AdaptiveScoreFloor,
     RobustStats,
@@ -25,7 +26,6 @@ from src.scoring.event_fusion import (
     robust_stats,
     successor_manifold_uncertainty_scores,
 )
-from src.scoring.conformal_calibrator import ConformalThresholdResult, SplitConformalCalibrator
 from src.scoring.evt_calibrator import EVTCalibrator, EVTThresholdResult
 
 __all__ = [

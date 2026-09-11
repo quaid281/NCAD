@@ -1,22 +1,35 @@
-\section{Multi-Domain Benchmark Datasets}
+\section{Multi-Sensor IoT and Remote Sensing Benchmark Suite}
 \label{sec:dataset}
 
-To evaluate the universal applicability of Flow-JEPA across diverse physical, cyber-physical, biomedical, and distributed dynamics, our primary multi-domain benchmark suite spans 11 real-world datasets comprising 130 continuous telemetry channels sourced from NASA telemetry archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, and standard multi-domain benchmark repositories including TimeEval \cite{schmidl2022anomaly} and mTSBench \cite{zhou2026mtsbench}:
+To evaluate DyFlow-JEPA across diverse edge, cyber-physical, and orbital sensing dynamics, our benchmark suite comprises 11 datasets spanning 130 continuous telemetry channels sourced from NASA spacecraft archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}. We group these channels into four IoT and remote sensing domains:
 
+\subsection{Domain 1: Satellite and Planetary Remote Sensing (78 Channels)}
 \begin{enumerate}[leftmargin=*]
-    \item \textit{NASA SMAP Spacecraft Telemetry \cite{Hundman2018b} (51 channels):} Continuous telemetry channels from the Soil Moisture Active Passive (SMAP) satellite tracking solar array currents, bus voltages, battery temperatures, and thruster status subject to radiation upsets and operational state switches.
-    \item \textit{NASA MSL Curiosity Rover Telemetry \cite{Hundman2018b} (26 channels):} Environmental and robotic actuator telemetry from the Mars Science Laboratory (MSL) rover monitoring motor temperatures, joint angles, and power subsystem faults.
-    \item \textit{Daphnet Parkinsonian Gait Dynamics \cite{bachlin2010wearable} (26 channels):} High-frequency tri-axial accelerometry from wearable body sensor nodes (shank, thigh, trunk; 9 continuous dimensions per subject) tracking Freezing-of-Gait (FoG) breakdown events in Parkinson's patients.
-    \item \textit{GHL Separation Plant (14 channels):} Multi-phase gas-oil-water separation industrial process telemetry monitoring tank levels, flow rates, and valve control faults.
-    \item \textit{CICIDS Network Intrusion (6 channels):} High-throughput network flow telemetry capturing protocol dynamics and security anomalies (DDoS bursts and port scans).
-    \item \textit{Room-Occupancy IoT \cite{candanedo2016accurate} (2 channels):} Environmental IoT sensing ($\text{CO}_2$, light, temperature, humidity) tracking human activity transitions.
-    \item \textit{GECCO Water Quality (1 channel):} Physical water distribution process telemetry monitoring chemical and hydrological measurements.
-    \item \textit{Genesis Demonstrator (1 channel):} Industrial manufacturing testbed telemetry tracking automated handling machinery faults.
-    \item \textit{SWAN Hydrology (1 channel):} Surface water and marine wave telemetry tracking sudden coastal surges.
-    \item \textit{CalIt2 Traffic Monitoring (1 channel):} Vehicle flow counts and speed telemetry at campus entry points during special events.
-    \item \textit{Metro Traffic Flow (1 channel):} Interstate highway traffic volume and environmental conditions.
+    \item \textit{NASA SMAP Earth Observation Satellite \cite{Hundman2018b} (51 channels):} Continuous power, thermal, and attitude telemetry from the Soil Moisture Active Passive (SMAP) spacecraft tracking solar array currents, bus voltages, battery temperatures, and thruster status subject to radiation upsets and operational mode shifts.
+    \item \textit{NASA MSL Curiosity Rover \cite{Hundman2018b} (26 channels):} Environmental and robotic actuator telemetry from the Mars Science Laboratory (MSL) rover monitoring drive motor currents, joint angles, arm kinematics, and power subsystem faults during planetary exploration.
+    \item \textit{SWAN Coastal Hydro-Acoustic Remote Sensing (1 channel):} Surface water and marine acoustic telemetry tracking sudden ocean surges and wave anomalies.
 \end{enumerate}
 
-In addition to the 130 primary benchmark channels, we evaluate the \textit{Exathlon Distributed Cloud Benchmark \cite{jacob2021exathlon} (30 channels)} in our ablation suite (Section~\ref{sec:ablations}). Exathlon captures high-dimensional execution traces from Apache Spark clusters (JVM heap utilization, garbage collection pauses, memory leaks, and CPU thrashing), providing a rigorous testbed for target encoder momentum stability under non-stationary streaming drift.
+\subsection{Domain 2: Wearable IoT and Edge Biometrics (26 Channels)}
+\begin{enumerate}[leftmargin=*]
+    \item \textit{Daphnet Wearable Body Sensor Network \cite{bachlin2010wearable} (26 channels):} High-frequency tri-axial accelerometry from wearable body sensor nodes (placed on the shank, thigh, and trunk; 9 continuous dimensions per subject) tracking Freezing-of-Gait (FoG) breakdown events in Parkinson's patients.
+\end{enumerate}
 
-Each benchmark channel provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled ground-truth anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$) using robust epsilon floors $\max(\bm{\sigma}, 10^{-2})$ to prevent numerical instability during flat-line operational phases.
+\subsection{Domain 3: Industrial IoT and Cyber-Physical Testbeds (16 Channels)}
+\begin{enumerate}[leftmargin=*]
+    \item \textit{GHL Industrial Separation Plant (14 channels):} Multi-phase gas-oil-water separation industrial process telemetry monitoring tank levels, flow rates, and valve control faults.
+    \item \textit{Genesis Automation Testbed (1 channel):} Industrial manufacturing testbed telemetry tracking automated handling machinery faults.
+    \item \textit{GECCO Water Distribution IoT (1 channel):} Physical water distribution process telemetry monitoring chemical and hydrological sensor measurements.
+\end{enumerate}
+
+\subsection{Domain 4: Smart Infrastructure and Environmental IoT (10 Channels)}
+\begin{enumerate}[leftmargin=*]
+    \item \textit{Room-Occupancy Environmental IoT \cite{candanedo2016accurate} (2 channels):} Multi-sensor ambient environmental IoT sensing ($\text{CO}_2$, light, temperature, humidity) tracking room-occupancy state switches.
+    \item \textit{CICIDS Edge Network Telemetry (6 channels):} High-throughput network flow telemetry capturing edge gateway protocol dynamics and security anomalies (DDoS bursts and port scans).
+    \item \textit{CalIt2 Campus Smart Traffic (1 channel):} Vehicle flow counts and speed telemetry at smart campus entry points during special events.
+    \item \textit{Metro Interstate Highway Traffic (1 channel):} Traffic volume and environmental condition telemetry on smart highway corridors.
+\end{enumerate}
+
+In addition to the 130 primary benchmark channels, we evaluate the \textit{Exathlon Distributed Cloud Benchmark \cite{jacob2021exathlon} (30 channels)} in our ablation suite (Section~\ref{sec:ablations}). Exathlon captures high-dimensional execution traces from distributed Apache Spark clusters (JVM heap utilization, garbage collection pauses, memory leaks, and CPU thrashing), providing a testbed to evaluate target encoder momentum stability under non-stationary streaming drift.
+
+Each benchmark channel provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled ground-truth anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$), flooring standard deviations at $\max(\bm{\sigma}, 10^{-2})$ to prevent division by zero during flat-line operational phases.

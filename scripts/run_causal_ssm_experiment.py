@@ -79,7 +79,7 @@ def run_causal_ssm_experiment(
         device = torch.device(device_str)
 
     logger.info("=" * 80)
-    logger.info(f"STARTING CAUSAL SSM FLOW-JEPA EXPERIMENT")
+    logger.info("STARTING CAUSAL SSM FLOW-JEPA EXPERIMENT")
     logger.info(f"Dataset: {dataset_name} | Channel: {channel_name} | Device: {device} | Epochs: {epochs}")
     logger.info("=" * 80)
 
@@ -248,7 +248,6 @@ def run_causal_ssm_experiment(
     # 6. Test Scoring & Counterfactual Attribution
     logger.info("Evaluating on Test Sequence...")
     test_scores_list = []
-    test_p_values_list = []
     top_causes_list = []
 
     test_loader = DataLoader(

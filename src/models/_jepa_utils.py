@@ -110,6 +110,24 @@ def _model_device(model: nn.Module) -> torch.device:
         return torch.device("cpu")
 
 
+def resolvent_precision(cov: torch.Tensor, u: float = 1e-3) -> torch.Tensor:
+    """Compute the resolvent-purified precision tensor (Chapter 6).
+
+    Instead of standard ridge inversion (cov + u*I)^{-1} which amplifies near-zero
+    noise eigenvalues up to 1/u, the resolvent operator maps each eigenvalue lambda_i
+    to lambda_i / (lambda_i + u)^2.
+    For strong signals (lambda >> u), lambda / (lambda + u)^2 -> 1 / lambda (exact whitening).
+    For null/noise directions (lambda << u), lambda / (lambda + u)^2 -> lambda / u^2 -> 0.
+
+    This provides bounded operator Bregman divergence and monotonic entropy decay,
+    completely preventing threshold collapse on ill-conditioned sensor covariance.
+    """
+    evals, evecs = torch.linalg.eigh(cov)
+    evals_pos = torch.clamp(evals, min=0.0)
+    filtered_evals = evals_pos / torch.square(evals_pos + u)
+    return evecs @ torch.diag_embed(filtered_evals) @ evecs.transpose(-1, -2)
+
+
 def fit_covariance_batched(
     model: nn.Module,
     context_windows: ArrayLike,
@@ -119,6 +137,7 @@ def fit_covariance_batched(
     dim: int,
     batch_size: int = 512,
     reg: float = 1e-3,
+    method: str = "resolvent",
     precision_buffer: torch.Tensor,
     residual_mean_buffer: torch.Tensor,
     fitted_buffer: torch.Tensor,
@@ -153,9 +172,14 @@ def fit_covariance_batched(
 
     mean_res = residual_sum / total_count
     cov = (outer_sum - total_count * torch.outer(mean_res, mean_res)) / max(total_count - 1, 1)
-    cov_reg = cov + reg * torch.eye(dim, device=device)
-    precision = torch.linalg.pinv(cov_reg)
+
+    if method == "resolvent":
+        precision = resolvent_precision(cov, u=reg)
+    else:
+        cov_reg = cov + reg * torch.eye(dim, device=device)
+        precision = torch.linalg.pinv(cov_reg)
 
     residual_mean_buffer.copy_(mean_res)
     precision_buffer.copy_(precision)
     fitted_buffer.copy_(torch.tensor(True, dtype=torch.bool))
+

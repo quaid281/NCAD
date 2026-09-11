@@ -65,3 +65,33 @@ def test_cli_choices_match_registry():
     # accepted by the registry.
     for choice in canonical_model_choices():
         assert canonical_model_type(choice) == choice
+
+
+def test_build_ts_jepa_model_all_canonical_variants():
+    """Verify that build_ts_jepa_model can instantiate every registered JEPA variant."""
+    import torch
+
+    from src.config import CSMConfig
+    from src.engine.trainer import build_ts_jepa_model
+
+    device = torch.device("cpu")
+    input_dim = 4
+    for choice in canonical_model_choices():
+        if not is_jepa_model(choice):
+            continue
+        config = CSMConfig(
+            model_type=choice,
+            context_size=64,
+            suspect_size=16,
+            patch_size=8,
+            latent_dim=16,
+            filters=16,
+            tcn_layers=2,
+            rank=2,
+            n_regimes=2,
+            subspace_dim=4,
+        )
+        model = build_ts_jepa_model(config, input_dim=input_dim, device=device)
+        assert model is not None
+        assert isinstance(model, torch.nn.Module)
+

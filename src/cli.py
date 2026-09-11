@@ -28,12 +28,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--encoder",
         type=str,
-        choices=["hybrid_tcn", "multi_scale_tcn"],
+        choices=["hybrid_tcn", "multi_scale_tcn", "relational_gat", "selective_ssm", "ssm"],
         default="hybrid_tcn",
         help="Encoder architecture.",
     )
     parser.add_argument("--successor-neighbors", type=int, default=8)
     parser.add_argument("--patch-size", type=int, default=16, help="Patch size for patch_ts_jepa model.")
+    parser.add_argument("--context-size", type=int, default=284, help="Historical context window size.")
+    parser.add_argument("--suspect-size", type=int, default=16, help="Future suspect window size.")
+    parser.add_argument(
+        "--threshold-method",
+        type=str,
+        choices=["evt", "conformal", "adaptive_elbow", "percentile"],
+        default="evt",
+        help="Threshold calibration method.",
+    )
+    parser.add_argument("--evt-risk-level", type=float, default=1e-3, help="EVT/SPOT risk level tail probability.")
+    parser.add_argument("--conformal-alpha", type=float, default=0.01, help="Conformal prediction significance level.")
+    parser.add_argument(
+        "--mapping-method",
+        type=str,
+        choices=["trailing", "smear", "last", "first", "middle", "suspect_trailing"],
+        default="trailing",
+        help="Window-to-point score aggregation mapping.",
+    )
     parser.add_argument("--event-threshold-percentile", type=float, default=99.0)
     parser.add_argument(
         "--score-floor-percentile",
@@ -99,6 +117,12 @@ def main() -> None:
         encoder_architecture=args.encoder,
         successor_neighbors=args.successor_neighbors,
         patch_size=args.patch_size,
+        context_size=args.context_size,
+        suspect_size=args.suspect_size,
+        threshold_method=args.threshold_method,
+        evt_risk_level=args.evt_risk_level,
+        conformal_alpha=args.conformal_alpha,
+        mapping_method=args.mapping_method,
         event_threshold_percentile=args.event_threshold_percentile,
         score_floor_percentile=args.score_floor_percentile,
         manifold_uncertainty=args.manifold_uncertainty,

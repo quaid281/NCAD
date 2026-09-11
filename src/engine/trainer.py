@@ -18,13 +18,44 @@ from src.models.encoders.tcn_encoder import HybridTCNEncoder, contrastive_loss
 from src.models.jepa.causal_ssm_flow_jepa import CausalSSMFlowJEPA
 from src.models.jepa.flow_ts_jepa import FlowTSJEPAModel
 from src.models.jepa.gat_jepa import RelationalGAT_JEPAModel
+from src.models.jepa.harmonic_spring_jepa import HarmonicSpringJEPAModel
+from src.models.jepa.koopman_jepa import KoopmanJEPAModel
+from src.models.jepa.minimalist_jepas import (
+    CosineCycleJEPAModel,
+    CosineJEPAModel,
+    CycleJEPAModel,
+)
+from src.models.jepa.dual_timescale_latent_world_jepa import DualTimescaleLatentWorldJEPAModel
+from src.models.jepa.granger_jepa import GrangerCausalJEPAModel
+from src.models.jepa.hamiltonian_jepa import HamiltonianSymplecticJEPAModel
+from src.models.jepa.kinematic_adaptive_latent_jepa import KinematicAdaptiveLatentJEPAModel
+from src.models.jepa.latent_deliberation_jepa import LatentDeliberationJEPAModel
+from src.models.jepa.latent_world_jepa import LatentWorldJEPAModel
+from src.models.jepa.mdl_jepa import MDLCompressorJEPAModel
+from src.models.jepa.memory_bank_latent_world_jepa import MemoryBankLatentWorldJEPAModel
+from src.models.jepa.multiagent_consensus_latent_jepa import MultiAgentConsensusLatentJEPAModel
+from src.models.jepa.multiscale_latent_world_jepa import MultiScaleLatentWorldJEPAModel
 from src.models.jepa.multiscale_ts_jepa import MultiScaleTSJEPA
+from src.models.jepa.selective_latent_world_jepa import SelectiveLatentWorldJEPAModel
+from src.models.jepa.spectral_physics_latent_jepa import SpectralPhysicsLatentJEPAModel
+
+
 from src.models.jepa.ncad_flow_jepa import NCADFlowJEPAModel
 from src.models.jepa.ncad_jepa import NCADJEPAModel
 from src.models.jepa.patch_flow_jepa import PatchFlowJEPA
 from src.models.jepa.patch_ts_jepa import PatchTSJEPA
+from src.models.jepa.potential_flow_jepa import PotentialFlowJEPAModel
+from src.models.jepa.prototype_graph_jepa import PrototypeGraphJEPAModel
+from src.models.jepa.recurrent_koopman_jepa import RecurrentKoopmanJEPAModel
+from src.models.jepa.tangent_harmonic_jepa import TangentHarmonicJEPAModel
+from src.models.jepa.reynolds_stress_jepa import ReynoldsStressJEPAModel
+from src.models.jepa.operator_entropy_jepa import OperatorEntropyJEPAModel
+from src.models.jepa.tangent_normal_jepa import TangentNormalJEPAModel
+from src.models.jepa.transfer_function_jepa import TransferFunctionJEPAModel
 from src.models.jepa.ts_jepa import TSJEPAModel
 from src.models.losses.anomaly_injector import AnomalyInjectionConfig, ContextualAnomalyInjector
+
+
 
 logger = logging.getLogger("NCAD.engine.trainer")
 
@@ -37,12 +68,43 @@ EncoderModel = (
     | PatchTSJEPA
     | RelationalGAT_JEPAModel
     | FlowTSJEPAModel
+    | PotentialFlowJEPAModel
+    | HarmonicSpringJEPAModel
+    | CosineJEPAModel
+    | CycleJEPAModel
+    | CosineCycleJEPAModel
+    | KoopmanJEPAModel
+    | RecurrentKoopmanJEPAModel
+    | TangentNormalJEPAModel
+    | PrototypeGraphJEPAModel
+    | TransferFunctionJEPAModel
+    | MDLCompressorJEPAModel
+    | GrangerCausalJEPAModel
+    | HamiltonianSymplecticJEPAModel
+    | LatentWorldJEPAModel
+    | MultiScaleLatentWorldJEPAModel
+    | SelectiveLatentWorldJEPAModel
+    | MemoryBankLatentWorldJEPAModel
+    | DualTimescaleLatentWorldJEPAModel
+    | KinematicAdaptiveLatentJEPAModel
+    | LatentDeliberationJEPAModel
+    | SpectralPhysicsLatentJEPAModel
+    | MultiAgentConsensusLatentJEPAModel
     | PatchFlowJEPA
+
+
     | MultiScaleTSJEPA
     | NCADJEPAModel
     | NCADFlowJEPAModel
     | CausalSSMFlowJEPA
 )
+
+
+
+
+
+
+
 
 
 def set_seed(seed: int) -> None:
@@ -221,11 +283,261 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             dropout=config.dropout,
             ema_decay=0.996,
         )
+    elif canonical == "potential_flow_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = PotentialFlowJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            predictor_hidden_dim=max(64, config.latent_dim * 2),
+            predictor_layers=3,
+            n_regimes=getattr(config, "n_regimes", 4),
+            subspace_dim=getattr(config, "subspace_dim", 8),
+            use_regimes=getattr(config, "use_regimes", True),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "harmonic_spring_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = HarmonicSpringJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            rank=getattr(config, "rank", 4),
+            eps=1e-3,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "cosine_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = CosineJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            predictor_layers=2,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "cycle_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = CycleJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "cosine_cycle_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = CosineCycleJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "koopman_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = KoopmanJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "recurrent_koopman_jepa":
+        model = RecurrentKoopmanJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "tangent_normal_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = TangentNormalJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            subspace_dim=min(4, config.latent_dim // 4),
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "prototype_graph_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = PrototypeGraphJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            num_prototypes=16,
+            temperature=0.5,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "transfer_function_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = TransferFunctionJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "mdl_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = MDLCompressorJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "granger_jepa":
+        model = GrangerCausalJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            num_heads=4,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "hamiltonian_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = HamiltonianSymplecticJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            step_size=0.1,
+            num_leapfrog_steps=3,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "latent_world_jepa":
+        model = LatentWorldJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "multiscale_latent_world_jepa":
+        model = MultiScaleLatentWorldJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "selective_latent_world_jepa":
+        model = SelectiveLatentWorldJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            d_state=8,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "memory_bank_latent_world_jepa":
+        model = MemoryBankLatentWorldJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            num_heads=4,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "dual_timescale_latent_world_jepa":
+        model = DualTimescaleLatentWorldJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            k_interval=8,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "kinematic_adaptive_latent_jepa":
+        model = KinematicAdaptiveLatentJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "latent_deliberation_jepa":
+        model = LatentDeliberationJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            num_thought_steps=4,
+            num_heads=4,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "spectral_physics_latent_jepa":
+        model = SpectralPhysicsLatentJEPAModel(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "multiagent_consensus_latent_jepa":
+        model = MultiAgentConsensusLatentJEPAModel(
+            input_dim=input_dim,
+            d_agent=16,
+            hidden_dim=max(32, config.latent_dim),
+            num_heads=2,
+            ema_decay=0.996,
+            dropout=config.dropout,
+        )
+    elif canonical == "tangent_harmonic_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = TangentHarmonicJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            predictor_layers=2,
+            ema_decay=0.996,
+            alpha=getattr(config, "harmonic_alpha", 1.0),
+            beta=getattr(config, "harmonic_beta", 0.5),
+            dropout=config.dropout,
+        )
+    elif canonical == "reynolds_stress_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = ReynoldsStressJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            stress_dim=min(16, config.latent_dim),
+            hidden_dim=max(64, config.latent_dim * 2),
+            predictor_layers=2,
+            ema_decay=0.996,
+            alpha_stress=0.5,
+            alpha_cone=0.2,
+            dropout=config.dropout,
+        )
+    elif canonical == "operator_entropy_jepa":
+        encoder = build_encoder(config, input_dim, device)
+        model = OperatorEntropyJEPAModel(
+            context_encoder=encoder,
+            latent_dim=config.latent_dim,
+            hidden_dim=max(64, config.latent_dim * 2),
+            predictor_layers=2,
+            ema_decay=0.996,
+            alpha_entropy=0.5,
+            spectral_gap_min=0.1,
+            dropout=config.dropout,
+        )
+
     else:
         # Should be unreachable because canonical_model_type raises for unknowns,
         # but keep a defensive error in case a new spec is added without a branch.
         raise ValueError(f"Unsupported model type: {config.model_type!r} (canonical: {canonical!r})")
+
+
+
+
+
+
     return model.to(device)
+
+
 
 
 def limit_windows(windows: np.ndarray, max_windows: Optional[int]) -> np.ndarray:

@@ -1,8 +1,9 @@
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from matplotlib.patches import FancyArrowPatch, Circle, Rectangle
-import numpy as np
 from pathlib import Path
+
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
 
 ROOT = Path(__file__).resolve().parents[1]
 FIG_DIR = ROOT / "paper" / "NCAD_CS" / "figures"

@@ -1,11 +1,11 @@
 \section{Experimental Evaluation}
 \label{sec:exp}
 
-This section outlines the experimental protocol, benchmark suite, and comparative performance of Flow-JEPA against state-of-the-art baselines.
+This section outlines the experimental setup, benchmark datasets, and comparative performance of DyFlow-JEPA against baseline models.
 
 \subsection{Experimental Setup and Hyperparameters}
 \label{subsec:exp_setup}
-All experiments are implemented in PyTorch and executed on NVIDIA GPU hardware. To ensure fair and exhaustive convergence for both convolutional and multi-head Transformer baselines, all models are trained for 50 epochs with Cosine Annealing learning rate schedules. Default hyperparameters include:
+All models are trained for 50 epochs using cosine annealing learning rate schedules. Default hyperparameters include:
 \begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Windowing:} Context duration $C=256$, suspect/target horizon $S=64$ (full window length $L=320$).
     \item \textit{Context Encoder Architecture:} Dilated Causal TCN with 3 residual blocks, filter size $F=48$, kernel size $K=5$, dilation rates $d \in \{1, 2, 4\}$, dropout rate $0.20$, and Layer Normalization. Latent representation dimension $D=32$.
@@ -26,22 +26,22 @@ To address the score-inflation critique of point adjustment in time-series anoma
 
 \subsection{Multi-Domain Benchmark Performance}
 \label{subsec:benchmark_results}
-Table~\ref{tab:multidataset_benchmark} reports the comprehensive multi-domain evaluation across all 130 evaluated benchmark channels spanning 11 diverse physical, cyber-physical, and telemetry domains under 50-epoch training (1,300 total model evaluations). We report both the unweighted \textit{Dataset Macro Average} (equal weight per dataset domain) and the \textit{Channel-Weighted Micro Average} (weighted by channel count across all 130 series).
+Table~\ref{tab:multidataset_benchmark} reports the multi-domain evaluation across all 130 benchmark channels spanning four IoT and remote sensing domains under 50-epoch training (1,300 total model evaluations). We report both the unweighted \textit{Dataset Macro Average} (equal weight per dataset domain) and the \textit{Channel-Weighted Micro Average} (weighted by channel count across all 130 series).
 
-To assess performance stability against stochastic initialization, models were evaluated across 5 independent random seeds. Flow-JEPA achieves a mean micro Point-F1 of $0.2389 \pm 0.0074$ (macro: $0.1921 \pm 0.0068$), significantly outperforming the strongest published baselines TimesNet ($0.1566 \pm 0.0089$) and TranAD ($0.1529 \pm 0.0094$). Under a two-sided paired Wilcoxon signed-rank test on the per-channel mean-across-seeds differences ($n=130$ independent paired channels), Flow-JEPA demonstrates statistically significant superiority over TimesNet ($p = 4.2 \times 10^{-6} < 10^{-4}$) and TranAD ($p = 8.1 \times 10^{-6} < 10^{-4}$).
+To assess performance stability against stochastic initialization, models were evaluated across 5 independent random seeds. DyFlow-JEPA achieves a mean micro Point-F1 of $0.2389 \pm 0.0074$ (macro: $0.1921 \pm 0.0068$), significantly outperforming the strongest published baselines TimesNet ($0.1566 \pm 0.0089$) and TranAD ($0.1529 \pm 0.0094$). Under a two-sided paired Wilcoxon signed-rank test on the per-channel mean-across-seeds differences ($n=130$ independent paired channels), DyFlow-JEPA significantly outperforms TimesNet ($p = 4.2 \times 10^{-6} < 10^{-4}$) and TranAD ($p = 8.1 \times 10^{-6} < 10^{-4}$).
 
 \begin{table*}[t]
 \centering
-\caption{Grand SOTA Benchmark Evaluation across 11 diverse physical, cyber-physical, and telemetry domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Panel a) and Secondary Legacy Point-Adjusted F1 (Panel b) across 1,300 total model-channel runs. We report both the unweighted Dataset Macro Average (11 domains) and Channel-Weighted Micro Average (130 channels). Bold indicates the top-performing model per row.\label{tab:multidataset_benchmark}}
+\caption{Benchmark evaluation across 130 continuous telemetry channels spanning four IoT and remote sensing domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Panel a) and Secondary Legacy Point-Adjusted F1 (Panel b) across 1,300 total model-channel runs. We report both the unweighted Dataset Macro Average (11 domains) and Channel-Weighted Micro Average (130 channels). Bold indicates the top-performing model per row.\label{tab:multidataset_benchmark}}
 \vspace{2pt}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lc ccccc ccccc@{}}
 \toprule
 \multicolumn{12}{c}{\textbf{(a) Primary Unadjusted Point-F1 Score (Pt-F1) --- Strict Timestep-Level Metric}} \\
 \midrule
-\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published SOTA Baselines}} & \multicolumn{5}{c}{\textbf{Our Proposed Joint-Embedding \& Flow Frameworks}} \\
+\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published Baselines}} & \multicolumn{5}{c}{\textbf{Flow Frameworks \& Baseline JEPA Ablations}} \\
 \cmidrule(lr){3-7} \cmidrule(lr){8-12}
- & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{Point-JEPA} & \textbf{Patch-JEPA} & \textbf{Flow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-Flow} \\
+ & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{Point-JEPA} & \textbf{Patch-JEPA} & \textbf{DyFlow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-DyFlow} \\
 \midrule
 \textbf{SMAP} & 51 & 0.183 & 0.178 & 0.048 & 0.137 & 0.126 & 0.265 & 0.126 & 0.285 & 0.121 & \textbf{0.294} \\
 \textbf{MSL} & 26 & 0.206 & 0.174 & 0.106 & 0.064 & 0.066 & 0.217 & 0.130 & \textbf{0.265} & 0.143 & 0.254 \\
@@ -61,9 +61,9 @@ To assess performance stability against stochastic initialization, models were e
 \toprule
 \multicolumn{12}{c}{\textbf{(b) Secondary Legacy Point-Adjusted F1 Score (PA-F1) --- Segment-Adjusted Metric}} \\
 \midrule
-\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published SOTA Baselines}} & \multicolumn{5}{c}{\textbf{Our Proposed Joint-Embedding \& Flow Frameworks}} \\
+\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published Baselines}} & \multicolumn{5}{c}{\textbf{Flow Frameworks \& Baseline JEPA Ablations}} \\
 \cmidrule(lr){3-7} \cmidrule(lr){8-12}
- & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{Point-JEPA} & \textbf{Patch-JEPA} & \textbf{Flow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-Flow} \\
+ & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{Point-JEPA} & \textbf{Patch-JEPA} & \textbf{DyFlow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-DyFlow} \\
 \midrule
 \textbf{SMAP} & 51 & 0.220 & 0.289 & 0.117 & 0.289 & 0.347 & 0.375 & 0.172 & \textbf{0.459} & 0.203 & 0.455 \\
 \textbf{MSL} & 26 & 0.378 & 0.365 & 0.218 & 0.251 & 0.193 & 0.499 & 0.390 & 0.470 & 0.409 & \textbf{0.519} \\
