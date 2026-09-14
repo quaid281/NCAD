@@ -257,14 +257,136 @@ def calibrate_event_threshold(
     )
 
 
+def compute_hierarchical_jepa_discrepancy(
+    model: torch.nn.Module,
+    windows: np.ndarray,
+    config: CSMConfig,
+    device: torch.device,
+    batch_size: int = 256,
+    intermediate_weight: float = 0.35,
+    max_intermediate_layers: int = 4,
+) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+    """Compute hierarchical multi-layer discrepancy scores fusing terminal and intermediate layer divergences.
+
+    Captures intermediate predictor and encoder activations during forward evaluation,
+    computes layer-wise deviation norms, and dynamically blends them with the terminal
+    predictive discrepancy:
+        S_hierarchical = (1 - lambda) * S_terminal + lambda * S_intermediate
+
+    Args:
+        model: Trained JEPA model.
+        windows: Sliding window array of shape (N, full_window_size, channels).
+        config: CSMConfig.
+        device: torch.device.
+        batch_size: Evaluation batch size.
+        intermediate_weight: Weight lambda in [0, 1] for intermediate layer discrepancy.
+        max_intermediate_layers: Maximum number of intermediate layers to sample.
+
+    Returns:
+        fused_discrepancy: Array of shape (N,) containing composite hierarchical scores.
+        layer_divergences: Dict mapping layer names to their per-window divergence scores.
+    """
+    from src.engine.activation_tracer import LayerActivationTracer
+
+    model.eval()
+    all_terminal_scores = []
+    layer_scores_dict: Dict[str, List[np.ndarray]] = {}
+
+    with torch.no_grad():
+        for i in range(0, len(windows), batch_size):
+            batch = windows[i : i + batch_size]
+            ctx = torch.from_numpy(batch[:, : config.context_size]).float().to(device)
+            tgt = torch.from_numpy(batch[:, config.context_size :]).float().to(device)
+
+            # 1. Terminal predictive discrepancy (safely check if precision matrix was fitted)
+            use_maha = bool(
+                config.use_mahalanobis
+                and getattr(model, "precision_fitted", torch.tensor(False)).item()
+            )
+            term_disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_maha)
+            term_np = term_disc.cpu().numpy()
+            all_terminal_scores.append(term_np)
+
+            if intermediate_weight > 0.0:
+                # 2. Trace intermediate layer representations
+                with LayerActivationTracer(model, leaf_only=True, capture_tensors=True, cpu_offload=True) as tracer:
+                    _ = model(ctx, tgt)
+
+                # Select informative candidate intermediate layers (predictors, velocity fields, transformers)
+                candidate_records = [
+                    (name, rec)
+                    for name, rec in tracer.records.items()
+                    if rec.tensor is not None
+                    and any(k in name.lower() for k in ("predictor", "flow", "blocks", "transformer", "readout", "core", "gate"))
+                ]
+                if not candidate_records:
+                    candidate_records = list(tracer.records.items())[-max_intermediate_layers:]
+                else:
+                    step = max(1, len(candidate_records) // max_intermediate_layers)
+                    candidate_records = candidate_records[::step][:max_intermediate_layers]
+
+                for name, rec in candidate_records:
+                    if rec.tensor is not None:
+                        t = rec.tensor.float()
+                        t_flat = t.reshape(t.shape[0], -1)
+                        norms = torch.linalg.norm(t_flat, dim=-1).cpu().numpy()
+                        if name not in layer_scores_dict:
+                            layer_scores_dict[name] = []
+                        layer_scores_dict[name].append(norms)
+
+    if not all_terminal_scores:
+        return np.empty((0,), dtype=np.float32), {}
+
+    terminal_arr = np.concatenate(all_terminal_scores, axis=0).astype(np.float32)
+    if not layer_scores_dict or intermediate_weight <= 0.0:
+        return terminal_arr, {}
+
+    # Concatenate per-layer arrays and normalize to match scale of terminal discrepancy
+    compiled_layer_scores: Dict[str, np.ndarray] = {}
+    normalized_intermediate_components = []
+    term_median = float(np.median(terminal_arr))
+    term_iqr = float(np.percentile(terminal_arr, 75) - np.percentile(terminal_arr, 25))
+    term_scale = max(term_iqr, 1e-4)
+
+    for layer_name, chunk_list in layer_scores_dict.items():
+        layer_arr = np.concatenate(chunk_list, axis=0).astype(np.float32)
+        compiled_layer_scores[layer_name] = layer_arr
+
+        # Robust z-scaling matched to terminal scale
+        l_median = float(np.median(layer_arr))
+        l_iqr = float(np.percentile(layer_arr, 75) - np.percentile(layer_arr, 25))
+        l_scale = max(l_iqr, 1e-4)
+        normed = (layer_arr - l_median) / l_scale
+        # Shift to positive domain matching terminal scores
+        scaled_component = term_median + normed * term_scale
+        normalized_intermediate_components.append(np.maximum(0.0, scaled_component))
+
+    avg_intermediate = np.mean(np.stack(normalized_intermediate_components, axis=0), axis=0).astype(np.float32)
+    fused = (1.0 - intermediate_weight) * terminal_arr + intermediate_weight * avg_intermediate
+    return fused.astype(np.float32), compiled_layer_scores
+
+
 def compute_jepa_discrepancy(
     model: torch.nn.Module,
     windows: np.ndarray,
     config: CSMConfig,
     device: torch.device,
     batch_size: int = 256,
+    hierarchical: bool = False,
+    intermediate_weight: float = 0.35,
 ) -> np.ndarray:
     """Compute predictive discrepancy scores for sliding windows using TS-JEPA."""
+    if hierarchical or getattr(config, "hierarchical_discrepancy", False):
+        fused, _ = compute_hierarchical_jepa_discrepancy(
+            model,
+            windows,
+            config,
+            device,
+            batch_size=batch_size,
+            intermediate_weight=intermediate_weight,
+        )
+        return fused
+
     model.eval()
     discrepancies = []
     with torch.no_grad():
@@ -272,7 +394,11 @@ def compute_jepa_discrepancy(
             batch = windows[i : i + batch_size]
             ctx = torch.from_numpy(batch[:, : config.context_size]).float().to(device)
             tgt = torch.from_numpy(batch[:, config.context_size :]).float().to(device)
-            disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=config.use_mahalanobis)
+            use_maha = bool(
+                config.use_mahalanobis
+                and getattr(model, "precision_fitted", torch.tensor(False)).item()
+            )
+            disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_maha)
             discrepancies.append(disc.cpu().numpy())
     if not discrepancies:
         return np.empty((0,), dtype=np.float32)

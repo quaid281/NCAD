@@ -20,7 +20,7 @@ from src.models.jepa.ts_jepa import jepa_vicreg_loss
 
 
 class PositionalEncoding(nn.Module):
-    """Sinusoidal positional encoding for sequence tokens."""
+    """Sinusoidal positional encoding with learnable frequency scaling for sequence tokens."""
 
     def __init__(self, d_model: int, max_len: int = 500):
         super().__init__()
@@ -30,10 +30,11 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term[: d_model // 2])
         self.register_buffer("pe", pe.unsqueeze(0))
+        self.scale = nn.Parameter(torch.ones(1, 1, d_model))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Add positional encoding: (B, N, D) + (1, N, D)."""
-        return x + self.pe[:, : x.size(1)]
+        return x + (self.pe[:, : x.size(1)] * self.scale)
 
 
 class PatchTokenizer(nn.Module):
@@ -114,6 +115,13 @@ class PatchSequencePredictor(nn.Module):
         self.d_model = d_model
         # Learnable target future query tokens
         self.target_queries = nn.Parameter(torch.randn(1, n_target_patches, d_model) * 0.02)
+        # Context-conditioned query projection to avoid static broadcast collapse
+        self.context_proj = nn.Sequential(
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, d_model),
+            nn.GELU(),
+            nn.Linear(d_model, d_model),
+        )
         self.pos_encoder = PositionalEncoding(d_model)
 
         decoder_layer = nn.TransformerDecoderLayer(
@@ -131,7 +139,10 @@ class PatchSequencePredictor(nn.Module):
     def forward(self, h_context: torch.Tensor) -> torch.Tensor:
         """Predict future tokens: (B, N_ctx, d_model) -> (B, N_tgt, d_model)."""
         B = h_context.size(0)
-        queries = self.target_queries.repeat(B, 1, 1)
+        # Context summary provides sample-specific conditioning to prevent batch collapse
+        ctx_summary = h_context.mean(dim=1, keepdim=True)
+        ctx_mod = self.context_proj(ctx_summary)
+        queries = self.target_queries.repeat(B, 1, 1) + ctx_mod
         queries = self.pos_encoder(queries)
         out = self.decoder(tgt=queries, memory=h_context)
         return self.norm(out)

@@ -123,9 +123,10 @@ class FlowLatentPredictor(nn.Module):
                 )
             )
 
+        # Scaled highway injection parameter to preserve representation rank
+        self.highway_scale = nn.Parameter(torch.tensor(0.2))
         self.out_norm = nn.LayerNorm(hidden_dim)
         self.out_proj = nn.Linear(hidden_dim, latent_dim)
-
 
     def forward(
         self,
@@ -147,7 +148,8 @@ class FlowLatentPredictor(nn.Module):
             t = t.expand(z_t.size(0))
 
         t_emb = self.time_embed(t)  # (B, hidden_dim)
-        x = self.input_proj(torch.cat([z_t, z_ctx], dim=-1))  # (B, hidden_dim)
+        input_feat = self.input_proj(torch.cat([z_t, z_ctx], dim=-1))  # (B, hidden_dim)
+        x = input_feat
 
         for block in self.blocks:
             residual = x
@@ -156,7 +158,8 @@ class FlowLatentPredictor(nn.Module):
             h = h + block["time_proj"](t_emb)
             h = block["act"](block["linear1"](h))
             h = block["dropout"](block["linear2"](h))
-            x = residual + h
+            # Residual update with scaled input highway to preserve full-rank representation
+            x = residual + h + self.highway_scale * input_feat
 
         x = self.out_norm(x)
         v = self.out_proj(x)

@@ -60,7 +60,7 @@ class SpatialFrameEncoder(nn.Module):
 
 
 class LatentRecurrentCore(nn.Module):
-    """Recurrent transition core operating strictly within latent space R^D."""
+    """Recurrent transition core operating strictly within latent space R^D with adaptive observation gate."""
 
     def __init__(self, latent_dim: int = 32, hidden_dim: int = 64, dropout: float = 0.05):
         super().__init__()
@@ -74,21 +74,50 @@ class LatentRecurrentCore(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, latent_dim),
         )
+        # Adaptive Kalman-style observation gating network
+        self.obs_gate = nn.Sequential(
+            nn.Linear(latent_dim * 2, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, latent_dim),
+            nn.Sigmoid(),
+        )
+        self.obs_proj = nn.Linear(latent_dim, hidden_dim)
 
-    def step(self, z_t: torch.Tensor, h_prev: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Perform a single 1-step transition in latent space.
+    def step(
+        self,
+        z_t: torch.Tensor,
+        h_prev: torch.Tensor,
+        z_obs: Optional[torch.Tensor] = None,
+        return_innovation: bool = False,
+    ) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Perform a single 1-step transition in latent space with optional observation update.
         
         Args:
             z_t: Current latent vector, shape (B, D)
             h_prev: Previous recurrent hidden state, shape (B, H)
+            z_obs: Optional target observation latent vector for closed-loop belief update, shape (B, D)
+            return_innovation: If True, also returns the innovation residual (B, D)
             
         Returns:
             z_hat_next: Predicted next latent state, shape (B, D)
             h_next: Updated recurrent hidden state, shape (B, H)
+            innovation: (Optional) Observation innovation residual, shape (B, D)
         """
         h_next = self.cell(z_t, h_prev)
         delta_z = self.readout(h_next)
         z_hat_next = z_t + delta_z
+
+        innovation = torch.zeros_like(z_hat_next)
+        if z_obs is not None:
+            # Observation innovation residual: y = z_obs - z_hat
+            innovation = z_obs - z_hat_next
+            # Compute adaptive Kalman-style gating
+            gate = self.obs_gate(torch.cat([z_hat_next, z_obs], dim=-1))
+            # Belief state correction via gated innovation
+            h_next = h_next + self.obs_proj(gate * innovation)
+
+        if return_innovation:
+            return z_hat_next, h_next, innovation
         return z_hat_next, h_next
 
 
@@ -130,8 +159,13 @@ class LatentWorldJEPAModel(JEPABase):
         self,
         context_windows: torch.Tensor,
         horizon: int = 64,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Track context in latent space, then roll forward autonomously across horizon."""
+        target_observations: Optional[torch.Tensor] = None,
+        return_innovations: bool = False,
+    ) -> Union[
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+    ]:
+        """Track context in latent space, then roll forward across horizon."""
         B, C_len, _ = context_windows.shape
         Z_ctx = self.context_encoder(context_windows)  # (B, C, D)
 
@@ -146,14 +180,24 @@ class LatentWorldJEPAModel(JEPABase):
 
         Z_ctx_pred = torch.stack(Z_ctx_pred, dim=1)  # (B, C, D)
 
-        # Phase 2: Autonomous Suspect Rollout (without raw inputs)
+        # Phase 2: Suspect Rollout with optional adaptive observation gating
         Z_sus_pred = []
+        innovations = []
         curr_z = Z_ctx_pred[:, -1]  # z_hat_{C+1}
         for tau in range(horizon):
             Z_sus_pred.append(curr_z)
-            curr_z, h = self.latent_core.step(curr_z, h)
+            z_obs_tau = (
+                target_observations[:, tau]
+                if target_observations is not None and tau < target_observations.size(1)
+                else None
+            )
+            curr_z, h, innov = self.latent_core.step(curr_z, h, z_obs=z_obs_tau, return_innovation=True)
+            innovations.append(innov)
 
         Z_sus_pred = torch.stack(Z_sus_pred, dim=1)  # (B, H, D)
+        if return_innovations:
+            innovations_t = torch.stack(innovations, dim=1)  # (B, H, D)
+            return Z_ctx, Z_ctx_pred, Z_sus_pred, innovations_t
         return Z_ctx, Z_ctx_pred, Z_sus_pred
 
     def forward(
@@ -162,14 +206,20 @@ class LatentWorldJEPAModel(JEPABase):
         target_windows: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor, torch.Tensor]:
         horizon = target_windows.shape[1] if target_windows is not None else 64
-        Z_ctx, Z_ctx_pred, Z_sus_pred = self.forward_latent_trajectory(context_windows, horizon=horizon)
+        Z_tgt = None
+        if target_windows is not None:
+            self.target_encoder.eval()
+            with torch.no_grad():
+                Z_tgt = self.target_encoder(target_windows)  # (B, H, D)
+
+        Z_ctx, Z_ctx_pred, Z_sus_pred = self.forward_latent_trajectory(
+            context_windows,
+            horizon=horizon,
+            target_observations=Z_tgt,
+        )
 
         if target_windows is None:
             return Z_ctx.mean(dim=1), None, Z_sus_pred.mean(dim=1), Z_sus_pred
-
-        self.target_encoder.eval()
-        with torch.no_grad():
-            Z_tgt = self.target_encoder(target_windows)  # (B, H, D)
 
         return Z_ctx, Z_tgt, Z_ctx_pred, Z_sus_pred
 
@@ -223,19 +273,26 @@ class LatentWorldJEPAModel(JEPABase):
         observed_target_windows: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Dense per-timestep residual scoring across autonomous latent rollout."""
+        """Dense per-timestep residual scoring with Kalman innovation tracking."""
         self.eval()
         horizon = observed_target_windows.shape[1]
-        _, _, Z_sus_pred = self.forward_latent_trajectory(context_windows, horizon=horizon)
         Z_tgt = self.target_encoder(observed_target_windows)  # (B, H, D)
+        _, _, Z_sus_pred, innovations = self.forward_latent_trajectory(
+            context_windows,
+            horizon=horizon,
+            target_observations=Z_tgt,
+            return_innovations=True,
+        )
 
         # Dense point-by-point residual in latent space: (B, H)
         step_residuals = torch.sqrt(torch.sum((Z_tgt - Z_sus_pred) ** 2, dim=-1) + 1e-8)
+        step_innovations = torch.sqrt(torch.sum(innovations ** 2, dim=-1) + 1e-8)
 
-        # Composite score: Average rollout deviation + Max point spike
+        # Composite score: Average rollout deviation + Max point spike + Innovation energy
         mean_res = torch.mean(step_residuals, dim=-1)  # (B,)
         max_res = torch.max(step_residuals, dim=-1)[0]  # (B,)
-        total_score = mean_res + 0.5 * max_res
+        innov_score = torch.mean(step_innovations, dim=-1)  # (B,)
+        total_score = mean_res + 0.5 * max_res + 0.5 * innov_score
         return total_score
 
     @torch.no_grad()

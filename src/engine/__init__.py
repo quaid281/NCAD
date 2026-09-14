@@ -4,10 +4,18 @@ Orchestrator re-exports are deferred so that importing trainer/evaluator
 utilities does not pull in the full orchestration (and plotting) stack.
 """
 
+from src.engine.activation_tracer import (
+    AutopsyReport,
+    LayerActivationTracer,
+    LayerAutopsy,
+    LayerTraceRecord,
+    autopsy_model,
+)
 from src.engine.evaluator import (
     build_successor_memory,
     calibrate_event_threshold,
     calibrate_jepa_threshold,
+    compute_hierarchical_jepa_discrepancy,
     compute_jepa_discrepancy,
     score_windows,
 )
@@ -27,6 +35,12 @@ from src.engine.trainer import (
 )
 
 __all__ = [
+    # Activation Tracer & Autopsy
+    "LayerActivationTracer",
+    "LayerAutopsy",
+    "AutopsyReport",
+    "LayerTraceRecord",
+    "autopsy_model",
     # Trainer
     "EncoderModel",
     "build_encoder",
@@ -44,6 +58,7 @@ __all__ = [
     "build_successor_memory",
     "calibrate_event_threshold",
     "calibrate_jepa_threshold",
+    "compute_hierarchical_jepa_discrepancy",
     "compute_jepa_discrepancy",
     "score_windows",
     # Orchestrator (lazy)

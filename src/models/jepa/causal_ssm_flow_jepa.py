@@ -90,6 +90,11 @@ class CausalSSMContextEncoder(nn.Module):
             nn.Linear(hidden_dim, latent_dim),
             nn.LayerNorm(latent_dim),
         )
+        # Direct linear residual highway to preserve graph node representation rank
+        self.skip_proj = nn.Sequential(
+            nn.Linear(in_channels * node_dim, latent_dim),
+            nn.LayerNorm(latent_dim),
+        )
 
     def forward(
         self, inputs: torch.Tensor, return_graph: bool = False
@@ -129,9 +134,9 @@ class CausalSSMContextEncoder(nn.Module):
         for gat in self.gat_blocks:
             curr_nodes, last_attn = gat(curr_nodes, return_attention=True)
 
-        # Step 3: Global context projection
+        # Step 3: Global context projection with dimensional residual highway
         flat_nodes = curr_nodes.reshape(B, C * self.node_dim)
-        z_ctx = self.global_proj(flat_nodes)
+        z_ctx = self.global_proj(flat_nodes) + self.skip_proj(flat_nodes)
 
         if return_graph:
             # Average attention over heads: (B, num_heads, C, C) -> (B, C, C)
