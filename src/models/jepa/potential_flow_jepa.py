@@ -25,6 +25,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase, fit_covariance_batched
+from src.models.geometric_layers import MovingTangentProjection
 from src.models.jepa.flow_ts_jepa import TimestepEmbedding, flow_matching_vicreg_loss, von_neumann_operator_entropy_loss
 
 
@@ -212,6 +213,7 @@ class PotentialFlowPredictor(nn.Module):
             num_layers=num_layers,
             dropout=dropout,
         )
+        self.tangent_proj = MovingTangentProjection(latent_dim=latent_dim)
 
     def forward(
         self,
@@ -221,7 +223,9 @@ class PotentialFlowPredictor(nn.Module):
         p_regime: Optional[torch.Tensor] = None,
         create_graph: bool = True,
     ) -> torch.Tensor:
-        """Compute conservative-dissipative velocity vector v_t = -nabla_{z_t} Phi_psi."""
+        """Compute conservative-dissipative velocity vector v_t = -nabla_{z_t} Phi_psi
+        projected onto the tangent bundle of S^{D-1} (Chapter 2, §4–§5).
+        """
         with torch.enable_grad():
             z_t_in = z_t if z_t.requires_grad else z_t.clone().detach().requires_grad_(True)
             phi = self.potential_field(z_t_in, t, z_ctx, p_regime)
@@ -232,7 +236,9 @@ class PotentialFlowPredictor(nn.Module):
                 retain_graph=True if create_graph else False,
                 only_inputs=True,
             )[0]
-        return -grad
+        v_raw = -grad
+        # Project onto tangent space T_{z_t} S^{D-1}
+        return self.tangent_proj(v_raw, z_pole=z_t)
 
 
     def compute_energy_laplacian(
@@ -359,9 +365,9 @@ class PotentialFlowJEPAModel(JEPABase):
         ctx: torch.Tensor,
         tgt: torch.Tensor,
         config=None,
-        grassmann_weight: float = 0.05,
-        cov_weight: float = 0.5,
-        var_weight: float = 1.0,
+        grassmann_weight: float = 0.0,
+        cov_weight: float = 0.0,
+        var_weight: float = 0.0,
         flow_weight: float = 1.0,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
@@ -375,17 +381,36 @@ class PotentialFlowJEPAModel(JEPABase):
         else:
             z_ctx, z_tgt_true, v_pred, v_target, loss_grass = self.forward(ctx, tgt)
 
-        total_loss, loss_metrics = flow_matching_vicreg_loss(
-            v_pred=v_pred,
-            v_target=v_target,
-            z_ctx=z_ctx,
-            z_tgt_true=z_tgt_true,
-            flow_weight=flow_weight if config is None else getattr(config, "vicreg_sim_weight", flow_weight),
-            var_weight=var_weight if config is None else getattr(config, "vicreg_var_weight", var_weight),
-            cov_weight=cov_weight if config is None else getattr(config, "vicreg_cov_weight", cov_weight),
-        )
+        # 1. Pure Optimal Transport velocity matching on the tangent bundle S^{D-1}
+        effective_flow_weight = flow_weight if config is None else getattr(config, "vicreg_sim_weight", flow_weight)
+        loss_flow = F.mse_loss(v_pred, v_target)
+        total_loss = effective_flow_weight * loss_flow
 
-        if self.grassmannian_codebook is not None:
+        loss_metrics = {
+            "total_loss": float(total_loss.item()),
+            "loss_flow": float(loss_flow.item()),
+            "loss_var": 0.0,
+            "loss_cov": 0.0,
+            "loss_grassmann": float(loss_grass.item()) if isinstance(loss_grass, torch.Tensor) else 0.0,
+        }
+
+        # Optional backward-compatible regularization if explicitly requested by config/caller
+        effective_var = var_weight if config is None else getattr(config, "vicreg_var_weight", var_weight)
+        effective_cov = cov_weight if config is None else getattr(config, "vicreg_cov_weight", cov_weight)
+        if effective_var > 0 or effective_cov > 0:
+            reg_loss, aux_metrics = flow_matching_vicreg_loss(
+                v_pred=v_pred,
+                v_target=v_target,
+                z_ctx=z_ctx,
+                z_tgt_true=z_tgt_true,
+                flow_weight=effective_flow_weight,
+                var_weight=effective_var,
+                cov_weight=effective_cov,
+            )
+            total_loss = reg_loss
+            loss_metrics.update(aux_metrics)
+
+        if self.grassmannian_codebook is not None and grassmann_weight > 0:
             total_loss = total_loss + grassmann_weight * loss_grass
             loss_metrics["loss_grassmann"] = float(loss_grass.item())
             loss_metrics["total_loss"] = float(total_loss.item())

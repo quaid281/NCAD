@@ -57,6 +57,9 @@ class HybridTCNEncoder(nn.Module):
         tcn_layers: int = 6,
         kernel_size: int = 5,
         dropout: float = 0.20,
+        use_resolvent: bool = False,
+        use_hankel: bool = False,
+        window_len: int = 256,
     ):
         super().__init__()
         self.input_dim = input_dim
@@ -64,6 +67,19 @@ class HybridTCNEncoder(nn.Module):
         self.filters = filters
         self.tcn_layers = tcn_layers
         self.input_projection = nn.Conv1d(input_dim, filters, kernel_size=1)
+
+        # Optional algebraic Hankel polynomial moment filter (Chapter 7)
+        if use_hankel:
+            from src.models.geometric_layers import HankelPolynomialFilter
+            self.hankel_filter = HankelPolynomialFilter(
+                channels=filters,
+                window_len=window_len,
+                degree=3,
+                learnable_fusion=True,
+            )
+        else:
+            self.hankel_filter = None
+
         self.blocks = nn.ModuleList(
             [CausalTCNBlock(filters, kernel_size=kernel_size, dilation=2**layer, dropout=dropout) for layer in range(tcn_layers)]
         )
@@ -85,12 +101,23 @@ class HybridTCNEncoder(nn.Module):
             nn.LayerNorm(latent_dim),
         )
 
+        # Optional Resolvent matrix whitening & rank preservation bottleneck (Chapter 6)
+        if use_resolvent:
+            from src.models.geometric_layers import ResolventPurificationBottleneck
+            self.resolvent_bottleneck = ResolventPurificationBottleneck(latent_dim=latent_dim)
+        else:
+            self.resolvent_bottleneck = None
+
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         if inputs.ndim != 3:
             raise ValueError("Expected tensor with shape (batch, sequence, features).")
 
         x = inputs.transpose(1, 2)
         x = self.input_projection(x)
+
+        if self.hankel_filter is not None:
+            x = self.hankel_filter(x.transpose(1, 2)).transpose(1, 2)
+
         for block in self.blocks:
             x = block(x)
 
@@ -101,6 +128,10 @@ class HybridTCNEncoder(nn.Module):
 
         stat_features = self.stat_dense(self._statistical_spectral_features(x))
         latent = self.bottleneck(torch.cat([temporal_features, stat_features], dim=1))
+
+        if self.resolvent_bottleneck is not None:
+            latent = self.resolvent_bottleneck(latent)
+
         return torch.nan_to_num(latent)
 
     @staticmethod

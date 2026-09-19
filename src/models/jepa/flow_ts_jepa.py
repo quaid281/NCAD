@@ -96,13 +96,33 @@ class FlowLatentPredictor(nn.Module):
         num_layers: int = 3,
         dropout: float = 0.10,
         use_mellin_damping: bool = False,
+        use_tangent_projection: bool = True,
+        use_stokes_curl: bool = True,
     ):
         super().__init__()
         self.latent_dim = latent_dim
         self.use_mellin_damping = use_mellin_damping
+        self.use_tangent_projection = use_tangent_projection
+        self.use_stokes_curl = use_stokes_curl
         self.time_embed = TimestepEmbedding(embed_dim=hidden_dim)
         if use_mellin_damping:
             self.mellin_damping = MellinShellDamping(latent_dim=latent_dim)
+
+        if use_stokes_curl:
+            from src.models.geometric_layers import StokesStreamCurlFilter
+            self.stokes_curl = StokesStreamCurlFilter(latent_dim=latent_dim, hidden_dim=hidden_dim)
+        else:
+            self.stokes_curl = None
+
+        if use_tangent_projection:
+            from src.models.geometric_layers import MovingTangentProjection
+            self.tangent_proj = MovingTangentProjection(latent_dim=latent_dim)
+        else:
+            self.tangent_proj = None
+
+        # Moving Subspace Projector (Ten Proofs, Ch. 2, §4.1)
+        from src.models.geometric_layers import MovingSubspaceProjector
+        self.subspace_proj = MovingSubspaceProjector(latent_dim=latent_dim)
 
         # Joint input projection: [z_t, z_ctx] -> hidden_dim
         self.input_proj = nn.Linear(latent_dim * 2, hidden_dim)
@@ -165,6 +185,12 @@ class FlowLatentPredictor(nn.Module):
         v = self.out_proj(x)
         if self.use_mellin_damping:
             v = self.mellin_damping(v, z_t)
+        if self.stokes_curl is not None:
+            v = self.stokes_curl(v, z_ctx=z_ctx)
+        if self.tangent_proj is not None:
+            v = self.tangent_proj(v, z_pole=z_t)
+        # Moving Subspace Projector: constrain velocity to context Grassmannian bundle
+        v = self.subspace_proj(v, z_ctx=z_ctx)
         return v
 
 
@@ -318,12 +344,14 @@ class FlowTSJEPAModel(JEPABase):
         ema_decay: float = 0.995,
         dropout: float = 0.10,
         use_mellin_damping: bool = False,
+        use_stokes_curl: bool = True,
     ):
         super().__init__()
         self.context_encoder = context_encoder
         self.latent_dim = latent_dim
         self.ema_decay = ema_decay
         self.use_mellin_damping = use_mellin_damping
+        self.use_stokes_curl = use_stokes_curl
 
         # Target encoder is an EMA copy of context encoder
         self.target_encoder = self.init_target_encoder(context_encoder)
@@ -334,6 +362,7 @@ class FlowTSJEPAModel(JEPABase):
             num_layers=predictor_layers,
             dropout=dropout,
             use_mellin_damping=use_mellin_damping,
+            use_stokes_curl=use_stokes_curl,
         )
 
 
@@ -393,7 +422,7 @@ class FlowTSJEPAModel(JEPABase):
 
         return z_ctx, z_tgt_true, v_pred, v_target
 
-    def compute_objective(self, ctx, tgt, config, **kwargs):
+    def compute_objective(self, ctx, tgt, config=None, **kwargs):
         """Flow matching VICReg loss.
 
         In eval mode, uses deterministic t=0.5 and zero prior z_0=0 to keep
@@ -408,13 +437,15 @@ class FlowTSJEPAModel(JEPABase):
             z_ctx, z_tgt_true, v_pred, v_target = self.forward(ctx, tgt, t=t_val, z_noise=z_zero)
         else:
             z_ctx, z_tgt_true, v_pred, v_target = self.forward(ctx, tgt)
-        loss, metrics = flow_matching_vicreg_loss(
-            v_pred=v_pred, v_target=v_target, z_ctx=z_ctx, z_tgt_true=z_tgt_true,
-            flow_weight=config.vicreg_sim_weight,
-            var_weight=config.vicreg_var_weight,
-            cov_weight=config.vicreg_cov_weight,
-        )
-        return loss, metrics
+
+        loss_flow = F.mse_loss(v_pred, v_target)
+        total_loss = loss_flow
+
+        metrics = {
+            "loss": total_loss.item(),
+            "flow_loss": loss_flow.item(),
+        }
+        return total_loss, metrics
 
     @torch.no_grad()
     def sample_target(
@@ -622,3 +653,4 @@ class FlowTSJEPAModel(JEPABase):
 
 # Alias
 FlowTSJEPA = FlowTSJEPAModel
+FlowJEPA = FlowTSJEPAModel

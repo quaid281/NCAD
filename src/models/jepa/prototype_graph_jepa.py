@@ -132,57 +132,57 @@ class PrototypeGraphJEPAModel(JEPABase):
         ctx: torch.Tensor,
         tgt: torch.Tensor,
         config=None,
-        anchor_weight: float = 1.0,
         trans_weight: float = 1.0,
-        diversity_weight: float = 0.05,
-        cov_weight: float = 0.5,
-        var_weight: float = 1.0,
+        anchor_weight: float = 0.0,
+        diversity_weight: float = 0.0,
+        cov_weight: float = 0.0,
+        var_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
-        """Compute prototype containment loss + Markov transition prediction loss + diversity."""
+        """Compute prototype Markov transition prediction loss.
+        Prototypes lie on the hypersphere, eliminating the need for inverse-distance diversity penalties.
+        """
         z_ctx, z_tgt, w_ctx, sq_dists_ctx = self.forward(ctx, tgt)
         w_tgt, sq_dists_tgt = self.prototype_graph.compute_soft_assignments(z_tgt)
 
-        # 1. Anchor Containment Loss: minimum distance of nominal data to prototypes
-        loss_anchor = torch.mean(torch.min(sq_dists_ctx, dim=-1)[0] + torch.min(sq_dists_tgt, dim=-1)[0])
-
-        # 2. Markov Transition Prediction Loss: cross-entropy between predicted regime and true regime
+        # 1. Markov Transition Prediction Loss: cross-entropy between predicted regime and true regime
         T = self.prototype_graph.transition_matrix  # (K, K)
         p_pred = torch.matmul(w_ctx, T)            # (B, K)
         loss_trans = -torch.mean(torch.sum(w_tgt * torch.log(p_pred + 1e-8), dim=-1))
+        total_loss = trans_weight * loss_trans
 
-        # 3. Prototype Diversity Loss: prevent all anchors from collapsing to one point
+        # Diagnostic anchor distance
+        loss_anchor = torch.mean(torch.min(sq_dists_ctx, dim=-1)[0] + torch.min(sq_dists_tgt, dim=-1)[0])
+        if anchor_weight > 0:
+            total_loss = total_loss + anchor_weight * loss_anchor
+
+        # Diagnostic diversity & Hankel separation
         prototypes = self.prototype_graph.prototypes  # (K, D)
         proto_diffs = prototypes.unsqueeze(0) - prototypes.unsqueeze(1)  # (K, K, D)
         proto_dists = torch.norm(proto_diffs, dim=-1) + torch.eye(self.num_prototypes, device=ctx.device)
         loss_diversity = torch.mean(1.0 / (proto_dists + 1e-3))
 
-        # 3b. Algebraic Hankel Moment Separation Loss (Chapter 7)
         if self.prototype_graph.hankel_tracker is not None:
             hankel_k = self.prototype_graph.hankel_tracker.K
             loss_hankel = self.prototype_graph.hankel_tracker.compute_regime_separation_loss(prototypes[:hankel_k])
         else:
             loss_hankel = torch.tensor(0.0, device=ctx.device)
 
-        # 4. Representation Non-Collapse (VICReg)
-        std_c = torch.sqrt(torch.var(z_ctx, dim=0, unbiased=False) + eps)
-        var_c = torch.mean(F.relu(gamma - std_c))
-        cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+        if diversity_weight > 0:
+            total_loss = total_loss + diversity_weight * (loss_diversity + 0.1 * loss_hankel)
 
-        total_loss = (
-            anchor_weight * loss_anchor
-            + trans_weight * loss_trans
-            + diversity_weight * (loss_diversity + 0.1 * loss_hankel)
-            + var_weight * var_c
-            + cov_weight * cov_c
-        )
+        if var_weight > 0 or cov_weight > 0:
+            std_c = torch.sqrt(torch.var(z_ctx, dim=0, unbiased=False) + eps)
+            var_c = torch.mean(F.relu(gamma - std_c))
+            cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+            total_loss = total_loss + var_weight * var_c + cov_weight * cov_c
 
         metrics = {
             "total_loss": float(total_loss.item()),
-            "loss_anchor": float(loss_anchor.item()),
             "loss_trans": float(loss_trans.item()),
+            "loss_anchor": float(loss_anchor.item()),
             "loss_diversity": float(loss_diversity.item()),
             "loss_hankel": float(loss_hankel.item()),
             "mean_min_proto_dist": float(torch.mean(torch.sqrt(torch.min(sq_dists_ctx, dim=-1)[0])).item()),

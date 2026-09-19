@@ -55,6 +55,34 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         description="Legacy NCAD contrastive encoder (not a JEPA variant).",
     ),
     ModelSpec(
+        canonical_name="anomaly_transformer",
+        aliases=(),
+        is_jepa=False,
+        requires_patch_division=False,
+        description="Anomaly Transformer (ICLR 2022) baseline.",
+    ),
+    ModelSpec(
+        canonical_name="timesnet",
+        aliases=(),
+        is_jepa=False,
+        requires_patch_division=False,
+        description="TimesNet (ICLR 2023) baseline.",
+    ),
+    ModelSpec(
+        canonical_name="dcdetector",
+        aliases=(),
+        is_jepa=False,
+        requires_patch_division=False,
+        description="DCdetector (KDD 2023) baseline.",
+    ),
+    ModelSpec(
+        canonical_name="tranad",
+        aliases=(),
+        is_jepa=False,
+        requires_patch_division=False,
+        description="TranAD (VLDB 2022) baseline.",
+    ),
+    ModelSpec(
         canonical_name="ncad_jepa",
         aliases=("ncad_jepa_v1",),
         is_jepa=True,
@@ -323,7 +351,7 @@ def is_jepa_model(model_type: str) -> bool:
     """Return whether the resolved model type is a JEPA variant."""
     spec = _ALIAS_INDEX.get(model_type)
     if spec is None:
-        raise ValueError(f"Unknown model_type: {model_type!r}")
+        return False
     return spec.is_jepa
 
 

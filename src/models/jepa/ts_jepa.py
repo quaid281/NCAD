@@ -214,6 +214,53 @@ def _vicreg_branch_loss(
     return var_loss, cov_loss
 
 
+def log_det_whitening_loss(
+    z: torch.Tensor,
+    beta: float = 0.05,
+    eps: float = 1e-4,
+) -> torch.Tensor:
+    """Log-Determinant Volume Regularization (Streamlined VICReg Option A).
+
+    Maximizing ln det(Sigma + eps*I) simultaneously:
+    1. Enforces non-zero variance on all channels (analytic log-barrier against collapse).
+    2. Enforces mutual decorrelation (Hadamard's inequality: det(Sigma) <= prod Sigma_jj,
+       achieving equality iff all off-diagonal covariances are zero).
+
+    Args:
+        z: Latent batch representations (B, D).
+        beta: Regularization weight (default: 0.05).
+        eps: Diagonal regularizer for numerical stability (default: 1e-4).
+
+    Returns:
+        Scalar penalty: - beta / D * ln det(Sigma + eps*I).
+    """
+    B, D = z.shape
+    if B <= 1:
+        return torch.tensor(0.0, device=z.device, dtype=z.dtype)
+
+    # Centered batch representation
+    z_c = z - z.mean(dim=0, keepdim=True)
+    cov = (z_c.T @ z_c) / (B - 1)  # (D, D)
+
+    # Regularized covariance: Sigma + eps * I
+    eye = torch.eye(D, device=z.device, dtype=z.dtype)
+    cov_reg = cov + eps * eye
+
+    # Stable log-determinant via Cholesky decomposition:
+    # ln det(A) = 2 * sum(ln diag(L)) where A = L L^T
+    try:
+        L = torch.linalg.cholesky(cov_reg)
+        log_det = 2.0 * torch.sum(torch.log(torch.diagonal(L)))
+    except RuntimeError:
+        # Fallback to slogdet if Cholesky encounters near-singular jitter
+        sign, log_det = torch.linalg.slogdet(cov_reg)
+        if sign <= 0:
+            log_det = torch.tensor(0.0, device=z.device, dtype=z.dtype)
+
+    # Normalize by dimension D: penalty = - (beta / D) * log_det
+    return - (beta / float(D)) * log_det
+
+
 def jepa_vicreg_loss(
     z_target_pred: torch.Tensor,
     z_target_true: torch.Tensor,
@@ -223,26 +270,35 @@ def jepa_vicreg_loss(
     cov_weight: float = 0.5,
     gamma: float = 1.0,
     eps: float = 1e-4,
+    use_log_det: bool = True,
 ) -> torch.Tensor:
-    """Non-contrastive Branch-Wise Variance-Invariance-Covariance (VICReg) JEPA Loss.
+    """Streamlined Single-Objective JEPA Loss with Log-Det Whitening (Option A).
     
-    1. Invariance / Prediction Loss: MSE between predicted target and EMA target representation.
-    2. Variance Regularization: Enforces std(z) >= gamma on each representation branch independently.
-    3. Covariance Decorrelation: Penalizes off-diagonal covariance on each branch independently.
+    1. Prediction / Invariance: Exact MSE ||z_pred - z_tgt||^2.
+    2. Representation Geometry: Unified Log-Det volume maximization on z_context & z_target_pred.
     """
     # 1. Prediction / Invariance Loss
     sim_loss = F.mse_loss(z_target_pred, z_target_true)
 
-    # 2. Branch-wise Variance and Covariance Loss (Independent calculation avoids mean-shift loophole)
-    var_pred, cov_pred = _vicreg_branch_loss(z_target_pred, gamma=gamma, eps=eps)
+    if not use_log_det:
+        # Classical 3-penalty VICReg fallback
+        var_pred, cov_pred = _vicreg_branch_loss(z_target_pred, gamma=gamma, eps=eps)
+        if z_context is not None:
+            var_ctx, cov_ctx = _vicreg_branch_loss(z_context, gamma=gamma, eps=eps)
+            var_loss = 0.5 * (var_pred + var_ctx)
+            cov_loss = 0.5 * (cov_pred + cov_ctx)
+        else:
+            var_loss = var_pred
+            cov_loss = cov_pred
+        return sim_weight * sim_loss + var_weight * var_loss + cov_weight * cov_loss
 
-    if z_context is not None:
-        var_ctx, cov_ctx = _vicreg_branch_loss(z_context, gamma=gamma, eps=eps)
-        var_loss = 0.5 * (var_pred + var_ctx)
-        cov_loss = 0.5 * (cov_pred + cov_ctx)
-    else:
-        var_loss = var_pred
-        cov_loss = cov_pred
+    # Option A: Single unified log-det regularization (replaces variance hinge + covariance Frobenius sum)
+    log_det_pred = log_det_whitening_loss(z_target_pred, beta=0.05, eps=eps)
+    log_det_ctx = (
+        log_det_whitening_loss(z_context, beta=0.05, eps=eps)
+        if z_context is not None
+        else torch.tensor(0.0, device=z_target_pred.device)
+    )
 
-    total_loss = sim_weight * sim_loss + var_weight * var_loss + cov_weight * cov_loss
+    total_loss = sim_loss + 0.5 * (log_det_pred + log_det_ctx)
     return total_loss

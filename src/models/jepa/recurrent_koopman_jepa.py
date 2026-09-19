@@ -242,39 +242,42 @@ class RecurrentKoopmanJEPAModel(JEPABase):
         ctx: torch.Tensor,
         tgt: torch.Tensor,
         config=None,
-        cov_weight: float = 0.5,
-        var_weight: float = 1.0,
-        freq_div_weight: float = 0.05,
+        cov_weight: float = 0.0,
+        var_weight: float = 0.0,
+        freq_div_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
-        """Compute trajectory rollout loss + harmonic diversity + VICReg non-collapse."""
+        """Compute trajectory rollout loss. Harmonic stability is guaranteed by construction."""
         h_ctx_traj, h_tgt_traj, h_pred_traj = self.forward(ctx, tgt)
 
         # 1. Dense Point-Wise Rollout Prediction Loss across the full horizon H
         loss_rollout = F.mse_loss(h_pred_traj, h_tgt_traj)
+        total_loss = loss_rollout
 
-        # 2. Representation Dispersion on context latents (VICReg)
-        z_ctx = h_ctx_traj[:, -1, :]  # (B, D)
-        std_c = torch.sqrt(torch.var(z_ctx, dim=0, unbiased=False) + eps)
-        var_c = torch.mean(F.relu(gamma - std_c))
-        cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+        if var_weight > 0 or cov_weight > 0:
+            z_ctx = h_ctx_traj[:, -1, :]  # (B, D)
+            std_c = torch.sqrt(torch.var(z_ctx, dim=0, unbiased=False) + eps)
+            var_c = torch.mean(F.relu(gamma - std_c))
+            cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+            total_loss = total_loss + var_weight * var_c + cov_weight * cov_c
 
-        # 3. Modal Frequency Diversity Loss (prevents mode collapse among harmonic oscillators)
-        omega = self.context_encoder.ssm_cell.omega
-        diffs = torch.abs(omega.unsqueeze(0) - omega.unsqueeze(1)) + torch.eye(len(omega), device=omega.device)
-        loss_freq_div = torch.mean(1.0 / (diffs + 1e-3))
-
-        total_loss = loss_rollout + var_weight * var_c + cov_weight * cov_c + freq_div_weight * loss_freq_div
+        if freq_div_weight > 0:
+            omega = self.context_encoder.ssm_cell.omega
+            diffs = torch.abs(omega.unsqueeze(0) - omega.unsqueeze(1)) + torch.eye(len(omega), device=omega.device)
+            loss_freq_div = torch.mean(1.0 / (diffs + 1e-3))
+            total_loss = total_loss + freq_div_weight * loss_freq_div
+        else:
+            loss_freq_div = torch.tensor(0.0, device=ctx.device)
 
         mags, phases = self.context_encoder.ssm_cell.eigenvalues
         metrics = {
             "total_loss": float(total_loss.item()),
             "loss_rollout": float(loss_rollout.item()),
+            "loss_freq_div": float(loss_freq_div.item()),
             "mean_eigenvalue_mag": float(torch.mean(mags).item()),
             "min_eigenvalue_mag": float(torch.min(mags).item()),
-            "loss_freq_div": float(loss_freq_div.item()),
         }
         return total_loss, metrics
 

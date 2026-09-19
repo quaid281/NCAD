@@ -98,6 +98,10 @@ class RelationalGraphAttentionLayer(nn.Module):
         )
         self.norm2 = nn.LayerNorm(node_dim)
 
+        # Gelfand-Tsetlin Interlacing Sieve (Ten Proofs, Ch. 2, §5.3)
+        from src.models.geometric_layers import GTInterlacingLayer
+        self.gt_sieve = GTInterlacingLayer(num_channels=max_nodes, rank=4)
+
     def forward(self, x: torch.Tensor, return_attention: bool = False) -> torch.Tensor | Tuple[torch.Tensor, torch.Tensor]:
         """Forward pass.
         
@@ -127,7 +131,10 @@ class RelationalGraphAttentionLayer(nn.Module):
 
         # Scaled dot-product graph attention
         attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale  # (B, H, N, N)
-        attn_weights = F.softmax(attn_scores, dim=-1)
+        attn_weights_raw = F.softmax(attn_scores, dim=-1)
+
+        # Filter attention through Gelfand-Tsetlin Interlacing Sieve
+        attn_weights = self.gt_sieve(attn_weights_raw)
         attn_weights_drop = self.dropout(attn_weights)
 
         # Message aggregation

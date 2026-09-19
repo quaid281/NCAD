@@ -27,6 +27,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase, fit_covariance_batched
+from src.models.geometric_layers import ResolventPurification
 from src.models.jepa.flow_ts_jepa import von_neumann_operator_entropy_loss
 from src.models.jepa.ts_jepa import _vicreg_branch_loss
 
@@ -71,6 +72,9 @@ class HarmonicSpringHead(nn.Module):
         # Diagonal stiffness: d in R^D (softplus activated)
         self.d_head = nn.Linear(hidden_dim, latent_dim)
 
+        # Resolvent purification for Riemannian metric operator (Chapter 6, §4.2)
+        self.purification = ResolventPurification(dim=latent_dim, gamma=eps)
+
     def forward(self, z_ctx: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Predict attractor mean, low-rank stiffness factor, and diagonal stiffness.
         
@@ -100,7 +104,7 @@ class HarmonicSpringJEPAModel(JEPABase):
     1. Causal Context Encoder E_theta
     2. Target Momentum Encoder E_phi (EMA replica)
     3. Harmonic Spring Head predicting attractor center mu and stiffness tensor M
-    4. Closed-form Energy and Curvature evaluation without ODE integration or autograd.
+    4. Resolvent-purified Energy and Curvature evaluation without ODE integration or autograd.
     """
 
     def __init__(
@@ -132,6 +136,10 @@ class HarmonicSpringJEPAModel(JEPABase):
             dropout=dropout,
         )
 
+        # Hankel Moment Filter for algebraic trajectory consistency (Ten Proofs, Ch. 7)
+        from src.models.geometric_layers import HankelMomentFilter
+        self.hankel_filter = HankelMomentFilter(latent_dim=latent_dim, hankel_order=4)
+
         # Running statistics for curvature z-score normalization
         self.register_buffer("curv_mean", torch.tensor(0.0))
         self.register_buffer("curv_var", torch.tensor(1.0))
@@ -145,42 +153,28 @@ class HarmonicSpringJEPAModel(JEPABase):
         z_ctx: torch.Tensor,
         z_tgt: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Compute exact potential energy, closed-form Laplacian curvature, and log-determinant.
-        
-        Args:
-            z_ctx: Context latent vector, shape (B, D)
-            z_tgt: Target latent vector, shape (B, D)
-            
-        Returns:
-            energy: Potential energy e^T M e, shape (B,)
-            curvature: Exact Laplacian Tr(M), shape (B,)
-            log_det: Exact log-determinant log det(M), shape (B,)
-        """
-        B, D = z_ctx.shape
-        mu, L, d = self.spring_head(z_ctx)  # (B, D), (B, D, r), (B, D)
+        """Compute resolvent-purified potential energy Phi, curvature Laplacian Tr(M), and log det."""
+        B = z_ctx.size(0)
+        mu, L, d = self.spring_head(z_ctx)
 
-        # Residual deviation: e = z_tgt - mu
+        # 1. Coordinate error e = z_tgt - mu
         e = z_tgt - mu  # (B, D)
 
-        # 1. Potential Energy: e^T (L L^T + diag(d)) e = ||L^T e||_2^2 + sum(d_j * e_j^2)
-        # L^T @ e -> shape (B, r)
-        Lt_e = torch.bmm(L.transpose(1, 2), e.unsqueeze(-1)).squeeze(-1)  # (B, r)
-        quad_low_rank = torch.sum(Lt_e ** 2, dim=-1)  # (B,)
-        quad_diag = torch.sum(d * (e ** 2), dim=-1)  # (B,)
-        energy = quad_low_rank + quad_diag  # (B,)
+        # Reconstruct Stiffness Matrix M = L L^T + diag(d) with Resolvent Purification
+        diag_d = torch.diag_embed(d)  # (B, D, D)
+        M_raw = torch.bmm(L, L.transpose(1, 2)) + diag_d  # (B, D, D)
+        M_purified = self.spring_head.purification(M_raw, is_psd_matrix=True)
 
-        # 2. Exact Closed-Form Curvature (Laplacian): Tr(M) = ||L||_F^2 + sum(d)
-        curv_low_rank = torch.sum(L ** 2, dim=[1, 2])  # (B,)
-        curv_diag = torch.sum(d, dim=-1)  # (B,)
-        curvature = curv_low_rank + curv_diag  # (B,)
+        # 2. Resolvent-purified Potential Energy: e^T M_purified e
+        energy = torch.sum((e.unsqueeze(1) @ M_purified).squeeze(1) * e, dim=-1)  # (B,)
 
-        # 3. Exact Log-Determinant via Matrix Determinant Lemma:
+        # 3. Exact Laplacian Curvature: Tr(M_purified)
+        curvature = torch.diagonal(M_purified, dim1=-2, dim2=-1).sum(dim=-1)  # (B,)
+
+        # 4. Exact Log-Determinant via Matrix Determinant Lemma:
         # det(diag(d) + L L^T) = det(I_r + L^T diag(d)^{-1} L) * prod(d_j)
-        # log det(M) = sum(log d_j) + log det(I_r + L^T diag(d)^{-1} L)
         log_det_diag = torch.sum(torch.log(d), dim=-1)  # (B,)
-        # Scale L by 1/sqrt(d): (B, D, r) * (B, D, 1)
         L_scaled = L / torch.sqrt(d.unsqueeze(-1))  # (B, D, r)
-        # Capacitance matrix: C = I_r + L_scaled^T @ L_scaled in R^{r x r}
         C = torch.eye(self.rank, device=z_ctx.device, dtype=z_ctx.dtype).unsqueeze(0) + torch.bmm(
             L_scaled.transpose(1, 2), L_scaled
         )  # (B, r, r)
@@ -195,15 +189,15 @@ class HarmonicSpringJEPAModel(JEPABase):
         context_windows: torch.Tensor,
         target_windows: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
-        """Forward pass for harmonic spring predictive learning."""
-        z_ctx = self.context_encoder(context_windows)
+        """Forward pass for harmonic spring predictive learning with Hankel filtering."""
+        z_ctx = self.hankel_filter(self.context_encoder(context_windows))
 
         if target_windows is None:
             return z_ctx, None, None, None, None
 
         self.target_encoder.eval()
         with torch.no_grad():
-            z_tgt_true = self.target_encoder(target_windows)
+            z_tgt_true = self.hankel_filter(self.target_encoder(target_windows))
 
         energy, curvature, log_det = self.compute_energy_and_curvature(z_ctx, z_tgt_true)
 
@@ -214,44 +208,27 @@ class HarmonicSpringJEPAModel(JEPABase):
         ctx: torch.Tensor,
         tgt: torch.Tensor,
         config=None,
-        det_weight: float = 0.05,
-        cov_weight: float = 0.5,
-        var_weight: float = 1.0,
+        det_weight: float = 0.0,
+        cov_weight: float = 0.0,
+        var_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
-        """Compute Harmonic Spring potential objective with log-det stiffness regularization."""
+        """Compute streamlined pure Harmonic Spring potential energy objective."""
         z_ctx, z_tgt_true, energy, curvature, log_det = self.forward(ctx, tgt)
 
-        # 1. Harmonic Energy Minimization: E[Phi(z_tgt | z_ctx)]
+        # Pure Harmonic Energy Minimization: E[Phi(z_tgt | z_ctx)]
         loss_energy = torch.mean(energy)
+        total_loss = loss_energy
 
-        # 2. Anti-Stiffness Collapse Barrier: -1/D * E[log det(M)]
-        loss_det = -torch.mean(log_det) / float(self.latent_dim)
-
-        # 3. Representation Non-Collapse (VICReg / Operator Entropy)
-        z_c_flat = z_ctx.reshape(-1, z_ctx.size(-1))
-        std_c = torch.sqrt(torch.var(z_c_flat, dim=0, unbiased=False) + eps)
-        var_c = torch.mean(F.relu(gamma - std_c))
-        cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
-
-        z_t_flat = z_tgt_true.reshape(-1, z_tgt_true.size(-1))
-        std_t = torch.sqrt(torch.var(z_t_flat, dim=0, unbiased=False) + eps)
-        var_t = torch.mean(F.relu(gamma - std_t))
-        cov_t = von_neumann_operator_entropy_loss(z_tgt_true, eps=eps)
-
-        loss_var = 0.5 * (var_c + var_t)
-        loss_cov = 0.5 * (cov_c + cov_t)
-
-        total_loss = loss_energy + det_weight * loss_det + var_weight * loss_var + cov_weight * loss_cov
+        with torch.no_grad():
+            loss_det = -torch.mean(log_det) / float(self.latent_dim)
 
         metrics = {
             "total_loss": float(total_loss.item()),
             "loss_energy": float(loss_energy.item()),
             "loss_det": float(loss_det.item()),
-            "loss_var": float(loss_var.item()),
-            "loss_cov": float(loss_cov.item()),
             "mean_curvature": float(torch.mean(curvature).item()),
         }
         return total_loss, metrics

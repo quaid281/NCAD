@@ -162,8 +162,8 @@ def train_and_score_channel(
     train_scaled = (train_vals - train_mean) / scale
     test_scaled = (test_vals - train_mean) / scale
 
-    train_windows = DataLoader.create_windows(train_scaled, window_size, step=10)
-    test_windows = DataLoader.create_windows(test_scaled, window_size, step=1)
+    train_windows = DataLoader.create_windows(train_scaled, window_size, step=10, copy=False)
+    test_windows = DataLoader.create_windows(test_scaled, window_size, step=1, copy=False)
 
     training_data, val_data = split_train_val(train_windows, val_split=0.1, seed=seed, window_size=window_size, step=10)
     input_dim = len(numeric_cols)
@@ -205,8 +205,8 @@ def train_and_score_channel(
             for b in range(0, len(perm), batch_size):
                 global_step += 1
                 batch_arr = training_data[perm[b : b + batch_size]]
-                ctx = torch.from_numpy(batch_arr[:, :context_size]).float().to(device)
-                tgt = torch.from_numpy(batch_arr[:, context_size:]).float().to(device)
+                ctx = torch.from_numpy(np.ascontiguousarray(batch_arr[:, :context_size])).float().to(device)
+                tgt = torch.from_numpy(np.ascontiguousarray(batch_arr[:, context_size:])).float().to(device)
                 loss, _ = model.compute_objective(
                     ctx, tgt, config, injector=injector, full_batch=batch_arr
                 )
@@ -214,6 +214,7 @@ def train_and_score_channel(
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
+                del ctx, tgt, loss
 
                 # Cosine EMA schedule from 0.996 to 0.9995
                 ema_val = 0.996 + (0.9995 - 0.996) * 0.5 * (1.0 - np.cos(np.pi * global_step / total_steps))
@@ -228,11 +229,12 @@ def train_and_score_channel(
                 with torch.no_grad():
                     for vb in range(0, len(val_data), batch_size):
                         v_arr = val_data[vb : vb + batch_size]
-                        v_ctx = torch.from_numpy(v_arr[:, :context_size]).float().to(device)
-                        v_tgt = torch.from_numpy(v_arr[:, context_size:]).float().to(device)
+                        v_ctx = torch.from_numpy(np.ascontiguousarray(v_arr[:, :context_size])).float().to(device)
+                        v_tgt = torch.from_numpy(np.ascontiguousarray(v_arr[:, context_size:])).float().to(device)
                         v_loss, _ = model.compute_objective(v_ctx, v_tgt, config)
                         val_loss_sum += v_loss.item()
                         val_batches += 1
+                        del v_ctx, v_tgt, v_loss
                 val_loss = val_loss_sum / max(val_batches, 1)
 
                 if val_loss < best_val_loss - 1e-4:
@@ -248,20 +250,25 @@ def train_and_score_channel(
             model.load_state_dict({k: v.to(device) for k, v in best_state_dict.items()})
 
         if use_mahalanobis:
-            ctx_all = torch.from_numpy(train_windows[:, :context_size]).float().to(device)
-            tgt_all = torch.from_numpy(train_windows[:, context_size:]).float().to(device)
-            model.fit_mahalanobis_covariance(ctx_all, tgt_all)
+            fit_bs = 64 if input_dim > 30 else 256
+            model.fit_mahalanobis_covariance(
+                train_windows[:, :context_size],
+                train_windows[:, context_size:],
+                batch_size=fit_bs,
+            )
 
-        def compute_discrepancy(arr, model=model):
+        def compute_discrepancy(arr):
             model.eval()
             res = []
-            chunk_size = 4096 if "koopman" in model_name else 256
+            chunk_size = 512 if "koopman" in model_name else (64 if input_dim > 30 else 256)
             with torch.no_grad():
                 for i in range(0, len(arr), chunk_size):
-                    ctx = torch.from_numpy(arr[i : i + chunk_size, :context_size]).float().to(device)
-                    tgt = torch.from_numpy(arr[i : i + chunk_size, context_size:]).float().to(device)
+                    chunk = arr[i : i + chunk_size]
+                    ctx = torch.from_numpy(np.ascontiguousarray(chunk[:, :context_size])).float().to(device)
+                    tgt = torch.from_numpy(np.ascontiguousarray(chunk[:, context_size:])).float().to(device)
                     disc = model.compute_predictive_discrepancy(ctx, tgt, use_mahalanobis=use_mahalanobis).cpu().numpy()
                     res.append(disc)
+                    del ctx, tgt
             return np.concatenate(res, axis=0)
 
     # =========================================================================
@@ -277,7 +284,7 @@ def train_and_score_channel(
             perm = np.random.permutation(len(training_data))
             for b in range(0, len(perm), batch_size):
                 batch_arr = training_data[perm[b : b + batch_size]]
-                x = torch.from_numpy(batch_arr).float().to(device)
+                x = torch.from_numpy(np.ascontiguousarray(batch_arr)).float().to(device)
 
                 # Minimax Phase 1 (Prior update)
                 loss_prior, _ = model.minimax_losses(x, lambda_weight=3.0)
@@ -290,18 +297,22 @@ def train_and_score_channel(
                 optimizer.zero_grad(set_to_none=True)
                 loss_series.backward()
                 optimizer.step()
+                del x, loss_prior, loss_series
             scheduler.step()
 
-        def compute_discrepancy(arr, model=model):
+        def compute_discrepancy(arr):
             model.eval()
             res = []
+            eval_chunk = 64 if input_dim > 30 else 128
             with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    x = torch.from_numpy(arr[i : i + 256]).float().to(device)
+                for i in range(0, len(arr), eval_chunk):
+                    chunk = arr[i : i + eval_chunk]
+                    x = torch.from_numpy(np.ascontiguousarray(chunk)).float().to(device)
                     scores = model.compute_anomaly_scores(x)
                     # AT uses softmax(-ass_dis) which is near one-hot; mean dilutes the
                     # sparse signal across the suspect region. Use max to preserve it.
                     res.append(scores[:, context_size:].max(dim=-1).values.cpu().numpy())
+                    del x, scores
             return np.concatenate(res, axis=0)
 
     # =========================================================================
@@ -317,23 +328,27 @@ def train_and_score_channel(
             perm = np.random.permutation(len(training_data))
             for b in range(0, len(perm), batch_size):
                 batch_arr = training_data[perm[b : b + batch_size]]
-                x = torch.from_numpy(batch_arr).float().to(device)
+                x = torch.from_numpy(np.ascontiguousarray(batch_arr)).float().to(device)
                 rec = model(x)
                 loss = torch.mean((rec - x) ** 2)
 
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
+                del x, rec, loss
             scheduler.step()
 
-        def compute_discrepancy(arr, model=model):
+        def compute_discrepancy(arr):
             model.eval()
             res = []
+            eval_chunk = 64 if input_dim > 30 else 128
             with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    x = torch.from_numpy(arr[i : i + 256]).float().to(device)
+                for i in range(0, len(arr), eval_chunk):
+                    chunk = arr[i : i + eval_chunk]
+                    x = torch.from_numpy(np.ascontiguousarray(chunk)).float().to(device)
                     scores = model.compute_anomaly_scores(x)
                     res.append(scores[:, context_size:].mean(dim=-1).cpu().numpy())
+                    del x, scores
             return np.concatenate(res, axis=0)
 
     # =========================================================================
@@ -349,23 +364,27 @@ def train_and_score_channel(
             perm = np.random.permutation(len(training_data))
             for b in range(0, len(perm), batch_size):
                 batch_arr = training_data[perm[b : b + batch_size]]
-                x = torch.from_numpy(batch_arr).float().to(device)
+                x = torch.from_numpy(np.ascontiguousarray(batch_arr)).float().to(device)
                 z1, z2 = model(x)
                 loss = model.contrastive_loss(z1, z2)
 
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
+                del x, z1, z2, loss
             scheduler.step()
 
-        def compute_discrepancy(arr, model=model):
+        def compute_discrepancy(arr):
             model.eval()
             res = []
+            eval_chunk = 64 if input_dim > 30 else 128
             with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    x = torch.from_numpy(arr[i : i + 256]).float().to(device)
+                for i in range(0, len(arr), eval_chunk):
+                    chunk = arr[i : i + eval_chunk]
+                    x = torch.from_numpy(np.ascontiguousarray(chunk)).float().to(device)
                     scores = model.compute_anomaly_scores(x)
                     res.append(scores[:, context_size:].mean(dim=-1).cpu().numpy())
+                    del x, scores
             return np.concatenate(res, axis=0)
 
     # =========================================================================
@@ -381,7 +400,7 @@ def train_and_score_channel(
             perm = np.random.permutation(len(training_data))
             for b in range(0, len(perm), batch_size):
                 batch_arr = training_data[perm[b : b + batch_size]]
-                x = torch.from_numpy(batch_arr).float().to(device)
+                x = torch.from_numpy(np.ascontiguousarray(batch_arr)).float().to(device)
                 rec1, rec2 = model(x)
                 l1, l2 = model.adversarial_loss(rec1, rec2, x, epoch=epoch)
                 loss = l1 + l2
@@ -389,16 +408,20 @@ def train_and_score_channel(
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
+                del x, rec1, rec2, l1, l2, loss
             scheduler.step()
 
-        def compute_discrepancy(arr, model=model):
+        def compute_discrepancy(arr):
             model.eval()
             res = []
+            eval_chunk = 64 if input_dim > 30 else 128
             with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    x = torch.from_numpy(arr[i : i + 256]).float().to(device)
+                for i in range(0, len(arr), eval_chunk):
+                    chunk = arr[i : i + eval_chunk]
+                    x = torch.from_numpy(np.ascontiguousarray(chunk)).float().to(device)
                     scores = model.compute_anomaly_scores(x)
                     res.append(scores[:, context_size:].mean(dim=-1).cpu().numpy())
+                    del x, scores
             return np.concatenate(res, axis=0)
 
     # =========================================================================
@@ -419,42 +442,42 @@ def train_and_score_channel(
             for b in range(0, len(perm), batch_size):
                 clean = training_data[perm[b : b + batch_size]]
                 injected, lbl = injector.inject_batch(clean, context_size)
-                z_full = model(torch.from_numpy(injected).float().to(device))
-                z_ctx = model(torch.from_numpy(clean[:, :context_size]).float().to(device))
-                loss = contrastive_loss(z_full, z_ctx, torch.from_numpy(lbl).float().to(device))
+                z_full = model(torch.from_numpy(np.ascontiguousarray(injected)).float().to(device))
+                z_ctx = model(torch.from_numpy(np.ascontiguousarray(clean[:, :context_size])).float().to(device))
+                loss = contrastive_loss(z_full, z_ctx, torch.from_numpy(np.ascontiguousarray(lbl)).float().to(device))
 
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
+                del clean, injected, lbl, z_full, z_ctx, loss
             scheduler.step()
 
-        def compute_discrepancy(arr, model=model):
+        def compute_discrepancy(arr):
             model.eval()
             res = []
+            eval_chunk = 128 if input_dim > 30 else 256
             with torch.no_grad():
-                for i in range(0, len(arr), 256):
-                    w = torch.from_numpy(arr[i : i + 256]).float().to(device)
-                    ctx = torch.from_numpy(arr[i : i + 256, :context_size]).float().to(device)
+                for i in range(0, len(arr), eval_chunk):
+                    chunk = arr[i : i + eval_chunk]
+                    w = torch.from_numpy(np.ascontiguousarray(chunk)).float().to(device)
+                    ctx = torch.from_numpy(np.ascontiguousarray(chunk[:, :context_size])).float().to(device)
                     z_w = model(w)
                     z_c = model(ctx)
                     disc = torch.linalg.norm(z_w - z_c, dim=-1).cpu().numpy()
                     res.append(disc)
+                    del w, ctx, z_w, z_c
             return np.concatenate(res, axis=0)
 
     else:
         raise ValueError(f"Unknown model_name: {model_name}")
 
-
-
-
-
-
     # =========================================================================
     # Discrepancy Normalization & EVT Calibration
     # =========================================================================
-    train_windows_dense = DataLoader.create_windows(train_scaled, window_size, step=1)
+    train_windows_dense = DataLoader.create_windows(train_scaled, window_size, step=1, copy=False)
     train_disc_dense = compute_discrepancy(train_windows_dense)
     disc_stats = robust_stats(train_disc_dense)
+    del train_windows_dense
 
     test_disc = compute_discrepancy(test_windows)
 
@@ -511,11 +534,15 @@ def train_and_score_channel(
     # =========================================================================
     # Explicit CUDA Cleanup and Memory Release
     # =========================================================================
+    del compute_discrepancy
     del model, optimizer
     if "scheduler" in locals():
         del scheduler
+    del train_windows, test_windows, training_data, val_data
+    del train_scaled, test_scaled, train_vals, test_vals, train_df, test_df
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+    gc.collect()
     gc.collect()
 
     return {
@@ -567,7 +594,7 @@ def main():
         "--patience",
         type=int,
         default=None,
-        help="Early stopping patience in epochs (monitors 10% validation loss). If None, trains full epochs.",
+        help="Early stopping patience in epochs (monitors 10 percent validation loss). If None, trains full epochs.",
     )
     parser.add_argument("--seeds", nargs="+", type=int, default=[42], help="Random seeds to evaluate")
     parser.add_argument("--device", type=str, default="auto")

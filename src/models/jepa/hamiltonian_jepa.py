@@ -25,6 +25,7 @@ import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase, fit_covariance_batched
 from src.models.jepa.flow_ts_jepa import von_neumann_operator_entropy_loss
+from src.models.geometric_layers import SymplecticLeapfrogBlock
 
 
 class PotentialEnergyNet(nn.Module):
@@ -36,26 +37,27 @@ class PotentialEnergyNet(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(coord_dim, hidden_dim),
             nn.SiLU(),
+            nn.LayerNorm(hidden_dim),
             nn.Linear(hidden_dim, hidden_dim),
             nn.SiLU(),
             nn.Linear(hidden_dim, 1),
         )
 
     def forward(self, q: torch.Tensor) -> torch.Tensor:
-        """Compute potential energy V(q), shape (B,)."""
+        """Compute scalar potential energy V(q), shape (B,)."""
         return self.net(q).squeeze(-1)
 
     def grad_V(self, q: torch.Tensor) -> torch.Tensor:
-        """Compute conservative force -nabla_q V(q) via autograd or analytic forward pass."""
+        """Compute exact conservative force gradient nabla_q V(q) in R^{B x d}."""
         with torch.enable_grad():
-            q_in = q.detach().requires_grad_(True)
-            V = self.forward(q_in)
-            grad = torch.autograd.grad(V.sum(), q_in, create_graph=True)[0]
+            q_in = q if q.requires_grad else q.clone().detach().requires_grad_(True)
+            V = self.net(q_in).sum()
+            grad = torch.autograd.grad(V, q_in, create_graph=self.training)[0]
         return grad
 
 
 class HamiltonianSymplecticJEPAModel(JEPABase):
-    """Hamiltonian Symplectic JEPA (HamiltonianSymplecticJEPA)."""
+    """Hamiltonian Symplectic Joint Embedding Predictive Architecture (HamiltonianJEPA)."""
 
     def __init__(
         self,
@@ -78,9 +80,11 @@ class HamiltonianSymplecticJEPAModel(JEPABase):
 
         self.target_encoder = self.init_target_encoder(context_encoder)
 
-        self.potential_net = PotentialEnergyNet(
+        self.leapfrog_block = SymplecticLeapfrogBlock(
             coord_dim=self.coord_dim,
             hidden_dim=hidden_dim,
+            step_size=step_size,
+            num_steps=num_leapfrog_steps,
         )
 
         self.register_mahalanobis_buffers(latent_dim)
@@ -88,30 +92,18 @@ class HamiltonianSymplecticJEPAModel(JEPABase):
     def compute_hamiltonian(self, q: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
         """Total energy H(q, p) = 1/2 * ||p||^2 + V(q), shape (B,)."""
         kinetic = 0.5 * torch.sum(p ** 2, dim=-1)
-        potential = self.potential_net(q)
+        potential = self.leapfrog_block.potential_energy(q)
         return kinetic + potential
 
     def leapfrog_step(self, q: torch.Tensor, p: torch.Tensor, eps: float) -> Tuple[torch.Tensor, torch.Tensor]:
         """Perform 1-step symplectic leapfrog integration."""
-        # p_{1/2} = p_0 - eps/2 * grad_V(q_0)
-        grad_0 = self.potential_net.grad_V(q)
-        p_half = p - 0.5 * eps * grad_0
-
-        # q_1 = q_0 + eps * p_{1/2}
-        q_next = q + eps * p_half
-
-        # p_1 = p_{1/2} - eps/2 * grad_V(q_1)
-        grad_1 = self.potential_net.grad_V(q_next)
-        p_next = p_half - 0.5 * eps * grad_1
-
-        return q_next, p_next
+        return self.leapfrog_block.leapfrog_step(q, p, eps)
 
     def symplectic_rollout(self, q_0: torch.Tensor, p_0: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Unroll Hamiltonian dynamics forward for K leapfrog steps."""
-        q, p = q_0, p_0
-        for _ in range(self.num_leapfrog_steps):
-            q, p = self.leapfrog_step(q, p, self.step_size)
-        return q, p
+        z_0 = torch.cat([q_0, p_0], dim=-1)
+        z_next = self.leapfrog_block(z_0)
+        return z_next[..., : self.coord_dim], z_next[..., self.coord_dim :]
 
     def forward(
         self,
@@ -140,14 +132,17 @@ class HamiltonianSymplecticJEPAModel(JEPABase):
         tgt: torch.Tensor,
         config=None,
         state_weight: float = 1.0,
-        energy_weight: float = 0.5,
-        cov_weight: float = 0.5,
-        var_weight: float = 1.0,
+        energy_weight: float = 0.0,
+        cov_weight: float = 0.0,
+        var_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
-        """Compute Symplectic state loss + Energy conservation loss + VICReg."""
+        """Compute Symplectic state loss.
+        Symplectic structure is preserved by leapfrog integration.
+        Energy deficit is monitored as a diagnostic and inference anomaly signal.
+        """
         z_ctx, z_tgt, z_pred, _ = self.forward(ctx, tgt)
 
         q_ctx = z_ctx[:, : self.coord_dim]
@@ -157,23 +152,21 @@ class HamiltonianSymplecticJEPAModel(JEPABase):
 
         # 1. State Trajectory Residual Loss: ||z_tgt - z_pred||^2
         loss_state = torch.mean(torch.sum((z_tgt - z_pred) ** 2, dim=-1))
+        total_loss = state_weight * loss_state
 
-        # 2. Hamiltonian Energy Conservation Loss: |H(tgt) - H(ctx)|^2
+        # Energy calculation
         H_ctx = self.compute_hamiltonian(q_ctx, p_ctx)
         H_tgt = self.compute_hamiltonian(q_tgt, p_tgt)
         loss_energy = torch.mean((H_tgt - H_ctx) ** 2)
 
-        # 3. Representation Non-Collapse (VICReg)
-        std_c = torch.sqrt(torch.var(z_ctx, dim=0, unbiased=False) + eps)
-        var_c = torch.mean(F.relu(gamma - std_c))
-        cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+        if energy_weight > 0:
+            total_loss = total_loss + energy_weight * loss_energy
 
-        total_loss = (
-            state_weight * loss_state
-            + energy_weight * loss_energy
-            + var_weight * var_c
-            + cov_weight * cov_c
-        )
+        if var_weight > 0 or cov_weight > 0:
+            std_c = torch.sqrt(torch.var(z_ctx, dim=0, unbiased=False) + eps)
+            var_c = torch.mean(F.relu(gamma - std_c))
+            cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+            total_loss = total_loss + var_weight * var_c + cov_weight * cov_c
 
         metrics = {
             "total_loss": float(total_loss.item()),
@@ -241,3 +234,4 @@ class HamiltonianSymplecticJEPAModel(JEPABase):
 
 
 HamiltonianSymplecticJEPA = HamiltonianSymplecticJEPAModel
+HamiltonianJEPA = HamiltonianSymplecticJEPAModel

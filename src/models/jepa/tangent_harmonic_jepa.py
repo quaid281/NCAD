@@ -145,28 +145,33 @@ class TangentHarmonicJEPAModel(JEPABase):
         ctx: torch.Tensor,
         tgt: torch.Tensor,
         config=None,
-        cov_weight: float = 0.5,
-        var_weight: float = 1.0,
+        cov_weight: float = 0.0,
+        var_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
-        """Compute tangent-harmonic predictive loss + manifold regularization."""
+        """Compute tangent-harmonic predictive loss on S^{D-1}."""
         z_pred, z_tgt, discrepancy = self.forward(ctx, tgt)
         harmonic_loss = discrepancy.mean()
+        total_loss = harmonic_loss
 
-        # Variance regularization on context and predicted representations
+        # Optional backward-compatible Euclidean regularization if explicitly requested
+        std_loss = torch.tensor(0.0, device=ctx.device)
+        cov_loss = torch.tensor(0.0, device=ctx.device)
         std_pred = torch.sqrt(z_pred.var(dim=0) + eps)
-        std_loss = torch.mean(F.relu(gamma - std_pred))
 
-        # Covariance decorrelation to prevent dimensional collapse
-        B = z_pred.size(0)
-        z_pred_cent = z_pred - z_pred.mean(dim=0)
-        cov_pred = (z_pred_cent.T @ z_pred_cent) / max(B - 1, 1)
-        off_diag = cov_pred - torch.diag(torch.diag(cov_pred))
-        cov_loss = torch.sum(torch.square(off_diag)) / max(self.latent_dim, 1)
+        if var_weight > 0:
+            std_loss = torch.mean(F.relu(gamma - std_pred))
+            total_loss = total_loss + var_weight * std_loss
 
-        total_loss = harmonic_loss + var_weight * std_loss + cov_weight * cov_loss
+        if cov_weight > 0:
+            B = z_pred.size(0)
+            z_pred_cent = z_pred - z_pred.mean(dim=0)
+            cov_pred = (z_pred_cent.T @ z_pred_cent) / max(B - 1, 1)
+            off_diag = cov_pred - torch.diag(torch.diag(cov_pred))
+            cov_loss = torch.sum(torch.square(off_diag)) / max(self.latent_dim, 1)
+            total_loss = total_loss + cov_weight * cov_loss
 
         metrics = {
             "loss": total_loss.item(),

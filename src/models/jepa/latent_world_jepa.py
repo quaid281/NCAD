@@ -68,9 +68,12 @@ class LatentRecurrentCore(nn.Module):
         self.hidden_dim = hidden_dim
 
         self.cell = nn.GRUCell(latent_dim, hidden_dim)
+        from src.models.geometric_layers import CayleyOrthogonalGate
+        self.cayley_gate = CayleyOrthogonalGate(latent_dim)
         self.readout = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.SiLU(),
+            nn.LayerNorm(hidden_dim),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, latent_dim),
         )
@@ -105,7 +108,7 @@ class LatentRecurrentCore(nn.Module):
         """
         h_next = self.cell(z_t, h_prev)
         delta_z = self.readout(h_next)
-        z_hat_next = z_t + delta_z
+        z_hat_next = self.cayley_gate(z_t) + 0.1 * delta_z
 
         innovation = torch.zeros_like(z_hat_next)
         if z_obs is not None:
@@ -228,40 +231,37 @@ class LatentWorldJEPAModel(JEPABase):
         ctx: torch.Tensor,
         tgt: torch.Tensor,
         config=None,
-        track_weight: float = 0.5,
+        track_weight: float = 0.0,
         rollout_weight: float = 1.0,
-        cov_weight: float = 0.5,
-        var_weight: float = 1.0,
+        cov_weight: float = 0.0,
+        var_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
-        """Compute context tracking loss + multi-step autonomous rollout loss + VICReg."""
+        """Compute autonomous multi-step trajectory rollout MSE."""
         Z_ctx, Z_tgt, Z_ctx_pred, Z_sus_pred = self.forward(ctx, tgt)
 
-        # 1. Context 1-step tracking loss (aligns predicted next with true next)
-        loss_track = torch.mean(torch.sum((Z_ctx[:, 1:] - Z_ctx_pred[:, :-1]) ** 2, dim=-1))
-
-        # 2. Autonomous Rollout loss (multi-step latent prediction vs target encoder)
+        # 1. Autonomous Rollout loss (multi-step latent prediction vs target encoder)
         loss_rollout = torch.mean(torch.sum((Z_tgt - Z_sus_pred) ** 2, dim=-1))
+        total_loss = rollout_weight * loss_rollout
 
-        # 3. Representation Non-Collapse (VICReg across all context latent vectors)
-        z_flat = Z_ctx.contiguous().view(-1, self.latent_dim)  # (B*C, D)
-        std_c = torch.sqrt(torch.var(z_flat, dim=0, unbiased=False) + eps)
-        var_c = torch.mean(F.relu(gamma - std_c))
-        cov_c = von_neumann_operator_entropy_loss(z_flat, eps=eps)
+        # Diagnostic 1-step tracking
+        loss_track = torch.mean(torch.sum((Z_ctx[:, 1:] - Z_ctx_pred[:, :-1]) ** 2, dim=-1))
+        if track_weight > 0:
+            total_loss = total_loss + track_weight * loss_track
 
-        total_loss = (
-            track_weight * loss_track
-            + rollout_weight * loss_rollout
-            + var_weight * var_c
-            + cov_weight * cov_c
-        )
+        if var_weight > 0 or cov_weight > 0:
+            z_flat = Z_ctx.contiguous().view(-1, self.latent_dim)  # (B*C, D)
+            std_c = torch.sqrt(torch.var(z_flat, dim=0, unbiased=False) + eps)
+            var_c = torch.mean(F.relu(gamma - std_c))
+            cov_c = von_neumann_operator_entropy_loss(z_flat, eps=eps)
+            total_loss = total_loss + var_weight * var_c + cov_weight * cov_c
 
         metrics = {
             "total_loss": float(total_loss.item()),
-            "loss_track": float(loss_track.item()),
             "loss_rollout": float(loss_rollout.item()),
+            "loss_track": float(loss_track.item()),
             "mean_rollout_dist": float(torch.mean(torch.norm(Z_tgt - Z_sus_pred, dim=-1)).item()),
         }
         return total_loss, metrics

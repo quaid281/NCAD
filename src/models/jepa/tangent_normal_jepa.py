@@ -135,13 +135,15 @@ class TangentNormalJEPAModel(JEPABase):
         config=None,
         normal_weight: float = 1.0,
         tangent_weight: float = 1.0,
-        cov_weight: float = 0.5,
-        var_weight: float = 1.0,
+        cov_weight: float = 0.0,
+        var_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
-        """Compute normal manifold containment loss + tangent velocity loss + VICReg."""
+        """Compute normal manifold containment loss + tangent velocity loss.
+        Self-adjoint orthogonal projection decouples point and contextual deviations.
+        """
         z_ctx, z_tgt, U, v_tangent = self.forward(ctx, tgt)
 
         # Displacement vector e = z_tgt - z_ctx in R^{B x D}
@@ -162,17 +164,13 @@ class TangentNormalJEPAModel(JEPABase):
         # 2. Tangent Velocity Prediction Loss: ||c_parallel - v_tangent||^2 (predicts trajectory along manifold)
         loss_tangent = torch.mean(torch.sum((c_parallel - v_tangent) ** 2, dim=-1))
 
-        # 3. Representation Non-Collapse (VICReg)
-        std_c = torch.sqrt(torch.var(z_ctx, dim=0, unbiased=False) + eps)
-        var_c = torch.mean(F.relu(gamma - std_c))
-        cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+        total_loss = normal_weight * loss_normal + tangent_weight * loss_tangent
 
-        total_loss = (
-            normal_weight * loss_normal
-            + tangent_weight * loss_tangent
-            + var_weight * var_c
-            + cov_weight * cov_c
-        )
+        if var_weight > 0 or cov_weight > 0:
+            std_c = torch.sqrt(torch.var(z_ctx, dim=0, unbiased=False) + eps)
+            var_c = torch.mean(F.relu(gamma - std_c))
+            cov_c = von_neumann_operator_entropy_loss(z_ctx, eps=eps)
+            total_loss = total_loss + var_weight * var_c + cov_weight * cov_c
 
         metrics = {
             "total_loss": float(total_loss.item()),

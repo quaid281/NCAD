@@ -22,6 +22,22 @@ from src.models.encoders import (
     SelectiveSSMContextEncoder,
     contrastive_loss,
 )
+from src.models.geometric_layers import (
+    AdmissibleStressConeProjection,
+    CayleyOrthogonalGate,
+    CohnElkiesFilter,
+    GTInterlacingLayer,
+    HankelMomentFilter,
+    HankelPolynomialFilter,
+    MovingSubspaceProjector,
+    MovingTangentProjection,
+    RadialHeatExteriorBoundary,
+    ResolventPurification,
+    ResolventPurificationBottleneck,
+    ShearingWaveletPulseBlock,
+    StokesStreamCurlFilter,
+    SymplecticLeapfrogBlock,
+)
 from src.models.jepa import (
     PF_JEPA,
     CausalSSMContextEncoder,
@@ -213,6 +229,21 @@ __all__ = [
     "von_neumann_operator_entropy_loss",
     "PatchFlowJEPA",
     "PatchFlowPredictor",
+    # Geometric Invariant Layers (Ten Advances & Navier-Stokes Blowup, 2026)
+    "AdmissibleStressConeProjection",
+    "CayleyOrthogonalGate",
+    "CohnElkiesFilter",
+    "GTInterlacingLayer",
+    "HankelMomentFilter",
+    "HankelPolynomialFilter",
+    "MovingSubspaceProjector",
+    "MovingTangentProjection",
+    "RadialHeatExteriorBoundary",
+    "ResolventPurification",
+    "ResolventPurificationBottleneck",
+    "ShearingWaveletPulseBlock",
+    "StokesStreamCurlFilter",
+    "SymplecticLeapfrogBlock",
     # SOTA Baselines
 
 

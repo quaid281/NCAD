@@ -11,14 +11,14 @@ Combines:
 from __future__ import annotations
 
 import math
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models._jepa_utils import JEPABase
+from src.models._jepa_utils import JEPABase, fit_covariance_batched
 from src.models.encoders.relational_gat_encoder import RelationalGraphAttentionLayer
 from src.models.encoders.selective_ssm_encoder import GRUStateSpaceBlock
 from src.models.jepa.flow_ts_jepa import FlowLatentPredictor, TimestepEmbedding
@@ -198,15 +198,20 @@ class CausalSSMFlowJEPA(JEPABase):
             num_layers=flow_layers,
             dropout=dropout,
         )
+        self.register_mahalanobis_buffers(latent_dim)
 
-    def update_target_encoder(self, momentum: Optional[float] = None):
+    def update_target_encoder(self, decay: Optional[float] = None, momentum: Optional[float] = None):
         """Update target encoder via Exponential Moving Average (EMA)."""
-        m = self.ema_decay if momentum is None else momentum
+        m = decay if decay is not None else (momentum if momentum is not None else self.ema_decay)
         with torch.no_grad():
             for param_online, param_target in zip(
                 self.context_encoder.parameters(), self.target_encoder.parameters()
             ):
                 param_target.data.mul_(m).add_(param_online.data, alpha=1.0 - m)
+            for buf_online, buf_target in zip(
+                self.context_encoder.buffers(), self.target_encoder.buffers()
+            ):
+                buf_target.data.copy_(buf_online.data)
 
     def forward(
         self,
@@ -248,17 +253,16 @@ class CausalSSMFlowJEPA(JEPABase):
         pred_velocity = self.flow_predictor(z_t, t, z_ctx)
         cfm_loss = F.mse_loss(pred_velocity, target_velocity)
 
-        # Step 4: Non-contrastive VICReg regularization on representations
-        var_ctx, cov_ctx = _vicreg_branch_loss(z_ctx)
-        var_tgt, cov_tgt = _vicreg_branch_loss(z_1)
-        vic_loss = 0.5 * (var_ctx + var_tgt) + 0.25 * (cov_ctx + cov_tgt)
-
-        # Step 5: Causal graph sparsity penalty
-        graph_loss = torch.mean(torch.abs(attn_matrix)) if attn_matrix is not None else torch.tensor(0.0, device=device)
-
-        total_loss = cfm_loss + self.vicreg_weight * vic_loss + self.graph_sparsity_weight * graph_loss
+        # Pure Optimal Transport Flow Matching objective without auxiliary penalties
+        total_loss = cfm_loss
 
         if return_diagnostics:
+            with torch.no_grad():
+                var_ctx, cov_ctx = _vicreg_branch_loss(z_ctx)
+                var_tgt, cov_tgt = _vicreg_branch_loss(z_1)
+                vic_loss = 0.5 * (var_ctx + var_tgt) + 0.25 * (cov_ctx + cov_tgt)
+                graph_loss = torch.mean(torch.abs(attn_matrix)) if attn_matrix is not None else torch.tensor(0.0, device=device)
+
             diagnostics = {
                 "cfm_loss": float(cfm_loss.detach().item()),
                 "vic_loss": float(vic_loss.detach().item()),
@@ -268,6 +272,85 @@ class CausalSSMFlowJEPA(JEPABase):
             return total_loss, diagnostics
 
         return total_loss
+
+    def compute_objective(
+        self,
+        ctx: torch.Tensor,
+        tgt: torch.Tensor,
+        config: Optional[Any] = None,
+        *,
+        injector: Optional[Any] = None,
+        full_batch: Optional[Any] = None,
+    ) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Compute the training objective for CausalSSMFlowJEPA."""
+        loss, diagnostics = self.forward(ctx, tgt, return_diagnostics=True)
+        return loss, diagnostics
+
+    @torch.no_grad()
+    def compute_predictive_discrepancy(
+        self,
+        context_windows: torch.Tensor,
+        observed_target_windows: torch.Tensor,
+        use_mahalanobis: bool = False,
+    ) -> torch.Tensor:
+        """Compute predictive discrepancy using either Mahalanobis or Euclidean metric."""
+        if use_mahalanobis and not bool(self.precision_fitted.item()):
+            raise RuntimeError("Mahalanobis scoring requested, but covariance has not been fitted.")
+
+        self.eval()
+        B = context_windows.size(0)
+        device = context_windows.device
+
+        z_ctx = self.context_encoder(context_windows, return_graph=False)
+        z_1 = self.target_encoder(observed_target_windows, return_graph=False)
+        z_0 = torch.zeros_like(z_1)
+        t = torch.full((B,), fill_value=0.5, device=device)
+        t_expand = t[:, None]
+        z_t = (1.0 - t_expand) * z_0 + t_expand * z_1
+        target_velocity = z_1 - z_0
+        pred_velocity = self.flow_predictor(z_t, t, z_ctx)
+        diff = pred_velocity - target_velocity
+
+        if use_mahalanobis:
+            diff_c = diff - self.residual_mean
+            m_dist = torch.sum((diff_c @ self.precision_matrix) * diff_c, dim=-1)
+            return torch.sqrt(torch.clamp(m_dist, min=1e-8))
+        else:
+            return torch.linalg.norm(diff, dim=-1)
+
+    @torch.no_grad()
+    def fit_mahalanobis_covariance(
+        self,
+        context_windows,
+        target_windows,
+        batch_size: int = 512,
+        reg: float = 1e-3,
+    ) -> None:
+        """Fit empirical residual covariance via batched accumulation."""
+        def residual_fn(ctx_b, tgt_b):
+            z_ctx = self.context_encoder(ctx_b, return_graph=False)
+            z_1 = self.target_encoder(tgt_b, return_graph=False)
+            B_b = ctx_b.size(0)
+            z_0 = torch.zeros_like(z_1)
+            t = torch.full((B_b,), fill_value=0.5, device=ctx_b.device)
+            t_expand = t[:, None]
+            z_t = (1.0 - t_expand) * z_0 + t_expand * z_1
+            target_velocity = z_1 - z_0
+            pred_velocity = self.flow_predictor(z_t, t, z_ctx)
+            return pred_velocity - target_velocity
+
+        fit_covariance_batched(
+            self,
+            context_windows,
+            target_windows,
+            residual_fn=residual_fn,
+            dim=self.latent_dim,
+            batch_size=batch_size,
+            reg=reg,
+            precision_buffer=self.precision_matrix,
+            residual_mean_buffer=self.residual_mean,
+            fitted_buffer=self.precision_fitted,
+        )
 
     def compute_anomaly_score(
         self,
