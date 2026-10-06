@@ -36,21 +36,20 @@ Recent works have extended joint-embedding predictive principles to time-series 
 \end{itemize}
 However, these time-series JEPA adaptations rely on deterministic point regression or discrete codebook quantization, which collapse to the conditional mean on stochastic, multi-branching physical systems.
 
-\subsection{Flow Matching in Joint Embeddings (Vision, Control, and World Models)}
-Recently, the integration of continuous flow matching into joint-embedding architectures has been applied to generative vision and reinforcement learning:
-\begin{itemize}[leftmargin=*]
-    \item \textit{Generative Vision and Multimodal Synthesis:} D-JEPA \cite{xie2024djepa} pioneered the use of flow matching and diffusion objectives within JEPA predictors to replace discrete next-token prediction for continuous image, video, and audio generation. Concurrently, JEPA-T \cite{wang2025jepat} integrated flow-matching feature predictors with cross-attention for text-to-image synthesis.
-    \item \textit{World Models and Robotic Control:} In reinforcement learning, Qantara \cite{qantara2026} introduced Bridge-Flow training for multi-task JEPA control, while concurrent work by Madaan et al. \cite{flowjepa2026world} investigated flow matching for trajectory-level state rollouts in latent dynamics world models.
-\end{itemize}
-
-Prior work applies flow matching to generative image synthesis and action-conditioned robotic state transitions. In contrast, DyFlow-JEPA applies continuous flow matching within joint embeddings to unsupervised multivariate time-series anomaly detection. Rather than optimizing action-conditioned rollouts or pixel generation, DyFlow-JEPA models the continuous tangent velocity field of physical dynamical attractors in multi-sensor telemetry, evaluating it with a deterministic midpoint discrepancy estimator, Mahalanobis mode whitening, and Extreme Value Theory (EVT / SPOT) tail calibration.
-
-\subsection{Positioning and Method Design}
-DyFlow-JEPA combines continuous dynamical modeling and joint-embedding self-supervised learning through four key components:
+\subsection{Physics-Informed Deep Learning and Structured Inductive Biases}
+Physics-Informed Neural Networks (PINNs) \cite{raissi2019physics} integrate differential equations into deep models by penalizing residual PDE errors via automatic differentiation. While effective for forward and inverse problems in fluid and solid mechanics, standard PINNs suffer from two critical limitations in high-dimensional sensor telemetry:
 \begin{enumerate}[leftmargin=*]
-    \item \textit{Continuous Latent Vector Field Modeling:} Instead of raw-space differential equation solving or deterministic point regression, DyFlow-JEPA learns the continuous tangent velocity field of the physical manifold via Optimal Transport Conditional Flow Matching directly in regularized latent space.
-    \item \textit{Non-Contrastive Manifold Regularization:} Replaces synthetic negative injection heuristics with non-contrastive variance and spectral covariance penalties, precluding dimensional collapse while preserving smooth attractor geometry.
-    \item \textit{Deterministic Midpoint Velocity Discrepancy:} Evaluates the velocity field at the Optimal Transport midpoint ($t=0.5$), providing an efficient, zero-Monte-Carlo-variance proxy for trajectory deviation whitened by an empirical Mahalanobis precision tensor.
-    \item \textit{Extreme Value Tail Calibration:} Applies Extreme Value Theory (EVT / SPOT) \cite{siffer2017anomaly} under the Pickands-Balkema-de Haan theorem \cite{balkema1974residual} to fit Generalized Pareto tails on nominal velocity residuals, setting decision boundaries without manual threshold tuning.
+    \item \textit{Gradient Pathologies in Multi-Objective Optimization:} Jointly optimizing data fidelity and PDE residual loss leads to stiff, competing gradient dynamics, often causing training instability or failure to converge in high noise regimes \cite{wang2021understanding}.
+    \item \textit{Unobservable System Dynamics:} Complex IoT and aerospace telemetry (e.g., SMAP, MSL, and cyber-physical water networks) rarely follow a single closed-form PDE whose analytical derivatives can be evaluated across dozens of uncalibrated sensors.
+\end{enumerate}
+Rather than enforcing analytical differential equations through auxiliary training losses, our framework embeds physical conservation, turbulent transport, and spectral dissipation directly into the \textit{architectural representations and coordinate projections}. This guarantees exact adherence to physical inductive principles without multi-loss balancing or training pathologies.
+
+\subsection{Positioning of the Proposed Framework}
+The proposed Physics-Informed JEPA framework bridges joint-embedding predictive learning and physical domain mechanics through four distinct structural designs:
+\begin{enumerate}[leftmargin=*]
+    \item \textit{Latent Predictive Forward Learning Without Reconstruction Traps:} By forecasting future representations $z_{\text{tgt}}$ rather than raw observations $\hat{x}$, our models circumvent high-frequency noise drowning and sensor jitter memorization that hobble reconstructive baselines (TimesNet, TranAD).
+    \item \textit{Complementary Physical Inductive Triad:} We introduce three mathematically rigorous inductive formulations: \texttt{Operator-Entropy} (Koopman spectral dissipation), \texttt{Reynolds-Stress} (turbulent momentum transport), and \texttt{Potential-Flow} (conservative irrotational field theory), covering cyclic, turbulent, and conservative physical dynamics.
+    \item \textit{Multi-Resolution and Saliency Stabilizers:} We incorporate Coordinate Saliency Gating to prevent active channel dilution in high-dimensional arrays, and Littlewood-Paley Dyadic Wavelets to isolate transient impulses from low-frequency operational drift.
+    \item \textit{Kurtosis-Adaptive Statistical Calibration:} We deploy Extreme Value Theory (EVT / SPOT) \cite{siffer2017anomaly} modulated by dynamic sample kurtosis, establishing mathematically principled decision boundaries on operational telemetry without transductive test-label tuning.
 \end{enumerate}
 

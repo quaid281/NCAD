@@ -104,9 +104,10 @@ class ReynoldsStressJEPAModel(JEPABase):
             self.shearing_pulse = None
 
         # Hankel Moment Filter for algebraic trajectory consistency (Ten Proofs, Ch. 7)
-        from src.models.geometric_layers import CohnElkiesFilter, HankelMomentFilter
+        from src.models.geometric_layers import CohnElkiesFilter, CoordinateSaliencyGate, HankelMomentFilter
         self.hankel_filter = HankelMomentFilter(latent_dim=latent_dim, hankel_order=4)
         self.cohn_elkies = CohnElkiesFilter(latent_dim=latent_dim, n_shells=8)
+        self.saliency_gate = CoordinateSaliencyGate(dim=latent_dim, tau=0.5, alpha=0.5)
 
         # Standard latent predictor
         layers = []
@@ -120,6 +121,7 @@ class ReynoldsStressJEPAModel(JEPABase):
             ])
             in_d = hidden_dim
         layers.append(nn.Linear(in_d, latent_dim))
+        layers.append(nn.LayerNorm(latent_dim))
         self.predictor = nn.Sequential(*layers)
 
         # Macro-to-stress projection with Admissible Stress Cone
@@ -203,10 +205,13 @@ class ReynoldsStressJEPAModel(JEPABase):
         pred_loss = F.mse_loss(z_pred, z_tgt)
         total_loss = pred_loss
 
-        with torch.no_grad():
-            sigma_obs = self.compute_observed_stress(z_tgt)
-            sigma_pred = self.stress_head(z_ctx)
-            stress_loss = F.mse_loss(sigma_pred, sigma_obs)
+        # Hydrodynamic Reynolds stress closure alignment in S_+
+        sigma_obs = self.compute_observed_stress(z_tgt)
+        sigma_pred = self.stress_head(z_ctx)
+        stress_loss = F.mse_loss(sigma_pred, sigma_obs)
+
+        if self.alpha_stress > 0:
+            total_loss = total_loss + 0.1 * stress_loss
 
         metrics = {
             "loss": total_loss.item(),
@@ -229,18 +234,19 @@ class ReynoldsStressJEPAModel(JEPABase):
         z_tgt = self.target_encoder(observed_target_windows)
 
         diff = z_tgt - z_pred
-
         if use_mahalanobis and bool(self.precision_fitted.item()):
             diff_cent = diff - self.residual_mean
-            mahal = torch.sum((diff_cent @ self.precision_matrix) * diff_cent, dim=-1)
-            base_disc = torch.sqrt(torch.clamp(mahal, min=0.0))
+            mahal_coord = (diff_cent @ self.precision_matrix) * diff_cent
+            e_white = torch.sign(diff_cent) * torch.sqrt(torch.clamp(mahal_coord, min=0.0))
+            base_disc = self.saliency_gate(e_white)
         else:
-            base_disc = torch.linalg.norm(diff, dim=-1)
+            base_disc = self.saliency_gate(diff)
 
-        # Reynolds Stress Closure Discrepancy
+        # Reynolds Stress Closure Discrepancy with anti-drowning tensor saliency
         sigma_obs = self.compute_observed_stress(z_tgt)
         sigma_pred = self.stress_head(z_ctx)
-        stress_disc = torch.linalg.norm(sigma_obs - sigma_pred, dim=(-2, -1))
+        stress_diff = (sigma_obs - sigma_pred).reshape(sigma_obs.size(0), -1)
+        stress_disc = self.saliency_gate(stress_diff)
 
         # Combined hydro-kinetic anomaly score
         return base_disc + 0.5 * stress_disc

@@ -1181,6 +1181,293 @@ class HankelMomentFilter(nn.Module):
         return x
 
 
+# =============================================================================
+# 15. Coordinate / Channel Saliency Anti-Drowning Gate
+# =============================================================================
+
+class CoordinateSaliencyGate(nn.Module):
+    """Coordinate and Channel Saliency Anti-Drowning Gate.
+
+    In high-dimensional multivariate spaces (D >> 1), real anomalies are typically
+    sparse and localized to a small subset of channels or latent modes:
+        ||e||_infinity >> ||e||_2 / sqrt(D)
+
+    Standard isotropic Euclidean L2 pooling averages square errors across all D
+    coordinates, causing 1-2 anomaly channels to be severely drowned out by the
+    accumulated background noise of the remaining D-2 healthy channels.
+
+    This gate dynamically computes temperature-controlled SoftMax attention over
+    coordinate-wise residuals:
+        w_d = SoftMax(|e_d| / tau)
+        D_saliency = sqrt(D * sum_d w_d * e_d^2)
+
+    Properties:
+    1. Scale Preservation: If errors are isotropic (e_1 = ... = e_D = c),
+       sum_d w_d * e_d^2 = c^2, so sqrt(D * c^2) = sqrt(D) * c = ||e||_2.
+       EVT threshold calibration scales remain directly compatible with L2.
+    2. Anomaly Amplification: If a single coordinate spikes to A while others are 0,
+       w_spike -> 1, so D_saliency -> sqrt(D) * A, amplifying the sparse anomaly
+       signal-to-noise ratio by sqrt(D) (e.g. 5.66x for D=32).
+    3. Blended Formulation:
+       D(e) = (1 - alpha) * ||e||_2 + alpha * D_saliency(e)
+    """
+
+    def __init__(
+        self,
+        dim: Optional[int] = None,
+        tau: float = 0.5,
+        alpha: float = 0.5,
+        adaptive_tau: bool = False,
+        eps: float = 1e-6,
+    ):
+        super().__init__()
+        self.dim = dim
+        self.tau = tau
+        self.alpha = alpha
+        self.adaptive_tau = adaptive_tau
+        self.eps = eps
+
+    def forward(
+        self,
+        residual: torch.Tensor,
+        alpha: Optional[float] = None,
+        tau: Optional[float] = None,
+    ) -> torch.Tensor:
+        """Compute calibration-preserved saliency discrepancy.
+
+        Args:
+            residual: Error tensor of shape (B, D) or (..., D).
+            alpha: Optional override for saliency blend factor in [0, 1].
+            tau: Optional override for softmax temperature.
+
+        Returns:
+            Scalar discrepancy score per item, shape (B,) or (...).
+        """
+        a = self.alpha if alpha is None else alpha
+        t = self.tau if tau is None else tau
+
+        D = residual.shape[-1]
+        sq_diff = residual.pow(2)
+        base_l2 = torch.sqrt(torch.clamp(sq_diff.sum(dim=-1), min=self.eps))
+
+        if a <= 0.0:
+            return base_l2
+
+        # Coordinate magnitudes
+        mag = torch.abs(residual)
+
+        if self.adaptive_tau:
+            # Adaptive temperature based on dispersion of coordinate errors
+            scale = torch.std(mag, dim=-1, keepdim=True, unbiased=False)
+            eff_tau = torch.clamp(scale, min=0.05, max=5.0)
+        else:
+            eff_tau = max(t, 1e-4)
+
+        # SoftMax saliency weights along coordinate dimension
+        weights = F.softmax(mag / eff_tau, dim=-1)
+
+        # Weighted energy scaled by D for scale preservation
+        weighted_energy = torch.sum(weights * sq_diff, dim=-1)
+        saliency_score = torch.sqrt(torch.clamp(D * weighted_energy, min=self.eps))
+
+        if a >= 1.0:
+            return saliency_score
+
+        return (1.0 - a) * base_l2 + a * saliency_score
+
+
+# =============================================================================
+# 16. Littlewood-Paley Dyadic Shell Layer (Navier-Stokes Blowup Paper, §2)
+# =============================================================================
+
+class LittlewoodPaleyDyadicBlock(nn.Module):
+    """Littlewood-Paley Dyadic Frequency Shell Decomposition Layer.
+
+    Grounding: Navier-Stokes blowup analysis (Tao, 2026; §2 Littlewood-Paley Decomposition).
+    In multi-scale dynamics, anomalous energy cascades across octave frequency bands:
+        Delta_j u = F^{-1}( Psi_j(xi) * F(u) ),   j in {0, ..., J-1}
+        where sum_{j=0}^{J-1} Psi_j(xi) = 1  (exact partition of unity).
+
+    Decomposes multivariate time-series into J dyadic frequency shells:
+    - Shell 0: Low-frequency macro trends (diurnal cycles, slow drifts).
+    - Shell 1, 2: Mid-frequency cyclical dynamics (operational modes, oscillations).
+    - Shell J-1: High-frequency transients (micro-spikes, impulsive shocks, phase jumps).
+
+    Each shell is processed by a scale-adapted causal convolution and recombined
+    via attentive dynamic scale gating.
+
+    Args:
+        channels: Feature dimension C.
+        num_shells: Number of dyadic frequency octaves J (default 4).
+        kernel_sizes: Tuple of kernel sizes per shell (coarsest to finest).
+        dropout: Dropout probability.
+    """
+
+    def __init__(
+        self,
+        channels: int,
+        num_shells: int = 4,
+        kernel_sizes: Optional[Tuple[int, ...]] = None,
+        dropout: float = 0.05,
+    ):
+        super().__init__()
+        self.channels = channels
+        self.num_shells = num_shells
+
+        if kernel_sizes is None:
+            # Default: wider kernels for low frequency shells, tight kernels for high frequency shells
+            if num_shells == 4:
+                kernel_sizes = (15, 9, 5, 3)
+            elif num_shells == 3:
+                kernel_sizes = (11, 7, 3)
+            else:
+                kernel_sizes = tuple(max(3, 2 * (num_shells - i) + 1) for i in range(num_shells))
+        self.kernel_sizes = kernel_sizes
+
+        # Scale-adapted causal 1D conv blocks for each frequency octave
+        self.shell_convs = nn.ModuleList()
+        for k in self.kernel_sizes:
+            pad = k - 1
+            conv = nn.Sequential(
+                nn.Conv1d(channels, channels, kernel_size=k, padding=pad, groups=1),
+                nn.GELU(),
+                nn.Dropout(dropout),
+            )
+            self.shell_convs.append(conv)
+
+        # Dynamic scale importance router: pools energy across sequence and frequency shells
+        router_in = channels + num_shells
+        router_hidden = max(16, channels)
+        self.scale_router = nn.Sequential(
+            nn.Linear(router_in, router_hidden),
+            nn.GELU(),
+            nn.Linear(router_hidden, num_shells),
+        )
+        # Initialize scale router projection with small normal weights for stable balanced gating
+        nn.init.normal_(self.scale_router[-1].weight, mean=0.0, std=0.02)
+        nn.init.zeros_(self.scale_router[-1].bias)
+
+
+
+        # Output projection and layer norm
+        self.out_proj = nn.Conv1d(channels, channels, kernel_size=1)
+        self.norm = nn.LayerNorm(channels)
+        self.gamma = nn.Parameter(torch.tensor(0.1))  # Small positive initialization for immediate multi-scale gradient flow
+
+    def compute_dyadic_filters(self, F_bins: int, device: torch.device) -> torch.Tensor:
+        """Construct smooth partition of unity frequency filters Psi_j on [0, 1].
+
+        Returns:
+            Tensor of shape (J, 1, F_bins) satisfying sum_{j=0}^{J-1} Psi_j == 1.
+        """
+        # Normalized frequency grid omega in [0, 1]
+        omega = torch.linspace(0.0, 1.0, F_bins, device=device)
+        J = self.num_shells
+
+        # Centers spaced geometrically in log2 frequency
+        # Low frequency shell j=0 has center near 0; shell J-1 near Nyquist (1.0)
+        centers = [2.0 ** (j - J + 1) for j in range(J)]
+        centers[0] = 0.0  # DC anchor for low shell
+
+        # Log-scale Gaussian shells with soft baseline
+        filters = []
+        sigma = 0.6
+        eps = 1e-4
+
+        for j in range(J):
+            c_j = centers[j]
+            if j == 0:
+                # Half-Gaussian centered at 0 covering low frequencies
+                dist = (omega / (centers[1] + eps)).pow(2)
+                resp = torch.exp(-0.5 * dist)
+            elif j == J - 1:
+                # High frequency plateau approaching Nyquist
+                dist = ((1.0 - omega) / (1.0 - c_j + eps)).pow(2)
+                resp = torch.exp(-0.5 * dist)
+            else:
+                # Octave bell
+                log_om = torch.log2(omega + eps)
+                log_c = math.log2(c_j + eps)
+                resp = torch.exp(-0.5 * ((log_om - log_c) / sigma) ** 2)
+
+            filters.append(torch.clamp(resp, min=1e-6))
+
+        raw_stack = torch.stack(filters, dim=0)  # (J, F_bins)
+        # Enforce exact partition of unity: sum_j Psi_j(omega) == 1.0
+        partition_unity = raw_stack / raw_stack.sum(dim=0, keepdim=True)
+        return partition_unity.unsqueeze(1)  # (J, 1, F_bins)
+
+    def forward(self, x: torch.Tensor, time_last: bool = True) -> torch.Tensor:
+        """Decompose x into dyadic shells, process each scale, and fuse.
+
+        Args:
+            x: Input tensor of shape (B, C, T) if time_last=True, or (B, T, C).
+            time_last: If True, time is the last dimension (standard 1D conv).
+
+        Returns:
+            Multi-scale enhanced tensor with identical shape to x.
+        """
+        if not time_last:
+            x = x.transpose(1, 2)  # (B, T, C) -> (B, C, T)
+
+        B, C, T = x.shape
+        if T < 4:
+            # Fallback for degenerate tiny sequence length
+            return x if time_last else x.transpose(1, 2)
+
+        # 1. Real Fourier transform: (B, C, F_bins)
+        X_fft = torch.fft.rfft(x, dim=-1)
+        F_bins = X_fft.shape[-1]
+
+        # 2. Partition of unity filters: (J, 1, F_bins)
+        filters = self.compute_dyadic_filters(F_bins, device=x.device).to(dtype=x.dtype)
+
+        # 3. Frequency shell separation via Parseval isometry
+        # X_fft: (1, B, C, F_bins), filters: (J, 1, 1, F_bins)
+        X_shells_fft = X_fft.unsqueeze(0) * filters.unsqueeze(1)  # (J, B, C, F_bins)
+        # Inverse real FFT: (J, B, C, T)
+        x_shells = torch.fft.irfft(X_shells_fft, n=T, dim=-1)
+
+        # 4. Scale-adapted causal convolutions
+        processed_shells = []
+        for j in range(self.num_shells):
+            h_j = self.shell_convs[j](x_shells[j])  # (B, C, T + pad)
+            pad = self.kernel_sizes[j] - 1
+            if pad > 0:
+                h_j = h_j[..., :T]  # Enforce strict causal slicing
+            processed_shells.append(h_j)
+
+        # Stack processed scales: (B, J, C, T)
+        H_stack = torch.stack(processed_shells, dim=1)
+
+        # 5. Dynamic scale importance gating
+        # Multi-scale energy descriptors:
+        # RMS energy across time for each channel: (B, C)
+        x_rms = torch.sqrt(torch.mean(x**2, dim=-1) + 1e-6)
+        # Shell energy across channels and time: (B, J)
+        shell_energy = torch.mean(x_shells**2, dim=(-1, -2)).transpose(0, 1)
+        log_shell_energy = torch.log(shell_energy + 1e-6)
+        router_feat = torch.cat([x_rms, log_shell_energy], dim=-1)  # (B, C + J)
+        scale_weights = F.softmax(self.scale_router(router_feat), dim=-1)  # (B, J)
+
+        # Broadcast across channels and time: (B, J, 1, 1)
+        scale_weights = scale_weights.unsqueeze(-1).unsqueeze(-1)
+
+        # Weighted combination across dyadic frequency octaves: (B, C, T)
+        multi_scale_energy = torch.sum(scale_weights * H_stack, dim=1)
+        out = self.out_proj(multi_scale_energy)
+
+        # Residual connection with identity at initialization
+        res = x + self.gamma * out
+        # LayerNorm across channels
+        res = self.norm(res.transpose(1, 2)).transpose(1, 2)
+
+        if not time_last:
+            res = res.transpose(1, 2)
+
+        return res
+
+
 __all__ = [
     "MovingTangentProjection",
     "ResolventPurification",
@@ -1196,6 +1483,8 @@ __all__ = [
     "MovingSubspaceProjector",
     "GTInterlacingLayer",
     "HankelMomentFilter",
+    "CoordinateSaliencyGate",
+    "LittlewoodPaleyDyadicBlock",
 ]
 
 

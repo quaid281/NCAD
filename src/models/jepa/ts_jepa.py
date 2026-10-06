@@ -86,6 +86,9 @@ class TSJEPAModel(JEPABase):
             dropout=dropout,
         )
 
+        from src.models.geometric_layers import CoordinateSaliencyGate
+        self.saliency_gate = CoordinateSaliencyGate(dim=latent_dim, tau=0.5, alpha=0.5)
+
         self.register_mahalanobis_buffers(latent_dim)
 
     def forward(
@@ -187,10 +190,11 @@ class TSJEPAModel(JEPABase):
                         "Call fit_mahalanobis_covariance() before inference."
                     )
                 diff_centered = diff - self.residual_mean
-                mahal = torch.sum((diff_centered @ self.precision_matrix) * diff_centered, dim=-1)
-                return torch.sqrt(torch.clamp(mahal, min=1e-8))
+                mahal_coord = (diff_centered @ self.precision_matrix) * diff_centered
+                e_white = torch.sign(diff_centered) * torch.sqrt(torch.clamp(mahal_coord, min=0.0))
+                return self.saliency_gate(e_white)
             else:
-                return torch.linalg.norm(diff, dim=-1)
+                return self.saliency_gate(diff)
 
 
 def _vicreg_branch_loss(

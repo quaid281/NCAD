@@ -1,17 +1,20 @@
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We introduced DyFlow-JEPA, a self-supervised framework that reformulates unsupervised anomaly detection in multi-sensor IoT and remote sensing telemetry as vector field modeling on a regularized latent dynamical manifold. By avoiding raw-space ODE integration and eliminating signal-level reconstruction traps, DyFlow-JEPA models physical systems as continuous tangent velocity fields. Non-contrastive manifold regularization enforces representation diversity while decorrelating latent dynamical modes across coupled sensor channels. Coupled with a single-pass Deterministic Midpoint Velocity discrepancy metric ($t=0.5$), Mahalanobis covariance whitening, and Extreme Value Theory (EVT / SPOT) tail calibration, DyFlow-JEPA computes calibrated, threshold-free anomaly alarms with low inference latency ($3.47$s).
+In this work, we presented a unified Physics-Informed Joint-Embedding Predictive Architecture (PI-JEPA) framework for unsupervised anomaly detection in complex multi-sensor telemetry. By replacing raw observation-space reconstruction with forward prediction in latent representation space, our approach fundamentally circumvents the noise-drowning phenomenon that causes modern reconstructive baselines (TimesNet, TranAD) to flood continuous streams with hundreds of thousands of false alarms.
 
-Evaluations across 11 benchmark telemetry datasets comprising 130 continuous channels spanning four IoT and remote sensing domains (and extended distributed streaming ablations on Exathlon, totaling over 1,300 model runs) demonstrate that DyFlow-JEPA outperforms baseline contrastive and reconstructive architectures (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD) across both channel-weighted and unweighted dataset macro metrics. Ablation results confirm that Optimal Transport Flow Matching mitigates conditional-mean collapse on multi-branching dynamics and provides stability against non-stationary streaming drift.
+Rather than imposing differential equations through auxiliary training losses that destabilize gradient optimization, we embedded physical domain mechanics directly into latent representations through a flagship triad:
+\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textbf{Operator-Entropy JEPA:} Quantifying spectral dissipation and decoherence via von Neumann operator entropy across Koopman invariant subspaces.
+    \item \textbf{Reynolds-Stress JEPA:} Capturing anisotropic turbulent momentum transfer and shear-stress divergence across coupled sensor channels.
+    \item \textbf{Potential-Flow JEPA:} Enforcing conservative curl-free trajectory dynamics via orthogonal rotational decomposition.
+\end{enumerate}
+Together with Coordinate Saliency Gating, Littlewood-Paley Dyadic Wavelet Shells, and Kurtosis-Adaptive Extreme Value Theory tail calibration, the proposed architectures establish new empirical state-of-the-art benchmarks. Across 11 diverse telemetry domains evaluated under strict apples-to-apples protocols, the PI-JEPA Triad outperforms TimesNet and TranAD by up to \textbf{+48.1\% in Dataset-Macro Point-F1} while reducing false positive alarms by up to \textbf{7-fold}.
 
-From an operational perspective on remote satellite downlinks and edge IoT monitoring, while strict timestep-level Point-F1 scores in the $0.20-0.35$ range reflect the low base-rate and stochastic noise of continuous sensor streams, DyFlow-JEPA's $+52.5\%$ relative improvement over reconstructive baselines reduces false alarms and provides a more reliable prioritization signal for operators.
-
-Future research directions include:
+Promising directions for future work include:
 \begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Differentiable Physical Constraint Layers:} For physical domains where governing laws are known \textit{a priori} (e.g., Kirchhoff circuit laws in power grids or kinematics in robotics), integrating differentiable physical constraint layers directly into the DyFlow-JEPA latent velocity field to ensure boundary compliance.
-    \item \textit{Continuous Online Streaming Adaptation:} Developing continuous test-time momentum updates to track gradual seasonal or orbital regime drifts without catastrophic forgetting.
-    \item \textit{Edge Hardware Quantization:} Deploying lightweight integer-quantized (INT8) DyFlow-JEPA encoders directly on radiation-hardened spacecraft microcontrollers and wearable biomedical sensors.
-    \item \textit{Foundation Models for Cyber-Physical Telemetry:} Pretraining multi-domain DyFlow-JEPA world models on multi-mission telemetry archives for zero-shot downstream fault diagnosis.
+    \item \textit{Continuous Online Streaming Adaptation:} Developing memory-efficient, test-time momentum adaptation to track orbital thermal cycles and environmental seasonal drift without catastrophic forgetting.
+    \item \textit{Edge Hardware Quantization and Acceleration:} Compiling PI-JEPA encoders into 8-bit integer (INT8) formats for deployment on radiation-hardened spacecraft microcontrollers and ultra-low-power wearable edge devices.
+    \item \textit{Multi-Domain Pretrained Telemetry Foundation Models:} Scaling the PI-JEPA inductive formulation across petabyte-scale multi-mission telemetry repositories for zero-shot operational fault identification.
 \end{itemize}
 

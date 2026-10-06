@@ -59,6 +59,8 @@ class HybridTCNEncoder(nn.Module):
         dropout: float = 0.20,
         use_resolvent: bool = False,
         use_hankel: bool = False,
+        use_dyadic_shells: bool = True,
+        num_dyadic_shells: int = 4,
         window_len: int = 256,
     ):
         super().__init__()
@@ -67,6 +69,13 @@ class HybridTCNEncoder(nn.Module):
         self.filters = filters
         self.tcn_layers = tcn_layers
         self.input_projection = nn.Conv1d(input_dim, filters, kernel_size=1)
+
+        # Optional Littlewood-Paley dyadic frequency shell decomposition (Navier-Stokes Blowup, §2)
+        if use_dyadic_shells:
+            from src.models.geometric_layers import LittlewoodPaleyDyadicBlock
+            self.dyadic_block = LittlewoodPaleyDyadicBlock(channels=filters, num_shells=num_dyadic_shells)
+        else:
+            self.dyadic_block = None
 
         # Optional algebraic Hankel polynomial moment filter (Chapter 7)
         if use_hankel:
@@ -117,6 +126,9 @@ class HybridTCNEncoder(nn.Module):
 
         if self.hankel_filter is not None:
             x = self.hankel_filter(x.transpose(1, 2)).transpose(1, 2)
+
+        if self.dyadic_block is not None:
+            x = self.dyadic_block(x)
 
         for block in self.blocks:
             x = block(x)

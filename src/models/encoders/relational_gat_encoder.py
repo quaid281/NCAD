@@ -172,6 +172,8 @@ class RelationalGATEncoder(nn.Module):
         gat_heads: int = 4,
         kernel_size: int = 5,
         dropout: float = 0.20,
+        use_dyadic_shells: bool = True,
+        num_dyadic_shells: int = 4,
     ):
         super().__init__()
         self.input_dim = input_dim
@@ -183,6 +185,13 @@ class RelationalGATEncoder(nn.Module):
 
         # Temporal pathway: causal dilated TCN
         self.input_projection = nn.Conv1d(input_dim, filters, kernel_size=1)
+
+        # Optional Littlewood-Paley dyadic frequency shell decomposition (Navier-Stokes Blowup, §2)
+        if use_dyadic_shells:
+            from src.models.geometric_layers import LittlewoodPaleyDyadicBlock
+            self.dyadic_block = LittlewoodPaleyDyadicBlock(channels=filters, num_shells=num_dyadic_shells)
+        else:
+            self.dyadic_block = None
         self.tcn_blocks = nn.ModuleList(
             [
                 CausalTCNBlock(
@@ -262,6 +271,8 @@ class RelationalGATEncoder(nn.Module):
         # 1. Temporal Causal Convolutions: (B, T, D) -> (B, filters, T)
         x_t = inputs.transpose(1, 2)
         x_t = self.input_projection(x_t)
+        if self.dyadic_block is not None:
+            x_t = self.dyadic_block(x_t)
         for block in self.tcn_blocks:
             x_t = block(x_t)
 

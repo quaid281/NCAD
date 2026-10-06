@@ -6,7 +6,14 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    average_precision_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
 from src.scoring.evt_calibrator import EVTCalibrator, EVTThresholdResult
 
@@ -153,8 +160,13 @@ def calibrate_evt_threshold(
     values: np.ndarray,
     risk_level: float = 1e-3,
     init_percentile: float = 98.0,
+    adaptive_kurtosis: bool = True,
 ) -> EVTThresholdResult:
-    calibrator = EVTCalibrator(risk_level=risk_level, init_percentile=init_percentile)
+    calibrator = EVTCalibrator(
+        risk_level=risk_level,
+        init_percentile=init_percentile,
+        adaptive_kurtosis=adaptive_kurtosis,
+    )
     calibrator.fit(values)
     return calibrator.compute_threshold(values, risk_level=risk_level)
 
@@ -361,7 +373,7 @@ def aggregate_window_scores(
     else:
         window_indices = np.asarray(window_indices, dtype=np.int64)
 
-    if mapping_method == "smear":
+    if mapping_method in ["smear", "dense"]:
         if reducer == "max":
             point_scores = np.full(n_points, -np.inf, dtype=np.float64)
             counts = np.zeros(n_points, dtype=np.float64)
@@ -418,17 +430,18 @@ def aggregate_window_scores(
 
 def event_level_filter(
     scores: np.ndarray,
-    threshold: float,
+    threshold: float | np.ndarray,
     valid_mask: np.ndarray,
     min_run: int = 2,
     extreme_factor: float = 1.75,
     min_area_factor: float = 0.75,
 ) -> np.ndarray:
     scores = np.asarray(scores, dtype=np.float32)
-    flags = (scores > threshold) & valid_mask.astype(bool)
+    th_arr = np.asarray(threshold, dtype=np.float32)
+    flags = (scores > th_arr) & valid_mask.astype(bool)
     predictions = np.zeros_like(flags, dtype=bool)
     index = 0
-    safe_threshold = max(float(threshold), 1e-6)
+    is_array_th = th_arr.ndim > 0
     while index < len(flags):
         if not flags[index]:
             index += 1
@@ -438,8 +451,14 @@ def event_level_filter(
             index += 1
         end = index
         event_scores = scores[start:end]
+        if is_array_th:
+            safe_threshold = max(float(np.mean(th_arr[start:end])), 1e-6)
+            th_slice = th_arr[start:end]
+            area = float(np.sum(np.maximum(event_scores - th_slice, 0.0)))
+        else:
+            safe_threshold = max(float(th_arr), 1e-6)
+            area = float(np.sum(np.maximum(event_scores - safe_threshold, 0.0)))
         peak = float(np.max(event_scores)) if len(event_scores) else 0.0
-        area = float(np.sum(np.maximum(event_scores - safe_threshold, 0.0)))
         keep = (end - start) >= min_run or peak >= extreme_factor * safe_threshold
         keep = keep or area >= min_area_factor * safe_threshold * max(min_run, 1)
         if keep:
@@ -472,36 +491,200 @@ def point_adjustment(labels: np.ndarray, predictions: np.ndarray) -> np.ndarray:
     return adjusted
 
 
+def _extract_segments(arr: np.ndarray) -> list[tuple[int, int]]:
+    """Extract contiguous [start, end) index intervals where arr is True."""
+    bool_arr = (np.asarray(arr) > 0.5).astype(bool)
+    segments = []
+    in_seg = False
+    start = 0
+    for i, val in enumerate(bool_arr):
+        if val and not in_seg:
+            in_seg = True
+            start = i
+        elif not val and in_seg:
+            in_seg = False
+            segments.append((start, i))
+    if in_seg:
+        segments.append((start, len(bool_arr)))
+    return segments
+
+
+def compute_event_metrics(labels: np.ndarray, predictions: np.ndarray) -> dict:
+    """Compute incident-level Event Precision, Recall, and F1 score.
+
+    Evaluates whether each true anomaly episode was detected by at least one
+    alarm, and whether each alarm cluster corresponds to an actual fault episode,
+    eliminating artificial millisecond boundary-jitter penalties.
+    """
+    gt_segs = _extract_segments(labels)
+    pred_segs = _extract_segments(predictions)
+
+    if len(gt_segs) == 0:
+        return {
+            "event_precision": 1.0 if len(pred_segs) == 0 else 0.0,
+            "event_recall": 1.0,
+            "event_f1": 1.0 if len(pred_segs) == 0 else 0.0,
+            "tp_events": 0,
+            "fp_events": len(pred_segs),
+            "fn_events": 0,
+            "gt_events": 0,
+            "pred_events": len(pred_segs),
+        }
+    if len(pred_segs) == 0:
+        return {
+            "event_precision": 0.0,
+            "event_recall": 0.0,
+            "event_f1": 0.0,
+            "tp_events": 0,
+            "fp_events": 0,
+            "fn_events": len(gt_segs),
+            "gt_events": len(gt_segs),
+            "pred_events": 0,
+        }
+
+    tp_events = 0
+    for gs, ge in gt_segs:
+        if any(not (pe <= gs or ps >= ge) for ps, pe in pred_segs):
+            tp_events += 1
+
+    fp_events = 0
+    for ps, pe in pred_segs:
+        if not any(not (ge <= ps or gs >= pe) for gs, ge in gt_segs):
+            fp_events += 1
+
+    fn_events = len(gt_segs) - tp_events
+    prec = tp_events / (tp_events + fp_events) if (tp_events + fp_events) > 0 else 0.0
+    rec = tp_events / len(gt_segs)
+    f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
+
+    return {
+        "event_precision": float(prec),
+        "event_recall": float(rec),
+        "event_f1": float(f1),
+        "tp_events": int(tp_events),
+        "fp_events": int(fp_events),
+        "fn_events": int(fn_events),
+        "gt_events": int(len(gt_segs)),
+        "pred_events": int(len(pred_segs)),
+    }
+
+
+def compute_range_metrics(labels: np.ndarray, predictions: np.ndarray, alpha: float = 0.5) -> dict:
+    """Compute Range-Based Precision, Recall, and F1 (Tatbul et al., NeurIPS 2018).
+
+    Combines existence rewards (detection of anomaly occurrences) with
+    overlap cardinality to evaluate continuous time-series anomalies.
+    """
+    gt_segs = _extract_segments(labels)
+    pred_segs = _extract_segments(predictions)
+
+    if len(gt_segs) == 0 or len(pred_segs) == 0:
+        return {"range_precision": 0.0, "range_recall": 0.0, "range_f1": 0.0}
+
+    # Range Recall: reward existence + fractional overlap
+    recall_scores = []
+    for gs, ge in gt_segs:
+        length = ge - gs
+        overlap_len = 0
+        hit = False
+        for ps, pe in pred_segs:
+            os = max(gs, ps)
+            oe = min(ge, pe)
+            if oe > os:
+                hit = True
+                overlap_len += (oe - os)
+        exist_reward = 1.0 if hit else 0.0
+        overlap_reward = min(1.0, overlap_len / max(length, 1))
+        recall_scores.append(alpha * exist_reward + (1.0 - alpha) * overlap_reward)
+    range_recall = float(np.mean(recall_scores))
+
+    # Range Precision: fraction of predicted duration that intersects real anomalies
+    total_pred_len = sum(pe - ps for ps, pe in pred_segs)
+    total_overlap = 0
+    for ps, pe in pred_segs:
+        for gs, ge in gt_segs:
+            os = max(gs, ps)
+            oe = min(ge, pe)
+            if oe > os:
+                total_overlap += (oe - os)
+    range_precision = float(min(1.0, total_overlap / max(total_pred_len, 1)))
+
+    range_f1 = (
+        float(2 * range_precision * range_recall / (range_precision + range_recall))
+        if (range_precision + range_recall) > 0 else 0.0
+    )
+
+    return {
+        "range_precision": range_precision,
+        "range_recall": range_recall,
+        "range_f1": range_f1,
+    }
+
+
 def compute_metrics(
     labels: Optional[np.ndarray],
     predictions: np.ndarray,
+    scores: Optional[np.ndarray] = None,
     valid_mask: Optional[np.ndarray] = None,
     use_pa: bool = False,
+    include_events: bool = True,
 ) -> dict:
     if labels is None:
         return {}
-    labels = labels[: len(predictions)].astype(np.float32)
-    predictions = predictions[: len(labels)].astype(np.float32)
+    min_len = min(len(labels), len(predictions))
+    labels_raw = np.asarray(labels[:min_len], dtype=np.float32)
+    predictions_raw = np.asarray(predictions[:min_len], dtype=np.float32)
+    scores_raw = np.asarray(scores[:min_len], dtype=np.float32) if scores is not None else None
+
+    # Point adjustment on the contiguous timeline if requested
+    predictions_eval = point_adjustment(labels_raw, predictions_raw) if use_pa else predictions_raw
+
+    # Compute event-level & range metrics on the contiguous sequence before mask slicing
+    event_dict = {}
+    if include_events and not use_pa:
+        event_dict.update(compute_event_metrics(labels_raw, predictions_raw))
+        event_dict.update(compute_range_metrics(labels_raw, predictions_raw))
+
     if valid_mask is not None:
-        mask = valid_mask[: len(labels)].astype(bool)
-        labels = labels[mask]
-        predictions = predictions[mask]
-    if len(labels) == 0:
+        mask = np.asarray(valid_mask[:min_len], dtype=bool)
+        labels_eval = labels_raw[mask]
+        predictions_eval = predictions_eval[mask]
+        scores_eval = scores_raw[mask] if scores_raw is not None else None
+    else:
+        labels_eval = labels_raw
+        scores_eval = scores_raw
+
+    if len(labels_eval) == 0:
         return {}
 
-    if use_pa:
-        predictions = point_adjustment(labels, predictions)
-
-    tn, fp, fn, tp = confusion_matrix(labels, predictions, labels=[0.0, 1.0]).ravel()
-    return {
-        "precision": float(precision_score(labels, predictions, zero_division=0)),
-        "recall": float(recall_score(labels, predictions, zero_division=0)),
-        "f1": float(f1_score(labels, predictions, zero_division=0)),
+    tn, fp, fn, tp = confusion_matrix(labels_eval, predictions_eval, labels=[0.0, 1.0]).ravel()
+    out = {
+        "precision": float(precision_score(labels_eval, predictions_eval, zero_division=0)),
+        "recall": float(recall_score(labels_eval, predictions_eval, zero_division=0)),
+        "f1": float(f1_score(labels_eval, predictions_eval, zero_division=0)),
         "tp": int(tp),
         "tn": int(tn),
         "fp": int(fp),
         "fn": int(fn),
+        "all_positive_f1": float(f1_score(labels_eval, np.ones_like(labels_eval), zero_division=0)),
     }
+
+    if scores_eval is not None and len(np.unique(labels_eval)) > 1:
+        try:
+            out["pr_auc"] = float(average_precision_score(labels_eval, scores_eval))
+        except Exception:
+            out["pr_auc"] = 0.0
+        try:
+            out["roc_auc"] = float(roc_auc_score(labels_eval, scores_eval))
+        except Exception:
+            out["roc_auc"] = 0.5
+    elif scores_eval is not None:
+        out["pr_auc"] = float(np.mean(labels_eval))
+        out["roc_auc"] = 0.5
+
+    out.update(event_dict)
+    return out
+
 
 
 def confidence_over_threshold(value: float, threshold: float) -> float:

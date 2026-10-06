@@ -137,8 +137,9 @@ class HarmonicSpringJEPAModel(JEPABase):
         )
 
         # Hankel Moment Filter for algebraic trajectory consistency (Ten Proofs, Ch. 7)
-        from src.models.geometric_layers import HankelMomentFilter
+        from src.models.geometric_layers import CoordinateSaliencyGate, HankelMomentFilter
         self.hankel_filter = HankelMomentFilter(latent_dim=latent_dim, hankel_order=4)
+        self.saliency_gate = CoordinateSaliencyGate(dim=latent_dim, tau=0.5, alpha=0.5)
 
         # Running statistics for curvature z-score normalization
         self.register_buffer("curv_mean", torch.tensor(0.0))
@@ -152,7 +153,8 @@ class HarmonicSpringJEPAModel(JEPABase):
         self,
         z_ctx: torch.Tensor,
         z_tgt: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        return_coord_energy: bool = False,
+    ) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         """Compute resolvent-purified potential energy Phi, curvature Laplacian Tr(M), and log det."""
         B = z_ctx.size(0)
         mu, L, d = self.spring_head(z_ctx)
@@ -166,7 +168,8 @@ class HarmonicSpringJEPAModel(JEPABase):
         M_purified = self.spring_head.purification(M_raw, is_psd_matrix=True)
 
         # 2. Resolvent-purified Potential Energy: e^T M_purified e
-        energy = torch.sum((e.unsqueeze(1) @ M_purified).squeeze(1) * e, dim=-1)  # (B,)
+        coord_energy = (e.unsqueeze(1) @ M_purified).squeeze(1) * e  # (B, D)
+        energy = torch.sum(coord_energy, dim=-1)  # (B,)
 
         # 3. Exact Laplacian Curvature: Tr(M_purified)
         curvature = torch.diagonal(M_purified, dim1=-2, dim2=-1).sum(dim=-1)  # (B,)
@@ -182,6 +185,8 @@ class HarmonicSpringJEPAModel(JEPABase):
         log_det_cap = torch.sum(torch.log(torch.clamp(evals_c, min=1e-6)), dim=-1)
         log_det = log_det_diag + log_det_cap  # (B,)
 
+        if return_coord_energy:
+            return energy, curvature, log_det, coord_energy
         return energy, curvature, log_det
 
     def forward(
@@ -199,7 +204,26 @@ class HarmonicSpringJEPAModel(JEPABase):
         with torch.no_grad():
             z_tgt_true = self.hankel_filter(self.target_encoder(target_windows))
 
+        # Attractor coordinates and metrics
         energy, curvature, log_det = self.compute_energy_and_curvature(z_ctx, z_tgt_true)
+
+        # Update running curvature statistics (no grad)
+        with torch.no_grad():
+            batch_mean = curvature.mean()
+            batch_var = curvature.var(unbiased=False)
+            m = self.curv_count
+            n = curvature.numel()
+            if m == 0:
+                self.curv_mean.copy_(batch_mean)
+                self.curv_var.copy_(batch_var)
+                self.curv_count.add_(n)
+            else:
+                delta = batch_mean - self.curv_mean
+                new_mean = self.curv_mean + delta * (n / (m + n))
+                new_var = (self.curv_var * m + batch_var * n + delta**2 * (m * n / (m + n))) / (m + n)
+                self.curv_mean.copy_(new_mean)
+                self.curv_var.copy_(new_var)
+                self.curv_count.add_(n)
 
         return z_ctx, z_tgt_true, energy, curvature, log_det
 
@@ -208,25 +232,26 @@ class HarmonicSpringJEPAModel(JEPABase):
         ctx: torch.Tensor,
         tgt: torch.Tensor,
         config=None,
-        det_weight: float = 0.0,
         cov_weight: float = 0.0,
         var_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
-        """Compute streamlined pure Harmonic Spring potential energy objective."""
+        """Compute the streamlined, pure potential energy training objective."""
         z_ctx, z_tgt_true, energy, curvature, log_det = self.forward(ctx, tgt)
 
-        # Pure Harmonic Energy Minimization: E[Phi(z_tgt | z_ctx)]
+        # 1. Pure Potential Energy loss: E_nominal should be minimal
         loss_energy = torch.mean(energy)
-        total_loss = loss_energy
 
-        with torch.no_grad():
-            loss_det = -torch.mean(log_det) / float(self.latent_dim)
+        # 2. Volume expansion penalty to prevent representation collapse: -beta * log det(M)
+        loss_det = -torch.mean(log_det)
+
+        # Pure potential flow matching objective
+        total_loss = loss_energy + self.eps * loss_det
 
         metrics = {
-            "total_loss": float(total_loss.item()),
+            "loss": float(total_loss.item()),
             "loss_energy": float(loss_energy.item()),
             "loss_det": float(loss_det.item()),
             "mean_curvature": float(torch.mean(curvature).item()),
@@ -247,10 +272,11 @@ class HarmonicSpringJEPAModel(JEPABase):
         z_ctx = self.context_encoder(context_windows)
         z_tgt = self.target_encoder(observed_target_windows)
 
-        energy, curvature, _ = self.compute_energy_and_curvature(z_ctx, z_tgt)
+        energy, curvature, _, coord_energy = self.compute_energy_and_curvature(z_ctx, z_tgt, return_coord_energy=True)
 
-        # Base score is the potential energy well height (Mahalanobis spring displacement)
-        base_score = torch.sqrt(torch.clamp(energy, min=1e-8))
+        # Base score is the potential energy well height with anti-drowning saliency gating
+        e_coord = torch.sqrt(torch.clamp(coord_energy, min=0.0))
+        base_score = self.saliency_gate(e_coord)
 
         if include_curvature:
             # Normalized curvature using running statistics

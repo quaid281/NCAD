@@ -40,9 +40,11 @@ class EVTThresholdResult:
     method: str
     is_fallback: bool
     plateau_adjusted: bool = False
+    kurtosis: Optional[float] = None
+    effective_init_percentile: Optional[float] = None
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "threshold": float(self.threshold),
             "risk_level": float(self.risk_level),
             "gamma": float(self.gpd_fit.gamma),
@@ -55,6 +57,11 @@ class EVTThresholdResult:
             "is_fallback": bool(self.is_fallback),
             "plateau_adjusted": bool(self.plateau_adjusted),
         }
+        if self.kurtosis is not None:
+            d["kurtosis"] = float(self.kurtosis)
+        if self.effective_init_percentile is not None:
+            d["effective_init_percentile"] = float(self.effective_init_percentile)
+        return d
 
 
 def _grimshaw_gpd_fit(excesses: np.ndarray) -> Optional[Tuple[float, float]]:
@@ -251,11 +258,63 @@ def fit_gpd(
     )
 
 
+def compute_excess_kurtosis(scores: np.ndarray) -> float:
+    """Compute sample excess kurtosis: mu_4 / sigma^4 - 3.0."""
+    clean = np.asarray(scores, dtype=np.float64).reshape(-1)
+    clean = clean[np.isfinite(clean)]
+    if len(clean) < 8:
+        return 0.0
+    mean = float(np.mean(clean))
+    var = float(np.var(clean))
+    if var <= 1e-12:
+        return 0.0
+    centered = clean - mean
+    m4 = float(np.mean(centered**4))
+    kurt = m4 / (var**2 + 1e-12) - 3.0
+    return float(np.clip(kurt, -2.0, 500.0))
+
+
+def kurtosis_adaptive_params(
+    scores: np.ndarray,
+    base_risk: float = 1e-3,
+    base_percentile: float = 95.0,
+) -> Tuple[float, float, float]:
+    """Compute kurtosis-adapted initial percentile and effective risk level.
+
+    Args:
+        scores: Discrepancy score sequence.
+        base_risk: Baseline EVT risk level (default 1e-3).
+        base_percentile: Baseline initial tail percentile (default 95.0).
+
+    Returns:
+        (adapted_percentile, adapted_risk_level, kurtosis)
+    """
+    kurt = compute_excess_kurtosis(scores)
+
+    # Positive kurtosis (leptokurtic, sharp peaks):
+    # Raise init_percentile closer to 99.0 so nominal samples don't contaminate the tail fit.
+    # Tighten risk_level so sharp peaks stand out without false alarms.
+    if kurt > 0.0:
+        p_boost = 4.0 * (kurt / (kurt + 15.0))
+        adapted_percentile = min(99.0, base_percentile + p_boost)
+        q_decay = 1.0 + 0.4 * math.log(1.0 + kurt)
+        adapted_risk = max(1e-5, base_risk / q_decay)
+    else:
+        # Negative / near-zero kurtosis (platykurtic, diffuse tail):
+        # Slightly lower percentile to ensure sufficient tail excesses.
+        adapted_percentile = max(90.0, base_percentile + 0.5 * kurt)
+        adapted_risk = base_risk
+
+    return adapted_percentile, adapted_risk, kurt
+
+
 class EVTCalibrator:
-    """Extreme Value Theory (EVT / SPOT) Anomaly Calibrator.
+    """Extreme Value Theory (EVT / SPOT) Anomaly Calibrator with Kurtosis Adaptation.
 
     Fits Generalized Pareto Distribution on normal scores to estimate
     exact tail quantiles for risk level q and maps scores to p-values.
+    When adaptive_kurtosis=True, automatically tunes the tail thresholding
+    and risk parameters according to the peakedness of the empirical distribution.
     """
 
     def __init__(
@@ -264,13 +323,18 @@ class EVTCalibrator:
         init_percentile: float = 98.0,
         min_excesses: int = 15,
         degenerate_epsilon: float = 1e-6,
+        adaptive_kurtosis: bool = True,
     ):
         self.risk_level = risk_level
         self.init_percentile = init_percentile
         self.min_excesses = min_excesses
         self.degenerate_epsilon = degenerate_epsilon
+        self.adaptive_kurtosis = adaptive_kurtosis
         self.gpd_fit_: Optional[GPDFitResult] = None
         self.threshold_: float = 0.0
+        self.kurtosis_: float = 0.0
+        self.effective_init_percentile_: float = init_percentile
+        self.effective_risk_level_: float = risk_level
 
     def fit(self, scores: np.ndarray) -> "EVTCalibrator":
         """Fit EVT calibrator to normal calibration scores."""
@@ -285,13 +349,25 @@ class EVTCalibrator:
             if len(non_plateau) >= 20 and (len(clean_scores) - len(non_plateau)) / len(clean_scores) >= 0.005:
                 clean_scores = non_plateau
 
+        eff_percentile = self.init_percentile
+        eff_risk = self.risk_level
+        if self.adaptive_kurtosis and len(clean_scores) >= 20:
+            eff_percentile, eff_risk, self.kurtosis_ = kurtosis_adaptive_params(
+                clean_scores, base_risk=self.risk_level, base_percentile=self.init_percentile
+            )
+        else:
+            self.kurtosis_ = compute_excess_kurtosis(clean_scores)
+
+        self.effective_init_percentile_ = eff_percentile
+        self.effective_risk_level_ = eff_risk
+
         self.gpd_fit_ = fit_gpd(
             clean_scores,
-            init_percentile=self.init_percentile,
+            init_percentile=eff_percentile,
             min_excesses=self.min_excesses,
         )
 
-        res = self.compute_threshold(clean_scores, risk_level=self.risk_level)
+        res = self.compute_threshold(clean_scores, risk_level=eff_risk)
         self.threshold_ = res.threshold
         return self
 
@@ -301,7 +377,7 @@ class EVTCalibrator:
         risk_level: Optional[float] = None,
     ) -> EVTThresholdResult:
         """Compute extreme quantile threshold for risk level q."""
-        q = risk_level if risk_level is not None else self.risk_level
+        q = risk_level if risk_level is not None else self.effective_risk_level_
         if self.gpd_fit_ is None:
             if scores is None:
                 raise RuntimeError("EVTCalibrator must be fitted before computing threshold.")
@@ -327,6 +403,8 @@ class EVTCalibrator:
                 gpd_fit=fit,
                 method="empirical_fallback",
                 is_fallback=True,
+                kurtosis=self.kurtosis_,
+                effective_init_percentile=self.effective_init_percentile_,
             )
 
         # GPD Extreme Quantile Formula:
@@ -354,13 +432,14 @@ class EVTCalibrator:
 
         threshold = max(threshold, self.degenerate_epsilon)
 
-
         return EVTThresholdResult(
             threshold=threshold,
             risk_level=q,
             gpd_fit=fit,
             method=fit.method,
             is_fallback=False,
+            kurtosis=self.kurtosis_,
+            effective_init_percentile=self.effective_init_percentile_,
         )
 
     def predict_tail_probability(self, scores: np.ndarray) -> np.ndarray:
@@ -402,3 +481,75 @@ class EVTCalibrator:
         """Return calibrated anomaly confidence P(anomaly | s) = 1 - P(X > s)."""
         p_tail = self.predict_tail_probability(scores)
         return (1.0 - p_tail).astype(np.float32)
+
+
+def compute_dynamic_evt_threshold(
+    test_scores: np.ndarray,
+    base_evt_threshold: float,
+    train_scores: np.ndarray,
+    window_size: int = 200,
+    min_periods: int = 20,
+    min_scale_ratio: float = 0.2,
+    max_scale_ratio: float = 5.0,
+) -> np.ndarray:
+    """Compute local time-varying EVT threshold tracking operational baseline drift.
+
+    Dynamically scales the fitted GPD tail threshold according to local rolling
+    median and inter-quartile range (IQR), adapting to non-stationary diurnal,
+    load, or thermal variations without false-alarm flooding.
+
+    Args:
+        test_scores: 1D array of test discrepancy scores.
+        base_evt_threshold: Global GPD threshold calibrated on training data.
+        train_scores: 1D array of calibration/training discrepancy scores.
+        window_size: Rolling window length for local baseline estimation.
+        min_periods: Minimum samples required for rolling statistics.
+        min_scale_ratio: Lower bound on local-to-global dispersion scaling.
+        max_scale_ratio: Upper bound on local-to-global dispersion scaling.
+
+    Returns:
+        1D array of dynamic thresholds matching len(test_scores).
+    """
+    scores = np.asarray(test_scores, dtype=np.float64)
+    train_clean = np.asarray(train_scores, dtype=np.float64)
+    train_clean = train_clean[np.isfinite(train_clean)]
+
+    if len(scores) == 0:
+        return np.array([], dtype=np.float32)
+
+    train_med = float(np.median(train_clean)) if len(train_clean) else 0.0
+    q25, q75 = np.percentile(train_clean, [25.0, 75.0]) if len(train_clean) else (0.0, 1.0)
+    train_iqr = max(float(q75 - q25), 1e-4)
+
+    import pandas as pd
+    s = pd.Series(scores)
+    # Compute rolling median and IQR
+    roll = s.rolling(window_size, min_periods=min_periods)
+    local_med = roll.median().fillna(train_med).to_numpy()
+
+    roll_q25 = roll.quantile(0.25).fillna(train_med - 0.5 * train_iqr).to_numpy()
+    roll_q75 = roll.quantile(0.75).fillna(train_med + 0.5 * train_iqr).to_numpy()
+    local_iqr = np.maximum(roll_q75 - roll_q25, 1e-4)
+
+    scale_ratio = np.clip(local_iqr / train_iqr, min_scale_ratio, max_scale_ratio)
+    dyn_threshold = local_med + (base_evt_threshold - train_med) * scale_ratio
+
+    # Ensure threshold does not collapse below nominal baseline
+    dyn_threshold = np.maximum(dyn_threshold, local_med + 0.5 * local_iqr)
+    return dyn_threshold.astype(np.float32)
+
+
+KurtosisAdaptiveEVT = EVTCalibrator
+DynamicEVTCalibrator = compute_dynamic_evt_threshold
+
+__all__ = [
+    "EVTCalibrator",
+    "KurtosisAdaptiveEVT",
+    "DynamicEVTCalibrator",
+    "compute_dynamic_evt_threshold",
+    "GPDFitResult",
+    "EVTThresholdResult",
+    "compute_excess_kurtosis",
+    "kurtosis_adaptive_params",
+]
+

@@ -66,6 +66,9 @@ class CSMConfig:
     n_regimes: int = 4  # Number of Grassmannian discrete regime subspaces for potential_flow_jepa
     subspace_dim: int = 8  # Dimension of each regime subspace for potential_flow_jepa
     use_regimes: bool = True  # Whether to use discrete regime projections in potential_flow_jepa
+    grassmann_temperature: float = 0.1  # Softmax temperature for regime routing in potential_flow_jepa
+    grassmann_load_balance_weight: float = 0.0  # Switch-style regime load-balancing aux loss weight
+    grassmann_eval_hard_routing: bool = True  # If False, eval uses soft regime mixtures instead of argmax one-hot
     conformal_alpha: float = 0.01  # Target significance level (false alarm bound) for conformal thresholding
 
     _VALID_ENCODERS = {"hybrid_tcn", "multi_scale_tcn", "relational_gat", "selective_ssm", "ssm"}

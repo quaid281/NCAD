@@ -1,89 +1,54 @@
-\section{Experimental Evaluation}
+\section{Experimental Protocol and Evaluation Metrics}
 \label{sec:exp}
 
-This section outlines the experimental setup, benchmark datasets, and comparative performance of DyFlow-JEPA against baseline models.
+This section outlines the experimental setup, baseline architectures, and the multi-tier statistical evaluation protocol designed to prevent metric inflation.
 
 \subsection{Experimental Setup and Hyperparameters}
 \label{subsec:exp_setup}
-All models are trained for 50 epochs using cosine annealing learning rate schedules. Default hyperparameters include:
+To ensure rigorous, fair comparison across all models, all architectures are trained and evaluated under an identical streaming time-series pipeline:
 \begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Windowing:} Context duration $C=256$, suspect/target horizon $S=64$ (full window length $L=320$).
-    \item \textit{Context Encoder Architecture:} Dilated Causal TCN with 3 residual blocks, filter size $F=48$, kernel size $K=5$, dilation rates $d \in \{1, 2, 4\}$, dropout rate $0.20$, and Layer Normalization. Latent representation dimension $D=32$.
-    \item \textit{Target Encoder:} EMA momentum update with cosine decay schedule from $m_{\text{base}}=0.996$ to $m_{\text{max}}=0.9995$.
-    \item \textit{Continuous Flow Predictor:} 3-layer residual MLP bottleneck with hidden dimension 64, sinusoidal timestep embeddings $\mathbf{e}(t) \in \mathbb{R}^D$, GELU activations, and Layer Normalization.
-    \item \textit{Optimization:} AdamW optimizer with initial learning rate $\eta=10^{-3}$, Cosine Annealing schedule decaying to $\eta_{\text{min}}=10^{-5}$, weight decay $10^{-4}$, and mini-batch size $B=32$ across 50 epochs.
-    \item \textit{EVT Tail Calibration:} Extreme Value Theory (SPOT) calibration on nominal training residuals with initial percentile $u = 98.0\%$ and target extreme risk level $q = 10^{-3}$.
+    \item \textit{Sliding Window Geometry:} Past context duration $C=256$, suspect/target horizon $S=64$ (total window length $L=320$), evaluated with a stride of 1 timestep across testing streams.
+    \item \textit{Encoder Backbone:} Context representations $z_{\text{ctx}} \in \mathbb{R}^D$ ($D=32$) are extracted using a causal dilated Temporal Convolutional Network (TCN) with 3 residual blocks, channel depth $F=48$, kernel size $K=5$, and exponentially increasing dilation factors $d \in \{1, 2, 4\}$ regularized by Layer Normalization and dropout ($p=0.20$).
+    \item \textit{Target Encoder Update:} The target encoder parameters $\theta_{\text{tgt}}$ are updated via Exponential Moving Average (EMA) momentum tracking: $\theta_{\text{tgt}} \leftarrow m \theta_{\text{tgt}} + (1-m) \theta_{\text{ctx}}$, with $m$ following a cosine schedule from $m_{\text{base}}=0.996$ to $m_{\text{max}}=0.9995$.
+    \item \textit{Optimization Protocol:} AdamW optimizer with initial learning rate $\eta=10^{-3}$ decayed to $\eta_{\text{min}}=10^{-5}$ via Cosine Annealing, weight decay $10^{-4}$, and mini-batch size $B=32$ across 20 training epochs on nominal telemetry sequences.
+    \item \textit{Statistical Calibration:} Extreme Value Theory (EVT / SPOT) calibration fits Generalized Pareto Distribution (GPD) tails to the top $2.0\%$ ($u=0.98$) of nominal training residuals under extreme risk parameter $q=10^{-3}$, dynamically modulated by the empirical sample kurtosis of the channel anomaly stream.
 \end{itemize}
 
-\subsection{Evaluation Metrics}
-To address the score-inflation critique of point adjustment in time-series anomaly detection literature \cite{schmidl2022anomaly}, we report dual evaluation metrics:
+\subsection{Baseline Architectures and Unified Reimplementation}
+To isolate algorithmic principles from external codebase discrepancies, all baselines are executed within a unified PyTorch benchmarking harness under identical windowing, standardization, and EVT calibration:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Unadjusted Point-Level F1 Score (Point-F1):} Exact, uninflated timestep-level precision and recall.
-    \item \textit{Point-Adjusted F1 Score (PA-F1):} Standard protocol where detecting any point within an anomaly segment marks the segment as detected.
-    \item \textit{Oracle Ceiling:} Upper-bound PA-F1 achievable via optimal post-hoc threshold scan over test set representations.
+    \item \textbf{TimesNet \cite{wu2023timesnet}:} SOTA 2023 multi-periodic reconstructive architecture that transforms 1D time series into 2D variation spaces via 1D-FFT periodic frequency discovery and 2D Inception blocks.
+    \item \textbf{TranAD \cite{tuli2022tranad}:} SOTA 2022 adversarial reconstructive Transformer featuring two-stage self-conditioning and sub-series attention to amplify subtle reconstruction errors.
+    \item \textbf{TS-JEPA (Unconstrained Control):} Standard Joint-Embedding Predictive Architecture predicting target representations $z_{\text{tgt}}$ from context $z_{\text{ctx}}$ without physical inductive priors, isolating the pure effect of latent-space forecasting.
+    \item \textbf{The PI-JEPA Triad:} Our three physics-informed architectures---\texttt{Operator-Entropy JEPA}, \texttt{Reynolds-Stress JEPA}, and \texttt{Potential-Flow JEPA}---incorporating spectral Koopman dissipation, turbulent momentum transport, and conservative curl-free potential constraints respectively.
 \end{enumerate}
 
-
-\subsection{Multi-Domain Benchmark Performance}
-\label{subsec:benchmark_results}
-Table~\ref{tab:multidataset_benchmark} reports the multi-domain evaluation across all 130 benchmark channels spanning four IoT and remote sensing domains under 50-epoch training (1,300 total model evaluations). We report both the unweighted \textit{Dataset Macro Average} (equal weight per dataset domain) and the \textit{Channel-Weighted Micro Average} (weighted by channel count across all 130 series).
-
-To assess performance stability against stochastic initialization, models were evaluated across 5 independent random seeds. DyFlow-JEPA achieves a mean micro Point-F1 of $0.2389 \pm 0.0074$ (macro: $0.1921 \pm 0.0068$), significantly outperforming the strongest published baselines TimesNet ($0.1566 \pm 0.0089$) and TranAD ($0.1529 \pm 0.0094$). Under a two-sided paired Wilcoxon signed-rank test on the per-channel mean-across-seeds differences ($n=130$ independent paired channels), DyFlow-JEPA significantly outperforms TimesNet ($p = 4.2 \times 10^{-6} < 10^{-4}$) and TranAD ($p = 8.1 \times 10^{-6} < 10^{-4}$).
-
-\begin{table*}[t]
-\centering
-\caption{Benchmark evaluation across 130 continuous telemetry channels spanning four IoT and remote sensing domains (50 Epochs, Cosine Annealing, Unsupervised EVT Calibration). We report both Primary Unadjusted Point-F1 (Panel a) and Secondary Legacy Point-Adjusted F1 (Panel b) across 1,300 total model-channel runs. We report both the unweighted Dataset Macro Average (11 domains) and Channel-Weighted Micro Average (130 channels). Bold indicates the top-performing model per row.\label{tab:multidataset_benchmark}}
-\vspace{2pt}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lc ccccc ccccc@{}}
-\toprule
-\multicolumn{12}{c}{\textbf{(a) Primary Unadjusted Point-F1 Score (Pt-F1) --- Strict Timestep-Level Metric}} \\
-\midrule
-\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published Baselines}} & \multicolumn{5}{c}{\textbf{Flow Frameworks \& Baseline JEPA Ablations}} \\
-\cmidrule(lr){3-7} \cmidrule(lr){8-12}
- & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{Point-JEPA} & \textbf{Patch-JEPA} & \textbf{DyFlow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-DyFlow} \\
-\midrule
-\textbf{SMAP} & 51 & 0.183 & 0.178 & 0.048 & 0.137 & 0.126 & 0.265 & 0.126 & 0.285 & 0.121 & \textbf{0.294} \\
-\textbf{MSL} & 26 & 0.206 & 0.174 & 0.106 & 0.064 & 0.066 & 0.217 & 0.130 & \textbf{0.265} & 0.143 & 0.254 \\
-\textbf{Daphnet} & 26 & 0.103 & 0.146 & 0.111 & 0.118 & 0.071 & 0.211 & \textbf{0.275} & 0.234 & 0.235 & 0.182 \\
-\textbf{GHL} & 14 & 0.008 & 0.025 & 0.030 & 0.000 & 0.005 & 0.107 & 0.190 & 0.104 & \textbf{0.225} & 0.001 \\
-\textbf{cicids} & 6 & 0.105 & 0.186 & 0.020 & 0.004 & 0.084 & 0.043 & 0.040 & 0.111 & 0.018 & \textbf{0.260} \\
-\textbf{room-occupancy}$^*$ & 2 & \textbf{0.635} & 0.525 & 0.318 & 0.213 & 0.088 & 0.356 & 0.338 & 0.338 & 0.368 & 0.338 \\
-\textbf{GECCO} & 1 & 0.030 & 0.030 & 0.125 & \textbf{0.360} & 0.255 & 0.262 & 0.180 & 0.320 & 0.244 & 0.040 \\
-\textbf{Genesis}$^*$ & 1 & 0.000 & 0.000 & \textbf{0.164} & 0.000 & 0.000 & 0.026 & 0.154 & 0.019 & 0.144 & 0.038 \\
-\textbf{swan} & 1 & 0.354 & 0.261 & 0.091 & 0.016 & 0.060 & 0.221 & 0.154 & 0.346 & 0.124 & \textbf{0.629} \\
-\textbf{CalIt2} & 1 & 0.147 & 0.135 & \textbf{0.179} & 0.080 & 0.090 & 0.121 & \textbf{0.179} & 0.091 & 0.136 & 0.077 \\
-\textbf{metro} & 1 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & \textbf{0.004} & 0.000 & 0.000 & 0.000 & 0.000 \\
-\midrule
-\textbf{Dataset Macro Avg} & \textbf{11} & 0.1610 & 0.1510 & 0.1083 & 0.0902 & 0.0770 & 0.1668 & 0.1606 & 0.1921 & 0.1598 & \textbf{0.1922} \\
-\textbf{Channel Micro Avg} & \textbf{130} & 0.1529 & 0.1566 & 0.0756 & 0.0971 & 0.0859 & 0.2137 & 0.1632 & \textbf{0.2389} & 0.1587 & 0.2258 \\
-\bottomrule
-\toprule
-\multicolumn{12}{c}{\textbf{(b) Secondary Legacy Point-Adjusted F1 Score (PA-F1) --- Segment-Adjusted Metric}} \\
-\midrule
-\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Ch.}} & \multicolumn{5}{c}{\textbf{Published Baselines}} & \multicolumn{5}{c}{\textbf{Flow Frameworks \& Baseline JEPA Ablations}} \\
-\cmidrule(lr){3-7} \cmidrule(lr){8-12}
- & & \textbf{TranAD} & \textbf{TimesNet} & \textbf{Anom.Trans.} & \textbf{DCdetector} & \textbf{NCAD} & \textbf{Point-JEPA} & \textbf{Patch-JEPA} & \textbf{DyFlow-JEPA} & \textbf{Patch-Flow} & \textbf{NCAD-DyFlow} \\
-\midrule
-\textbf{SMAP} & 51 & 0.220 & 0.289 & 0.117 & 0.289 & 0.347 & 0.375 & 0.172 & \textbf{0.459} & 0.203 & 0.455 \\
-\textbf{MSL} & 26 & 0.378 & 0.365 & 0.218 & 0.251 & 0.193 & 0.499 & 0.390 & 0.470 & 0.409 & \textbf{0.519} \\
-\textbf{Daphnet} & 26 & 0.276 & 0.355 & 0.518 & 0.417 & 0.425 & 0.396 & \textbf{0.557} & 0.402 & 0.532 & 0.358 \\
-\textbf{GHL} & 14 & 0.075 & 0.031 & 0.201 & 0.000 & 0.104 & 0.181 & 0.200 & 0.115 & \textbf{0.262} & 0.007 \\
-\textbf{cicids} & 6 & 0.192 & 0.216 & 0.059 & 0.004 & 0.285 & 0.271 & 0.232 & 0.355 & 0.204 & \textbf{0.367} \\
-\textbf{room-occupancy}$^*$ & 2 & \textbf{0.718} & 0.535 & 0.426 & 0.320 & 0.373 & 0.356 & 0.338 & 0.338 & 0.368 & 0.339 \\
-\textbf{GECCO} & 1 & 0.030 & 0.030 & 0.172 & 0.364 & \textbf{0.545} & 0.328 & 0.528 & 0.321 & 0.505 & 0.044 \\
-\textbf{Genesis}$^*$ & 1 & 0.000 & 0.000 & 0.164 & 0.000 & 0.000 & 0.057 & 0.180 & 0.116 & 0.144 & \textbf{0.225} \\
-\textbf{swan} & 1 & 0.681 & 0.654 & \textbf{0.724} & 0.017 & 0.721 & 0.681 & 0.699 & 0.620 & 0.712 & 0.705 \\
-\textbf{CalIt2} & 1 & 0.150 & 0.170 & 0.179 & 0.177 & 0.090 & 0.154 & \textbf{0.211} & 0.109 & 0.175 & 0.077 \\
-\textbf{metro} & 1 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & \textbf{0.004} & 0.000 & 0.000 & 0.000 & 0.000 \\
-\midrule
-\textbf{Dataset Macro Avg} & \textbf{11} & 0.2474 & 0.2405 & 0.2525 & 0.1672 & 0.2802 & 0.3002 & 0.3186 & 0.3004 & \textbf{0.3195} & 0.2816 \\
-\textbf{Channel Micro Avg} & \textbf{130} & 0.2517 & 0.2853 & 0.2334 & 0.2564 & 0.3000 & 0.3731 & 0.3065 & \textbf{0.3973} & 0.3230 & 0.3849 \\
-\bottomrule
-\end{tabular}%
-}
-\vspace{1pt}
-\flushleft{\footnotesize $^*$On \texttt{room-occupancy} and \texttt{Genesis}, anomalies consist of isolated single-timestep events or abrupt point-wise state transitions; for models detecting exact target points without spanning multi-step intervals, point-level and segment-adjusted scores are mathematically identical.}
-\end{table*}
+\subsection{Multi-Tier Statistical Evaluation Metrics}
+\label{subsec:eval_metrics}
+Recent critical surveys in time-series anomaly detection \cite{kim2022towards, schmidl2022anomaly, wu2023current} demonstrate that standard evaluation protocols are plagued by severe reporting vulnerabilities, notably point-adjustment inflation, channel-averaging imbalances, and arbitrary threshold gaming. To ensure complete transparency and reproducibility, we report four complementary evaluation tiers:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Dataset-Macro Point-F1 (Primary Metric):} We compute the unweighted arithmetic mean of Point-F1 scores across datasets:
+    \begin{equation}
+        \text{Macro-F1}_{\text{DS}} = \frac{1}{|\mathcal{D}|} \sum_{d \in \mathcal{D}} \left( \frac{1}{|C_d|} \sum_{c \in C_d} \text{F1}_{c} \right)
+    \end{equation}
+    where $\mathcal{D}$ is the set of benchmark datasets and $C_d$ is the set of channels in dataset $d$. This guarantees that datasets with numerous channels (e.g., SMAP with 51 channels) cannot dominate the aggregate headline score.
+    \item \textbf{Pooled Micro Point-F1:} We pool all raw True Positives, False Positives, and False Negatives globally across all test timesteps:
+    \begin{equation}
+        \text{Micro-F1} = \frac{2 \sum_{c} \text{TP}_c}{2 \sum_c \text{TP}_c + \sum_c \text{FP}_c + \sum_c \text{FN}_c}
+    \end{equation}
+    Micro-F1 directly penalizes models that flood long streams with hundreds of thousands of false alarms, exposing reconstructive noise drowning.
+    \item \textbf{Channel-Macro Point-F1:} The standard per-channel average $\frac{1}{N} \sum_{i=1}^N \text{F1}_i$ across all evaluated channels.
+    \item \textbf{Precision-Recall Area Under the Curve (PR-AUC):} Average Precision computed over all possible continuous anomaly score thresholds:
+    \begin{equation}
+        \text{PR-AUC} = \sum_{k} (R_k - R_{k-1}) P_k
+    \end{equation}
+    PR-AUC evaluates raw score ranking capability entirely independent of the threshold calibration mechanism.
+    \item \textbf{Trivial All-Positive Reference Baseline:} We report the analytical performance of a constant all-positive predictor ($\hat{y}_t = 1, \forall t$):
+    \begin{equation}
+        \text{F1}_{\text{all-pos}} = \frac{2 \cdot P}{2 \cdot P + N} = \frac{2 \pi}{1 + \pi}
+    \end{equation}
+    where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\text{F1}_{\text{all-pos}}$ provides less discriminative value than an uncalibrated constant alarm.
+    \item \textbf{Contiguous Point-Adjusted F1 (PA-F1):} Standard segment adjustment where detecting any single anomaly point expands to the entire contiguous anomaly segment. To prevent boundary bleeding, point adjustment is computed strictly within contiguous ground-truth segments before metric calculation. We also report the \textit{Test-Sweep PA-F1} (best post-hoc threshold scan) to quantify the remaining calibration gap.
+\end{enumerate}
 
 

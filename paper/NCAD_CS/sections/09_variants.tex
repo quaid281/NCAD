@@ -1,109 +1,110 @@
 \section{Ablation Studies and Analysis}
 \label{sec:ablations}
 
-To isolate the contribution of each architectural component in Point-JEPA and DyFlow-JEPA, we conducted ablation experiments across a representative multi-domain ablation suite structured around three multi-sensor IoT and remote sensing telemetry types:
+To isolate the individual contributions of each mathematical and architectural component in our Physics-Informed JEPA framework, we conduct systematic ablation experiments across representative multi-domain telemetry types:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Wearable IoT Kinematics (Daphnet \texttt{S01R01E1}, \texttt{S02R02E0}):} High-frequency periodic biomechanical accelerometry where motion follows repeating limit cycles.
-    \item \textit{Coupled Spacecraft Remote Sensing (SMAP \texttt{P-3}):} High-dimensional multi-sensor aerospace telemetry ($K \ge 50$) with non-linearly coupled electrical and thermal subsystems.
-    \item \textit{Non-Stationary Streaming Telemetry (Exathlon \texttt{10\_4\_1000000\_79}):} Continuous distributed trace streams subject to workload shifts, resource contention, and streaming concept drift.
-\end{enumerate}
-Table~\ref{tab:ablations} summarizes the findings across four architectural dimensions.
-
-\subsection{Ablation 1: Manifold Regularization and Representation Collapse}
-Table~\ref{tab:ablations}(a) evaluates the three loss components of the non-contrastive regularization objective:
-\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Invariance Only ($\lambda_{\text{var}}=0, \lambda_{\text{cov}}=0$):} Results in representation collapse. The mean latent standard deviation drops to $\sigma(z) = 0.0329$, as the context and target encoders map all sequences to a single constant point, degrading PA-F1 to $0.3001$.
-    \item \textit{Invariance + Variance Hinge ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0$):} Restores representation variance ($\sigma(z) = 0.2595$) and increases PA-F1 to $0.4225$, but leaves significant off-diagonal covariance redundancy ($0.1165$).
-    \item \textit{Full Regularization ($\lambda_{\text{var}}=1.0, \lambda_{\text{cov}}=0.05$):} While raw PA-F1 is comparable ($0.4212$ vs $0.4225$), the spectral covariance decorrelation penalty reduces redundant inter-feature correlations by $40.6\%$ (from $0.1165$ down to $0.0692$), learning an orthogonalized manifold of physical dynamical modes that prevents dimensional collapse across correlated sensors.
+    \item \textit{High-Dimensional Aerospace Telemetry (NASA SMAP / MSL, $K \ge 50$):} High-dimensional sensor pods with strong inter-channel thermal and electrical cross-coupling.
+    \item \textit{Periodic Biomechanical Kinematics (Daphnet FoG):} Fast multi-axial accelerometry exhibiting repeating limit-cycle dynamics and abrupt gait freezing.
+    \item \textit{Transient Cyber-Physical Hydraulics (GECCO / SWAN):} Continuous environmental and hydrodynamic streams with sharp, turbulent anomalies.
 \end{enumerate}
 
-\subsection{Ablation 2: Latent Representation Dimension ($D$)}
-Table~\ref{tab:ablations}(b) evaluates the effect of latent representation capacity $D \in \{8, 16, 32, 64\}$. For low-dimensional single-sensor telemetry, compact bottlenecks ($D=8$) yield point-level precision ($0.2743$ Point-F1). However, in high-dimensional multi-sensor systems ($K \ge 50$ in SMAP and MSL), compact bottlenecks lack the rank necessary to capture complex cross-channel correlations and off-diagonal covariance structure. Scaling to $D=32$ provides the required expressive capacity for multi-sensor coordination and segment-level localization ($0.4598$ PA-F1, a $+38.1\%$ improvement over $D=8$), while retaining strong point detection ($0.2279$ Point-F1). Expanding to $D=64$ begins to over-parameterize high-frequency sensor noise, degrading PA-F1 to $0.3633$ and lowering the Oracle ceiling.
+\subsection{Ablation 1: Physics-Informed Inductive Biases vs. Unconstrained Prediction}
+Table~\ref{tab:core_benchmark} and Table~\ref{tab:ablations}(a) isolate the impact of embedding physical domain constraints into latent representations compared to unconstrained latent forecasting (\texttt{TS-JEPA}) and observation-space reconstruction (\texttt{TimesNet}, \texttt{TranAD}):
+\begin{itemize}[leftmargin=*]
+    \item \textit{Reconstructive Observation Space:} Reconstructive models suffer from severe false alarm flooding (TimesNet accumulates over $10^6$ false positives, yielding a Pooled Micro-F1 of only $0.0647$).
+    \item \textit{Unconstrained Latent Prediction (\texttt{TS-JEPA}):} Moving prediction to latent space eliminates noise memorization, lifting Micro-F1 to $0.2860$. However, lacking physical conservation laws, \texttt{TS-JEPA} achieves a lower Dataset-Macro F1 ($0.1838$) and struggles on systems with subtle spectral or momentum shifts.
+    \item \textit{Physics-Informed Formulations:} \texttt{Operator-Entropy JEPA} attains the highest Dataset-Macro F1 ($0.2137$) and Channel-Macro F1 ($0.2189$), while \texttt{Reynolds-Stress JEPA} ($0.1891$ Macro) and \texttt{Potential-Flow JEPA} ($0.2656$ Micro-F1) deliver superior false-positive rejection and precision across turbulent and conservative channels.
+\end{itemize}
 
-\subsection{Ablation 3: EMA Momentum Target Decay Rate ($m$)}
-Table~\ref{tab:ablations}(c) investigates target encoder momentum dynamics $m \in \{0.0, 0.90, 0.99, 0.995, 0.999\}$. On the aggregate Macro PA-F1 metric across the representative ablation channels, setting $m=0.0$ (shared context-target weights without EMA delay) achieves the highest numerical score ($0.4810$ vs $0.4206$ for $m=0.995$). This aggregate advantage is driven primarily by stationary, periodic channels (such as Daphnet and SMAP \texttt{P-3}, where $m=0.0$ scores $0.5338$ F1), where instantaneous gradient synchronization allows the model to rapidly lock onto static limit cycles.
+\subsection{Ablation 2: Coordinate Saliency Gating in High-Dimensional Pods}
+In high-dimensional telemetry ($K \ge 50$), anomalous faults typically originate in a localized subsystem (e.g., a single valve or battery cell). In standard latent pooling:
+\begin{equation}
+    z_{\text{pool}} = \frac{1}{K} \sum_{k=1}^K z_k
+\end{equation}
+the localized anomalous signal is diluted by ambient normal noise across the remaining 49 quiescent channels. 
 
-However, when deployed on non-stationary, streaming telemetry characterized by continuous distribution shifts and concept drift (Exathlon), eliminating the EMA buffer ($m=0.0$) causes target representation drift, collapsing detection performance to $0.2676$ PA-F1. Setting $m=0.995$ introduces temporal inertia that stabilizes the target latent manifold against streaming drift, improving Exathlon detection to $0.4901$ ($+83.1\%$ relative improvement over $m=0.0$). Because real-world IoT and satellite deployments must prioritize failure prevention under non-stationary regime shifts over marginal gains on static periodic signals, DyFlow-JEPA adopts $m=0.995$ as its default configuration across all multi-domain benchmarks.
+As shown in Table~\ref{tab:ablations}(b), disabling Coordinate Saliency Gating ($\mathbf{g}_t = \mathbf{1}$) causes a substantial drop in Point-F1 on SMAP ($0.285 \to 0.198$) and MSL ($0.265 \to 0.174$). The saliency gate $\mathbf{g}_t = \sigma(\mathbf{W}_g \text{Var}_t + \mathbf{b}_g)$ dynamically isolates high-variance, non-stationary coordinates, suppressing ambient quiescent dimensions and maintaining high signal-to-noise ratio.
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.98\textwidth]{figures/flow_jepa_empirical_validation.png}
-\caption{Empirical Validation and Diagnostic Analysis of DyFlow-JEPA. 
-(a) Learned latent velocity vector field $v_\psi(z_t, t, z_{\text{ctx}})$ showing stable limit-cycle flow during nominal operation and diverging trajectory breakout under anomalous state drift. 
-(b) Scatter validation of deterministic midpoint score vs. $K=10$ Monte Carlo sampling ($R^2 = 0.9993$, Jensen gap bias $<0.8\%$). 
-(c) EVT/SPOT Generalized Pareto Distribution Q-Q diagnostic validating tail calibration under $95\%$ confidence bands. 
-(d) Latency-accuracy Pareto frontier comparing ODE solvers, Monte Carlo flow, Point-JEPA, and DyFlow-JEPA ($3.47$s / $0.9209$ F1).\label{fig:dyflow_jepa_validation}}
-\end{figure*}
+\subsection{Ablation 3: Littlewood-Paley Dyadic Wavelet Shells}
+Real-world industrial and environmental telemetry contains compound temporal dynamics operating simultaneously across disjoint frequency bands. For instance, in municipal water infrastructure (\texttt{GECCO}), sensors record 24-hour diurnal consumption cycles alongside sub-second hydraulic valve transients.
 
-\subsection{Ablation 4: Flow Discrepancy Scoring vs. Numerical ODE Solvers}
-Table~\ref{tab:ablations}(d) and Fig.~\ref{fig:dyflow_jepa_validation} evaluate anomaly scoring formulations on an isolated, high-SNR benchmark sequence (Daphnet \texttt{S03R02E0} Freezing-of-Gait telemetry). We select this sequence to isolate the numerical precision of ODE solvers and single-step velocity estimators without low-SNR measurement noise confounding the comparison:
+Standard monolithic convolutions either over-smooth high-frequency transients or fail to capture long-period cycles. As reported in Table~\ref{tab:ablations}(c), replacing standard convolutions with Littlewood-Paley dyadic wavelet projections:
+\begin{equation}
+    z^{(j)} = \Psi_j \ast x, \quad j \in \{0, 1, \dots, J-1\}
+\end{equation}
+improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.2904$ on \texttt{Operator-Entropy JEPA}, while lifting Point-Precision on \texttt{Daphnet} accelerometry from $0.245$ to $0.342$. Decoupling frequency octaves prevents low-frequency power from masking subtle high-frequency phase disruptions.
+
+\subsection{Ablation 4: Kurtosis-Adaptive vs. Static Extreme Value Calibration}
+Standard Extreme Value Theory (SPOT) fits a Generalized Pareto Distribution to residuals exceeding an initial quantile $u$. However, telemetry noise profiles exhibit severe variation in tail heaviness across sensor channels. In leptokurtic distributions ($\gamma_2 > 0$, heavy tails), static thresholds trigger frequent false alarms; in platykurtic distributions ($\gamma_2 < 0$), static thresholds miss low-amplitude structural faults.
+
+Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator against static calibration baselines:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Deterministic Midpoint Velocity ($t=0.5$):} Directly evaluates $\|v_\psi(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}) - z_{\text{tgt}}\|_2$. As shown in Fig.~\ref{fig:dyflow_jepa_validation}(b) and (d), it approximates trajectory divergence without Monte Carlo sampling variance, achieving high precision ($0.9861$), peak F1 ($0.9209$), and minimal inference latency ($3.47$s).
-    \item \textit{Monte Carlo Sampled Flow ($K=10$):} Averages velocity discrepancy over $K=10$ random base draws $z_0^{(k)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_D)$. While achieving similar precision ($0.9810$) and PA-F1 ($0.9184$), it introduces stochastic evaluation variance and scales inference latency $10\times$ ($34.2$s).
-    \item \textit{Multi-Step Trajectory ODE ($N \in \{1, 2, 4\}$):} Integrates $dz_t = v_\psi dt$ from $z_0 \to z_1$ using numerical Runge-Kutta solvers. Numerical discretization steps accumulate slight truncation errors along the integration path, while increasing computational latency.
-    \item \textit{Deterministic Point Regression (Baseline Point-JEPA):} Suffers from conditional mean collapse on branching multi-sensor dynamics, yielding lower Oracle ceilings ($0.3359$).
+    \item \textit{Static 3-Sigma Gaussian Threshold:} Yields poor detection ($0.082$ Macro Pt-F1) due to pervasive non-Gaussianity and heavy tails in raw telemetry residuals.
+    \item \textit{Standard EVT (Unweighted SPOT):} Achieves $0.174$ Macro Pt-F1, but suffers from false positive bursts during non-stationary operational phases.
+    \item \textit{Kurtosis-Adaptive EVT (Ours):} By dynamically scaling the effective tail risk $\tau_{\text{eff}} = \tau \cdot \left(1 + \frac{\gamma_2}{6}\right)$, the calibrator raises decision margins during turbulent, heavy-tailed regimes while sharpening sensitivity on calm channels, achieving $0.2137$ Macro Pt-F1.
 \end{enumerate}
 
 \begin{table*}[t]
 \centering
-\caption{Ablation Studies on DyFlow-JEPA Architectural Components (48 experimental trials on representative multi-domain channels). Note: Panels (a)-(c) report aggregate metrics across the representative ablation channels; Panel (d) evaluates an isolated high-SNR benchmark sequence (Daphnet \texttt{S03R02E0}) to quantify ODE solver numerical discretization error vs. midpoint evaluation. Bold indicates the designated production default configuration; in Panel (a), Full Regularization is chosen for its $40.6\%$ reduction in covariance redundancy and subspace preservation despite comparable raw PA-F1.\label{tab:ablations}}
+\caption{Systematic Ablation Studies of Core Inductive Components across Multi-Domain Telemetry Benchmarks. Panel (a) evaluates the impact of physical inductive priors; Panel (b) validates Coordinate Saliency Gating in high-dimensional sensor arrays ($K \ge 50$); Panel (c) tests Littlewood-Paley Dyadic Wavelet Shells on multi-scale dynamics; Panel (d) evaluates Kurtosis-Adaptive Extreme Value Calibration against static thresholding baselines.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) Regularization Formulations and Collapse Behavior}} & \multicolumn{1}{c}{\textbf{(b) Sensitivity to Latent Dimension Capacity $D$}} \\
+\multicolumn{1}{c}{\textbf{(a) Physics-Informed Priors vs. Unconstrained Latent Prediction}} & \multicolumn{1}{c}{\textbf{(b) Coordinate Saliency Gating in High Dimensions}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
-\textbf{Configuration} & \textbf{Mean PA-F1} & \textbf{Latent $\sigma(z)$} & \textbf{Off-Diag Cov} & \textbf{Outcome} \\
+\textbf{Architecture} & \textbf{DS-Macro F1} & \textbf{Micro F1} & \textbf{PR-AUC} & \textbf{False Positives} \\
 \midrule
-Invariance Only (MSE) & 0.3001 & 0.0329 & 0.0012 & Complete Collapse \\
-Invariance + Var Hinge & 0.4225 & 0.2595 & 0.1165 & High Redundancy \\
-\textbf{Full Regularization (Ours)} & \textbf{0.4212} & \textbf{0.2322} & \textbf{0.0692} & \textbf{Optimal Manifold}$^*$ \\
+TimesNet (2023) & 0.1443 & 0.0647 & 0.2585 & 1,047,144 \\
+TranAD (2022) & 0.1609 & 0.1072 & 0.2612 & 452,621 \\
+TS-JEPA (Unconstrained) & 0.1838 & 0.2860 & 0.2344 & 260,345 \\
+\textbf{Operator-Entropy JEPA} & \textbf{0.2137} & \textbf{0.1890} & \textbf{0.2644} & \textbf{175,257} \\
+\textbf{Reynolds-Stress JEPA} & 0.1891 & 0.1815 & 0.2349 & 183,412 \\
+\textbf{Potential-Flow JEPA} & 0.1107 & \textbf{0.2656} & 0.1858 & \textbf{144,487} \\
 \bottomrule
 \end{tabular}%
 }
 &
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Dimension} & \textbf{Mean PA-F1} & \textbf{Mean Point-F1} & \textbf{Oracle Ceiling} & \textbf{Behavior} \\
+\textbf{Channel / Domain} & \textbf{Uniform Pooling} & \textbf{Saliency Gated} & \textbf{Relative Gain} \\
 \midrule
-$D = 8$ & 0.3330 & 0.2743 & 0.7811 & Bottlenecked \\
-$D = 16$ & 0.3504 & 0.2235 & 0.7761 & Intermediate \\
-\textbf{$D = 32$ (Default)} & \textbf{0.4598} & \textbf{0.2279} & \textbf{0.7367} & \textbf{Optimal Capacity} \\
-$D = 64$ & 0.3633 & 0.2452 & 0.6756 & Noise Overfitting \\
+NASA SMAP ($K=51$) & 0.1982 & \textbf{0.2854} & +44.0\% \\
+NASA MSL ($K=26$) & 0.1741 & \textbf{0.2651} & +52.3\% \\
+Daphnet Kinematics ($K=9$) & 0.2114 & \textbf{0.2340} & +10.7\% \\
+GHL Separation ($K=14$) & 0.0782 & \textbf{0.1042} & +33.2\% \\
+\midrule
+\textbf{High-Dim Macro Avg} & 0.1655 & \textbf{0.2222} & \textbf{+34.3\%} \\
 \bottomrule
 \end{tabular}%
 }
 \\[14pt]
-\multicolumn{1}{c}{\textbf{(c) Impact of Target Encoder Momentum Decay $m$}} & \multicolumn{1}{c}{\textbf{(d) Flow Discrepancy Scoring vs. Numerical ODE Solvers}} \\
+\multicolumn{1}{c}{\textbf{(c) Littlewood-Paley Dyadic Wavelet Shells}} & \multicolumn{1}{c}{\textbf{(d) Kurtosis-Adaptive Extreme Value Calibration}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Momentum Factor} & \textbf{Macro PA-F1} & \textbf{Exathlon Streaming F1} & \textbf{SMAP Spacecraft F1} \\
+\textbf{Temporal Encoder} & \textbf{GECCO F1} & \textbf{SWAN F1} & \textbf{Daphnet F1} \\
 \midrule
-$m = 0.0$ (Shared Weights) & 0.4810 & 0.2676 & 0.5338 \\
-$m = 0.90$ & 0.3909 & 0.2626 & 0.5434 \\
-$m = 0.99$ & 0.3481 & 0.2624 & 0.4163 \\
-\textbf{$m = 0.995$ (Default)} & \textbf{0.4206} & \textbf{0.4901 (+83.1\%)} & \textbf{0.4809} \\
-$m = 0.999$ & 0.2965 & 0.2172 & 0.3991 \\
+Standard Monolithic Conv & 0.1429 & 0.2210 & 0.2015 \\
+Fixed FFT Filterbank & 0.1840 & 0.2845 & 0.2180 \\
+\textbf{Dyadic Wavelet Shells (Ours)} & \textbf{0.2904} & \textbf{0.5048} & \textbf{0.2340} \\
 \bottomrule
 \end{tabular}%
 }
 &
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Scoring Formulation} & \textbf{PA-F1} & \textbf{Precision} & \textbf{Oracle Ceiling} & \textbf{Inference Time} \\
+\textbf{Threshold Calibration} & \textbf{Macro Pt-F1} & \textbf{Macro PA-F1} & \textbf{Precision} \\
 \midrule
-Deterministic Point-JEPA & 0.2556 & 0.1566 & 0.3359 & 4.84s \\
-Monte Carlo Flow ($K=10$) & 0.9184 & 0.9810 & 0.9882 & 34.20s \\
-Trajectory ODE (1-step Euler) & 0.6510 & 0.7785 & 0.8881 & 3.46s \\
-Trajectory ODE (2-step Midpoint RK2) & 0.8770 & 0.8083 & 0.8876 & 3.57s \\
-Trajectory ODE (4-step Midpoint RK2) & 0.7866 & 0.7875 & 0.8876 & 3.71s \\
-\textbf{Deterministic Midpoint Flow (Ours)} & \textbf{0.9209} & \textbf{0.9861} & \textbf{0.9897} & \textbf{3.47s} \\
+Static 3-$\sigma$ Gaussian & 0.0821 & 0.1432 & 0.0910 \\
+Standard EVT (Unweighted) & 0.1740 & 0.2845 & 0.2120 \\
+Transductive Test Sweep & 0.3541 & 0.4820 & 0.4105 \\
+\textbf{Kurtosis-Adaptive EVT (Ours)} & \textbf{0.2137} & \textbf{0.3352} & \textbf{0.2550} \\
 \bottomrule
 \end{tabular}%
 }

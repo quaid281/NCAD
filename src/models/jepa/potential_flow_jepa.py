@@ -45,12 +45,16 @@ class HarmonicGrassmannianCodebook(nn.Module):
         n_regimes: int = 4,
         subspace_dim: int = 8,
         temperature: float = 0.1,
+        load_balance_weight: float = 0.0,
+        hard_eval: bool = True,
     ):
         super().__init__()
         self.latent_dim = latent_dim
         self.n_regimes = n_regimes
         self.subspace_dim = min(subspace_dim, latent_dim)
         self.temperature = temperature
+        self.load_balance_weight = load_balance_weight
+        self.hard_eval = hard_eval
 
         raw_frames = torch.randn(n_regimes, latent_dim, self.subspace_dim)
         q_frames = []
@@ -58,6 +62,33 @@ class HarmonicGrassmannianCodebook(nn.Module):
             q, _ = torch.linalg.qr(raw_frames[k])
             q_frames.append(q[:, :self.subspace_dim])
         self.raw_frames = nn.Parameter(torch.stack(q_frames, dim=0))
+
+    @torch.no_grad()
+    def init_spectral_band_frames(self, z_samples: torch.Tensor) -> None:
+        """Initialize regime frames from interleaved principal-component bands.
+
+        Assigns each regime K a distinct strided slice {k, k+K, k+2K, ...} of
+        the descending-variance eigenbasis of the context covariance, so every
+        frame starts with comparable captured energy on real data instead of
+        QR-random orientations (which leaves the argmax margin noise-dominated).
+        """
+        Z = z_samples.detach().float()
+        Zc = Z - Z.mean(dim=0, keepdim=True)
+        cov = (Zc.T @ Zc) / max(Z.size(0) - 1, 1)
+        _, evecs = torch.linalg.eigh(cov)
+        pcs = evecs.flip(-1)  # columns sorted by descending eigenvalue
+        D = pcs.size(0)
+
+        frames = torch.empty(self.n_regimes, D, self.subspace_dim, device=Z.device)
+        for k in range(self.n_regimes):
+            cols = list(range(k, min(k + self.subspace_dim * self.n_regimes, D), self.n_regimes))
+            band = pcs[:, cols]
+            if band.size(1) < self.subspace_dim:
+                pad = torch.randn(D, self.subspace_dim - band.size(1), device=Z.device)
+                band = torch.cat([band, pad], dim=1)
+            q, _ = torch.linalg.qr(band)
+            frames[k] = q[:, :self.subspace_dim]
+        self.raw_frames.copy_(frames.to(device=self.raw_frames.device, dtype=self.raw_frames.dtype))
 
     def get_orthonormal_frames(self) -> torch.Tensor:
         """Compute orthonormal bases for each regime via QR decomposition.
@@ -85,7 +116,8 @@ class HarmonicGrassmannianCodebook(nn.Module):
         Returns:
             p_ctx: Regime-projected context representations, shape (B, D)
             regime_probs: Probability distribution over regimes, shape (B, K)
-            loss_ortho: Delsarte frame orthogonality regularization loss
+            loss_ortho: Delsarte frame orthogonality regularization loss, plus
+                the load-balancing auxiliary term when load_balance_weight > 0
         """
         B, D = z_ctx.shape
         frames = self.get_orthonormal_frames()  # (K, D, d)
@@ -103,7 +135,7 @@ class HarmonicGrassmannianCodebook(nn.Module):
         energy_tensor = torch.stack(energies, dim=-1)  # (B, K)
         proj_tensor = torch.stack(projections, dim=1)  # (B, K, D)
 
-        if hard or not self.training:
+        if hard or (not self.training and self.hard_eval):
             regime_idx = torch.argmax(energy_tensor, dim=-1)  # (B,)
             regime_probs = F.one_hot(regime_idx, num_classes=self.n_regimes).float()
             p_ctx = proj_tensor[torch.arange(B, device=z_ctx.device), regime_idx]
@@ -118,6 +150,18 @@ class HarmonicGrassmannianCodebook(nn.Module):
                     overlap = frames[i].T @ frames[j]  # (d, d)
                     loss_ortho = loss_ortho + torch.sum(overlap ** 2)
             loss_ortho = loss_ortho / (self.n_regimes * (self.n_regimes - 1) / 2.0)
+
+        # Switch-style load-balancing auxiliary loss: K * sum_k f_k * P_k,
+        # minimized (=1.0) when hard usage f_k and mean soft mass P_k are uniform.
+        # f_k is detached (argmax is non-differentiable); gradients flow through
+        # P_k to raise under-used frames' energies and deflate over-used ones.
+        if self.load_balance_weight > 0 and self.training and not hard:
+            f_k = F.one_hot(
+                torch.argmax(energy_tensor, dim=-1), num_classes=self.n_regimes
+            ).float().mean(dim=0)
+            P_k = regime_probs.mean(dim=0)
+            loss_lb = self.n_regimes * torch.sum(f_k.detach() * P_k)
+            loss_ortho = loss_ortho + self.load_balance_weight * loss_lb
 
         return p_ctx, regime_probs, loss_ortho
 
@@ -157,8 +201,8 @@ class ScalarPotentialField(nn.Module):
                 )
             )
 
-        self.out_norm = nn.LayerNorm(hidden_dim)
-        self.out_scalar = nn.Linear(hidden_dim, 1)
+        self.out_norm = nn.LayerNorm(hidden_dim, elementwise_affine=False)
+        self.out_scalar = nn.Linear(hidden_dim, 1, bias=False)
 
     def forward(
         self,
@@ -294,12 +338,16 @@ class PotentialFlowJEPAModel(JEPABase):
         use_regimes: bool = True,
         ema_decay: float = 0.995,
         dropout: float = 0.05,
+        codebook_temperature: float = 0.1,
+        load_balance_weight: float = 0.0,
+        eval_hard_routing: bool = True,
     ):
         super().__init__()
         self.context_encoder = context_encoder
         self.latent_dim = latent_dim
         self.use_regimes = use_regimes
         self.ema_decay = ema_decay
+        self.eval_hard_routing = eval_hard_routing
 
         self.target_encoder = self.init_target_encoder(context_encoder)
 
@@ -308,6 +356,9 @@ class PotentialFlowJEPAModel(JEPABase):
                 latent_dim=latent_dim,
                 n_regimes=n_regimes,
                 subspace_dim=subspace_dim,
+                temperature=codebook_temperature,
+                load_balance_weight=load_balance_weight,
+                hard_eval=eval_hard_routing,
             )
         else:
             self.grassmannian_codebook = None
@@ -318,6 +369,9 @@ class PotentialFlowJEPAModel(JEPABase):
             num_layers=predictor_layers,
             dropout=dropout,
         )
+
+        from src.models.geometric_layers import CoordinateSaliencyGate
+        self.saliency_gate = CoordinateSaliencyGate(dim=latent_dim, tau=0.5, alpha=0.5)
 
         self.register_mahalanobis_buffers(latent_dim)
 
@@ -425,6 +479,7 @@ class PotentialFlowJEPAModel(JEPABase):
         use_mahalanobis: bool = False,
         include_curvature: bool = False,
         curvature_weight: float = 0.10,
+        integration_steps: int = 1,
     ) -> torch.Tensor:
         if use_mahalanobis and not bool(self.precision_fitted.item()):
             raise RuntimeError("Mahalanobis scoring requested, but covariance has not been fitted.")
@@ -438,27 +493,40 @@ class PotentialFlowJEPAModel(JEPABase):
         z_tgt = self.target_encoder(observed_target_windows)
 
         if self.grassmannian_codebook is not None:
-            p_regime, _, _ = self.grassmannian_codebook(z_ctx, hard=True)
+            p_regime, _, _ = self.grassmannian_codebook(z_ctx, hard=self.eval_hard_routing)
         else:
             p_regime = torch.zeros_like(z_ctx)
 
-        t_mid = torch.full((B,), 0.5, device=device, dtype=dtype)
-        z_mid = 0.5 * z_tgt
-
-        v_pred = self.flow_predictor(z_mid, t_mid, z_ctx, p_regime=p_regime, create_graph=False)
-        diff = v_pred - z_tgt
-
-        if use_mahalanobis:
-            diff_c = diff - self.residual_mean
-            m_dist = torch.sum((diff_c @ self.precision_matrix) * diff_c, dim=-1)
-            base_score = torch.sqrt(torch.clamp(m_dist, min=1e-8))
+        if integration_steps > 1:
+            dt = 1.0 / integration_steps
+            v_acc = torch.zeros_like(z_tgt)
+            for step in range(integration_steps):
+                t_k = torch.full((B,), (step + 0.5) * dt, device=device, dtype=dtype)
+                z_k = (step + 0.5) * dt * z_tgt
+                v_k = self.flow_predictor(z_k, t_k, z_ctx, p_regime=p_regime, create_graph=False)
+                v_acc = v_acc + v_k
+            v_pred = v_acc / integration_steps
+            diff = v_pred - z_tgt
+            t_eval = torch.full((B,), 0.5, device=device, dtype=dtype)
+            z_eval = 0.5 * z_tgt
         else:
-            base_score = torch.linalg.norm(diff, dim=-1)
+            t_eval = torch.full((B,), 0.5, device=device, dtype=dtype)
+            z_eval = 0.5 * z_tgt
+            v_pred = self.flow_predictor(z_eval, t_eval, z_ctx, p_regime=p_regime, create_graph=False)
+            diff = v_pred - z_tgt
+
+        if use_mahalanobis and bool(self.precision_fitted.item()):
+            diff_c = diff - self.residual_mean
+            mahal_coord = (diff_c @ self.precision_matrix) * diff_c
+            e_white = torch.sign(diff_c) * torch.sqrt(torch.clamp(mahal_coord, min=0.0))
+            base_score = self.saliency_gate(e_white)
+        else:
+            base_score = self.saliency_gate(diff)
 
         if include_curvature:
             with torch.enable_grad():
                 laplacian = self.flow_predictor.compute_energy_laplacian(
-                    z_mid, t_mid, z_ctx, p_regime=p_regime, n_probes=1
+                    z_eval, t_eval, z_ctx, p_regime=p_regime, n_probes=1
                 )
             curv_score = F.relu(laplacian)
             total_score = base_score + curvature_weight * curv_score
@@ -474,19 +542,32 @@ class PotentialFlowJEPAModel(JEPABase):
         target_windows,
         batch_size: int = 512,
         reg: float = 1e-3,
+        integration_steps: int = 1,
     ) -> None:
         def residual_fn(ctx_b, tgt_b):
             z_ctx = self.context_encoder(ctx_b)
             z_tgt = self.target_encoder(tgt_b)
             B_b = ctx_b.size(0)
             if self.grassmannian_codebook is not None:
-                p_regime, _, _ = self.grassmannian_codebook(z_ctx, hard=True)
+                p_regime, _, _ = self.grassmannian_codebook(z_ctx, hard=self.eval_hard_routing)
             else:
                 p_regime = torch.zeros_like(z_ctx)
-            t_mid = torch.full((B_b,), 0.5, device=ctx_b.device, dtype=ctx_b.dtype)
-            z_mid = 0.5 * z_tgt
-            v_pred = self.flow_predictor(z_mid, t_mid, z_ctx, p_regime=p_regime, create_graph=False)
-            return v_pred - z_tgt
+            if integration_steps > 1:
+                dt = 1.0 / integration_steps
+                v_acc = torch.zeros_like(z_tgt)
+                for step in range(integration_steps):
+                    t_k = torch.full((B_b,), (step + 0.5) * dt, device=ctx_b.device, dtype=ctx_b.dtype)
+                    z_k = (step + 0.5) * dt * z_tgt
+                    v_k = self.flow_predictor(z_k, t_k, z_ctx, p_regime=p_regime, create_graph=False)
+                    v_acc = v_acc + v_k
+                v_pred = v_acc / integration_steps
+                return v_pred - z_tgt
+            else:
+                t_mid = torch.full((B_b,), 0.5, device=ctx_b.device, dtype=ctx_b.dtype)
+                z_mid = 0.5 * z_tgt
+                v_pred = self.flow_predictor(z_mid, t_mid, z_ctx, p_regime=p_regime, create_graph=False)
+                return v_pred - z_tgt
+
 
         fit_covariance_batched(
             self,

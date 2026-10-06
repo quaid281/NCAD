@@ -79,6 +79,7 @@ class OperatorEntropyJEPAModel(JEPABase):
             ])
             in_d = hidden_dim
         layers.append(nn.Linear(in_d, latent_dim))
+        layers.append(nn.LayerNorm(latent_dim))
         self.predictor = nn.Sequential(*layers)
 
         # Resolvent purification for spectral operator regularization (Chapter 6, §4.2)
@@ -92,8 +93,9 @@ class OperatorEntropyJEPAModel(JEPABase):
             self.radial_heat = None
 
         # Cohn-Elkies Fourier sign-uncertainty modulation layer (Ten Proofs, Ch. 1, §4.2)
-        from src.models.geometric_layers import CohnElkiesFilter
+        from src.models.geometric_layers import CohnElkiesFilter, CoordinateSaliencyGate
         self.cohn_elkies = CohnElkiesFilter(latent_dim=latent_dim, n_shells=8)
+        self.saliency_gate = CoordinateSaliencyGate(dim=latent_dim, tau=0.5, alpha=0.5)
 
         self.register_mahalanobis_buffers(latent_dim)
 
@@ -190,13 +192,13 @@ class OperatorEntropyJEPAModel(JEPABase):
         z_tgt = self._apply_filters(self.target_encoder(observed_target_windows))
 
         diff = z_tgt - z_pred
-
         if use_mahalanobis and bool(self.precision_fitted.item()):
             diff_cent = diff - self.residual_mean
-            mahal = torch.sum((diff_cent @ self.precision_matrix) * diff_cent, dim=-1)
-            disc = torch.sqrt(torch.clamp(mahal, min=0.0))
+            mahal_coord = (diff_cent @ self.precision_matrix) * diff_cent
+            e_white = torch.sign(diff_cent) * torch.sqrt(torch.clamp(mahal_coord, min=0.0))
+            disc = self.saliency_gate(e_white)
         else:
-            disc = torch.linalg.norm(diff, dim=-1)
+            disc = self.saliency_gate(diff)
 
         # Spectral energy leakage component
         energy_leak = torch.clamp(torch.norm(z_tgt, dim=-1) - torch.norm(z_pred, dim=-1), min=0.0)

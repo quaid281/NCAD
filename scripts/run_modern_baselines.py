@@ -115,9 +115,12 @@ def train_and_score_channel(
     risk_level: float = 1e-2,
     use_mahalanobis: bool = True,
     mapping_method: str = "middle",
+    smoothing_window: int = 5,
+    dynamic_evt: bool = False,
     device: torch.device = torch.device("cpu"),
 ) -> dict:
     set_seed(seed)
+
     window_size = context_size + suspect_size
     train_df = pd.read_csv(train_path)
     test_df = pd.read_csv(test_path)
@@ -498,7 +501,7 @@ def train_and_score_channel(
         reducer="mean",
         mapping_method=mapping_method,
     )
-    test_scores = moving_average(pt_scores, 12)
+    test_scores = moving_average(pt_scores, max(1, smoothing_window))
     valid_scores = test_scores[valid_mask]
 
     train_pt_scores, train_valid_mask = aggregate_window_scores(
@@ -510,22 +513,28 @@ def train_and_score_channel(
         reducer="mean",
         mapping_method=mapping_method,
     )
-    train_smoothed = moving_average(train_pt_scores, 12)
+    train_smoothed = moving_average(train_pt_scores, max(1, smoothing_window))
     train_valid_scores = train_smoothed[train_valid_mask]
 
-    # EVT Extreme Value Theory Tail Calibration
-    evt_res = calibrate_evt_threshold(train_valid_scores, risk_level=risk_level, init_percentile=95.0)
+    # EVT Extreme Value Theory Tail Calibration with Kurtosis Adaptation
+    evt_res = calibrate_evt_threshold(train_valid_scores, risk_level=risk_level, init_percentile=95.0, adaptive_kurtosis=True)
     evt_th = evt_res.threshold
 
-    preds_evt = event_level_filter(test_scores, evt_th, valid_mask, min_run=2, extreme_factor=1.75) * valid_mask.astype(np.float32)
-    m_pa = compute_metrics(test_labels, preds_evt, valid_mask=valid_mask, use_pa=True)
-    m_pt = compute_metrics(test_labels, preds_evt, valid_mask=valid_mask, use_pa=False)
+    if dynamic_evt:
+        from src.scoring.evt_calibrator import compute_dynamic_evt_threshold
+        dyn_th = compute_dynamic_evt_threshold(test_scores, evt_th, train_valid_scores, window_size=200)
+        preds_evt = event_level_filter(test_scores, dyn_th, valid_mask, min_run=2, extreme_factor=1.75) * valid_mask.astype(np.float32)
+    else:
+        preds_evt = event_level_filter(test_scores, evt_th, valid_mask, min_run=2, extreme_factor=1.75) * valid_mask.astype(np.float32)
+
+    m_pa = compute_metrics(test_labels, preds_evt, scores=test_scores, valid_mask=valid_mask, use_pa=True, include_events=False)
+    m_pt = compute_metrics(test_labels, preds_evt, scores=test_scores, valid_mask=valid_mask, use_pa=False, include_events=True)
 
     best_pa_f1 = 0.0
     candidates = np.percentile(valid_scores, np.linspace(0.0, 100.0, 150))
     for th in candidates:
         p = event_level_filter(test_scores, th, valid_mask, min_run=2, extreme_factor=1.75) * valid_mask.astype(np.float32)
-        m = compute_metrics(test_labels, p, valid_mask=valid_mask, use_pa=True)
+        m = compute_metrics(test_labels, p, valid_mask=valid_mask, use_pa=True, include_events=False)
         if m.get("f1", 0.0) > best_pa_f1:
             best_pa_f1 = m["f1"]
 
@@ -558,6 +567,15 @@ def train_and_score_channel(
         "point_f1": m_pt.get("f1", 0.0),
         "point_precision": m_pt.get("precision", 0.0),
         "point_recall": m_pt.get("recall", 0.0),
+        "event_f1": m_pt.get("event_f1", 0.0),
+        "event_precision": m_pt.get("event_precision", 0.0),
+        "event_recall": m_pt.get("event_recall", 0.0),
+        "range_f1": m_pt.get("range_f1", 0.0),
+        "range_precision": m_pt.get("range_precision", 0.0),
+        "range_recall": m_pt.get("range_recall", 0.0),
+        "pr_auc": m_pt.get("pr_auc", 0.0),
+        "roc_auc": m_pt.get("roc_auc", 0.5),
+        "all_positive_f1": m_pt.get("all_positive_f1", 0.0),
         "tp": m_pt.get("tp", 0),
         "fp": m_pt.get("fp", 0),
         "fn": m_pt.get("fn", 0),
@@ -565,8 +583,10 @@ def train_and_score_channel(
         "pa_f1": m_pa.get("f1", 0.0),
         "pa_precision": m_pa.get("precision", 0.0),
         "pa_recall": m_pa.get("recall", 0.0),
+        "test_sweep_pa_f1": float(best_pa_f1),
         "oracle_pa_f1": float(best_pa_f1),
     }
+
 
 
 def main():
@@ -605,12 +625,16 @@ def main():
         help="Skip runs already present in output CSV and append new runs (default: True)",
     )
     parser.add_argument("--output_csv", type=str, default="reports/sota_baseline_comparison.csv")
+    parser.add_argument("--mapping_method", type=str, default=None, choices=["middle", "dense", "trailing"], help="Window score to point mapping method (default: middle or trailing if causal)")
+    parser.add_argument("--smoothing_window", type=int, default=5, help="Smoothing moving average window length (default: 5)")
+    parser.add_argument("--dynamic_evt", action="store_true", help="Enable rolling time-varying EVT thresholding to track baseline drift")
     args = parser.parse_args()
 
-    mapping_method = "trailing" if args.causal else "middle"
+    mapping_method = args.mapping_method if args.mapping_method else ("trailing" if args.causal else "middle")
     device = torch.device(
         "cuda" if torch.cuda.is_available() and args.device == "auto" else args.device if args.device != "auto" else "cpu"
     )
+
     all_available = [p.name for p in (ROOT / "mTSBench_data").iterdir() if p.is_dir() and not p.name.startswith(".")]
     datasets_to_run = all_available if "all" in args.dataset else args.dataset
     out_p = ROOT / args.output_csv
@@ -681,6 +705,8 @@ def main():
                             patience=args.patience,
                             batch_size=args.batch_size,
                             mapping_method=mapping_method,
+                            smoothing_window=args.smoothing_window,
+                            dynamic_evt=args.dynamic_evt,
                             device=device,
                         )
                         all_results.append(res)
@@ -693,8 +719,9 @@ def main():
                             df_incremental.to_csv(out_p, mode="a", header=False, index=False)
 
                         print(
-                            f"Point-F1: {res['point_f1']:.4f} (P: {res['point_precision']:.4f}, R: {res['point_recall']:.4f}, TP: {res['tp']}, FP: {res['fp']}) | "
-                            f"PA-F1: {res['pa_f1']:.4f} | Oracle: {res['oracle_pa_f1']:.4f} ({res['elapsed_sec']}s)"
+                            f"Pt-F1: {res['point_f1']:.4f} (P: {res['point_precision']:.4f}, R: {res['point_recall']:.4f}, TP: {res['tp']}, FP: {res['fp']}) | "
+                            f"Evt-F1: {res['event_f1']:.4f} | Rng-F1: {res['range_f1']:.4f} | "
+                            f"PA-F1: {res['pa_f1']:.4f} ({res['elapsed_sec']}s)"
                             f" [EVT: {res['evt_method']}{'*' if res['evt_is_fallback'] else ''}]"
                         )
                     except Exception as e:

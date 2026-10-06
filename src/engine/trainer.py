@@ -295,6 +295,9 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             use_regimes=getattr(config, "use_regimes", True),
             ema_decay=0.996,
             dropout=config.dropout,
+            codebook_temperature=getattr(config, "grassmann_temperature", 0.1),
+            load_balance_weight=getattr(config, "grassmann_load_balance_weight", 0.0),
+            eval_hard_routing=getattr(config, "grassmann_eval_hard_routing", True),
         )
     elif canonical == "harmonic_spring_jepa":
         encoder = build_encoder(config, input_dim, device)
