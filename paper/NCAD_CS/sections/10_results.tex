@@ -28,13 +28,13 @@ Figure~\ref{fig:domain_radar} illustrates the radar profile of the flagship mode
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/domain_radar_chart.png}
-\caption{Point-Adjusted F1 radar chart across five specialized physical domains: Spacecraft \& Aerospace Telemetry, Cardiac Electrophysiology, Cyber-Physical Systems, Server Operations, and Environmental Sensing. The physics-informed triad demonstrates robust, domain-adaptive coverage.\label{fig:domain_radar}}
+\caption{PR-AUC radar comparison across five specialized physical domains: Spacecraft Telemetry (MSL, SMAP, swan), Biomechanics (Daphnet), Cyber-Physical Systems (GHL, GECCO, Genesis), Traffic \& Environmental (CalIt2, metro, room-occupancy), and Network Cyber (CICIDS). The physics-informed triad provides robust multi-domain coverage.\label{fig:domain_radar}}
 \end{figure}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/dataset_performance_heatmap.png}
-\caption{Strict Point-F1 performance matrix across multi-sensor telemetry datasets. Darker hues indicate higher anomaly detection accuracy. The physics-informed JEPA models consistently maintain sensitivity across heterogeneous physical modalities.\label{fig:dataset_heatmap}}
+\caption{Comprehensive PR-AUC performance matrix across all 11 multi-sensor telemetry datasets. Values represent average precision across matched channels, with asterisks ($*$) denoting the best-performing model for each dataset.\label{fig:dataset_heatmap}}
 \end{figure*}
 
 Each model in the triad exhibits specialized mathematical inductive advantages:
@@ -69,6 +69,7 @@ To provide a complete and honest operational evaluation, we evaluate our models 
 \small
 \caption{Operational incident detection comparison across representative domains. Under dense incident evaluation, the Physics-Informed Triad achieves up to $0.9167$ Event-F1 and $84.6\%$ Event Precision with $100\%$ incident recall, while Streaming SPOT suppresses false alarms by up to $21\times$.}
 \label{tab:operational_incident_metrics}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}llccccccc@{}}
 \toprule
 \textbf{Dataset} & \textbf{Configuration} & \textbf{Pt-F1} & \textbf{Pt-Prec} & \textbf{Evt-F1} & \textbf{Evt-Prec} & \textbf{Evt-Rec} & \textbf{Rng-F1} & \textbf{False Pos.} \\
@@ -90,7 +91,8 @@ To provide a complete and honest operational evaluation, we evaluate our models 
 \texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & \textbf{0.1368} & 8.7\%  & \textbf{0.3226} & 50.0\% & 23.8\% & \textbf{0.1274} & 357 \\
 \texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0903 & 14.3\% & 0.0909 & \textbf{100.0\%} & 4.8\%  & 0.0714 & \textbf{42} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table*}
 
 As shown in Table~\ref{tab:operational_incident_metrics}, evaluating anomaly detection through the lens of incident occurrence reveals three major insights:

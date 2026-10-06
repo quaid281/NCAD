@@ -243,8 +243,8 @@ Each benchmark channel provides pre-split training sequences (consisting exclusi
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/flow_jepa_training.png}
-\caption{The Physics-Informed Joint-Embedding Predictive Architecture (JEPA) paradigm. The historical context window $\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{C \times K}$ and target window $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{S \times K}$ are transformed into representations $z_{\text{ctx}}$ and $z_{\text{tgt}}$ via context encoder $E_\theta$ and momentum target encoder $E_\phi$. Rather than reconstructing raw observation-space waveforms (which causes severe noise-drowning on high-dimensional channels), the predictive core operates strictly in latent representation space, governed by physical conservation laws.\label{fig:flow_jepa_training}}
+\includegraphics[width=\textwidth]{figures/physics_jepa_triad_architecture.png}
+\caption{Architectural overview of the proposed Physics-Informed Joint-Embedding Predictive Architecture (JEPA) Triad. The historical context window $\mathbf{x}_{\text{ctx}}$ and suspect target window $\mathbf{x}_{\text{tgt}}$ are projected through multi-scale dyadic Hankel TCN encoders into latent representations $z_{\text{ctx}}$ and $z_{\text{tgt}}$. Rather than reconstructing raw observation-space waveforms (which causes severe noise-drowning under ambient sensor jitter), the predictive core operates strictly in latent representation space, governed by three complementary physical inductive biases: Koopman operator spectral entropy, hydrodynamic Reynolds stress transport, and conservative potential flow field theory. Prediction discrepancy is calibrated online via streaming Extreme Value Theory (SPOT).\label{fig:triad_architecture}}
 \end{figure*}
 
 This section formalizes the theoretical foundations, mathematical formulations, and structural inductive biases of our Physics-Informed JEPA Triad. 
