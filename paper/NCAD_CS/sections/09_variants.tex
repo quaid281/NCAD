@@ -12,8 +12,8 @@ To isolate the individual contributions of each mathematical and architectural c
 Table~\ref{tab:core_benchmark} and Table~\ref{tab:ablations}(a) isolate the impact of embedding physical domain constraints into latent representations compared to unconstrained latent forecasting (\texttt{TS-JEPA}) and observation-space reconstruction (\texttt{TimesNet}, \texttt{TranAD}):
 \begin{itemize}[leftmargin=*]
     \item \textit{Reconstructive Observation Space:} Reconstructive models suffer from severe false alarm flooding (TimesNet accumulates over $10^6$ false positives, yielding a Pooled Micro-F1 of only $0.0647$).
-    \item \textit{Unconstrained Latent Prediction (\texttt{TS-JEPA}):} Moving prediction to latent space eliminates noise memorization, lifting Micro-F1 to $0.2860$. However, lacking physical conservation laws, \texttt{TS-JEPA} achieves a lower Dataset-Macro F1 ($0.1838$) and struggles on systems with subtle spectral or momentum shifts.
-    \item \textit{Physics-Informed Formulations:} \texttt{Operator-Entropy JEPA} attains the highest Dataset-Macro F1 ($0.2137$) and Channel-Macro F1 ($0.2189$), while \texttt{Reynolds-Stress JEPA} ($0.1891$ Macro) and \texttt{Potential-Flow JEPA} ($0.2656$ Micro-F1) deliver superior false-positive rejection and precision across turbulent and conservative channels.
+    \item \textit{Unconstrained Latent Prediction (\texttt{TS-JEPA}):} Moving prediction to latent space eliminates noise memorization, lifting Micro-F1 to $0.2860$ and achieving $0.1838$ Dataset-Macro F1 with $0.3449$ PA-F1.
+    \item \textit{Physics-Informed Formulations:} \texttt{Operator-Entropy JEPA} attains the highest Dataset-Macro F1 ($0.2066$) and Channel-Macro F1 ($0.1743$), while \texttt{Potential-Flow JEPA} achieves the highest overall Micro-F1 ($0.3458$) and reduces false alarms by 8-fold ($130{,}237$ vs $1{,}047{,}144$).
 \end{itemize}
 
 \subsection{Ablation 2: Coordinate Saliency Gating in High-Dimensional Pods}
@@ -35,13 +35,13 @@ Standard monolithic convolutions either over-smooth high-frequency transients or
 improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.2904$ on \texttt{Operator-Entropy JEPA}, while lifting Point-Precision on \texttt{Daphnet} accelerometry from $0.245$ to $0.342$. Decoupling frequency octaves prevents low-frequency power from masking subtle high-frequency phase disruptions.
 
 \subsection{Ablation 4: Kurtosis-Adaptive vs. Static Extreme Value Calibration}
-Standard Extreme Value Theory (SPOT) fits a Generalized Pareto Distribution to residuals exceeding an initial quantile $u$. However, telemetry noise profiles exhibit severe variation in tail heaviness across sensor channels. In leptokurtic distributions ($\gamma_2 > 0$, heavy tails), static thresholds trigger frequent false alarms; in platykurtic distributions ($\gamma_2 < 0$), static thresholds miss low-amplitude structural faults.
+Standard Extreme Value Theory (SPOT) fits a Generalized Pareto Distribution to residuals exceeding an initial quantile $u$. However, telemetry noise profiles exhibit substantial variation in tail heaviness across sensor channels. In leptokurtic distributions ($\gamma_2 > 0$, heavy tails), static thresholds trigger frequent false alarms; in platykurtic distributions ($\gamma_2 < 0$), static thresholds miss low-amplitude structural faults.
 
 Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator against static calibration baselines:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
     \item \textit{Static 3-Sigma Gaussian Threshold:} Yields poor detection ($0.082$ Macro Pt-F1) due to pervasive non-Gaussianity and heavy tails in raw telemetry residuals.
     \item \textit{Standard EVT (Unweighted SPOT):} Achieves $0.174$ Macro Pt-F1, but suffers from false positive bursts during non-stationary operational phases.
-    \item \textit{Kurtosis-Adaptive EVT (Ours):} By dynamically scaling the effective tail risk $\tau_{\text{eff}} = \tau \cdot \left(1 + \frac{\gamma_2}{6}\right)$, the calibrator raises decision margins during turbulent, heavy-tailed regimes while sharpening sensitivity on calm channels, achieving $0.2137$ Macro Pt-F1.
+    \item \textit{Kurtosis-Adaptive EVT (Ours):} By scaling the effective tail threshold $\tau_{\text{eff}} = \tau \cdot \left(1 + \frac{1}{6}\tanh(\gamma_2)\right)$, the calibrator raises decision margins during heavy-tailed regimes while sharpening sensitivity on calm channels, achieving $0.2066$ Macro Pt-F1.
 \end{enumerate}
 
 \begin{table*}[t]
@@ -59,10 +59,10 @@ Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator again
 \midrule
 TimesNet (2023) & 0.1443 & 0.0647 & 0.2585 & 1,047,144 \\
 TranAD (2022) & 0.1609 & 0.1072 & 0.2612 & 452,621 \\
-TS-JEPA (Unconstrained) & 0.1838 & 0.2860 & 0.2344 & 260,345 \\
-\textbf{Operator-Entropy JEPA} & \textbf{0.2137} & \textbf{0.1890} & \textbf{0.2644} & \textbf{175,257} \\
-\textbf{Reynolds-Stress JEPA} & 0.1891 & 0.1815 & 0.2349 & 183,412 \\
-\textbf{Potential-Flow JEPA} & 0.1107 & \textbf{0.2656} & 0.1858 & \textbf{144,487} \\
+TS-JEPA (Unconstrained) & 0.1838 & 0.2860 & 0.2338 & 176,231 \\
+\textbf{Operator-Entropy JEPA} & \textbf{0.2066} & 0.2806 & 0.2541 & 161,469 \\
+\textbf{Reynolds-Stress JEPA} & 0.1544 & 0.1175 & 0.2407 & 188,198 \\
+\textbf{Potential-Flow JEPA} & 0.1147 & \textbf{0.3458} & 0.1978 & \textbf{130,237} \\
 \bottomrule
 \end{tabular}%
 }
@@ -104,7 +104,7 @@ Fixed FFT Filterbank & 0.1840 & 0.2845 & 0.2180 \\
 Static 3-$\sigma$ Gaussian & 0.0821 & 0.1432 & 0.0910 \\
 Standard EVT (Unweighted) & 0.1740 & 0.2845 & 0.2120 \\
 Transductive Test Sweep & 0.3541 & 0.4820 & 0.4105 \\
-\textbf{Kurtosis-Adaptive EVT (Ours)} & \textbf{0.2137} & \textbf{0.3352} & \textbf{0.2550} \\
+\textbf{Kurtosis-Adaptive EVT (Ours)} & \textbf{0.2066} & \textbf{0.3320} & \textbf{0.2541} \\
 \bottomrule
 \end{tabular}%
 }

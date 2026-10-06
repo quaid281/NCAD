@@ -1,20 +1,21 @@
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-In this work, we presented a unified Physics-Informed Joint-Embedding Predictive Architecture (PI-JEPA) framework for unsupervised anomaly detection in complex multi-sensor telemetry. By replacing raw observation-space reconstruction with forward prediction in latent representation space, our approach fundamentally circumvents the noise-drowning phenomenon that causes modern reconstructive baselines (TimesNet, TranAD) to flood continuous streams with hundreds of thousands of false alarms.
+In this work, we presented a Physics-Informed Joint-Embedding Predictive Architecture (PI-JEPA) framework for unsupervised anomaly detection in multivariate sensor telemetry. By replacing raw observation-space reconstruction with forward prediction in latent representation space, our approach eliminates the threshold calibration collapse that causes reconstructive baselines (TimesNet, TranAD) to flood continuous streams with hundreds of thousands of false alarms under ambient sensor noise.
 
-Rather than imposing differential equations through auxiliary training losses that destabilize gradient optimization, we embedded physical domain mechanics directly into latent representations through a flagship triad:
+We embedded physical domain principles directly into latent representations through three formulations:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textbf{Operator-Entropy JEPA:} Quantifying spectral dissipation and decoherence via von Neumann operator entropy across Koopman invariant subspaces.
-    \item \textbf{Reynolds-Stress JEPA:} Capturing anisotropic turbulent momentum transfer and shear-stress divergence across coupled sensor channels.
-    \item \textbf{Potential-Flow JEPA:} Enforcing conservative curl-free trajectory dynamics via orthogonal rotational decomposition.
+    \item \textbf{Operator-Entropy JEPA:} Quantifying spectral stability and dissipation via dynamic spectral entropy across latent Koopman transition modes.
+    \item \textbf{Reynolds-Stress JEPA:} Aligning cross-channel second-moment fluctuation covariance tensors inspired by hydrodynamic Reynolds decomposition.
+    \item \textbf{Potential-Flow JEPA:} Enforcing conservative, irrotational trajectory dynamics by parameterizing the transition field as a scalar potential gradient.
 \end{enumerate}
-Together with Coordinate Saliency Gating, Littlewood-Paley Dyadic Wavelet Shells, and Kurtosis-Adaptive Extreme Value Theory tail calibration, the proposed architectures establish new empirical state-of-the-art benchmarks. Across 11 diverse telemetry domains evaluated under strict apples-to-apples protocols, the PI-JEPA Triad outperforms TimesNet and TranAD by up to \textbf{+48.1\% in Dataset-Macro Point-F1} while reducing false positive alarms by up to \textbf{7-fold}.
+Together with Coordinate Saliency Gating, Littlewood-Paley Dyadic Wavelet Shells, and Kurtosis-Adaptive Extreme Value Theory tail calibration, the proposed framework stabilizes streaming threshold calibration. Across 11 telemetry datasets (45 matched channels) evaluated under identical protocols, Operator-Entropy JEPA achieves the highest Dataset-Macro Point-F1 ($0.2066$, a \textbf{+43.2\% relative improvement} over TimesNet and \textbf{+28.4\%} over TranAD) and clears the analytical all-positive baseline ($0.1893$). In Pooled Micro-F1, Potential-Flow JEPA attains \textbf{0.3458} (over $3.2\times$ higher than TranAD and $5.3\times$ higher than TimesNet) while reducing false alarms by \textbf{8-fold}.
 
-Promising directions for future work include:
+Future work includes:
 \begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
+    \item \textit{Non-Conservative Field Extensions:} Relaxing strict irrotational constraints with parameter-controlled solenoidal vorticity components for dissipative systems with limit cycles.
     \item \textit{Continuous Online Streaming Adaptation:} Developing memory-efficient, test-time momentum adaptation to track orbital thermal cycles and environmental seasonal drift without catastrophic forgetting.
+    \item \textit{Multi-Seed Uncertainty Quantification:} Scaling evaluations across extensive multi-seed benchmarks with confidence intervals and range-based evaluation metrics (e.g., VUS-PR).
     \item \textit{Edge Hardware Quantization and Acceleration:} Compiling PI-JEPA encoders into 8-bit integer (INT8) formats for deployment on radiation-hardened spacecraft microcontrollers and ultra-low-power wearable edge devices.
-    \item \textit{Multi-Domain Pretrained Telemetry Foundation Models:} Scaling the PI-JEPA inductive formulation across petabyte-scale multi-mission telemetry repositories for zero-shot operational fault identification.
 \end{itemize}
 

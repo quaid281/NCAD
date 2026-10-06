@@ -4,10 +4,10 @@
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/physics_jepa_triad_architecture.png}
-\caption{Architectural overview of the proposed Physics-Informed Joint-Embedding Predictive Architecture (JEPA) Triad. The historical context window $\mathbf{x}_{\text{ctx}}$ and suspect target window $\mathbf{x}_{\text{tgt}}$ are projected through multi-scale dyadic Hankel TCN encoders into latent representations $z_{\text{ctx}}$ and $z_{\text{tgt}}$. Rather than reconstructing raw observation-space waveforms (which causes severe noise-drowning under ambient sensor jitter), the predictive core operates strictly in latent representation space, governed by three complementary physical inductive biases: Koopman operator spectral entropy, hydrodynamic Reynolds stress transport, and conservative potential flow field theory. Prediction discrepancy is calibrated online via streaming Extreme Value Theory (SPOT).\label{fig:triad_architecture}}
+\caption{Architectural overview of the proposed Physics-Informed Joint-Embedding Predictive Architecture (JEPA) framework. The historical context window $\mathbf{x}_{\text{ctx}}$ and suspect target window $\mathbf{x}_{\text{tgt}}$ are projected through multi-scale dyadic TCN encoders into latent representations $z_{\text{ctx}}$ and $z_{\text{tgt}}$. Rather than reconstructing raw observation-space waveforms (which causes false alarm flooding under ambient sensor jitter), the predictive core operates strictly in latent representation space, governed by three complementary physical inductive biases: Koopman operator spectral entropy, hydrodynamic Reynolds stress transport, and conservative potential flow field theory. Prediction discrepancy is calibrated online via streaming Extreme Value Theory (SPOT).\label{fig:triad_architecture}}
 \end{figure*}
 
-This section formalizes the theoretical foundations, mathematical formulations, and structural inductive biases of our Physics-Informed JEPA Triad. 
+This section formalizes the mathematical formulation and inductive biases of the proposed framework. 
 
 \subsection{Problem Formulation and Latent Prediction Paradigm}
 \label{subsec:architecture}
@@ -17,7 +17,7 @@ Existing deep learning baselines (e.g., TimesNet, TranAD, Anomaly Transformer) f
 \begin{equation}
     \min_\theta \mathbb{E}\left[ \| \mathbf{X} - \mathcal{D}_\theta(\mathcal{E}_\theta(\mathbf{X})) \|_F^2 \right].
 \end{equation}
-In complex multi-sensor telemetry, ambient high-frequency stochastic jitter dominates the Frobenius norm, causing models to waste representational bandwidth reconstructing sensor noise rather than modeling system state dynamics (the \textit{noise-drowning pathology}).
+In complex multi-sensor telemetry, ambient high-frequency stochastic jitter dominates the Frobenius norm, causing models to waste representational bandwidth reconstructing sensor noise rather than modeling system state dynamics (leading to noise drowning).
 
 To overcome this, we adopt the Joint-Embedding Predictive Architecture (JEPA) paradigm \cite{lecun2022path}. A context encoder $E_\theta$ maps $x_{\text{ctx}} \to z_{\text{ctx}} \in \mathbb{R}^D$, while an Exponential Moving Average (EMA) momentum target encoder $E_\phi$ maps $x_{\text{tgt}} \to z_{\text{tgt}} \in \mathbb{R}^D$, updated via:
 \begin{equation}
@@ -27,62 +27,61 @@ The core objective is to predict target representations in latent space under ph
 
 \subsection{The Physics-Informed JEPA Triad}
 \label{subsec:triad_formulations}
-Rather than relying on unconstrained Euclidean regression, we enforce physical conservation laws through three complementary geometric formulations:
+Rather than relying on unconstrained Euclidean regression, we incorporate physical domain regularizers through three complementary geometric formulations:
 
-\subsubsection{1. Operator-Entropy JEPA (Koopman Spectral Mechanics)}
-Grounded in Koopman operator theory for non-linear dynamical systems, we model the temporal transition between latent state distributions as an action of an infinite-dimensional linear Koopman operator $\mathcal{K}$:
+\subsubsection{1. Operator-Entropy JEPA (Koopman Spectral Dynamics)}
+In dynamical systems theory, non-linear trajectories can be analyzed via linear operators acting on observable functions. In our architecture, the encoder maps the observation window to a finite-dimensional latent observable vector $z \in \mathbb{R}^D$. We define the transition between context and target latent states via a learned transition matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$:
 \begin{equation}
-    g(z_{t+1}) = \mathcal{K} \, g(z_t),
+    \hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}.
 \end{equation}
-where $g: \mathbb{R}^D \to \mathcal{H}$ represents an observable dictionary in a Hilbert space $\mathcal{H}$. 
-
-For normal physical operations, energy and phase-space volume evolution are governed by dynamic spectral entropy. We define the empirical Koopman transition matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$ and compute its normalized singular value spectrum $\sigma_i(\mathbf{K})$. The dynamic spectral entropy is:
+To monitor spectral stability across modes, we evaluate the singular value spectrum $\sigma_i(\mathbf{K})$, which governs the energy amplification and contraction of the latent map. We define the normalized spectral entropy as:
 \begin{equation}
-    \mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D \tilde{\sigma}_i \log \tilde{\sigma}_i, \quad \tilde{\sigma}_i = \frac{\sigma_i}{\sum_j \sigma_j}.
+    \mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D \tilde{\sigma}_i \log \tilde{\sigma}_i, \quad \tilde{\sigma}_i = \frac{\sigma_i}{\sum_{j=1}^D \sigma_j + \epsilon}.
 \end{equation}
-Anomalies that disrupt nominal cyclic or quasi-periodic orbits cause an instantaneous surge in spectral entropy generation $\Delta \mathcal{H} = |\mathcal{H}_{\text{spectral}}(\mathbf{K}_{\text{tgt}}) - \mathcal{H}_{\text{spectral}}(\mathbf{K}_{\text{ctx}})|$. The Operator-Entropy JEPA prediction loss is:
+During nominal periodic or quasi-periodic operation, energy is concentrated along leading spectral modes (low entropy). Non-stationary anomalies that disrupt modal coherence trigger sudden spectral diffusion. The Operator-Entropy JEPA training objective regularizes the linear predictive transition alongside spectral entropy:
 \begin{equation}
-    \mathcal{L}_{\text{Op-Entropy}} = \| \mathbf{K} z_{\text{ctx}} - z_{\text{tgt}} \|_2^2 + \lambda_{\text{ent}} \mathcal{H}_{\text{spectral}}(\mathbf{K}) + \lambda_{\text{reg}} \mathcal{L}_{\text{reg}}.
+    \mathcal{L}_{\text{Op-Entropy}} = \| \mathbf{K} z_{\text{ctx}} - z_{\text{tgt}} \|_2^2 + \lambda_{\text{ent}} \mathcal{H}_{\text{spectral}}(\mathbf{K}).
 \end{equation}
 
-\subsubsection{2. Reynolds-Stress JEPA (Continuum Mechanics \& Turbulent Transport)}
-In multi-channel telemetry representing coupled flows (thermal, convective, hydraulic), channel interactions are governed by transport phenomena. We introduce the hydrodynamic \textit{Reynolds decomposition} to latent state vectors:
+\subsubsection{2. Reynolds-Stress JEPA (Continuum Mechanics \& Covariance Alignment)}
+In multi-channel telemetry representing coupled flows (thermal, convective, hydraulic), channel interactions are governed by transport phenomena. Inspired by the hydrodynamic \textit{Reynolds decomposition}, we decompose latent state vectors into a baseline component and dynamic fluctuations:
 \begin{equation}
     z(t) = \bar{z}(t) + z'(t),
 \end{equation}
-where $\bar{z}(t) = \frac{1}{\tau}\int_0^\tau z(t-s)ds$ represents the mean background state, and $z'(t)$ denotes turbulent fluctuations. 
+where $\bar{z}(t) = \frac{1}{\tau}\int_0^\tau z(t-s)ds$ represents the rolling background state, and $z'(t)$ denotes temporal fluctuations. 
 
-The inter-channel momentum transport is characterized by the Reynolds Stress Tensor:
+The inter-coordinate momentum transport is characterized by the second-moment fluctuation covariance matrix:
 \begin{equation}
-    \mathbf{R}_{ij} = \mathbb{E}\left[ z'_i(t) z'_j(t) \right] \in \mathbb{R}^{D \times D}.
+    \mathbf{R} = z'(t) {z'(t)}^T \in \mathbb{R}^{D \times D}.
 \end{equation}
-Anomalies trigger turbulent shear divergence across latent coordinates, breaking the nominal Reynolds stress transport equation $\frac{\partial \mathbf{R}}{\partial t} + \mathcal{T} = \mathcal{P} - \boldsymbol{\epsilon}$. The Reynolds-Stress JEPA loss aligns the predicted and observed turbulent fluctuation covariance:
+Anomalies trigger turbulent shear divergence across latent coordinates, disrupting the nominal cross-channel covariance balance. The Reynolds-Stress JEPA loss aligns the predicted mean trajectory and target fluctuation covariance:
 \begin{equation}
-    \mathcal{L}_{\text{Reynolds}} = \| \bar{z}_{\text{tgt}} - \hat{z}_{\text{tgt}} \|_2^2 + \lambda_R \| \mathbf{R}_{\text{pred}} - \mathbf{R}_{\text{tgt}} \|_F^2 + \lambda_{\text{reg}} \mathcal{L}_{\text{reg}}.
+    \mathcal{L}_{\text{Reynolds}} = \| \bar{z}_{\text{tgt}} - \hat{z}_{\text{tgt}} \|_2^2 + \lambda_R \| \mathbf{R}_{\text{pred}} - \mathbf{R}_{\text{tgt}} \|_F^2.
 \end{equation}
 
 \subsubsection{3. Potential-Flow JEPA (Conservative Field Theory)}
-Under the Helmholtz-Hodge decomposition theorem, any smooth latent vector field $\mathbf{v}$ can be uniquely decomposed into an irrotational (curl-free) conservative potential gradient and a solenoidal (divergence-free) rotational field:
-\begin{equation}
-    \mathbf{v}(z) = \nabla \Phi(z) + \nabla \times \mathbf{A}(z),
-\end{equation}
-where $\Phi: \mathbb{R}^D \to \mathbb{R}$ is a scalar velocity potential, and $\mathbf{A}$ is a vector potential. 
+Under the Helmholtz-Hodge decomposition theorem, any sufficiently smooth vector field can be uniquely resolved into an irrotational (curl-free) conservative potential gradient and a solenoidal (divergence-free) rotational field. 
 
-In nominal equilibrium, physical trajectories conserve total potential energy, satisfying the zero-curl condition $\nabla \times \mathbf{v} = \mathbf{0}$. We parameterize the latent dynamics through a scalar potential network $\Phi_\psi(z)$, deriving the target trajectory as an irrotational gradient field:
+In nominal physical equilibria, conservative dynamical systems conserve potential energy along phase trajectories. We parameterize the latent transition dynamics through the gradient of a scalar potential network $\Phi_\psi(z)$:
 \begin{equation}
-    \hat{v}(z) = \nabla_z \Phi_\psi(z).
+    \hat{v}(z) = \nabla_z \Phi_\psi(z), \quad \hat{z}_{\text{tgt}} = z_{\text{ctx}} + \hat{v}(z_{\text{ctx}}).
 \end{equation}
-Physical breakdowns introduce non-conservative work and rotational circulation ($\oint \mathbf{v} \cdot d\mathbf{r} \ne 0$). The Potential-Flow JEPA trains the potential field to track nominal trajectories while minimizing rotational vorticity:
+Because the curl of the gradient of any $C^2$ scalar field is identically zero ($\nabla \times (\nabla \Phi) \equiv \mathbf{0}$), parameterizing the velocity field as $\hat{v} = \nabla \Phi$ guarantees that the predicted trajectory field is \textit{strictly irrotational by construction}. Physical anomalies that introduce non-conservative work, dissipative friction, or unmodeled circulation diverge from any integrable potential field, producing large residual discrepancies:
 \begin{equation}
-\begin{aligned}
-    \mathcal{L}_{\text{Pot-Flow}} ={} & \| \nabla_z \Phi_\psi(z_{\text{ctx}}) - (z_{\text{tgt}} - z_{\text{ctx}}) \|_2^2 \\
-    & + \lambda_{\text{curl}} \| \nabla \times \hat{v} \|_2^2 + \lambda_{\text{reg}} \mathcal{L}_{\text{reg}}.
-\end{aligned}
+    \mathcal{L}_{\text{Pot-Flow}} = \| \nabla_z \Phi_\psi(z_{\text{ctx}}) - (z_{\text{tgt}} - z_{\text{ctx}}) \|_2^2.
 \end{equation}
+
+\subsection{Anomaly Scoring and Sequential Window Mapping}
+\label{subsec:scoring_function}
+During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect target windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed causally with a stride of 1 timestep. The predictive core computes the latent discrepancy between the predicted target representation $\hat{z}_{\text{tgt}}$ and the target encoder representation $z_{\text{tgt}}$:
+\begin{equation}
+    \mathcal{S}(t) = \| \hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t) \|_2^2.
+\end{equation}
+For Operator-Entropy JEPA, the anomaly score is augmented by the relative spectral entropy generation $|\mathcal{H}(\mathbf{K}_{\text{tgt}}) - \mathcal{H}(\mathbf{K}_{\text{ctx}})|$. Each timestep $t$ is mapped directly to its calibrated anomaly score $\mathcal{S}(t)$.
 
 \subsection{Shared Internal Inductive Biases}
 \label{subsec:shared_inductive_biases}
-To ensure robustness across high-dimensional, noisy telemetry without altering the loss objectives or introducing manual heuristic weights, all three architectures incorporate three structural inductive mechanisms:
+To stabilize learning across high-dimensional, noisy telemetry, all three architectures incorporate three inductive mechanisms:
 
 \subsubsection{1. Coordinate Saliency Gating}
 On high-dimensional streams ($K \ge 50$), anomalous signals frequently manifest in only a small subset of channels while remaining channels exhibit ambient noise. To prevent dimensional drowning, we introduce a parameter-free \textit{Coordinate Saliency Gate} within the encoder:
@@ -99,12 +98,12 @@ Real-world physical anomalies operate across disparate temporal scales, ranging 
 This multi-scale frequency decomposition enables the model to isolate high-frequency transient anomalies from low-frequency baseline diurnal oscillations without expanding parameter count.
 
 \subsubsection{3. Kurtosis-Adaptive Extreme Value Theory (EVT)}
-Following scoring, decision thresholds must be established without test-label leakage. While standard Peaks-Over-Threshold (SPOT) assumes a fixed extreme tail quantile $q = 10^{-3}$, real-world anomaly score distributions exhibit variable tail heaviness (leptokurtosis). We compute the empirical excess kurtosis $\gamma_2$ of calibration residuals:
+Following scoring, decision alarms $\hat{y}_t = \mathbb{I}(\mathcal{S}(t) > \tau_t)$ are generated via Streaming Peaks-Over-Threshold (SPOT). In standard SPOT, the extreme threshold $\tau$ is determined by fitting a Generalized Pareto Distribution (GPD) with scale $\sigma$ and shape $\xi$ to excesses over an initial threshold $u$ at risk probability $q$:
 \begin{equation}
-    \gamma_2 = \frac{\frac{1}{N}\sum_{i=1}^N (S_i - \bar{S})^4}{\left(\frac{1}{N}\sum_{i=1}^N (S_i - \bar{S})^2\right)^2} - 3.
+    \tau = u + \frac{\sigma}{\xi}\left[ \left(\frac{q N_u}{N}\right)^{-\xi} - 1 \right].
 \end{equation}
-The effective risk probability is dynamically adapted via:
+To account for varying tail heaviness across diverse sensor regimes, we modulate the threshold via the empirical excess kurtosis $\gamma_2$ of calibration residuals:
 \begin{equation}
-    q_{\text{eff}} = q \cdot \left[ 1 + \tanh\left(\frac{\gamma_2}{6}\right) \right].
+    \tau_{\text{eff}} = \tau \cdot \left[ 1 + \frac{1}{6}\tanh(\gamma_2) \right].
 \end{equation}
-On heavy-tailed distributions ($\gamma_2 > 0$), $q_{\text{eff}}$ tightens the threshold to suppress false alarms; on sub-Gaussian tails ($\gamma_2 < 0$), it lowers the threshold to maximize anomaly recall.
+On heavy-tailed distributions ($\gamma_2 > 0$), $\tau_{\text{eff}}$ increases, raising the threshold to suppress false alarms from volatile noise bursts; on light-tailed distributions ($\gamma_2 < 0$), the threshold tightens to maximize detection sensitivity.

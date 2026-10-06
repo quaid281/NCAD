@@ -15,23 +15,23 @@ To ensure rigorous, fair comparison across all models, all architectures are tra
 \end{itemize}
 
 \subsection{Baseline Architectures and Unified Reimplementation}
-To isolate algorithmic principles from external codebase discrepancies, all baselines are executed within a unified PyTorch benchmarking harness under identical windowing, standardization, and EVT calibration:
+To isolate algorithmic principles from external codebase discrepancies, all baselines are executed within a unified PyTorch benchmarking pipeline under identical windowing, standardization, and EVT calibration:
 \begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textbf{TimesNet \cite{wu2023timesnet}:} SOTA 2023 multi-periodic reconstructive architecture that transforms 1D time series into 2D variation spaces via 1D-FFT periodic frequency discovery and 2D Inception blocks.
-    \item \textbf{TranAD \cite{tuli2022tranad}:} SOTA 2022 adversarial reconstructive Transformer featuring two-stage self-conditioning and sub-series attention to amplify subtle reconstruction errors.
-    \item \textbf{TS-JEPA (Unconstrained Control):} Standard Joint-Embedding Predictive Architecture predicting target representations $z_{\text{tgt}}$ from context $z_{\text{ctx}}$ without physical inductive priors, isolating the pure effect of latent-space forecasting.
-    \item \textbf{The PI-JEPA Triad:} Our three physics-informed architectures---\texttt{Operator-Entropy JEPA}, \texttt{Reynolds-Stress JEPA}, and \texttt{Potential-Flow JEPA}---incorporating spectral Koopman dissipation, turbulent momentum transport, and conservative curl-free potential constraints respectively.
+    \item \textbf{TimesNet \cite{wu2023timesnet}:} Multi-periodic reconstructive architecture that transforms 1D time series into 2D variation spaces via 1D-FFT periodic frequency discovery and 2D Inception blocks.
+    \item \textbf{TranAD \cite{tuli2022tranad}:} Adversarial reconstructive Transformer featuring two-stage self-conditioning and sub-series attention to amplify subtle reconstruction errors.
+    \item \textbf{TS-JEPA (Unconstrained Control):} Standard Joint-Embedding Predictive Architecture predicting target representations $z_{\text{tgt}}$ from context $z_{\text{ctx}}$ without physical inductive priors, isolating the effect of latent-space forecasting.
+    \item \textbf{Physics-Informed Formulations:} Three physics-informed architectures (\texttt{Operator-Entropy JEPA}, \texttt{Reynolds-Stress JEPA}, and \texttt{Potential-Flow JEPA}) incorporating spectral Koopman dissipation, turbulent momentum transport, and conservative curl-free potential constraints respectively.
 \end{enumerate}
 
 \subsection{Multi-Tier Statistical Evaluation Metrics}
 \label{subsec:eval_metrics}
-Recent critical surveys in time-series anomaly detection \cite{kim2022towards, schmidl2022anomaly, wu2023current} demonstrate that standard evaluation protocols are plagued by severe reporting vulnerabilities, notably point-adjustment inflation, channel-averaging imbalances, and arbitrary threshold gaming. To ensure complete transparency and reproducibility, we report four complementary evaluation tiers:
+Recent critical surveys in time-series anomaly detection \cite{kim2022towards, schmidl2022anomaly, wu2023current} demonstrate that standard evaluation protocols are plagued by severe reporting vulnerabilities, including point-adjustment inflation, channel-averaging imbalances, and arbitrary threshold gaming. To ensure transparency and reproducibility, we report evaluation metrics across multiple complementary tiers:
 \begin{enumerate}[leftmargin=*]
     \item \textbf{Dataset-Macro Point-F1 (Primary Metric):} We compute the unweighted arithmetic mean of Point-F1 scores across datasets:
     \begin{equation}
         \text{Macro-F1}_{\text{DS}} = \frac{1}{|\mathcal{D}|} \sum_{d \in \mathcal{D}} \left( \frac{1}{|C_d|} \sum_{c \in C_d} \text{F1}_{c} \right)
     \end{equation}
-    where $\mathcal{D}$ is the set of benchmark datasets and $C_d$ is the set of channels in dataset $d$. This guarantees that datasets with numerous channels (e.g., SMAP with 51 channels) cannot dominate the aggregate headline score.
+    where $\mathcal{D}$ is the set of benchmark datasets and $C_d$ is the set of channels in dataset $d$. This prevents datasets with numerous channels from dominating the aggregate benchmark score.
     \item \textbf{Pooled Micro Point-F1:} We pool all raw True Positives, False Positives, and False Negatives globally across all test timesteps:
     \begin{equation}
         \text{Micro-F1} = \frac{2 \sum_{c} \text{TP}_c}{2 \sum_c \text{TP}_c + \sum_c \text{FP}_c + \sum_c \text{FN}_c}
