@@ -36,30 +36,30 @@ In dynamical systems theory, non-linear trajectories can be analyzed via linear 
 \end{equation}
 To regularize modal stability across latent coordinates, we evaluate the singular value spectrum $\sigma_i(\mathbf{K})$, which governs the energy amplification and contraction of the linear map. We define the normalized spectral entropy as:
 \begin{equation}
-    \mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D \tilde{\sigma}_i \log \tilde{\sigma}_i, \quad \tilde{\sigma}_i = \frac{\sigma_i}{\sum_{j=1}^D \sigma_j + \epsilon}.
+    \mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D \tilde{\sigma}_i \log (\tilde{\sigma}_i + \epsilon), \quad \tilde{\sigma}_i = \frac{\sigma_i}{\sum_{j=1}^D \sigma_j + \epsilon},
 \end{equation}
-A unitary, energy-conserving linear map distributes energy evenly across all orthogonal modes ($\sigma_i \approx 1$), producing maximal spectral entropy $\mathcal{H}_{\text{max}} = \log D$. Conversely, severe damping or modal collapse contracts dynamics onto a low-rank subspace (low spectral entropy). To prevent representation collapse toward low-rank degeneration and encourage non-degenerate linear transitions during training, the Operator-Entropy training objective regularizes the predictive transition while maximizing spectral dispersion:
+where $\epsilon = 10^{-6}$ ensures numerical stability. A unitary, energy-conserving linear map distributes energy evenly across all orthogonal modes ($\sigma_i \approx 1$), producing maximal spectral entropy $\mathcal{H}_{\text{max}} = \log D$. Conversely, severe damping contracts dynamics onto a low-rank subspace (low spectral entropy). To prevent the transition matrix $\mathbf{K}$ from collapsing to a low-rank projection and encourage non-degenerate linear transitions during training, the Operator-Entropy training objective regularizes the predictive transition while maximizing spectral dispersion:
 \begin{equation}
     \mathcal{L}_{\text{Op-Entropy}} = \| \mathbf{K} z_{\text{ctx}} - z_{\text{tgt}} \|_2^2 - \lambda_{\text{ent}} \mathcal{H}_{\text{spectral}}(\mathbf{K}),
 \end{equation}
-where $\lambda_{\text{ent}} = 10^{-3}$ penalizes dimensional collapse across latent modes.
+where $\lambda_{\text{ent}} = 10^{-3}$ penalizes dimensional collapse across latent modes. Note that representation collapse of encoder embeddings $z$ is prevented by the asymmetric EMA target encoder with stop-gradient $\bot$, while $\mathcal{H}_{\text{spectral}}(\mathbf{K})$ specifically acts as an inductive regularizer on the operator spectrum during pretraining.
 
 \subsubsection{2. Reynolds-Stress JEPA (Continuum Mechanics \& Covariance Alignment)}
-In multi-channel telemetry representing coupled flows (thermal, convective, hydraulic), channel interactions are governed by transport phenomena. Inspired by hydrodynamic \textit{Reynolds decomposition}, we decompose the temporal sequence of target representations $\mathbf{Z}_{\text{tgt}} = [z_{t+1}, \dots, z_{t+S}]^T \in \mathbb{R}^{S \times D}$ across horizon $S$ into a rolling baseline trajectory and dynamic fluctuations:
+In multi-channel telemetry representing coupled flows (thermal, convective, hydraulic), interactions across latent state dimensions are governed by transport phenomena. Inspired by hydrodynamic \textit{Reynolds decomposition}, the target encoder $E_\phi$ processes target horizon $x_{\text{tgt}} \in \mathbb{R}^{S \times K}$ through its convolutional backbone prior to global temporal pooling, outputting an unpooled temporal sequence of feature vectors $\mathbf{Z}_{\text{tgt}} = [z_1, \dots, z_S]^T \in \mathbb{R}^{S \times D}$. We decompose this sequence into a temporal mean trajectory and zero-mean fluctuations:
 \begin{equation}
-    \mathbf{Z}_{\text{tgt}} = \mathbf{1}\bar{\mathbf{z}}^T + \mathbf{Z}',
+    \mathbf{Z}_{\text{tgt}} = \mathbf{1}\bar{\mathbf{z}}_{\text{tgt}}^T + \mathbf{Z}',
 \end{equation}
-where $\bar{\mathbf{z}} = \frac{1}{S}\sum_{s=1}^S z_s \in \mathbb{R}^D$ denotes the window temporal mean, and $\mathbf{Z}' \in \mathbb{R}^{S \times D}$ denotes the zero-mean temporal fluctuations.
+where $\bar{\mathbf{z}}_{\text{tgt}} = \frac{1}{S}\sum_{s=1}^S z_s \in \mathbb{R}^D$ denotes the window temporal mean, and $\mathbf{Z}' \in \mathbb{R}^{S \times D}$ denotes the dynamic fluctuations.
 
-The inter-coordinate momentum transport across the temporal window is characterized by the second-moment fluctuation covariance matrix:
+The inter-coordinate momentum transport across the temporal window is characterized by the second-moment fluctuation covariance matrix across latent coordinates:
 \begin{equation}
     \mathbf{R}_{\text{tgt}} = \frac{1}{S} {\mathbf{Z}'}^T \mathbf{Z}' \in \mathbb{R}^{D \times D}.
 \end{equation}
-Anomalies disrupt the nominal multi-sensor fluctuation covariance balance. The Reynolds-Stress JEPA loss aligns the predicted mean trajectory and target fluctuation covariance:
+The Reynolds-Stress predictor parameterizes both the mean target transition $\hat{z}_{\text{tgt}} = f_{\text{mean}}(z_{\text{ctx}})$ and a predicted fluctuation covariance $\mathbf{R}_{\text{pred}} = \mathbf{L}\mathbf{L}^T \in \mathbb{R}^{D \times D}$, parameterized via lower-triangular Cholesky factor $\mathbf{L}(z_{\text{ctx}})$. The training objective aligns both the mean trajectory and the dynamic covariance across latent dimensions:
 \begin{equation}
     \mathcal{L}_{\text{Reynolds}} = \| \bar{z}_{\text{tgt}} - \hat{z}_{\text{tgt}} \|_2^2 + \lambda_R \| \mathbf{R}_{\text{pred}} - \mathbf{R}_{\text{tgt}} \|_F^2,
 \end{equation}
-with $\lambda_R = 10^{-2}$.
+with $\lambda_R = 10^{-2}$. At inference time, the anomaly score $\mathcal{S}(t) = \|\hat{z}_{\text{tgt}}(t) - \bar{z}_{\text{tgt}}(t)\|_2^2$ evaluates mean trajectory divergence.
 
 \subsubsection{3. Potential-Flow JEPA (Conservative Field Theory)}
 Under the Helmholtz-Hodge decomposition theorem, any sufficiently smooth vector field can be uniquely resolved into an irrotational (curl-free) conservative potential gradient and a solenoidal (divergence-free) rotational field. 
@@ -75,11 +75,11 @@ Because the curl of the gradient of any $C^2$ scalar field is identically zero (
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
-During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect target windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed causally with a stride of 1 timestep. For all JEPA architectures, the anomaly score is computed as the latent predictive discrepancy between the predicted target representation $\hat{z}_{\text{tgt}}$ and the target encoder representation $z_{\text{tgt}}$:
+During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect target windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed with a stride of 1 timestep. For all JEPA architectures, the anomaly score is computed as the latent predictive discrepancy between the predicted target representation $\hat{z}_{\text{tgt}}$ and the target encoder representation $z_{\text{tgt}}$:
 \begin{equation}
     \mathcal{S}(t) = \| \hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t) \|_2^2.
 \end{equation}
-Because the target horizon spans $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$, evaluating $\mathcal{S}(t)$ operates with a fixed lookahead latency buffer of $S=64$ timesteps. The physical inductive regularizers enter as structural inductive constraints during training and architectural parameterization, shaping the geometry of the learned latent manifold without requiring ad-hoc test-time heuristic score terms. Each timestep $t$ is mapped directly to its calibrated anomaly score $\mathcal{S}(t)$.
+While context $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ is strictly causal (depending only on the past), the target horizon $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ evaluates the upcoming $S=64$ timesteps. Therefore, $\mathcal{S}(t)$ operates with an operational lookahead buffer of $S=64$ timesteps at inference. In a continuous streaming deployment, an anomaly occurring at timestep $t^*$ enters the target window when $t = t^* - S$, causing the model to register elevated discrepancy up to $S=64$ steps prior to the event peak. Under strict unadjusted point-level evaluation, timesteps prior to ground-truth onset are recorded as point-level false positives, establishing an empirical false-positive baseline floor. In our standard benchmark evaluation, we report \textit{Dense} scoring, where sliding windows advance with a stride of 1 timestep and the anomaly score $\mathcal{S}(t)$ is evaluated at each decision time $t$. In operational incident analysis (Section VII.D), we additionally examine \textit{Middle} alignment, where the anomaly score is centered at $t + S/2$ to balance pre-onset and post-onset window overlap. Baseline models (TimesNet and TranAD) are evaluated under the exact identical sliding-window evaluation protocol and standardization to ensure strict comparability.
 
 \subsection{Shared Internal Inductive Biases}
 \label{subsec:shared_inductive_biases}
@@ -88,9 +88,9 @@ To stabilize learning across high-dimensional, noisy telemetry, all three archit
 \subsubsection{1. Coordinate Saliency Gating}
 On high-dimensional streams ($K \ge 50$), anomalous signals frequently manifest in only a small subset of channels while remaining channels exhibit ambient noise. To prevent dimensional drowning, we introduce a parameter-free \textit{Coordinate Saliency Gate} within the encoder:
 \begin{equation}
-    s_k = \frac{\text{Var}_t(x_k)}{\sum_{j=1}^K \text{Var}_t(x_j) + \epsilon}, \quad \tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s}\right),
+    s_k = \frac{\text{Var}_t(x_k)}{\sum_{j=1}^K \text{Var}_t(x_j) + \epsilon}, \quad \tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s + \epsilon}\right),
 \end{equation}
-where $\sigma(\cdot)$ is the logistic sigmoid, and $\bar{s}, \sigma_s$ denote the mean and standard deviation of channel variances. This dynamically prioritizes informative non-stationary coordinates without discarding quiet sensor channels.
+where $\sigma(\cdot)$ is the logistic sigmoid, $\epsilon = 10^{-6}$ ensures numerical stability, and $\bar{s}, \sigma_s$ denote the mean and standard deviation of channel variances across the input window. For multi-channel inputs ($K > 1$), this dynamically prioritizes informative non-stationary coordinates without discarding quiet sensor channels. For single-channel univariate streams ($K = 1$), $s_1 = \bar{s}$ and $\sigma_s = 0$; we define the gate to smoothly reduce to identity scaling ($\tilde{x}_1 = x_1$), ensuring consistent execution across univariate and multivariate streams.
 
 \subsubsection{2. Littlewood-Paley Dyadic Wavelet Shells}
 Real-world physical anomalies operate across disparate temporal scales, ranging from high-frequency electrical spikes to gradual thermal drifts. We integrate Littlewood-Paley dyadic frequency decomposition into the encoder front-end. The input sequence is decomposed into dyadic octave bands via bandpass filters $\psi_j(\omega) = \psi(2^j \omega)$ satisfying the partition of unity:

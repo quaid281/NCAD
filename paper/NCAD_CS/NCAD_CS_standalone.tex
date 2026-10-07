@@ -1,7 +1,6 @@
-% Master document for NCAD-CS split sections
+% Standalone document for NCAD-CS
 \documentclass[journal]{IEEEtran}
 
-% Preamble (packages, settings)
 % --- Essential Packages ---
 \usepackage[utf8]{inputenc} % Input encoding
 \usepackage[T1]{fontenc}    % Font encoding for better hyphenation
@@ -33,12 +32,9 @@
 
 \sethlcolor{yellow}
 
-
-
-
 \begin{document}
 
-% Title and authors
+% --- Input from 02_title.tex ---
 \title{Physics-Informed Joint-Embedding Predictive Architectures for Multivariate Time-Series Anomaly Detection: Spectral, Transport, and Field-Theoretic Formulations}
 
 \author{%
@@ -57,14 +53,13 @@
 
 \maketitle
 
-
-% Abstract and keywords
+% --- Input from 03_abstract.tex ---
 \begin{abstract}
-Unsupervised anomaly detection in multivariate telemetry is central to operational safety across aerospace systems, industrial processes, cyber-physical infrastructure, and smart environments. While reconstructive architectures such as TimesNet and TranAD achieve competitive continuous ranking performance (PR-AUC $0.2585$--$0.2612$), their observation-space residuals destabilize automated streaming threshold calibration, generating over $1.05\times 10^6$ false positives. To address this calibration failure, we evaluate Joint-Embedding Predictive Architectures (JEPAs) that forecast dynamics in regularized latent representation space. We introduce three physics-informed inductive regularizers grounded in dynamical systems theory, continuum mechanics, and field theory: 
-(1) \textbf{Operator-Entropy JEPA}, which parameterizes a latent Koopman transition matrix and regularizes dynamic spectral entropy to prevent modal collapse; 
-(2) \textbf{Reynolds-Stress JEPA}, which adapts hydrodynamic Reynolds decomposition to align second-order cross-channel fluctuation covariances; and 
+Unsupervised anomaly detection in multivariate telemetry is central to operational safety across aerospace systems, industrial processes, cyber-physical infrastructure, and smart environments. While reconstructive architectures such as TimesNet and TranAD achieve competitive continuous ranking performance (PR-AUC $0.2585$--$0.2612$), their observation-space residuals destabilize automated streaming threshold calibration, generating over $1.04\times 10^6$ false positives. To address this calibration failure, we evaluate Joint-Embedding Predictive Architectures (JEPAs) that forecast dynamics in regularized latent representation space. We introduce three physics-informed inductive training regularizers grounded in dynamical systems theory, continuum mechanics, and field theory: 
+(1) \textbf{Operator-Entropy JEPA}, which parameterizes a latent Koopman transition matrix regularized by spectral entropy during training to prevent modal collapse; 
+(2) \textbf{Reynolds-Stress JEPA}, which adapts hydrodynamic Reynolds decomposition to align second-order fluctuation covariance across latent coordinates; and 
 (3) \textbf{Potential-Flow JEPA}, which parameterizes latent trajectory transitions via an irrotational velocity potential ($\hat{v} = \nabla \Phi$). 
-To handle heterogeneous sensor arrays, the framework incorporates coordinate saliency gating for active channel isolation, dyadic wavelet shells for multi-scale frequency decomposition, and kurtosis-adapted Extreme Value Theory (EVT) for streaming threshold calibration. Evaluated on a matched benchmark of 45 continuous telemetry channels across 11 datasets, latent prediction suppresses false alarms while capturing true physical anomalies. Operator-Entropy JEPA achieves the highest Dataset-Macro Point-F1 ($0.2066$, a +43.2\% relative improvement over TimesNet and +28.4\% over TranAD) and is the only architecture to exceed the analytical All-Positive baseline ($0.1893$). In Pooled Micro Point-F1, Potential-Flow JEPA achieves $0.3458$ ($3.2\times$ higher than TranAD and $5.3\times$ higher than TimesNet) while reducing false positives by 8.0-fold against TimesNet ($130{,}237$ vs $1{,}047{,}144$) and 3.5-fold against TranAD ($455{,}128$). These results show that latent predictive architectures yield better-conditioned residual distributions that substantially mitigate streaming threshold calibration collapse, with physical inductive priors providing targeted performance gains in specialized dynamical regimes.
+To handle heterogeneous sensor arrays, the framework incorporates coordinate saliency gating for active channel isolation, dyadic wavelet shells for multi-scale frequency decomposition, and kurtosis-adapted Extreme Value Theory (EVT) for streaming threshold calibration. Evaluated on a matched benchmark of 45 continuous telemetry channels across 11 datasets, latent prediction suppresses false alarms while capturing true physical anomalies. Operator-Entropy JEPA achieves the highest Dataset-Macro Point-F1 ($0.2066$, a +43.2\% relative improvement over TimesNet and +28.4\% over TranAD) and is the only evaluated architecture to exceed the analytical All-Positive baseline on Dataset-Macro Point-F1 ($0.1893$). In Pooled Micro Point-F1, Potential-Flow JEPA achieves $0.3458$ ($3.2\times$ higher than TranAD and $5.3\times$ higher than TimesNet) while reducing false positives by 8.0-fold against TimesNet ($130{,}237$ vs $1{,}047{,}144$) and 3.5-fold against TranAD ($452{,}621$). These results show that latent predictive architectures yield better-conditioned residual distributions that substantially mitigate streaming threshold calibration collapse, with physical inductive regularizers providing targeted performance gains in specialized dynamical regimes.
 \end{abstract}
 
 
@@ -72,8 +67,7 @@ To handle heterogeneous sensor arrays, the framework incorporates coordinate sal
 Multivariate Time-Series, Anomaly Detection, Joint-Embedding Predictive Architecture (JEPA), Physics-Informed Machine Learning, Koopman Operator Theory, Reynolds Stress, Potential Flow, Extreme Value Theory, Deep Learning.
 \end{IEEEkeywords}
 
-
-% Sections
+% --- Input from 04_intro.tex ---
 \section{Introduction}
 \label{sec:intro}
 
@@ -88,7 +82,7 @@ Deep learning architectures provide data-driven alternatives to explicit equatio
 \subsection{Our Approach: Physics-Informed Joint-Embedding Predictive Architectures}
 To eliminate signal-space noise memorization without relying on synthetic contrastive perturbations, we formulate a family of \textit{Physics-Informed Joint-Embedding Predictive Architectures} (PI-JEPA) for multi-sensor telemetry. Instead of reconstructing raw, jitter-corrupted sensor observations $\hat{x} \approx x$, a JEPA maps past observations $x_{\text{ctx}}$ into an abstract representation space and predicts target representations $z_{\text{tgt}}$ directly \cite{lecun2022path, assran2023self}. By operating in latent space, the architecture discards high-frequency stochastic sensor noise that lacks long-range predictability.
 
-However, unconstrained latent prediction alone can be underspecified in multi-sensor telemetry. To incorporate physical domain priors into self-supervised representation learning, we introduce three physics-informed JEPA architectures featuring inductive dynamical regularizers. The first formulation, \textit{Operator-Entropy JEPA}, parameterizes a latent linear Koopman transition matrix regularized by dynamic spectral entropy $\mathcal{H}_{\text{spectral}}(\mathbf{K})$ to prevent dimensional collapse and preserve linear modal expressivity in multi-sensor dynamics. The second, \textit{Reynolds-Stress JEPA}, adapts hydrodynamic Reynolds decomposition ($z = \bar{z} + z'$) to align second-order cross-channel fluctuation covariance tensors $\mathbf{R}_{ij} = \mathbb{E}[z'_i z'_j]$, capturing structural anomalies that disrupt multi-sensor covariance balance. The third, \textit{Potential-Flow JEPA}, enforces conservative latent trajectory transitions by parameterizing the transition field as the gradient of a scalar potential ($\hat{v} = \nabla \Phi$); because gradient fields are irrotational by construction, non-conservative dynamical anomalies produce pronounced predictive discrepancies.
+However, unconstrained latent prediction alone can be underspecified in multi-sensor telemetry. To incorporate physical domain priors into self-supervised representation learning, we introduce three physics-informed JEPA architectures featuring inductive dynamical regularizers. The first formulation, \textit{Operator-Entropy JEPA}, parameterizes a latent linear Koopman transition matrix regularized by spectral entropy during training to prevent dimensional collapse and preserve linear modal expressivity in multi-sensor dynamics. The second, \textit{Reynolds-Stress JEPA}, adapts hydrodynamic Reynolds decomposition ($z = \bar{z} + z'$) to align second-order fluctuation covariance across latent coordinates, capturing structural anomalies that disrupt multi-coordinate covariance balance. The third, \textit{Potential-Flow JEPA}, enforces conservative latent trajectory transitions by parameterizing the transition field as the gradient of a scalar potential ($\hat{v} = \nabla \Phi$); because gradient fields are irrotational by construction, non-conservative dynamical anomalies produce pronounced predictive discrepancies.
 
 To stabilize learning across heterogeneous high-dimensional sensor arrays, all three architectures incorporate Coordinate Saliency Gating to isolate active channels, Dyadic Wavelet Shells to decouple high-frequency transients from baseline drift, and a Kurtosis-Adaptive Extreme Value Theory (EVT / SPOT) calibrator that modulates tail thresholds against non-Gaussian kurtosis.
 
@@ -98,13 +92,13 @@ The contributions of this work are as follows:
     \item \textit{Physics-Informed Joint-Embedding Framework:} We formulate an unsupervised anomaly detection framework that embeds physical regularizers (spectral dissipation, turbulent momentum transfer, conservative flow) directly into latent representations, avoiding raw-space noise reconstruction.
     \item \textit{Physics-Informed JEPA Formulations:} We derive and implement three physics-informed architectures (\texttt{Operator-Entropy JEPA}, \texttt{Reynolds-Stress JEPA}, and \texttt{Potential-Flow JEPA}) and benchmark them alongside an unconstrained control (\texttt{TS-JEPA}).
     \item \textit{Inductive Architectural Components:} We introduce Coordinate Saliency Gating for cross-channel fault localization, Dyadic Wavelet decomposition for multi-resolution temporal analysis, and Kurtosis-Adaptive EVT tail calibration to provide automated streaming alarms without transductive test tuning.
-    \item \textit{Multi-Tier Benchmark Evaluation:} We evaluate performance across 11 telemetry datasets (45 matched channels), reporting Dataset-Macro, Channel-Macro, Pooled Micro-F1, and Area Under the Precision-Recall Curve (PR-AUC) alongside an analytical All-Positive reference baseline. We show that latent prediction mitigates threshold calibration collapse, achieving up to 43.2\% relative improvement in Dataset-Macro F1 and a 3.2$\times$ to 5.3$\times$ gain in Pooled Micro-F1 while reducing false positives by 8.0-fold against TimesNet ($130{,}237$ vs $1{,}047{,}144$) and 3.5-fold against TranAD ($455{,}128$).
+    \item \textit{Multi-Tier Benchmark Evaluation:} We evaluate performance across 11 telemetry datasets (45 matched channels), reporting Dataset-Macro, Channel-Macro, Pooled Micro-F1, and Area Under the Precision-Recall Curve (PR-AUC) alongside an analytical All-Positive reference baseline. We show that latent prediction mitigates threshold calibration collapse, achieving up to 43.2\% relative improvement in Dataset-Macro F1 (where Operator-Entropy JEPA is the sole model to exceed the analytical All-Positive baseline) and a 3.2$\times$ to 5.3$\times$ gain in Pooled Micro-F1 while reducing false positives by 8.0-fold against TimesNet ($130{,}237$ vs $1{,}047{,}144$) and 3.5-fold against TranAD ($452{,}621$).
 \end{itemize}
 
 
 The remainder of this paper is structured as follows. Section~\ref{sec:related} reviews related work in reconstructive, contrastive, and joint-embedding anomaly detection. Section~\ref{sec:dataset} details the 11-dataset multi-sensor telemetry benchmark suite. Section~\ref{sec:proposed_method} formalizes the PI-JEPA Triad, coordinate saliency gating, dyadic wavelets, and kurtosis-adaptive EVT. Section~\ref{sec:exp} establishes the experimental protocol and multi-tier evaluation framework. Section~\ref{sec:ablations} evaluates architectural ablations and inductive layer contributions. Section~\ref{sec:results} provides domain-by-domain empirical analysis and qualitative physical case studies. Finally, Section~\ref{sec:conclusion} concludes the paper.
 
-
+% --- Input from 05_related.tex ---
 \section{Related Work}
 \label{sec:related}
 
@@ -113,7 +107,7 @@ Unsupervised time-series anomaly detection spans dynamical equation discovery, r
 \subsection{Dynamical Systems Modeling and Koopman Operators}
 The physical modeling of multi-sensor telemetry has long sought to capture system behavior as continuous dynamical trajectories governed by differential equations $\dot{x}(t) = \mathbf{f}(x(t))$ \cite{brunton2016discovering}. One prominent approach, Neural Ordinary Differential Equations (Neural ODEs) \cite{chen2018neural}, parameterizes continuous velocity fields using neural networks $\frac{dx}{dt} = f_\theta(x(t), t)$ and integrates trajectories numerically. While Neural ODEs learn flexible vector fields, fitting them directly in raw observation space forces numerical solvers to integrate through high-frequency stochastic sensor noise, leading to numerical stiffness, slow training, and sensitivity to measurement jitter.
 
-In parallel, Koopman operator theory and Dynamic Mode Decomposition (DMD) \cite{brunton2016koopman, lusch2018deep, liu2023koopa} analyze non-linear dynamical systems by learning linear transition operators that act on observable functions. Modern deep Koopman frameworks (e.g., Koopa \cite{liu2023koopa}) learn observable embeddings for non-stationary forecasting. In anomaly detection, physical disruptions manifest as spectral decoherence or sudden changes in modal dissipation. Rather than operating on uncalibrated raw signals, our framework parameterizes latent linear transitions and monitors dynamic spectral entropy directly in representation space.
+In parallel, Koopman operator theory and Dynamic Mode Decomposition (DMD) \cite{brunton2016koopman, lusch2018deep, liu2023koopa} analyze non-linear dynamical systems by learning linear transition operators that act on observable functions. Modern deep Koopman frameworks (e.g., Koopa \cite{liu2023koopa}) learn observable embeddings for non-stationary forecasting. In anomaly detection, physical disruptions manifest as spectral decoherence or sudden changes in modal dissipation. Rather than operating on uncalibrated raw signals, our framework parameterizes latent linear transitions regularized by Koopman spectral entropy during training directly in representation space.
 
 \subsection{Reconstruction-Based Detection}
 The predominant deep learning approach in time-series anomaly detection relies on learning nominal patterns through raw signal reconstruction. Hundman et al. \cite{Hundman2018b} introduced LSTM-based prediction coupled with non-parametric dynamic thresholding for NASA spacecraft telemetry (SMAP/MSL). Modern architectures incorporate specialized attention and frequency-domain transformations. For example, Anomaly Transformer \cite{xu2022anomaly} introduces Anomaly-Attention to quantify the association discrepancy between local prior Gaussian kernel associations and global series self-attention. TimesNet \cite{wu2023timesnet} decomposes 1D multivariate time series into 2D temporal variations using Fast Fourier Transform (FFT) periodicity discovery and 2D Inception blocks. Similarly, TranAD \cite{tuli2022tranad} employs a two-phase adversarial Transformer with sub-series attention and focus scoring to amplify subtle reconstruction errors.
@@ -134,25 +128,27 @@ Physics-Informed Neural Networks (PINNs) \cite{raissi2019physics} integrate diff
 \subsection{Positioning of the Proposed Framework}
 The proposed Physics-Informed JEPA framework bridges joint-embedding predictive learning and physical domain mechanics through four distinct structural designs. First, by forecasting future representations $z_{\text{tgt}}$ rather than raw observations $\hat{x}$, our models circumvent high-frequency noise drowning and sensor jitter memorization that hobble reconstructive baselines (TimesNet, TranAD). Second, we introduce three physics-informed inductive formulations: Operator-Entropy (Koopman spectral dissipation), Reynolds-Stress (turbulent momentum transport), and Potential-Flow (conservative irrotational field theory), addressing cyclic, turbulent, and conservative physical dynamics. Third, we incorporate Coordinate Saliency Gating to prevent active channel dilution in high-dimensional arrays, and Littlewood-Paley Dyadic Wavelets to isolate transient impulses from low-frequency operational drift. Finally, we deploy Extreme Value Theory (EVT / SPOT) \cite{siffer2017anomaly} modulated by dynamic sample kurtosis, establishing decision boundaries on operational telemetry without transductive test-label tuning.
 
+% --- Input from 06_dataset.tex ---
 \section{Multi-Sensor IoT and Remote Sensing Benchmark Suite}
 \label{sec:dataset}
 
-To evaluate our Physics-Informed JEPA framework across diverse edge, cyber-physical, and orbital sensing dynamics, our benchmark suite comprises 11 datasets spanning 45 strictly matched continuous telemetry channels sourced from NASA spacecraft archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}. We organize these channels into four IoT and remote sensing domains:
+To evaluate our Physics-Informed JEPA framework across diverse edge, cyber-physical, and orbital sensing dynamics, our benchmark suite comprises 11 datasets spanning 45 strictly matched continuous telemetry channels sourced from NASA spacecraft archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}. We organize these channels into four physical sensing domains:
 
-\subsection{Domain 1: Satellite and Spacecraft Telemetry (18 Channels)}
-This domain encompasses high-reliability orbital and deep-space telemetry. The \textit{NASA SMAP Earth Observation Satellite} \cite{Hundman2018b} (8 evaluated channels) provides continuous electrical power, thermal, and attitude telemetry from the Soil Moisture Active Passive spacecraft, monitoring solar array currents, bus voltages, battery temperatures, and thruster statuses subject to radiation upsets and operational mode shifts. The \textit{NASA MSL Curiosity Rover} \cite{Hundman2018b} (9 evaluated channels) tracks environmental and robotic actuator streams from the Mars Science Laboratory rover, recording drive motor currents, joint angles, arm kinematics, and power subsystem faults during planetary surface operations. Finally, the \textit{SWAN-SF Space Weather Telemetry} \cite{angryk2020multivariate} (1 channel) provides solar photospheric vector magnetogram telemetry from NASA SDO/HMI, tracking active region magnetic field perturbations during solar eruptive events.
+\subsection{Domain 1: Satellite and Spacecraft Telemetry (13 Channels)}
+This domain encompasses high-reliability orbital and deep-space telemetry. The \textit{NASA SMAP Earth Observation Satellite} \cite{Hundman2018b} (6 evaluated channels) provides continuous electrical power, thermal, and attitude telemetry from the Soil Moisture Active Passive spacecraft, monitoring solar array currents, bus voltages, battery temperatures, and thruster statuses subject to radiation upsets and operational mode shifts. The \textit{NASA MSL Curiosity Rover} \cite{Hundman2018b} (6 evaluated channels) tracks environmental and robotic actuator streams from the Mars Science Laboratory rover, recording drive motor currents, joint angles, arm kinematics, and power subsystem faults during planetary surface operations. Finally, the \textit{SWAN-SF Space Weather Telemetry} \cite{angryk2020multivariate} (1 channel) provides solar photospheric vector magnetogram telemetry from NASA SDO/HMI, tracking active region magnetic field perturbations during solar eruptive events.
 
-\subsection{Domain 2: Wearable Biometrics and Kinematics (9 Channels)}
-This domain evaluates human kinematic telemetry via the \textit{Daphnet Wearable Body Sensor Network} \cite{bachlin2010wearable} (9 channels). Telemetry consists of high-frequency tri-axial accelerometry recorded from wearable sensor nodes placed on the shank, thigh, and trunk (yielding 9 continuous dimensions per subject) to track Freezing-of-Gait (FoG) motor breakdown events in Parkinson's disease patients.
+\subsection{Domain 2: Wearable Biometrics and Kinematics (6 Channels)}
+This domain evaluates human kinematic telemetry via the \textit{Daphnet Wearable Body Sensor Network} \cite{bachlin2010wearable} (6 channels). Telemetry consists of high-frequency tri-axial accelerometry recorded from wearable sensor nodes placed on the shank, thigh, and trunk to track Freezing-of-Gait (FoG) motor breakdown events in Parkinson's disease patients.
 
-\subsection{Domain 3: Industrial IoT and Cyber-Physical Systems (8 Channels)}
-This domain covers continuous industrial processes and fluid transportation. The \textit{GHL Industrial Separation Plant} (6 channels) captures multi-phase gas-oil-water separation telemetry, monitoring tank levels, flow rates, and valve control faults. The \textit{Genesis Automation Testbed} (1 channel) tracks manufacturing automation telemetry during mechanical handling machinery faults. The \textit{GECCO Water Distribution IoT} (1 channel) monitors physical water distribution infrastructure through continuous chemical and hydrological sensor measurements.
+\subsection{Domain 3: Industrial Processes and Cyber-Physical Systems (16 Channels)}
+This domain covers continuous industrial processes and fluid transportation. The \textit{GHL Gasoil Heating Loop} (14 channels) captures thermal and fluid process loop telemetry, monitoring temperatures, flow rates, and valve control dynamics. The \textit{Genesis Automation Testbed} (1 channel) tracks manufacturing automation telemetry from an industrial pick-and-place demonstrator during mechanical handling faults. The \textit{GECCO Water Distribution IoT} (1 channel) monitors physical water distribution infrastructure through continuous chemical and hydrological sensor measurements.
 
 \subsection{Domain 4: Smart Infrastructure and Environmental Sensing (10 Channels)}
-This domain evaluates urban infrastructure and cyber-physical networks. The \textit{Room-Occupancy Environmental IoT} dataset \cite{candanedo2016accurate} (2 channels) records ambient environmental conditions ($\text{CO}_2$, light, temperature, humidity) tracking occupancy state switches. The \textit{CICIDS Edge Network Telemetry} (6 channels) captures high-throughput network flow dynamics, tracking gateway protocol shifts and security anomalies including DDoS bursts and port scans. The \textit{CalIt2 Building People-Flow Telemetry} \cite{asuncion2007uci} (1 channel) records continuous pedestrian counts via optical beam sensors at the UC Irvine Calit2 facility entrance. Finally, the \textit{Metro Highway Traffic} dataset (1 channel) tracks interstate highway traffic volume and environmental flow conditions.
+This domain evaluates urban infrastructure and cyber-physical networks. The \textit{Room-Occupancy Environmental IoT} dataset \cite{candanedo2016accurate} (2 channels) records ambient environmental conditions ($\text{CO}_2$, light, temperature, humidity) tracking room-occupancy state switches. The \textit{CICIDS Edge Network Telemetry} (6 channels) captures high-throughput network flow dynamics, tracking gateway protocol shifts and security anomalies including DDoS bursts and port scans. The \textit{CalIt2 Building People-Flow Telemetry} \cite{asuncion2007uci} (1 channel) records continuous pedestrian counts via optical beam sensors at the UC Irvine Calit2 facility entrance. Finally, the \textit{Metro Highway Traffic} dataset (1 channel) tracks interstate highway traffic volume and environmental flow conditions on Minnesota Interstate I-94.
 
-Each benchmark channel provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled ground-truth anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$), flooring standard deviations at $\max(\bm{\sigma}, 10^{-2})$ to prevent division by zero during flat-line operational phases. While full mission repositories contain larger sensor arrays (e.g., SMAP records 51 telemetry streams and MSL records 26 streams across diverse subsystems), our benchmark evaluates the standardized 8- and 9-channel subsets commonly evaluated in the recent benchmark literature \cite{Hundman2018b, schmidl2022anomaly} to ensure strict matching and reproducible runtime conditions across all baselines.
+Each benchmark channel provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled ground-truth anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$), flooring standard deviations at $\max(\bm{\sigma}, 10^{-2})$ to prevent division by zero during flat-line operational phases. While raw mission repositories contain larger telemetry sets (e.g., SMAP encompasses 55 telemetry channels and MSL encompasses 27 channels across various subsystems), our benchmark evaluates the standardized 6-channel subsets commonly evaluated in the multi-sensor benchmark literature \cite{Hundman2018b, schmidl2022anomaly} to ensure strict matching and reproducible runtime conditions across all baselines.
 
+% --- Input from 07_method.tex ---
 \section{Methodology: The Physics-Informed Geometric JEPA Triad}
 \label{sec:proposed_method}
 
@@ -191,30 +187,30 @@ In dynamical systems theory, non-linear trajectories can be analyzed via linear 
 \end{equation}
 To regularize modal stability across latent coordinates, we evaluate the singular value spectrum $\sigma_i(\mathbf{K})$, which governs the energy amplification and contraction of the linear map. We define the normalized spectral entropy as:
 \begin{equation}
-    \mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D \tilde{\sigma}_i \log \tilde{\sigma}_i, \quad \tilde{\sigma}_i = \frac{\sigma_i}{\sum_{j=1}^D \sigma_j + \epsilon}.
+    \mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D \tilde{\sigma}_i \log (\tilde{\sigma}_i + \epsilon), \quad \tilde{\sigma}_i = \frac{\sigma_i}{\sum_{j=1}^D \sigma_j + \epsilon},
 \end{equation}
-A unitary, energy-conserving linear map distributes energy evenly across all orthogonal modes ($\sigma_i \approx 1$), producing maximal spectral entropy $\mathcal{H}_{\text{max}} = \log D$. Conversely, severe damping or modal collapse contracts dynamics onto a low-rank subspace (low spectral entropy). To prevent representation collapse toward low-rank degeneration and encourage non-degenerate linear transitions during training, the Operator-Entropy training objective regularizes the predictive transition while maximizing spectral dispersion:
+where $\epsilon = 10^{-6}$ ensures numerical stability. A unitary, energy-conserving linear map distributes energy evenly across all orthogonal modes ($\sigma_i \approx 1$), producing maximal spectral entropy $\mathcal{H}_{\text{max}} = \log D$. Conversely, severe damping contracts dynamics onto a low-rank subspace (low spectral entropy). To prevent the transition matrix $\mathbf{K}$ from collapsing to a low-rank projection and encourage non-degenerate linear transitions during training, the Operator-Entropy training objective regularizes the predictive transition while maximizing spectral dispersion:
 \begin{equation}
     \mathcal{L}_{\text{Op-Entropy}} = \| \mathbf{K} z_{\text{ctx}} - z_{\text{tgt}} \|_2^2 - \lambda_{\text{ent}} \mathcal{H}_{\text{spectral}}(\mathbf{K}),
 \end{equation}
-where $\lambda_{\text{ent}} = 10^{-3}$ penalizes dimensional collapse across latent modes.
+where $\lambda_{\text{ent}} = 10^{-3}$ penalizes dimensional collapse across latent modes. Note that representation collapse of encoder embeddings $z$ is prevented by the asymmetric EMA target encoder with stop-gradient $\bot$, while $\mathcal{H}_{\text{spectral}}(\mathbf{K})$ specifically acts as an inductive regularizer on the operator spectrum during pretraining.
 
 \subsubsection{2. Reynolds-Stress JEPA (Continuum Mechanics \& Covariance Alignment)}
-In multi-channel telemetry representing coupled flows (thermal, convective, hydraulic), channel interactions are governed by transport phenomena. Inspired by hydrodynamic \textit{Reynolds decomposition}, we decompose the temporal sequence of target representations $\mathbf{Z}_{\text{tgt}} = [z_{t+1}, \dots, z_{t+S}]^T \in \mathbb{R}^{S \times D}$ across horizon $S$ into a rolling baseline trajectory and dynamic fluctuations:
+In multi-channel telemetry representing coupled flows (thermal, convective, hydraulic), interactions across latent state dimensions are governed by transport phenomena. Inspired by hydrodynamic \textit{Reynolds decomposition}, the target encoder $E_\phi$ processes target horizon $x_{\text{tgt}} \in \mathbb{R}^{S \times K}$ through its convolutional backbone prior to global temporal pooling, outputting an unpooled temporal sequence of feature vectors $\mathbf{Z}_{\text{tgt}} = [z_1, \dots, z_S]^T \in \mathbb{R}^{S \times D}$. We decompose this sequence into a temporal mean trajectory and zero-mean fluctuations:
 \begin{equation}
-    \mathbf{Z}_{\text{tgt}} = \mathbf{1}\bar{\mathbf{z}}^T + \mathbf{Z}',
+    \mathbf{Z}_{\text{tgt}} = \mathbf{1}\bar{\mathbf{z}}_{\text{tgt}}^T + \mathbf{Z}',
 \end{equation}
-where $\bar{\mathbf{z}} = \frac{1}{S}\sum_{s=1}^S z_s \in \mathbb{R}^D$ denotes the window temporal mean, and $\mathbf{Z}' \in \mathbb{R}^{S \times D}$ denotes the zero-mean temporal fluctuations.
+where $\bar{\mathbf{z}}_{\text{tgt}} = \frac{1}{S}\sum_{s=1}^S z_s \in \mathbb{R}^D$ denotes the window temporal mean, and $\mathbf{Z}' \in \mathbb{R}^{S \times D}$ denotes the dynamic fluctuations.
 
-The inter-coordinate momentum transport across the temporal window is characterized by the second-moment fluctuation covariance matrix:
+The inter-coordinate momentum transport across the temporal window is characterized by the second-moment fluctuation covariance matrix across latent coordinates:
 \begin{equation}
     \mathbf{R}_{\text{tgt}} = \frac{1}{S} {\mathbf{Z}'}^T \mathbf{Z}' \in \mathbb{R}^{D \times D}.
 \end{equation}
-Anomalies disrupt the nominal multi-sensor fluctuation covariance balance. The Reynolds-Stress JEPA loss aligns the predicted mean trajectory and target fluctuation covariance:
+The Reynolds-Stress predictor parameterizes both the mean target transition $\hat{z}_{\text{tgt}} = f_{\text{mean}}(z_{\text{ctx}})$ and a predicted fluctuation covariance $\mathbf{R}_{\text{pred}} = \mathbf{L}\mathbf{L}^T \in \mathbb{R}^{D \times D}$, parameterized via lower-triangular Cholesky factor $\mathbf{L}(z_{\text{ctx}})$. The training objective aligns both the mean trajectory and the dynamic covariance across latent dimensions:
 \begin{equation}
     \mathcal{L}_{\text{Reynolds}} = \| \bar{z}_{\text{tgt}} - \hat{z}_{\text{tgt}} \|_2^2 + \lambda_R \| \mathbf{R}_{\text{pred}} - \mathbf{R}_{\text{tgt}} \|_F^2,
 \end{equation}
-with $\lambda_R = 10^{-2}$.
+with $\lambda_R = 10^{-2}$. At inference time, the anomaly score $\mathcal{S}(t) = \|\hat{z}_{\text{tgt}}(t) - \bar{z}_{\text{tgt}}(t)\|_2^2$ evaluates mean trajectory divergence.
 
 \subsubsection{3. Potential-Flow JEPA (Conservative Field Theory)}
 Under the Helmholtz-Hodge decomposition theorem, any sufficiently smooth vector field can be uniquely resolved into an irrotational (curl-free) conservative potential gradient and a solenoidal (divergence-free) rotational field. 
@@ -230,11 +226,11 @@ Because the curl of the gradient of any $C^2$ scalar field is identically zero (
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
-During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect target windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed causally with a stride of 1 timestep. For all JEPA architectures, the anomaly score is computed as the latent predictive discrepancy between the predicted target representation $\hat{z}_{\text{tgt}}$ and the target encoder representation $z_{\text{tgt}}$:
+During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect target windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed with a stride of 1 timestep. For all JEPA architectures, the anomaly score is computed as the latent predictive discrepancy between the predicted target representation $\hat{z}_{\text{tgt}}$ and the target encoder representation $z_{\text{tgt}}$:
 \begin{equation}
     \mathcal{S}(t) = \| \hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t) \|_2^2.
 \end{equation}
-Because the target horizon spans $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$, evaluating $\mathcal{S}(t)$ operates with a fixed lookahead latency buffer of $S=64$ timesteps. The physical inductive regularizers enter as structural inductive constraints during training and architectural parameterization, shaping the geometry of the learned latent manifold without requiring ad-hoc test-time heuristic score terms. Each timestep $t$ is mapped directly to its calibrated anomaly score $\mathcal{S}(t)$.
+While context $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ is strictly causal (depending only on the past), the target horizon $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ evaluates the upcoming $S=64$ timesteps. Therefore, $\mathcal{S}(t)$ operates with an operational lookahead buffer of $S=64$ timesteps at inference. In a continuous streaming deployment, an anomaly occurring at timestep $t^*$ enters the target window when $t = t^* - S$, causing the model to register elevated discrepancy up to $S=64$ steps prior to the event peak. Under strict unadjusted point-level evaluation, timesteps prior to ground-truth onset are recorded as point-level false positives, establishing an empirical false-positive baseline floor. In our standard benchmark evaluation, we report \textit{Dense} scoring, where sliding windows advance with a stride of 1 timestep and the anomaly score $\mathcal{S}(t)$ is evaluated at each decision time $t$. In operational incident analysis (Section VII.D), we additionally examine \textit{Middle} alignment, where the anomaly score is centered at $t + S/2$ to balance pre-onset and post-onset window overlap. Baseline models (TimesNet and TranAD) are evaluated under the exact identical sliding-window evaluation protocol and standardization to ensure strict comparability.
 
 \subsection{Shared Internal Inductive Biases}
 \label{subsec:shared_inductive_biases}
@@ -243,9 +239,9 @@ To stabilize learning across high-dimensional, noisy telemetry, all three archit
 \subsubsection{1. Coordinate Saliency Gating}
 On high-dimensional streams ($K \ge 50$), anomalous signals frequently manifest in only a small subset of channels while remaining channels exhibit ambient noise. To prevent dimensional drowning, we introduce a parameter-free \textit{Coordinate Saliency Gate} within the encoder:
 \begin{equation}
-    s_k = \frac{\text{Var}_t(x_k)}{\sum_{j=1}^K \text{Var}_t(x_j) + \epsilon}, \quad \tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s}\right),
+    s_k = \frac{\text{Var}_t(x_k)}{\sum_{j=1}^K \text{Var}_t(x_j) + \epsilon}, \quad \tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s + \epsilon}\right),
 \end{equation}
-where $\sigma(\cdot)$ is the logistic sigmoid, and $\bar{s}, \sigma_s$ denote the mean and standard deviation of channel variances. This dynamically prioritizes informative non-stationary coordinates without discarding quiet sensor channels.
+where $\sigma(\cdot)$ is the logistic sigmoid, $\epsilon = 10^{-6}$ ensures numerical stability, and $\bar{s}, \sigma_s$ denote the mean and standard deviation of channel variances across the input window. For multi-channel inputs ($K > 1$), this dynamically prioritizes informative non-stationary coordinates without discarding quiet sensor channels. For single-channel univariate streams ($K = 1$), $s_1 = \bar{s}$ and $\sigma_s = 0$; we define the gate to smoothly reduce to identity scaling ($\tilde{x}_1 = x_1$), ensuring consistent execution across univariate and multivariate streams.
 
 \subsubsection{2. Littlewood-Paley Dyadic Wavelet Shells}
 Real-world physical anomalies operate across disparate temporal scales, ranging from high-frequency electrical spikes to gradual thermal drifts. We integrate Littlewood-Paley dyadic frequency decomposition into the encoder front-end. The input sequence is decomposed into dyadic octave bands via bandpass filters $\psi_j(\omega) = \psi(2^j \omega)$ satisfying the partition of unity:
@@ -265,6 +261,7 @@ To account for varying tail heaviness across diverse sensor regimes, we modulate
 \end{equation}
 On heavy-tailed distributions ($\gamma_2 > 0$), $\tau_{\text{eff}}$ increases, raising the threshold to suppress false alarms from volatile noise bursts; on light-tailed distributions ($\gamma_2 < 0$), the threshold tightens to maximize detection sensitivity.
 
+% --- Input from 08_experiments.tex ---
 \section{Experimental Protocol and Evaluation Metrics}
 \label{sec:exp}
 
@@ -274,20 +271,20 @@ This section outlines the experimental setup, baseline architectures, and the mu
 \label{subsec:exp_setup}
 To ensure rigorous and fair comparison, all architectures are trained and evaluated under an identical streaming time-series pipeline. Telemetry streams are processed using a sliding window with past context duration $C=256$ and suspect target horizon $S=64$ (total window length $L=320$), evaluated with a stride of 1 timestep across all testing streams.
 
-Context representations $z_{\text{ctx}} \in \mathbb{R}^D$ ($D=32$) are extracted using a causal dilated Temporal Convolutional Network (TCN) comprising 3 residual blocks, channel depth $F=48$, kernel size $K=5$, and exponentially increasing dilation factors $d \in \{1, 2, 4\}$, regularized by Layer Normalization and dropout ($p=0.20$). The momentum target encoder parameters $\theta_{\text{tgt}}$ are updated via Exponential Moving Average (EMA) tracking: $\theta_{\text{tgt}} \leftarrow m \theta_{\text{tgt}} + (1-m) \theta_{\text{ctx}}$, where momentum coefficient $m$ follows a cosine schedule from $m_{\text{base}}=0.996$ to $m_{\text{max}}=0.9995$.
+Context representations $z_{\text{ctx}} \in \mathbb{R}^D$ ($D=32$) are extracted using a causal dilated Temporal Convolutional Network (TCN) comprising 3 residual blocks with channel depth $F=48$, kernel size $K=5$, and dilation factors $d \in \{1, 2, 4\}$. While the convolutional receptive field across the 3 dilated blocks spans $1 + 2(K-1)\sum_l d_l = 57$ timesteps, global temporal average pooling across the resulting feature maps aggregates information across the entire context window $C=256$, condensing the sequence into a fixed-dimensional latent representation $z_{\text{ctx}} \in \mathbb{R}^D$ regularized by Layer Normalization and dropout ($p=0.20$). The momentum target encoder parameters $\theta_{\text{tgt}}$ are updated via Exponential Moving Average (EMA) tracking: $\theta_{\text{tgt}} \leftarrow m \theta_{\text{tgt}} + (1-m) \theta_{\text{ctx}}$, where momentum coefficient $m$ follows a cosine schedule from $m_{\text{base}}=0.996$ to $m_{\text{max}}=0.9995$.
 
 Models are optimized using AdamW with an initial learning rate $\eta=10^{-3}$ decayed to $\eta_{\text{min}}=10^{-5}$ via Cosine Annealing, weight decay $10^{-4}$, and mini-batch size $B=32$ across 20 training epochs on nominal telemetry sequences. For statistical calibration, Extreme Value Theory (EVT / SPOT) fits Generalized Pareto Distribution (GPD) tails to the top $2.0\%$ ($u=0.98$) of nominal training residuals under extreme risk parameter $q=10^{-3}$, dynamically modulated by empirical sample kurtosis.
 
 \subsection{Baseline Architectures and Parameter Capacities}
 To isolate algorithmic principles from external implementation discrepancies, all baselines are executed within a unified PyTorch benchmarking pipeline under identical windowing, standardization, and EVT calibration:
 
-\noindent\textbf{TimesNet \cite{wu2023timesnet}:} A multi-periodic reconstructive architecture that transforms 1D time series into 2D variation spaces via 1D-FFT periodic frequency discovery and 2D Inception blocks (574,529 trainable parameters).
+\noindent\textbf{TimesNet \cite{wu2023timesnet}:} A multi-periodic reconstructive architecture that transforms 1D time series into 2D variation spaces via 1D-FFT periodic frequency discovery and 2D Inception blocks (574,529 trainable parameters, $>2.6\times$ larger than any evaluated JEPA).
 
 \noindent\textbf{TranAD \cite{tuli2022tranad}:} An adversarial reconstructive Transformer featuring two-stage self-conditioning and sub-series attention to amplify subtle reconstruction errors (201,090 trainable parameters).
 
 \noindent\textbf{TS-JEPA (Unconstrained Control):} A standard Joint-Embedding Predictive Architecture predicting target representations $z_{\text{tgt}}$ from context $z_{\text{ctx}}$ without physical inductive priors (217,925 trainable parameters; 431,466 total including the EMA momentum target encoder).
 
-\noindent\textbf{Physics-Informed Formulations:} Three physics-informed architectures incorporating spectral Koopman dissipation (\texttt{Operator-Entropy JEPA}, 217,957 trainable parameters), turbulent momentum transport (\texttt{Reynolds-Stress JEPA}, 224,817 trainable parameters), and conservative curl-free potential constraints (\texttt{Potential-Flow JEPA}, 266,981 trainable parameters). The physical heads introduce negligible parameter overhead (under $1\%$ to $22\%$ over the base encoder), demonstrating that performance differences arise from inductive geometry rather than parameter capacity confounds.
+\noindent\textbf{Physics-Informed Formulations:} Three physics-informed architectures incorporating spectral Koopman dissipation (\texttt{Operator-Entropy JEPA}, 217,957 trainable parameters), turbulent momentum transport (\texttt{Reynolds-Stress JEPA}, 224,817 trainable parameters), and conservative curl-free potential constraints (\texttt{Potential-Flow JEPA}, 266,981 trainable parameters). Operator-Entropy adds only 32 parameters ($+0.01\%$) over TS-JEPA, strictly isolating the inductive regularization effect of spectral entropy. Reynolds-Stress introduces $+3.1\%$ parameters for its Cholesky covariance projection, while Potential-Flow adds $+22.5\%$ parameters through its potential gradient MLP network. These audits confirm that performance gains over reconstructive baselines do not stem from parameter scaling advantages.
 
 \subsection{Multi-Tier Statistical Evaluation Metrics}
 \label{subsec:eval_metrics}
@@ -321,6 +318,7 @@ where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\
 
 \noindent\textbf{Contiguous Point-Adjusted F1 (PA-F1):} Standard segment adjustment where detecting any single anomaly point expands to the entire contiguous anomaly segment. To prevent boundary bleeding, point adjustment is computed strictly within contiguous ground-truth segments before metric calculation. We also report the \textit{Test-Sweep PA-F1} (best post-hoc threshold scan) to quantify the remaining calibration gap.
 
+% --- Input from 09_variants.tex ---
 \section{Ablation Studies and Analysis}
 \label{sec:ablations}
 
@@ -421,10 +419,7 @@ Transductive Test Sweep & 0.3541 & 0.4820 & 0.4105 \\
 \end{tabular}
 \end{table*}
 
-
-
-
-
+% --- Input from 10_results.tex ---
 \section{Results and Discussion}
 \label{sec:results}
 
@@ -467,7 +462,7 @@ Figure~\ref{fig:domain_radar} illustrates the radar profile of the flagship mode
 Each model in the triad exhibits specialized mathematical inductive advantages:
 
 \subsubsection{Operator-Entropy JEPA (Koopman Spectral Mechanics)}
-By monitoring dynamic spectral entropy within a latent Koopman transition representation, \texttt{operator\_entropy\_jepa} is sensitive to disruptions in non-linear cyclic and mixing dynamics. It achieves high performance across NASA spacecraft telemetry (\texttt{MSL}: $0.478$ PR-AUC; \texttt{SMAP}: $0.467$ PR-AUC), industrial process loops (\texttt{GECCO}: $0.351$ PR-AUC vs Potential-Flow's $0.015$), and space weather solar flare dynamics (\texttt{swan}: $0.436$ PR-AUC).
+By regularizing the spectral entropy of the latent Koopman transition matrix during pretraining, \texttt{operator\_entropy\_jepa} encourages high-rank modal expressivity across non-linear dynamics. It achieves strong ranking across NASA spacecraft telemetry (\texttt{MSL}: $0.478$ PR-AUC; \texttt{SMAP}: $0.467$ PR-AUC) and industrial water infrastructure (\texttt{GECCO}: $0.351$ PR-AUC vs Potential-Flow's $0.015$). However, on highly periodic human gait kinematics (\texttt{Daphnet}), it achieves $0.139$ PR-AUC, trailing TimesNet ($0.303$) whose 2D Fourier decomposition explicitly models multi-periodic harmonics. Similarly, on \texttt{swan} solar telemetry, Operator-Entropy ($0.436$) trails unconstrained \texttt{TS-JEPA} ($0.651$), confirming that the spectral regularizer acts as a targeted inductive bias rather than a universally dominant prior across all physical regimes.
 
 \subsubsection{Reynolds-Stress JEPA (Continuum Mechanics \& Turbulent Transport)}
 Grounded in hydrodynamic Reynolds decomposition ($z = \bar{z} + z'$), \texttt{reynolds\_stress\_jepa} aligns cross-channel fluctuation covariance between context and target horizons. This formulation is designed for systems characterized by coupled flows. On the SMAP satellite telemetry dataset, it achieves Rank 1 in PR-AUC ($0.512$), outperforming TimesNet ($0.479$) and TranAD ($0.345$). On SWAN solar telemetry, it achieves $0.522$ PR-AUC and strong precision.
@@ -484,12 +479,12 @@ Ablation of the three internal inductive layers confirms their collective role i
 \subsection{Operational Incident Evaluation: Event Metrics and Streaming Adaptation}
 While unadjusted Point-F1 prevents score inflation from naive point adjustment, point-level scoring can penalize slight temporal boundary offsets in operational telemetry. In physical systems, an anomaly represents a continuous operational incident; if an algorithm detects the failure with a sub-second phase delay or slight boundary misalignment, point-level metrics penalize every misaligned point as a false positive or false negative, depressing nominal precision even when incidents are detected.
 
-To evaluate operational incident detection, we analyze model performance under three complementary criteria: (i) strict unadjusted Point-F1, (ii) incident-level Event-F1 ($P_{\text{event}}, R_{\text{event}}$), and (iii) Tatbul et al. (NeurIPS 2018) Range-Aware F1 ($F1_{\text{range}}$) evaluated with existence reward ($\alpha=0$) and uniform positional overlap reward. Because sliding window prediction evaluates target horizon $x_{\text{tgt}} \in \mathbb{R}^{S \times K}$ ($S=64$), detections operate with an operational lookahead buffer of 64 timesteps. Table~\ref{tab:operational_incident_metrics} examines the operational trade-offs across representative domains:
+To evaluate operational incident detection, we analyze model performance under three complementary criteria: (i) strict unadjusted Point-F1, (ii) incident-level Event-F1 ($P_{\text{event}}, R_{\text{event}}$), and (iii) Tatbul et al. (NeurIPS 2018) Range-Aware F1 ($F1_{\text{range}}$) evaluated with balanced existence and overlap reward ($\alpha=0.5$), uniform positional overlap, and reciprocal cardinality factor. Detections operate with an operational lookahead buffer of $S=64$ timesteps. Table~\ref{tab:operational_incident_metrics} examines the operational trade-offs across representative domains:
 
 \begin{table*}[t]
 \centering
 \small
-\caption{Operational incident detection comparison across representative domains. Dense scoring provides high incident recall (up to $100\%$ on Room Occupancy and SMAP), whereas streaming dynamic SPOT exposes an operational trade-off: it reduces false alarm counts by up to $21\times$ (from 4,705 to 223 points) while moderately reducing event recall to $63.6\%$.}
+\caption{Operational incident detection comparison across representative domains. On Room Occupancy ($\pi=20.0\%$, 11 ground-truth events), static EVT captures 100\% of events (11/11) with a point precision matching the base rate (20.0\%), while dynamic SPOT reduces false positives by $21\times$ (from 4,705 to 223 points) with an operational trade-off in event recall (63.6\%, 7/11 events).}
 \label{tab:operational_incident_metrics}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}llccccccc@{}}
@@ -519,22 +514,24 @@ To evaluate operational incident detection, we analyze model performance under t
 
 As shown in Table~\ref{tab:operational_incident_metrics}, evaluating anomaly detection at the incident level reveals three operational characteristics:
 
-\noindent\textbf{Incident Sensitivity vs. False Alarm Volume:} On Room Occupancy and SMAP, static EVT thresholding achieves 100\% Event Recall across all tested models, with dense scoring reaching $0.9167$ Event-F1 and $84.6\%$ Event Precision. However, static calibration generates over 4,000 point-level false alarms on Room Occupancy due to unmodeled diurnal baseline drift.
+\noindent\textbf{Incident Sensitivity vs. False Alarm Volume:} On Room Occupancy (11 ground-truth events, $\pi=20.0\%$ base rate) and SMAP (1 continuous event), static EVT thresholding achieves 100\% Event Recall across all tested configurations. However, static calibration generates over 4,000 point-level false alarms on Room Occupancy due to unmodeled diurnal baseline drift, yielding a 20.0\% point precision that matches the background anomaly base rate.
 
-\noindent\textbf{Streaming Adaptation Pareto Trade-off:} When dynamic rolling SPOT thresholding is applied to track baseline drift, false alarms decrease from 4,705 to 223 points on Room Occupancy (a $21\times$ reduction). This dramatic false alarm reduction introduces an operational trade-off: event recall drops from 100\% to 63.6\% (7 of 11 events detected), demonstrating the classic operating curve between alarm volume and event sensitivity.
+\noindent\textbf{Streaming Adaptation Pareto Trade-off:} When dynamic rolling SPOT thresholding is applied to track baseline drift, false alarms decrease from 4,705 to 223 points on Room Occupancy (a $21\times$ reduction) and precision increases to 29.9\%. However, this introduces an operational trade-off: event recall drops from 100\% to 63.6\% (7 of 11 events detected), demonstrating the classic operating curve between alarm fatigue and fault sensitivity on non-stationary streams.
 
-\noindent\textbf{Boundary Alignment in Operational Telemetry:} On challenging channels such as SMAP P-3 and CalIt2, low point-level F1 scores ($F1 \le 0.13$) are driven by boundary temporal offset rather than complete failure; range-aware F1 reaches $0.3634$ on SMAP. On CalIt2, rapid intermittent pedestrian bursts result in lower event recall (4.8\%--23.8\%), demonstrating that fast transient pulses remain challenging for fixed-horizon window architectures.
+\noindent\textbf{Boundary Alignment in Operational Telemetry:} On SMAP, all models capture the single continuous thruster fault segment (100\% event recall). On CalIt2 (21 rapid pedestrian burst events), models detect between 4.8\% and 23.8\% of events under dynamic SPOT, demonstrating that short intermittent pulses remain challenging for fixed-horizon window architectures.
 
-
+% --- Input from 11_future.tex ---
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
 In this work, we presented a Physics-Informed Joint-Embedding Predictive Architecture (PI-JEPA) framework for unsupervised anomaly detection in multivariate sensor telemetry. By replacing raw observation-space reconstruction with forward prediction in latent representation space, our approach eliminates the threshold calibration collapse that causes reconstructive baselines (TimesNet, TranAD) to flood continuous streams with hundreds of thousands of false alarms under ambient sensor noise.
 
-We embedded physical domain principles directly into latent representations through three complementary formulations: Operator-Entropy JEPA (quantifying spectral stability and dissipation via dynamic spectral entropy across latent Koopman transition modes), Reynolds-Stress JEPA (aligning cross-channel second-moment fluctuation covariance tensors inspired by hydrodynamic Reynolds decomposition), and Potential-Flow JEPA (enforcing conservative, irrotational trajectory dynamics via a scalar potential gradient). Together with Coordinate Saliency Gating, Littlewood-Paley Dyadic Wavelet Shells, and Kurtosis-Adaptive Extreme Value Theory tail calibration, the proposed framework stabilizes streaming threshold calibration. Across 11 telemetry datasets (45 matched channels) evaluated under identical protocols, Operator-Entropy JEPA achieves the highest Dataset-Macro Point-F1 ($0.2066$, representing a 43.2\% relative improvement over TimesNet and 28.4\% over TranAD) and clears the analytical all-positive baseline ($0.1893$). In Pooled Micro-F1, Potential-Flow JEPA attains $0.3458$ (over $3.2\times$ higher than TranAD and $5.3\times$ higher than TimesNet) while reducing false alarms by 8.0-fold.
+We embedded physical domain principles directly into latent representations through three complementary formulations: Operator-Entropy JEPA (regularizing latent Koopman transition matrices via spectral entropy during training to prevent modal collapse), Reynolds-Stress JEPA (aligning cross-channel second-moment fluctuation covariance tensors inspired by hydrodynamic Reynolds decomposition), and Potential-Flow JEPA (enforcing conservative, irrotational trajectory dynamics via a scalar potential gradient). Together with Coordinate Saliency Gating, Littlewood-Paley Dyadic Wavelet Shells, and Kurtosis-Adaptive Extreme Value Theory tail calibration, the proposed framework stabilizes streaming threshold calibration. Across 11 telemetry datasets (45 matched channels) evaluated under identical protocols, Operator-Entropy JEPA achieves the highest Dataset-Macro Point-F1 ($0.2066$, representing a 43.2\% relative improvement over TimesNet and 28.4\% over TranAD) and clears the analytical all-positive baseline ($0.1893$). In Pooled Micro-F1, Potential-Flow JEPA attains $0.3458$ (over $3.2\times$ higher than TranAD and $5.3\times$ higher than TimesNet) while reducing false alarms by 8.0-fold.
 
 Several promising avenues remain for future investigation. First, extending conservative field formulations by incorporating parameter-controlled solenoidal vorticity components will allow modeling dissipative systems with limit-cycle attractors. Second, developing memory-efficient, test-time momentum adaptation will enable tracking orbital thermal cycles and environmental seasonal drift without catastrophic forgetting. Third, expanding empirical evaluations across extensive multi-seed benchmarks will enable rigorous confidence interval reporting and rank-based statistical testing (such as Friedman-Nemenyi tests). Finally, quantizing PI-JEPA encoders into 8-bit integer (INT8) formats will facilitate deployment on radiation-hardened spacecraft microcontrollers and ultra-low-power wearable edge devices.
 
+\section*{Code and Data Availability}
+To ensure reproducibility, all benchmark dataset extraction scripts, preprocessing pipelines, model checkpoints, PyTorch training harnesses, and evaluation logs for all six evaluated architectures across the 11 telemetry datasets are open-sourced at an anonymized public repository: \url{https://anonymous.4open.science/r/NCAD_CS-Reproducibility-8F21}. All public datasets (NASA SMAP/MSL, Daphnet, CICIDS-2017, GHL, CalIt2, GECCO, Genesis, Metro Traffic, and SWAN-SF) are accessible via their respective referenced public repositories.
 
 % Bibliography
 \bibliographystyle{IEEEtran}
