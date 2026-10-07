@@ -1,20 +1,10 @@
 \section{Ablation Studies and Analysis}
 \label{sec:ablations}
 
-To isolate the individual contributions of each mathematical and architectural component in our Physics-Informed JEPA framework, we conduct systematic ablation experiments across representative multi-domain telemetry types:
-\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{High-Dimensional Aerospace Telemetry (NASA SMAP / MSL, $K \ge 50$):} High-dimensional sensor pods with strong inter-channel thermal and electrical cross-coupling.
-    \item \textit{Periodic Biomechanical Kinematics (Daphnet FoG):} Fast multi-axial accelerometry exhibiting repeating limit-cycle dynamics and abrupt gait freezing.
-    \item \textit{Transient Cyber-Physical Hydraulics (GECCO / SWAN):} Continuous environmental and hydrodynamic streams with sharp, turbulent anomalies.
-\end{enumerate}
+To isolate the individual contributions of each mathematical and architectural component in our Physics-Informed JEPA framework, we conduct systematic ablation experiments across three representative telemetry regimes: (i) high-dimensional aerospace telemetry (NASA SMAP/MSL, $K \ge 50$) characterized by strong thermal and electrical cross-coupling; (ii) periodic biomechanical kinematics (Daphnet FoG) exhibiting repeating limit cycles and sudden freezing episodes; and (iii) transient cyber-physical hydraulics (GECCO/SWAN) with sharp, turbulent anomalies.
 
 \subsection{Ablation 1: Physics-Informed Inductive Biases vs. Unconstrained Prediction}
-Table~\ref{tab:core_benchmark} and Table~\ref{tab:ablations}(a) isolate the impact of embedding physical domain constraints into latent representations compared to unconstrained latent forecasting (\texttt{TS-JEPA}) and observation-space reconstruction (\texttt{TimesNet}, \texttt{TranAD}):
-\begin{itemize}[leftmargin=*]
-    \item \textit{Reconstructive Observation Space:} Reconstructive models suffer from severe false alarm flooding (TimesNet accumulates over $10^6$ false positives, yielding a Pooled Micro-F1 of only $0.0647$).
-    \item \textit{Unconstrained Latent Prediction (\texttt{TS-JEPA}):} Moving prediction to latent space eliminates noise memorization, lifting Micro-F1 to $0.2860$ and achieving $0.1838$ Dataset-Macro F1 with $0.3449$ PA-F1.
-    \item \textit{Physics-Informed Formulations:} \texttt{Operator-Entropy JEPA} attains the highest Dataset-Macro F1 ($0.2066$) and Channel-Macro F1 ($0.1743$), while \texttt{Potential-Flow JEPA} achieves the highest overall Micro-F1 ($0.3458$) and reduces false alarms by 8-fold ($130{,}237$ vs $1{,}047{,}144$).
-\end{itemize}
+Table~\ref{tab:core_benchmark} and Table~\ref{tab:ablations}(a) isolate the impact of embedding physical domain constraints into latent representations compared to unconstrained latent forecasting (\texttt{TS-JEPA}) and observation-space reconstruction (\texttt{TimesNet}, \texttt{TranAD}). Reconstructive observation-space models suffer from severe false alarm flooding; for instance, TimesNet accumulates over $10^6$ false positives, yielding a Pooled Micro-F1 of only $0.0647$. Moving prediction to latent space in unconstrained \texttt{TS-JEPA} eliminates raw-space noise memorization, lifting Micro-F1 to $0.2860$ and achieving $0.1838$ Dataset-Macro F1. Introducing physical inductive priors provides targeted improvements: \texttt{Operator-Entropy JEPA} attains the highest Dataset-Macro F1 ($0.2066$) and Channel-Macro F1 ($0.1743$), while \texttt{Potential-Flow JEPA} achieves peak Micro-F1 ($0.3458$) and reduces false alarms by 8.0-fold ($130{,}237$ vs $1{,}047{,}144$).
 
 \subsection{Ablation 2: Coordinate Saliency Gating in High-Dimensional Pods}
 In high-dimensional telemetry ($K \ge 50$), anomalous faults typically originate in a localized subsystem (e.g., a single valve or battery cell). In standard latent pooling:
@@ -37,12 +27,7 @@ improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.2904$ on \texttt{Operato
 \subsection{Ablation 4: Kurtosis-Adaptive vs. Static Extreme Value Calibration}
 Standard Extreme Value Theory (SPOT) fits a Generalized Pareto Distribution to residuals exceeding an initial quantile $u$. However, telemetry noise profiles exhibit substantial variation in tail heaviness across sensor channels. In leptokurtic distributions ($\gamma_2 > 0$, heavy tails), static thresholds trigger frequent false alarms; in platykurtic distributions ($\gamma_2 < 0$), static thresholds miss low-amplitude structural faults.
 
-Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator against static calibration baselines:
-\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Static 3-Sigma Gaussian Threshold:} Yields poor detection ($0.082$ Macro Pt-F1) due to pervasive non-Gaussianity and heavy tails in raw telemetry residuals.
-    \item \textit{Standard EVT (Unweighted SPOT):} Achieves $0.174$ Macro Pt-F1, but suffers from false positive bursts during non-stationary operational phases.
-    \item \textit{Kurtosis-Adaptive EVT (Ours):} By scaling the effective tail threshold $\tau_{\text{eff}} = \tau \cdot \left(1 + \frac{1}{6}\tanh(\gamma_2)\right)$, the calibrator raises decision margins during heavy-tailed regimes while sharpening sensitivity on calm channels, achieving $0.2066$ Macro Pt-F1.
-\end{enumerate}
+Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator against static calibration baselines. A static 3-sigma Gaussian threshold yields poor detection ($0.082$ Macro Pt-F1) due to pervasive non-Gaussianity and heavy tails in raw telemetry residuals. Standard EVT (unweighted SPOT) achieves $0.174$ Macro Pt-F1, but suffers from false positive bursts during non-stationary operational phases. In contrast, kurtosis-adaptive EVT dynamically modulates the effective tail threshold $\tau_{\text{eff}} = \tau \cdot \left(1 + \frac{1}{6}\tanh(\gamma_2)\right)$, raising decision margins during heavy-tailed volatile regimes while sharpening sensitivity on calm channels, achieving $0.2066$ Macro Pt-F1.
 
 \begin{table*}[t]
 \centering

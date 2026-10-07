@@ -5,50 +5,51 @@ This section outlines the experimental setup, baseline architectures, and the mu
 
 \subsection{Experimental Setup and Hyperparameters}
 \label{subsec:exp_setup}
-To ensure rigorous, fair comparison across all models, all architectures are trained and evaluated under an identical streaming time-series pipeline:
-\begin{itemize}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textit{Sliding Window Geometry:} Past context duration $C=256$, suspect/target horizon $S=64$ (total window length $L=320$), evaluated with a stride of 1 timestep across testing streams.
-    \item \textit{Encoder Backbone:} Context representations $z_{\text{ctx}} \in \mathbb{R}^D$ ($D=32$) are extracted using a causal dilated Temporal Convolutional Network (TCN) with 3 residual blocks, channel depth $F=48$, kernel size $K=5$, and exponentially increasing dilation factors $d \in \{1, 2, 4\}$ regularized by Layer Normalization and dropout ($p=0.20$).
-    \item \textit{Target Encoder Update:} The target encoder parameters $\theta_{\text{tgt}}$ are updated via Exponential Moving Average (EMA) momentum tracking: $\theta_{\text{tgt}} \leftarrow m \theta_{\text{tgt}} + (1-m) \theta_{\text{ctx}}$, with $m$ following a cosine schedule from $m_{\text{base}}=0.996$ to $m_{\text{max}}=0.9995$.
-    \item \textit{Optimization Protocol:} AdamW optimizer with initial learning rate $\eta=10^{-3}$ decayed to $\eta_{\text{min}}=10^{-5}$ via Cosine Annealing, weight decay $10^{-4}$, and mini-batch size $B=32$ across 20 training epochs on nominal telemetry sequences.
-    \item \textit{Statistical Calibration:} Extreme Value Theory (EVT / SPOT) calibration fits Generalized Pareto Distribution (GPD) tails to the top $2.0\%$ ($u=0.98$) of nominal training residuals under extreme risk parameter $q=10^{-3}$, dynamically modulated by the empirical sample kurtosis of the channel anomaly stream.
-\end{itemize}
+To ensure rigorous and fair comparison, all architectures are trained and evaluated under an identical streaming time-series pipeline. Telemetry streams are processed using a sliding window with past context duration $C=256$ and suspect target horizon $S=64$ (total window length $L=320$), evaluated with a stride of 1 timestep across all testing streams.
 
-\subsection{Baseline Architectures and Unified Reimplementation}
-To isolate algorithmic principles from external codebase discrepancies, all baselines are executed within a unified PyTorch benchmarking pipeline under identical windowing, standardization, and EVT calibration:
-\begin{enumerate}[noitemsep, topsep=0pt, leftmargin=*]
-    \item \textbf{TimesNet \cite{wu2023timesnet}:} Multi-periodic reconstructive architecture that transforms 1D time series into 2D variation spaces via 1D-FFT periodic frequency discovery and 2D Inception blocks (574,529 trainable parameters).
-    \item \textbf{TranAD \cite{tuli2022tranad}:} Adversarial reconstructive Transformer featuring two-stage self-conditioning and sub-series attention to amplify subtle reconstruction errors (201,090 trainable parameters).
-    \item \textbf{TS-JEPA (Unconstrained Control):} Standard Joint-Embedding Predictive Architecture predicting target representations $z_{\text{tgt}}$ from context $z_{\text{ctx}}$ without physical inductive priors (217,925 trainable parameters; 431,466 total including the EMA momentum target encoder).
-    \item \textbf{Physics-Informed Formulations:} Three physics-informed architectures incorporating spectral Koopman dissipation (\texttt{Operator-Entropy JEPA}, 217,957 trainable parameters), turbulent momentum transport (\texttt{Reynolds-Stress JEPA}, 224,817 trainable parameters), and conservative curl-free potential constraints (\texttt{Potential-Flow JEPA}, 266,981 trainable parameters). The physical heads introduce negligible parameter overhead (under $1\%$ to $22\%$ over the base encoder), demonstrating that performance differences arise from inductive geometry rather than parameter capacity confounds.
-\end{enumerate}
+Context representations $z_{\text{ctx}} \in \mathbb{R}^D$ ($D=32$) are extracted using a causal dilated Temporal Convolutional Network (TCN) comprising 3 residual blocks, channel depth $F=48$, kernel size $K=5$, and exponentially increasing dilation factors $d \in \{1, 2, 4\}$, regularized by Layer Normalization and dropout ($p=0.20$). The momentum target encoder parameters $\theta_{\text{tgt}}$ are updated via Exponential Moving Average (EMA) tracking: $\theta_{\text{tgt}} \leftarrow m \theta_{\text{tgt}} + (1-m) \theta_{\text{ctx}}$, where momentum coefficient $m$ follows a cosine schedule from $m_{\text{base}}=0.996$ to $m_{\text{max}}=0.9995$.
+
+Models are optimized using AdamW with an initial learning rate $\eta=10^{-3}$ decayed to $\eta_{\text{min}}=10^{-5}$ via Cosine Annealing, weight decay $10^{-4}$, and mini-batch size $B=32$ across 20 training epochs on nominal telemetry sequences. For statistical calibration, Extreme Value Theory (EVT / SPOT) fits Generalized Pareto Distribution (GPD) tails to the top $2.0\%$ ($u=0.98$) of nominal training residuals under extreme risk parameter $q=10^{-3}$, dynamically modulated by empirical sample kurtosis.
+
+\subsection{Baseline Architectures and Parameter Capacities}
+To isolate algorithmic principles from external implementation discrepancies, all baselines are executed within a unified PyTorch benchmarking pipeline under identical windowing, standardization, and EVT calibration:
+
+\noindent\textbf{TimesNet \cite{wu2023timesnet}:} A multi-periodic reconstructive architecture that transforms 1D time series into 2D variation spaces via 1D-FFT periodic frequency discovery and 2D Inception blocks (574,529 trainable parameters).
+
+\noindent\textbf{TranAD \cite{tuli2022tranad}:} An adversarial reconstructive Transformer featuring two-stage self-conditioning and sub-series attention to amplify subtle reconstruction errors (201,090 trainable parameters).
+
+\noindent\textbf{TS-JEPA (Unconstrained Control):} A standard Joint-Embedding Predictive Architecture predicting target representations $z_{\text{tgt}}$ from context $z_{\text{ctx}}$ without physical inductive priors (217,925 trainable parameters; 431,466 total including the EMA momentum target encoder).
+
+\noindent\textbf{Physics-Informed Formulations:} Three physics-informed architectures incorporating spectral Koopman dissipation (\texttt{Operator-Entropy JEPA}, 217,957 trainable parameters), turbulent momentum transport (\texttt{Reynolds-Stress JEPA}, 224,817 trainable parameters), and conservative curl-free potential constraints (\texttt{Potential-Flow JEPA}, 266,981 trainable parameters). The physical heads introduce negligible parameter overhead (under $1\%$ to $22\%$ over the base encoder), demonstrating that performance differences arise from inductive geometry rather than parameter capacity confounds.
 
 \subsection{Multi-Tier Statistical Evaluation Metrics}
 \label{subsec:eval_metrics}
 Recent critical surveys in time-series anomaly detection \cite{kim2022towards, schmidl2022anomaly, wu2023current} demonstrate that standard evaluation protocols are plagued by severe reporting vulnerabilities, including point-adjustment inflation, channel-averaging imbalances, and arbitrary threshold gaming. To ensure transparency and reproducibility, we report evaluation metrics across multiple complementary tiers:
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Dataset-Macro Point-F1 (Primary Metric):} We compute the unweighted arithmetic mean of Point-F1 scores across datasets:
-    \begin{equation}
-        \text{Macro-F1}_{\text{DS}} = \frac{1}{|\mathcal{D}|} \sum_{d \in \mathcal{D}} \left( \frac{1}{|C_d|} \sum_{c \in C_d} \text{F1}_{c} \right)
-    \end{equation}
-    where $\mathcal{D}$ is the set of benchmark datasets and $C_d$ is the set of channels in dataset $d$. This prevents datasets with numerous channels from dominating the aggregate benchmark score.
-    \item \textbf{Pooled Micro Point-F1:} We pool all raw True Positives, False Positives, and False Negatives globally across all test timesteps:
-    \begin{equation}
-        \text{Micro-F1} = \frac{2 \sum_{c} \text{TP}_c}{2 \sum_c \text{TP}_c + \sum_c \text{FP}_c + \sum_c \text{FN}_c}
-    \end{equation}
-    Micro-F1 directly penalizes models that flood long streams with hundreds of thousands of false alarms, exposing reconstructive noise drowning.
-    \item \textbf{Channel-Macro Point-F1:} The standard per-channel average $\frac{1}{N} \sum_{i=1}^N \text{F1}_i$ across all evaluated channels.
-    \item \textbf{Precision-Recall Area Under the Curve (PR-AUC):} Average Precision computed over all possible continuous anomaly score thresholds:
-    \begin{equation}
-        \text{PR-AUC} = \sum_{k} (R_k - R_{k-1}) P_k
-    \end{equation}
-    PR-AUC evaluates raw score ranking capability entirely independent of the threshold calibration mechanism.
-    \item \textbf{Trivial All-Positive Reference Baseline:} We report the analytical performance of a constant all-positive predictor ($\hat{y}_t = 1, \forall t$):
-    \begin{equation}
-        \text{F1}_{\text{all-pos}} = \frac{2 \cdot P}{2 \cdot P + N} = \frac{2 \pi}{1 + \pi}
-    \end{equation}
-    where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\text{F1}_{\text{all-pos}}$ provides less discriminative value than an uncalibrated constant alarm.
-    \item \textbf{Contiguous Point-Adjusted F1 (PA-F1):} Standard segment adjustment where detecting any single anomaly point expands to the entire contiguous anomaly segment. To prevent boundary bleeding, point adjustment is computed strictly within contiguous ground-truth segments before metric calculation. We also report the \textit{Test-Sweep PA-F1} (best post-hoc threshold scan) to quantify the remaining calibration gap.
-\end{enumerate}
 
+\noindent\textbf{Dataset-Macro Point-F1 (Primary Metric):} We compute the unweighted arithmetic mean of Point-F1 scores across datasets:
+\begin{equation}
+    \text{Macro-F1}_{\text{DS}} = \frac{1}{|\mathcal{D}|} \sum_{d \in \mathcal{D}} \left( \frac{1}{|C_d|} \sum_{c \in C_d} \text{F1}_{c} \right)
+\end{equation}
+where $\mathcal{D}$ is the set of benchmark datasets and $C_d$ is the set of channels in dataset $d$. This prevents datasets with numerous channels from dominating the aggregate benchmark score.
 
+\noindent\textbf{Pooled Micro Point-F1:} We pool all raw True Positives, False Positives, and False Negatives globally across all test timesteps:
+\begin{equation}
+    \text{Micro-F1} = \frac{2 \sum_{c} \text{TP}_c}{2 \sum_c \text{TP}_c + \sum_c \text{FP}_c + \sum_c \text{FN}_c}
+\end{equation}
+Micro-F1 directly penalizes models that flood long streams with hundreds of thousands of false alarms, exposing reconstructive noise drowning.
+
+\noindent\textbf{Channel-Macro Point-F1:} The standard per-channel average $\frac{1}{N} \sum_{i=1}^N \text{F1}_i$ across all evaluated channels.
+
+\noindent\textbf{Precision-Recall Area Under the Curve (PR-AUC):} Average Precision computed over all possible continuous anomaly score thresholds:
+\begin{equation}
+    \text{PR-AUC} = \sum_{k} (R_k - R_{k-1}) P_k
+\end{equation}
+PR-AUC evaluates raw score ranking capability entirely independent of the threshold calibration mechanism.
+
+\noindent\textbf{Trivial All-Positive Reference Baseline:} We report the analytical performance of a constant all-positive predictor ($\hat{y}_t = 1, \forall t$):
+\begin{equation}
+    \text{F1}_{\text{all-pos}} = \frac{2 \cdot P}{2 \cdot P + N} = \frac{2 \pi}{1 + \pi}
+\end{equation}
+where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\text{F1}_{\text{all-pos}}$ provides less discriminative value than an uncalibrated constant alarm.
+
+\noindent\textbf{Contiguous Point-Adjusted F1 (PA-F1):} Standard segment adjustment where detecting any single anomaly point expands to the entire contiguous anomaly segment. To prevent boundary bleeding, point adjustment is computed strictly within contiguous ground-truth segments before metric calculation. We also report the \textit{Test-Sweep PA-F1} (best post-hoc threshold scan) to quantify the remaining calibration gap.

@@ -1,33 +1,18 @@
 \section{Multi-Sensor IoT and Remote Sensing Benchmark Suite}
 \label{sec:dataset}
 
-To evaluate our Physics-Informed JEPA framework across diverse edge, cyber-physical, and orbital sensing dynamics, our benchmark suite comprises 11 datasets spanning 45 strictly matched continuous telemetry channels sourced from NASA spacecraft archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}. We group these channels into four IoT and remote sensing domains:
+To evaluate our Physics-Informed JEPA framework across diverse edge, cyber-physical, and orbital sensing dynamics, our benchmark suite comprises 11 datasets spanning 45 strictly matched continuous telemetry channels sourced from NASA spacecraft archives \cite{Hundman2018b}, the PhysioNet biomedical database \cite{bachlin2010wearable}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}. We organize these channels into four IoT and remote sensing domains:
 
 \subsection{Domain 1: Satellite and Spacecraft Telemetry (18 Channels)}
-\begin{enumerate}[leftmargin=*]
-    \item \textit{NASA SMAP Earth Observation Satellite \cite{Hundman2018b} (8 evaluated channels):} Continuous power, thermal, and attitude telemetry from the Soil Moisture Active Passive (SMAP) spacecraft tracking solar array currents, bus voltages, battery temperatures, and thruster status subject to radiation upsets and operational mode shifts.
-    \item \textit{NASA MSL Curiosity Rover \cite{Hundman2018b} (9 evaluated channels):} Environmental and robotic actuator telemetry from the Mars Science Laboratory (MSL) rover monitoring drive motor currents, joint angles, arm kinematics, and power subsystem faults during planetary exploration.
-    \item \textit{SWAN-SF Space Weather Telemetry \cite{angryk2020multivariate} (1 channel):} Solar photospheric vector magnetogram telemetry from NASA SDO/HMI tracking active region magnetic field perturbations during solar eruptive events.
-\end{enumerate}
+This domain encompasses high-reliability orbital and deep-space telemetry. The \textit{NASA SMAP Earth Observation Satellite} \cite{Hundman2018b} (8 evaluated channels) provides continuous electrical power, thermal, and attitude telemetry from the Soil Moisture Active Passive spacecraft, monitoring solar array currents, bus voltages, battery temperatures, and thruster statuses subject to radiation upsets and operational mode shifts. The \textit{NASA MSL Curiosity Rover} \cite{Hundman2018b} (9 evaluated channels) tracks environmental and robotic actuator streams from the Mars Science Laboratory rover, recording drive motor currents, joint angles, arm kinematics, and power subsystem faults during planetary surface operations. Finally, the \textit{SWAN-SF Space Weather Telemetry} \cite{angryk2020multivariate} (1 channel) provides solar photospheric vector magnetogram telemetry from NASA SDO/HMI, tracking active region magnetic field perturbations during solar eruptive events.
 
 \subsection{Domain 2: Wearable Biometrics and Kinematics (9 Channels)}
-\begin{enumerate}[leftmargin=*]
-    \item \textit{Daphnet Wearable Body Sensor Network \cite{bachlin2010wearable} (9 channels):} High-frequency tri-axial accelerometry from wearable body sensor nodes (placed on the shank, thigh, and trunk; 9 continuous dimensions per subject) tracking Freezing-of-Gait (FoG) breakdown events in Parkinson's patients.
-\end{enumerate}
+This domain evaluates human kinematic telemetry via the \textit{Daphnet Wearable Body Sensor Network} \cite{bachlin2010wearable} (9 channels). Telemetry consists of high-frequency tri-axial accelerometry recorded from wearable sensor nodes placed on the shank, thigh, and trunk (yielding 9 continuous dimensions per subject) to track Freezing-of-Gait (FoG) motor breakdown events in Parkinson's disease patients.
 
 \subsection{Domain 3: Industrial IoT and Cyber-Physical Systems (8 Channels)}
-\begin{enumerate}[leftmargin=*]
-    \item \textit{GHL Industrial Separation Plant (6 channels):} Multi-phase gas-oil-water separation industrial process telemetry monitoring tank levels, flow rates, and valve control faults.
-    \item \textit{Genesis Automation Testbed (1 channel):} Industrial manufacturing testbed telemetry tracking automated handling machinery faults.
-    \item \textit{GECCO Water Distribution IoT (1 channel):} Physical water distribution process telemetry monitoring chemical and hydrological sensor measurements.
-\end{enumerate}
+This domain covers continuous industrial processes and fluid transportation. The \textit{GHL Industrial Separation Plant} (6 channels) captures multi-phase gas-oil-water separation telemetry, monitoring tank levels, flow rates, and valve control faults. The \textit{Genesis Automation Testbed} (1 channel) tracks manufacturing automation telemetry during mechanical handling machinery faults. The \textit{GECCO Water Distribution IoT} (1 channel) monitors physical water distribution infrastructure through continuous chemical and hydrological sensor measurements.
 
 \subsection{Domain 4: Smart Infrastructure and Environmental Sensing (10 Channels)}
-\begin{enumerate}[leftmargin=*]
-    \item \textit{Room-Occupancy Environmental IoT \cite{candanedo2016accurate} (2 channels):} Multi-sensor ambient environmental IoT sensing ($\text{CO}_2$, light, temperature, humidity) tracking room-occupancy state switches.
-    \item \textit{CICIDS Edge Network Telemetry (6 channels):} High-throughput network flow telemetry capturing edge gateway protocol dynamics and security anomalies (DDoS bursts and port scans).
-    \item \textit{CalIt2 Building People-Flow Telemetry \cite{asuncion2007uci} (1 channel):} Continuous pedestrian counts via optical beam sensors at the UC Irvine Calit2 facility entrance.
-    \item \textit{Metro Highway Traffic (1 channel):} Interstate highway traffic volume and environmental condition telemetry.
-\end{enumerate}
+This domain evaluates urban infrastructure and cyber-physical networks. The \textit{Room-Occupancy Environmental IoT} dataset \cite{candanedo2016accurate} (2 channels) records ambient environmental conditions ($\text{CO}_2$, light, temperature, humidity) tracking occupancy state switches. The \textit{CICIDS Edge Network Telemetry} (6 channels) captures high-throughput network flow dynamics, tracking gateway protocol shifts and security anomalies including DDoS bursts and port scans. The \textit{CalIt2 Building People-Flow Telemetry} \cite{asuncion2007uci} (1 channel) records continuous pedestrian counts via optical beam sensors at the UC Irvine Calit2 facility entrance. Finally, the \textit{Metro Highway Traffic} dataset (1 channel) tracks interstate highway traffic volume and environmental flow conditions.
 
 Each benchmark channel provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled ground-truth anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$), flooring standard deviations at $\max(\bm{\sigma}, 10^{-2})$ to prevent division by zero during flat-line operational phases. While full mission repositories contain larger sensor arrays (e.g., SMAP records 51 telemetry streams and MSL records 26 streams across diverse subsystems), our benchmark evaluates the standardized 8- and 9-channel subsets commonly evaluated in the recent benchmark literature \cite{Hundman2018b, schmidl2022anomaly} to ensure strict matching and reproducible runtime conditions across all baselines.
