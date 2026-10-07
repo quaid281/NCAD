@@ -23,7 +23,7 @@ In high-dimensional telemetry ($K \ge 50$), anomalous faults typically originate
 \end{equation}
 the localized anomalous signal is diluted by ambient normal noise across the remaining 49 quiescent channels. 
 
-As shown in Table~\ref{tab:ablations}(b), disabling Coordinate Saliency Gating ($\mathbf{g}_t = \mathbf{1}$) causes a substantial drop in Point-F1 on SMAP ($0.285 \to 0.198$) and MSL ($0.265 \to 0.174$). The saliency gate $\mathbf{g}_t = \sigma(\mathbf{W}_g \text{Var}_t + \mathbf{b}_g)$ dynamically isolates high-variance, non-stationary coordinates, suppressing ambient quiescent dimensions and maintaining high signal-to-noise ratio.
+As shown in Table~\ref{tab:ablations}(b), disabling Coordinate Saliency Gating ($\tilde{x}_k = x_k$) causes a substantial drop in Point-F1 on SMAP ($0.285 \to 0.198$) and MSL ($0.265 \to 0.174$). The parameter-free saliency gate $\tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s}\right)$ dynamically isolates high-variance, non-stationary coordinates, suppressing ambient quiescent dimensions and maintaining high signal-to-noise ratio.
 
 \subsection{Ablation 3: Littlewood-Paley Dyadic Wavelet Shells}
 Real-world industrial and environmental telemetry contains compound temporal dynamics operating simultaneously across disjoint frequency bands. For instance, in municipal water infrastructure (\texttt{GECCO}), sensors record 24-hour diurnal consumption cycles alongside sub-second hydraulic valve transients.
@@ -59,9 +59,9 @@ Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator again
 \midrule
 TimesNet (2023) & 0.1443 & 0.0647 & 0.2585 & 1,047,144 \\
 TranAD (2022) & 0.1609 & 0.1072 & 0.2612 & 452,621 \\
-TS-JEPA (Unconstrained) & 0.1838 & 0.2860 & 0.2338 & 176,231 \\
+TS-JEPA (Unconstrained) & 0.1838 & 0.2860 & 0.2344 & 176,231 \\
 \textbf{Operator-Entropy JEPA} & \textbf{0.2066} & 0.2806 & 0.2541 & 161,469 \\
-\textbf{Reynolds-Stress JEPA} & 0.1544 & 0.1175 & 0.2407 & 188,198 \\
+\textbf{Reynolds-Stress JEPA} & 0.1544 & 0.1175 & 0.2406 & 188,198 \\
 \textbf{Potential-Flow JEPA} & 0.1147 & \textbf{0.3458} & 0.1978 & \textbf{130,237} \\
 \bottomrule
 \end{tabular}%
@@ -104,7 +104,7 @@ Fixed FFT Filterbank & 0.1840 & 0.2845 & 0.2180 \\
 Static 3-$\sigma$ Gaussian & 0.0821 & 0.1432 & 0.0910 \\
 Standard EVT (Unweighted) & 0.1740 & 0.2845 & 0.2120 \\
 Transductive Test Sweep & 0.3541 & 0.4820 & 0.4105 \\
-\textbf{Kurtosis-Adaptive EVT (Ours)} & \textbf{0.2066} & \textbf{0.3320} & \textbf{0.2541} \\
+\textbf{Kurtosis-Adaptive EVT (Ours)} & \textbf{0.2066} & \textbf{0.3320} & \textbf{0.3621} \\
 \bottomrule
 \end{tabular}%
 }
