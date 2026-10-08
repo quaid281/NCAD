@@ -1,34 +1,27 @@
 \begin{table*}[t]
 \centering
-\caption{Point-F1 Across All 19 Benchmark Datasets. We delineate the 11 Core Telemetry Datasets (top panel) from the 8 Extended Datasets (bottom panel).}
+\caption{Per-Dataset Unadjusted Point-F1 Across All 11 Telemetry Benchmarks (45 Matched Streams) Alongside the Analytical All-Positive Trivial Predictor ($\hat{y} \equiv 1$). Best result for each dataset is in \textbf{bold}, and second best is \underline{underlined}. The bottom row reports unweighted Dataset-Macro averages matching Table~\ref{tab:core_benchmark}.}
 \label{tab:all_datasets}
-\footnotesize
-\begin{tabular}{l c c c c c c c}
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{ll ccc c cc c}
 \toprule
-\textbf{Dataset} & \textbf{Op-Entropy} & \textbf{Reynolds} & \textbf{Pot-Flow} & \textbf{Vanilla JEPA} & \textbf{TranAD} & \textbf{TimesNet} & \textbf{NCAD} \\
+\textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Operator-Entropy} & \textbf{Reynolds-Stress} & \textbf{Potential-Flow} & \textbf{Vanilla TS-JEPA} & \textbf{TranAD} & \textbf{TimesNet} & \textbf{All-Positive} \\
 \midrule
-\multicolumn{8}{l}{\textit{\textbf{11 Core Telemetry Datasets (130 Series)}}} \\
-CalIt2 & 0.1135 & 0.0279 & 0.0000 & 0.0472 & 0.1645 & 0.1468 & 0.0189 \\
-cicids & 0.1365 & 0.0472 & 0.0549 & 0.0346 & 0.1183 & 0.0909 & 0.0105 \\
-Daphnet & 0.1070 & 0.1227 & 0.1535 & 0.0992 & 0.1199 & 0.1410 & 0.0800 \\
-GECCO & 0.2904 & 0.2201 & 0.0420 & 0.2054 & 0.0304 & 0.0304 & 0.1924 \\
-Genesis & 0.0000 & 0.0000 & 0.0000 & 0.0774 & 0.0000 & 0.0000 & 0.0000 \\
-GHL & 0.0890 & 0.0369 & 0.0000 & 0.0478 & 0.0148 & 0.0255 & 0.0000 \\
-metro & 0.0000 & 0.0000 & 0.0113 & 0.0013 & 0.0000 & 0.0000 & 0.0000 \\
-room-occupancy & 0.3795 & 0.3529 & 0.3099 & 0.3547 & 0.5425 & 0.5405 & 0.0545 \\
-MSL & 0.2312 & 0.2020 & 0.1877 & 0.2173 & 0.2047 & 0.1807 & 0.0732 \\
-SMAP & 0.2943 & 0.2815 & 0.2350 & 0.2672 & 0.1710 & 0.1772 & 0.1375 \\
-swan & 0.2554 & 0.5048 & 0.1971 & 0.4043 & 0.3477 & 0.0823 & 0.0701 \\
+CalIt2         & Building Pedestrian Flow         & 0.0804 & 0.0000 & 0.0000 & 0.0000 & \underline{0.1441} & \textbf{0.1524} & 0.0519 \\
+cicids         & Network Intrusion Dynamics       & \underline{0.1576} & 0.0335 & \textbf{0.1703} & 0.1182 & 0.0835 & 0.0884 & 0.3059 \\
+Daphnet        & Wearable Parkinsonian Kinematics & 0.0952 & 0.0327 & 0.0824 & 0.0974 & \underline{0.1401} & \textbf{0.2158} & 0.2554 \\
+GECCO          & Municipal Water Infrastructure   & \textbf{0.4040} & \underline{0.3843} & 0.0045 & 0.2729 & 0.0304 & 0.0304 & 0.0304 \\
+Genesis        & Pick-and-Place Automation Testbed & \underline{0.0227} & 0.0000 & 0.0000 & \textbf{0.0606} & 0.0000 & 0.0000 & 0.0062 \\
+GHL            & Gasoil Heating Loop Dynamics     & 0.0496 & \textbf{0.1367} & 0.0183 & \underline{0.0222} & 0.0154 & 0.0242 & 0.0259 \\
+metro          & Interstate Highway Traffic (I-94) & \underline{0.0038} & 0.0031 & \textbf{0.0094} & 0.0034 & 0.0000 & 0.0000 & 0.0026 \\
+MSL            & NASA Mars Science Laboratory     & \textbf{0.2439} & 0.1484 & 0.1365 & 0.1423 & \underline{0.1920} & 0.1741 & 0.3929 \\
+room-occupancy & Smart Environmental Multi-Sensor & 0.3643 & 0.2407 & 0.3395 & 0.3405 & \textbf{0.5808} & \underline{0.5282} & 0.3303 \\
+SMAP           & NASA Soil Moisture Active Passive & \underline{0.4157} & \textbf{0.4205} & 0.3764 & 0.4102 & 0.2614 & 0.2334 & 0.2433 \\
+swan           & Solar Flare Magnetic Telemetry   & 0.4349 & 0.2984 & 0.1247 & \textbf{0.5540} & \underline{0.3217} & 0.1402 & 0.4375 \\
 \midrule
-\multicolumn{8}{l}{\textit{\textbf{8 Extended Benchmarks (Diverse Modalities)}}} \\
-Exathlon & 0.2253 & 0.2161 & 0.2524 & 0.2261 & --- & --- & --- \\
-GutenTAG & 0.1283 & 0.1125 & 0.1235 & 0.2267 & --- & --- & --- \\
-MITDB & 0.1934 & 0.1822 & 0.1678 & 0.2267 & --- & --- & --- \\
-OPPORTUNITY & 0.0595 & 0.0736 & 0.0222 & 0.0387 & --- & --- & --- \\
-PSM & 0.1969 & 0.0524 & 0.0130 & 0.1269 & --- & --- & --- \\
-SMD & 0.1830 & 0.1645 & 0.1108 & 0.1012 & --- & --- & --- \\
-SVDB & 0.1833 & 0.1983 & 0.2463 & 0.1775 & --- & --- & --- \\
-creditcard & 0.0206 & 0.0401 & 0.0000 & 0.0144 & --- & --- & --- \\
+\textbf{Dataset-Macro Mean} & Across All 11 Benchmarks & \textbf{0.2066} & 0.1544 & 0.1147 & \underline{0.1838} & 0.1609 & 0.1443 & 0.1893 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table*}

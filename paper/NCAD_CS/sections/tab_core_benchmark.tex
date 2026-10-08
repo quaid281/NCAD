@@ -11,12 +11,12 @@
 \textbf{Architecture} & \textbf{Physical Inductive Bias / Formulation} & \textbf{DS-Macro} $\uparrow$ & \textbf{Micro-F1} $\uparrow$ & \textbf{Chan-Macro} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{DS-Macro} $\uparrow$ & \textbf{Chan-Macro} $\uparrow$ \\
 \midrule
 \multicolumn{8}{l}{\textit{\textbf{Proposed Physics-Informed Geometric JEPA Triad}}} \\
-\textbf{Operator-Entropy JEPA} & Koopman Spectral Entropy ($\mathcal{H}_K$) & \textbf{0.2066} & \underline{0.2806} & \textbf{0.1743} & 0.2541 & 0.3320 & 0.3205 \\
+\textbf{Operator-Entropy JEPA} & Koopman Spectral Entropy ($\mathcal{H}_K$) & \textbf{0.2066} & 0.2806 & \textbf{0.1743} & 0.2541 & 0.3320 & 0.3205 \\
 \textbf{Reynolds-Stress JEPA}  & Hydrodynamic Stress Tensor ($\mathbf{R}$) & 0.1544 & 0.1175 & \underline{0.1532} & 0.2406 & 0.3153 & \underline{0.3226} \\
 \textbf{Potential-Flow JEPA}   & Curl-Free Potential Field ($\nabla \Phi$) & 0.1147 & \textbf{0.3458} & 0.1259 & 0.1978 & 0.3053 & \textbf{0.3436} \\
 \midrule
 \multicolumn{8}{l}{\textit{\textbf{Ablation Control (Unconstrained Latent Prediction)}}} \\
-\textit{Vanilla TS-JEPA}      & Latent Prediction (Unconstrained) & \underline{0.1838} & \textbf{0.2860} & 0.1442 & 0.2344 & \textbf{0.3449} & 0.3066 \\
+\textit{Vanilla TS-JEPA}      & Latent Prediction (Unconstrained) & \underline{0.1838} & \underline{0.2860} & 0.1442 & 0.2344 & \textbf{0.3449} & 0.3066 \\
 \midrule
 \multicolumn{8}{l}{\textit{\textbf{Published State-of-the-Art Deep Baselines (Unified Reimplementations)}}} \\
 TranAD (VLDB 2022)             & Reconstructive Transformer + Adversarial & 0.1609 & 0.1072 & 0.1319 & \textbf{0.2612} & 0.2689 & 0.2537 \\
