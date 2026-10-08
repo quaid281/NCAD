@@ -264,6 +264,7 @@ class OperatorEntropyJEPAModel(JEPABase):
             "loss": total_loss.item(),
             "pred_loss": pred_loss.item(),
             "spectral_reg": spectral_reg.item(),
+            "vn_loss": spectral_reg.item(),
             "gap_loss": gap_loss.item(),
             "std_loss": std_loss.item(),
         }

@@ -158,7 +158,7 @@ def test_flow_ts_jepa_training_loop():
 
     initial_loss = None
     final_loss = None
-    for step in range(25):
+    for step in range(50):
         batch = traj + 0.05 * torch.randn_like(traj)
         ctx = batch[:, :64]
         target = batch[:, 64:]
