@@ -182,7 +182,7 @@ class ResolventPurification(nn.Module):
 
 
 class HankelPolynomialFilter(nn.Module):
-    """Algebraic Hankel Polynomial Filter Layer (Chapter 7, §4 & Chapter 5, §5).
+    r"""Algebraic Hankel Polynomial Filter Layer (Chapter 7, §4 & Chapter 5, §5).
 
     Decomposes temporal signals over a window of length :math:`L` into:
     1. **Low-degree orthogonal polynomial moments** representing smooth dynamical drift:
@@ -1275,6 +1275,130 @@ class CoordinateSaliencyGate(nn.Module):
 
         return (1.0 - a) * base_l2 + a * saliency_score
 
+    @staticmethod
+    def gate_channels(
+        x_ctx: torch.Tensor,
+        x_tgt: Optional[torch.Tensor] = None,
+        mode: str = "causal_context",
+        eps: float = 1e-6,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor]:
+        """Convenience method delegating to CausalChannelSaliencyGate."""
+        gate = CausalChannelSaliencyGate(eps=eps)
+        return gate(x_ctx, x_tgt, mode=mode)
+
+
+class CausalChannelSaliencyGate(nn.Module):
+    """Strictly Causal Channel Saliency Gate for Multivariate Telemetry (Section III.C.1).
+
+    In high-dimensional multivariate telemetry (K >> 1), localized subsystem faults
+    manifest in only a few anomalous channels, while remaining channels present nominal noise.
+    Standard isotropic pooling across all channels dilutes the anomalous signal.
+
+    To eliminate target-window variance leakage (Major Reviewer Issue #12), the channel
+    dispersion metrics are computed STRICTLY and EXCLUSIVELY from the historical context
+    horizon x_ctx = X[t-C:t, :]:
+        v_k^ctx = Var_{tau in [t-C, t]}(x_{tau, k})
+        s_k = v_k^ctx / (sum_{j=1}^K v_j^ctx + eps)
+        g_k = sigmoid((s_k - 1/K) / (sigma_s + eps))
+    
+    The causal gate g in (0, 1)^K is then applied symmetrically to scale both the historical
+    context and prospective target windows:
+        tilde{x}_ctx = x_ctx * g
+        tilde{x}_tgt = x_tgt * g
+    
+    Because partial g / partial x_tgt == 0, the target window receives identical channel-level
+    weighting without leaking future anomaly statistics into the gating vector.
+    """
+
+    def __init__(self, eps: float = 1e-6):
+        super().__init__()
+        self.eps = eps
+
+    def compute_gate(self, x_ctx: torch.Tensor) -> torch.Tensor:
+        """Compute causal gating weights g in (0, 1)^K solely from context x_ctx.
+
+        Args:
+            x_ctx: Context tensor of shape (B, T_ctx, K).
+
+        Returns:
+            g: Channel gating weights of shape (B, 1, K).
+        """
+        if x_ctx.ndim != 3:
+            raise ValueError(f"Expected 3D tensor (B, T_ctx, K), got shape {x_ctx.shape}")
+
+        B, T_ctx, K = x_ctx.shape
+        if K <= 1:
+            # Single-channel stream: identity gating
+            return torch.ones((B, 1, K), device=x_ctx.device, dtype=x_ctx.dtype)
+
+        # 1. Temporal sample variance strictly over historical context [t-C:t]
+        var_ctx = torch.var(x_ctx, dim=1, unbiased=False)  # (B, K)
+
+        # 2. Relative channel variance share s_k
+        sum_var = torch.sum(var_ctx, dim=-1, keepdim=True) + self.eps  # (B, 1)
+        s = var_ctx / sum_var  # (B, K)
+
+        # 3. Spatial standardization relative to uniform allocation bar{s} = 1/K
+        s_bar = 1.0 / float(K)
+        sigma_s = torch.std(s, dim=-1, keepdim=True, unbiased=False) + self.eps  # (B, 1)
+        z_score = (s - s_bar) / sigma_s  # (B, K)
+
+        # 4. Logistic sigmoid modulation
+        g = torch.sigmoid(z_score).unsqueeze(1)  # (B, 1, K)
+        return g
+
+    def forward(
+        self,
+        x_ctx: torch.Tensor,
+        x_tgt: Optional[torch.Tensor] = None,
+        mode: str = "causal_context",
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor]:
+        """Apply channel saliency gating under specified causality protocol.
+
+        Args:
+            x_ctx: Context tensor of shape (B, T_ctx, K).
+            x_tgt: Optional target tensor of shape (B, T_tgt, K).
+            mode: Gating causality protocol:
+                - 'causal_context': (Recommended / Standard) g computed from x_ctx alone,
+                  applied to both x_ctx and x_tgt. Strictly causal, zero target leakage.
+                - 'target_only': g computed from x_tgt and applied to both (leaky control).
+                - 'independent': g_ctx from x_ctx on context; g_tgt from x_tgt on target.
+                - 'uniform': No gating, returns inputs unchanged with unit weights (g = 1).
+
+        Returns:
+            Tuple of (gated_context, gated_target, gating_weights).
+        """
+        if mode == "uniform":
+            g = torch.ones((x_ctx.shape[0], 1, x_ctx.shape[-1]), device=x_ctx.device, dtype=x_ctx.dtype)
+            return x_ctx, x_tgt, g
+
+        if mode == "causal_context":
+            g = self.compute_gate(x_ctx)
+            x_ctx_gated = x_ctx * g
+            x_tgt_gated = (x_tgt * g) if x_tgt is not None else None
+            return x_ctx_gated, x_tgt_gated, g
+
+        elif mode == "target_only":
+            if x_tgt is None:
+                raise ValueError("Target window required for 'target_only' mode.")
+            g = self.compute_gate(x_tgt)
+            x_ctx_gated = x_ctx * g
+            x_tgt_gated = x_tgt * g
+            return x_ctx_gated, x_tgt_gated, g
+
+        elif mode == "independent":
+            g_ctx = self.compute_gate(x_ctx)
+            x_ctx_gated = x_ctx * g_ctx
+            if x_tgt is not None:
+                g_tgt = self.compute_gate(x_tgt)
+                x_tgt_gated = x_tgt * g_tgt
+            else:
+                x_tgt_gated = None
+            return x_ctx_gated, x_tgt_gated, g_ctx
+
+        else:
+            raise ValueError(f"Unknown gating mode: {mode}")
+
 
 # =============================================================================
 # 16. Littlewood-Paley Dyadic Shell Layer (Navier-Stokes Blowup Paper, §2)
@@ -1484,6 +1608,7 @@ __all__ = [
     "GTInterlacingLayer",
     "HankelMomentFilter",
     "CoordinateSaliencyGate",
+    "CausalChannelSaliencyGate",
     "LittlewoodPaleyDyadicBlock",
 ]
 

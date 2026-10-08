@@ -220,16 +220,25 @@ def von_neumann_operator_entropy_loss(z: torch.Tensor, eps: float = 1e-5) -> tor
         return torch.tensor(0.0, device=z.device)
 
     z_c = z - z.mean(dim=0, keepdim=True)
-    cov = (z_c.T @ z_c) / (N - 1)
-    tr = torch.trace(cov) + eps
-    rho = cov / tr + (eps / D) * torch.eye(D, device=z.device, dtype=z.dtype)
-    rho = rho / torch.trace(rho)
-    evals = torch.linalg.eigvalsh(rho)
-    evals = torch.clamp(evals, min=eps)
-    p = evals / evals.sum()
-    vn_entropy = -torch.sum(p * torch.log(p))
+    cov = (z_c.T @ z_c) / max(N - 1, 1)
+    evals = torch.linalg.eigvalsh(cov)
+    evals = torch.clamp(evals, min=0.0)
+    total_var = torch.sum(evals)
     max_entropy = math.log(float(D))
-    return torch.clamp(max_entropy - vn_entropy, min=0.0)
+
+    if total_var < 1e-6:
+        return torch.tensor(max_entropy + 10.0, device=z.device)
+
+    p = evals / total_var
+    p_safe = torch.clamp(p, min=1e-12)
+    p_log_p = torch.where(p > 1e-10, p * torch.log(p_safe), torch.zeros_like(p))
+    vn_entropy = -torch.sum(p_log_p)
+    entropy_deficiency = torch.clamp(max_entropy - vn_entropy, min=0.0)
+
+    var_ratio = total_var / float(D)
+    vr_clamped = torch.clamp(var_ratio, min=1e-6)
+    var_barrier = vr_clamped - 1.0 - torch.log(vr_clamped)
+    return entropy_deficiency + var_barrier
 
 
 def flow_matching_vicreg_loss(

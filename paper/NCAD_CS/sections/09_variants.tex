@@ -6,36 +6,46 @@ To isolate the individual contributions of each mathematical and architectural c
 \subsection{Ablation 1: Physics-Inspired Inductive Biases vs. Unconstrained Prediction}
 Table~\ref{tab:core_benchmark} and Table~\ref{tab:ablations}(a) isolate the impact of embedding physical domain constraints into latent representations compared to unconstrained latent forecasting (\texttt{TS-JEPA}) and observation-space reconstruction (\texttt{TimesNet}, \texttt{TranAD}). Reconstructive observation-space models suffer from severe false alarm flooding; for instance, TimesNet accumulates over $10^6$ false positives, yielding a Pooled Micro-F1 of only $0.0647$. Moving prediction to latent space in unconstrained \texttt{TS-JEPA} eliminates raw-space noise memorization, lifting Micro-F1 to $0.2860$ and achieving $0.1838$ Dataset-Macro F1. Introducing physical inductive priors provides targeted improvements: \texttt{Operator-Entropy JEPA} attains the highest Dataset-Macro F1 ($0.2066$) and Channel-Macro F1 ($0.1743$), while \texttt{Potential-Flow JEPA} achieves peak Micro-F1 ($0.3458$) and reduces false alarms by 8.0-fold ($130{,}237$ vs $1{,}047{,}144$).
 
-\subsection{Ablation 2: Coordinate Saliency Gating in High-Dimensional Pods}
+\subsection{Ablation 2: Coordinate Saliency Gating in High-Dimensional Sensor Arrays}
 In high-dimensional telemetry ($K \ge 25$), anomalous faults typically originate in a localized subsystem (e.g., a single valve or battery cell). In standard latent pooling:
 \begin{equation}
     z_{\text{pool}} = \frac{1}{K} \sum_{k=1}^K z_k
 \end{equation}
 the localized anomalous signal is diluted by ambient normal noise across the remaining quiescent channels. 
 
-As shown in Table~\ref{tab:ablations}(b), disabling Coordinate Saliency Gating ($\tilde{x}_k = x_k$) causes a substantial drop in Point-F1 on MSL ($0.265 \to 0.174$) and SMAP ($0.285 \to 0.198$). The parameter-free saliency gate $\tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s + \epsilon}\right)$ dynamically isolates high-variance, non-stationary coordinates, suppressing ambient quiescent dimensions and maintaining high signal-to-noise ratio.
+As shown in Table~\ref{tab:ablations}(b), disabling Coordinate Saliency Gating ($\tilde{x}_k = x_k$) causes a substantial drop in Point-F1 on MSL ($0.2439 \to 0.1741$) and SMAP ($0.4157 \to 0.1982$). The parameter-free saliency gate $\tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s + \epsilon}\right)$ dynamically isolates high-variance, non-stationary coordinates, suppressing ambient quiescent dimensions and maintaining high signal-to-noise ratio.
+
+\paragraph{Causal Leakage and Preprocessing Ablation}
+To address concerns regarding potential target-dependent preprocessing leakage, we explicitly isolate the source of gating weights across four regimes on NASA SMAP ($K=25$):
+\begin{enumerate}
+    \item \textbf{Shared Context-Derived Gating (Ours):} Gating weights $\mathbf{g} = g(\mathbf{x}_{\text{ctx}})$ are computed strictly from historical context and applied symmetrically to both context and target windows. This protocol guarantees strict causality ($\partial \mathbf{g} / \partial \mathbf{x}_{\text{tgt}} \equiv \mathbf{0}$) and achieves \textbf{0.4157} Point-F1.
+    \item \textbf{Target-Only Leaky Control:} Gating weights $\mathbf{g} = g(\mathbf{x}_{\text{tgt}})$ are computed from the suspect target window. This non-causal control artificially amplifies channels that spike within the target window, achieving $0.4285$ Point-F1 ($+3.1\%$ relative over causal gating), demonstrating that context-derived gating captures virtually all of the anti-drowning benefit without violating temporal causality.
+    \item \textbf{Independent Gating:} Computing $g(\mathbf{x}_{\text{ctx}})$ for context and $g(\mathbf{x}_{\text{tgt}})$ for target applies asymmetric coordinate transformations, breaking latent metric alignment and reducing Point-F1 to $0.3340$.
+    \item \textbf{Uniform Pooling (No Gating):} Disabling channel weighting completely yields $0.1982$ Point-F1 (a $52.3\%$ relative degradation).
+\end{enumerate}
+These comparisons confirm that the $+109.7\%$ performance gain on SMAP stems from filtering ambient quiescent noise rather than leaking target-window anomaly statistics into input scaling.
 
 \subsection{Ablation 3: Littlewood-Paley Dyadic Wavelet Shells}
-Real-world industrial and environmental telemetry contains compound temporal dynamics operating simultaneously across disjoint frequency bands. For instance, in municipal water infrastructure (\texttt{GECCO}), sensors record 24-hour diurnal consumption cycles alongside sub-second hydraulic valve transients.
+Real-world industrial and environmental telemetry contains compound temporal dynamics operating simultaneously across disjoint frequency bands. For instance, in municipal water infrastructure (\texttt{GECCO}), sensors record 24-hour diurnal consumption cycles alongside sudden pressure drops and pipe contaminant inflows across multi-hour horizons.
 
 Standard monolithic convolutions either over-smooth high-frequency transients or fail to capture long-period cycles. As reported in Table~\ref{tab:ablations}(c), replacing standard convolutions with Littlewood-Paley dyadic wavelet projections:
 \begin{equation}
     z^{(j)} = \Psi_j \ast x, \quad j \in \{0, 1, \dots, J-1\}
 \end{equation}
-improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.2904$ on \texttt{Operator-Entropy JEPA}, while lifting Point-F1 on \texttt{Daphnet} accelerometry from $0.2015$ to $0.2340$ (with Point-Precision improving from $0.245$ to $0.342$). Decoupling frequency octaves prevents low-frequency power from masking subtle high-frequency phase disruptions.
+improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.4040$ on \texttt{Operator-Entropy JEPA}, while lifting Point-F1 on \texttt{SWAN} magnetograms from $0.2210$ to $0.4349$ and on \texttt{Daphnet} accelerometry from $0.0521$ to $0.0952$. Decoupling frequency octaves prevents low-frequency power from masking subtle high-frequency phase disruptions.
 
 \subsection{Ablation 4: Kurtosis-Adaptive vs. Static Extreme Value Calibration}
 Standard Extreme Value Theory (SPOT) fits a Generalized Pareto Distribution to residuals exceeding an initial quantile $u$. However, telemetry noise profiles exhibit substantial variation in tail heaviness across sensor channels. In leptokurtic distributions ($\gamma_2 > 0$, heavy tails), static thresholds trigger frequent false alarms; in platykurtic distributions ($\gamma_2 < 0$), static thresholds miss low-amplitude structural faults.
 
-Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator against static calibration baselines. A static 3-sigma Gaussian threshold yields poor detection ($0.082$ Macro Pt-F1) due to pervasive non-Gaussianity and heavy tails in raw telemetry residuals. Standard EVT (unweighted SPOT) achieves $0.174$ Macro Pt-F1, but suffers from false positive bursts during non-stationary operational phases. In contrast, kurtosis-adaptive EVT dynamically modulates the effective tail threshold $\tau_{\text{eff}} = \tau \cdot \left(1 + \frac{1}{6}\tanh(\gamma_2)\right)$, raising decision margins during heavy-tailed volatile regimes while sharpening sensitivity on calm channels, achieving $0.2066$ Macro Pt-F1.
+Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator against static calibration baselines. A static 3-sigma Gaussian threshold yields poor detection ($0.0821$ Macro Pt-F1) due to pervasive non-Gaussianity and heavy tails in raw telemetry residuals. Standard EVT (unweighted SPOT) achieves $0.1740$ Macro Pt-F1, but suffers from false positive bursts during non-stationary operational phases. In contrast, kurtosis-adaptive EVT dynamically modulates the effective tail threshold $\tau_{\text{eff}} = \tau \cdot \left(1 + \frac{1}{6}\tanh(\gamma_2)\right)$, raising decision margins during heavy-tailed volatile regimes while sharpening sensitivity on calm channels, achieving $0.2066$ Macro Pt-F1.
 
 \begin{table*}[t]
 \centering
-\caption{Systematic Ablation Studies of Core Inductive Components across Multi-Domain Telemetry Benchmarks. Panels (b)--(d) evaluate \texttt{Operator-Entropy JEPA} as the base architecture. Panel (a) isolates physical inductive regularizers against unconstrained latent prediction and reconstructive baselines; Panel (b) isolates Coordinate Saliency Gating across multivariate sensor dimensions $K$; Panel (c) tests multi-scale Littlewood-Paley Dyadic Wavelet Shells (the full model scores $0.2340$ F1 on Daphnet in both Panels b and c); Panel (d) evaluates Kurtosis-Adaptive Extreme Value Calibration against static thresholding baselines.\label{tab:ablations}}
+\caption{Systematic Ablation Studies of Core Inductive Components across Multi-Domain Telemetry Benchmarks. Panels (b)--(d) evaluate \texttt{Operator-Entropy JEPA} as the base architecture. Panel (a) isolates physical inductive regularizers against unconstrained latent prediction and reconstructive baselines; Panel (b) isolates Coordinate Saliency Gating across multivariate sensor dimensions $K$; Panel (c) tests multi-scale Littlewood-Paley Dyadic Wavelet Shells (the full model scores $0.0952$ F1 on Daphnet in both Panels b and c); Panel (d) evaluates Kurtosis-Adaptive Extreme Value Calibration against static thresholding baselines.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) Physics-Informed Priors vs. Unconstrained Latent Prediction}} & \multicolumn{1}{c}{\textbf{(b) Coordinate Saliency Gating in High Dimensions}} \\
+\multicolumn{1}{c}{\textbf{(a) Physics-Inspired Priors vs. Unconstrained Latent Prediction}} & \multicolumn{1}{c}{\textbf{(b) Coordinate Saliency Gating in High Dimensions}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
@@ -57,12 +67,12 @@ TS-JEPA (Unconstrained) & 0.1838 & 0.2860 & 0.2344 & 176,231 \\
 \toprule
 \textbf{Channel / Domain} & \textbf{Uniform Pooling} & \textbf{Saliency Gated} & \textbf{Relative Gain} \\
 \midrule
-NASA MSL ($K=55$) & 0.1741 & \textbf{0.2651} & +52.3\% \\
-NASA SMAP ($K=25$) & 0.1982 & \textbf{0.2854} & +44.0\% \\
-GHL Loop ($K=14$) & 0.0782 & \textbf{0.1042} & +33.2\% \\
-Daphnet Kinematics ($K=9$) & 0.2114 & \textbf{0.2340} & +10.7\% \\
+NASA MSL ($K=55$) & 0.1741 & \textbf{0.2439} & +40.1\% \\
+NASA SMAP ($K=25$) & 0.1982 & \textbf{0.4157} & +109.7\% \\
+GHL Loop ($K=14$) & 0.0242 & \textbf{0.0496} & +105.0\% \\
+Daphnet Kinematics ($K=9$) & 0.0685 & \textbf{0.0952} & +39.0\% \\
 \midrule
-\textbf{High-Dim Macro Avg} & 0.1655 & \textbf{0.2222} & \textbf{+34.3\%} \\
+\textbf{High-Dim Macro Avg} & 0.1163 & \textbf{0.2011} & \textbf{+72.9\%} \\
 \bottomrule
 \end{tabular}%
 }
@@ -74,9 +84,9 @@ Daphnet Kinematics ($K=9$) & 0.2114 & \textbf{0.2340} & +10.7\% \\
 \toprule
 \textbf{Temporal Encoder} & \textbf{GECCO F1} & \textbf{SWAN F1} & \textbf{Daphnet F1} \\
 \midrule
-Standard Monolithic Conv & 0.1429 & 0.2210 & 0.2015 \\
-Fixed FFT Filterbank & 0.1840 & 0.2845 & 0.2180 \\
-\textbf{Dyadic Wavelet Shells (Ours)} & \textbf{0.2904} & \textbf{0.5048} & \textbf{0.2340} \\
+Standard Monolithic Conv & 0.1429 & 0.2210 & 0.0521 \\
+Fixed FFT Filterbank & 0.2729 & 0.3217 & 0.0714 \\
+\textbf{Dyadic Wavelet Shells (Ours)} & \textbf{0.4040} & \textbf{0.4349} & \textbf{0.0952} \\
 \bottomrule
 \end{tabular}%
 }
@@ -88,7 +98,7 @@ Fixed FFT Filterbank & 0.1840 & 0.2845 & 0.2180 \\
 \midrule
 Static 3-$\sigma$ Gaussian & 0.0821 & 0.1432 & 0.0910 \\
 Standard EVT (Unweighted) & 0.1740 & 0.2845 & 0.2120 \\
-Transductive Test Sweep & 0.3541 & 0.4820 & 0.4105 \\
+Transductive Test Sweep & 0.3541 & 0.5163 & 0.4105 \\
 \textbf{Kurtosis-Adaptive EVT (Ours)} & \textbf{0.2066} & \textbf{0.3320} & \textbf{0.3621} \\
 \bottomrule
 \end{tabular}%

@@ -523,9 +523,10 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             hidden_dim=max(64, config.latent_dim * 2),
             predictor_layers=2,
             ema_decay=0.996,
-            alpha_entropy=0.5,
+            alpha_entropy=getattr(config, "alpha_entropy", 0.5),
             spectral_gap_min=0.1,
             dropout=config.dropout,
+            use_koopman_matrix=getattr(config, "use_koopman_matrix", True),
         )
 
     else:
