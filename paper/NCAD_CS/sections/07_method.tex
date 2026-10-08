@@ -9,7 +9,7 @@
 
 This section formalizes the mathematical formulation and inductive biases of the proposed framework. 
 
-\subsection{Problem Formulation and Latent Prediction Paradigm}
+\subsection{Problem Formulation and Latent Space Prediction}
 \label{subsec:architecture}
 Let $\mathbf{X} \in \mathbb{R}^{T \times K}$ denote a continuous multivariate time-series sequence consisting of $K$ observed sensor variables over $T$ timesteps. The sequence is partitioned into historical context $x_{\text{ctx}} = \mathbf{X}[t - C : t, :] \in \mathbb{R}^{C \times K}$ and suspect/target horizon $x_{\text{tgt}} = \mathbf{X}[t : t + S, :] \in \mathbb{R}^{S \times K}$, where $C$ and $S$ denote the respective temporal horizons.
 
@@ -19,7 +19,7 @@ Existing deep learning baselines (e.g., TimesNet, TranAD, Anomaly Transformer) f
 \end{equation}
 In complex multi-sensor telemetry, ambient high-frequency stochastic jitter dominates the Frobenius norm, causing models to waste representational bandwidth reconstructing sensor noise rather than modeling system state dynamics (leading to noise drowning).
 
-To overcome this, we adopt the Joint-Embedding Predictive Architecture (JEPA) paradigm \cite{lecun2022path}. A context encoder $E_\theta$ maps $x_{\text{ctx}} \to z_{\text{ctx}} \in \mathbb{R}^D$, while an Exponential Moving Average (EMA) momentum target encoder $E_\phi$ maps $x_{\text{tgt}} \to z_{\text{tgt}} \in \mathbb{R}^D$, updated via:
+To overcome this, we adopt the Joint-Embedding Predictive Architecture (JEPA) framework \cite{lecun2022path}. A context encoder $E_\theta$ maps $x_{\text{ctx}} \to z_{\text{ctx}} \in \mathbb{R}^D$, while an Exponential Moving Average (EMA) momentum target encoder $E_\phi$ maps $x_{\text{tgt}} \to z_{\text{tgt}} \in \mathbb{R}^D$, updated via:
 \begin{equation}
     \phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k, \quad m_k \in [0.996, 0.9995].
 \end{equation}
@@ -84,7 +84,7 @@ During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t
 \begin{equation}
     \mathcal{S}(t) = \| \hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t) \|_2^2.
 \end{equation}
-While context $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ is strictly causal (depending only on historical observations), evaluating suspect window $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ requires observing $S=64$ upcoming timesteps, establishing an operational lookahead buffer of 64 timesteps at inference. In continuous streaming, an anomaly occurring at timestep $t^*$ enters the target window when $t = t^* - S$, causing the model to register elevated discrepancy up to $S=64$ steps prior to ground-truth peak onset. Under strict unadjusted point-level evaluation, these pre-onset detections are counted as point-level false alarms, establishing an empirical false-alarm baseline floor. In our benchmark evaluation, we report \textit{Dense} scoring, where sliding windows advance with a stride of 1 timestep and the anomaly score $\mathcal{S}(t)$ is evaluated at each decision time $t$. In operational incident analysis (Section VII.D), we additionally evaluate \textit{Middle} alignment, where the anomaly score is centered at $t + S/2$ to balance pre-onset and post-onset window overlap. Baseline models (TimesNet and TranAD) are evaluated under the exact identical sliding-window evaluation protocol, lookahead horizon, and standardization.
+While context $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ is strictly causal (depending only on historical observations), evaluating suspect window $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ requires observing $S=64$ upcoming timesteps, establishing an operational lookahead buffer of 64 timesteps at inference. In continuous streaming, an anomaly occurring at timestep $t^*$ enters the target window when $t = t^* - S$, causing the model to register higher predictive discrepancy up to $S=64$ steps prior to ground-truth peak onset. Under strict unadjusted point-level evaluation, these pre-onset detections are counted as point-level false alarms, establishing an empirical false-alarm baseline floor. In our benchmark evaluation, we report \textit{Dense} scoring, where sliding windows advance with a stride of 1 timestep and the anomaly score $\mathcal{S}(t)$ is evaluated at each decision time $t$. In operational incident analysis (Section VII.D), we also evaluate \textit{Middle} alignment, where the anomaly score is centered at $t + S/2$ to balance pre-onset and post-onset window overlap. Baseline models (TimesNet and TranAD) are evaluated under the exact identical sliding-window evaluation protocol, lookahead horizon, and standardization.
 
 \subsection{Shared Internal Inductive Biases}
 \label{subsec:shared_inductive_biases}
