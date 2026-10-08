@@ -1,19 +1,19 @@
 \section{Ablation Studies and Analysis}
 \label{sec:ablations}
 
-To isolate the individual contributions of each mathematical and architectural component in our Physics-Informed JEPA framework, we conduct systematic ablation experiments across three representative telemetry regimes: (i) high-dimensional aerospace telemetry (NASA SMAP/MSL, $K \ge 50$) characterized by strong thermal and electrical cross-coupling; (ii) periodic biomechanical kinematics (Daphnet FoG) exhibiting repeating limit cycles and sudden freezing episodes; and (iii) transient cyber-physical hydraulics (GECCO/SWAN) with sharp, turbulent anomalies.
+To isolate the individual contributions of each mathematical and architectural component in our Physics-Inspired JEPA framework, we conduct systematic ablation experiments across three representative telemetry regimes: (i) high-dimensional aerospace telemetry (NASA SMAP/MSL, $K \ge 25$) characterized by strong thermal and electrical cross-coupling; (ii) periodic biomechanical kinematics (Daphnet FoG) exhibiting repeating limit cycles and sudden freezing episodes; and (iii) transient cyber-physical and solar regimes (GECCO water infrastructure and SWAN solar eruptive magnetograms) with sharp, turbulent anomalies.
 
-\subsection{Ablation 1: Physics-Informed Inductive Biases vs. Unconstrained Prediction}
+\subsection{Ablation 1: Physics-Inspired Inductive Biases vs. Unconstrained Prediction}
 Table~\ref{tab:core_benchmark} and Table~\ref{tab:ablations}(a) isolate the impact of embedding physical domain constraints into latent representations compared to unconstrained latent forecasting (\texttt{TS-JEPA}) and observation-space reconstruction (\texttt{TimesNet}, \texttt{TranAD}). Reconstructive observation-space models suffer from severe false alarm flooding; for instance, TimesNet accumulates over $10^6$ false positives, yielding a Pooled Micro-F1 of only $0.0647$. Moving prediction to latent space in unconstrained \texttt{TS-JEPA} eliminates raw-space noise memorization, lifting Micro-F1 to $0.2860$ and achieving $0.1838$ Dataset-Macro F1. Introducing physical inductive priors provides targeted improvements: \texttt{Operator-Entropy JEPA} attains the highest Dataset-Macro F1 ($0.2066$) and Channel-Macro F1 ($0.1743$), while \texttt{Potential-Flow JEPA} achieves peak Micro-F1 ($0.3458$) and reduces false alarms by 8.0-fold ($130{,}237$ vs $1{,}047{,}144$).
 
 \subsection{Ablation 2: Coordinate Saliency Gating in High-Dimensional Pods}
-In high-dimensional telemetry ($K \ge 50$), anomalous faults typically originate in a localized subsystem (e.g., a single valve or battery cell). In standard latent pooling:
+In high-dimensional telemetry ($K \ge 25$), anomalous faults typically originate in a localized subsystem (e.g., a single valve or battery cell). In standard latent pooling:
 \begin{equation}
     z_{\text{pool}} = \frac{1}{K} \sum_{k=1}^K z_k
 \end{equation}
-the localized anomalous signal is diluted by ambient normal noise across the remaining 49 quiescent channels. 
+the localized anomalous signal is diluted by ambient normal noise across the remaining quiescent channels. 
 
-As shown in Table~\ref{tab:ablations}(b), disabling Coordinate Saliency Gating ($\tilde{x}_k = x_k$) causes a substantial drop in Point-F1 on SMAP ($0.285 \to 0.198$) and MSL ($0.265 \to 0.174$). The parameter-free saliency gate $\tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s}\right)$ dynamically isolates high-variance, non-stationary coordinates, suppressing ambient quiescent dimensions and maintaining high signal-to-noise ratio.
+As shown in Table~\ref{tab:ablations}(b), disabling Coordinate Saliency Gating ($\tilde{x}_k = x_k$) causes a substantial drop in Point-F1 on MSL ($0.265 \to 0.174$) and SMAP ($0.285 \to 0.198$). The parameter-free saliency gate $\tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s + \epsilon}\right)$ dynamically isolates high-variance, non-stationary coordinates, suppressing ambient quiescent dimensions and maintaining high signal-to-noise ratio.
 
 \subsection{Ablation 3: Littlewood-Paley Dyadic Wavelet Shells}
 Real-world industrial and environmental telemetry contains compound temporal dynamics operating simultaneously across disjoint frequency bands. For instance, in municipal water infrastructure (\texttt{GECCO}), sensors record 24-hour diurnal consumption cycles alongside sub-second hydraulic valve transients.
@@ -22,7 +22,7 @@ Standard monolithic convolutions either over-smooth high-frequency transients or
 \begin{equation}
     z^{(j)} = \Psi_j \ast x, \quad j \in \{0, 1, \dots, J-1\}
 \end{equation}
-improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.2904$ on \texttt{Operator-Entropy JEPA}, while lifting Point-Precision on \texttt{Daphnet} accelerometry from $0.245$ to $0.342$. Decoupling frequency octaves prevents low-frequency power from masking subtle high-frequency phase disruptions.
+improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.2904$ on \texttt{Operator-Entropy JEPA}, while lifting Point-F1 on \texttt{Daphnet} accelerometry from $0.2015$ to $0.2340$ (with Point-Precision improving from $0.245$ to $0.342$). Decoupling frequency octaves prevents low-frequency power from masking subtle high-frequency phase disruptions.
 
 \subsection{Ablation 4: Kurtosis-Adaptive vs. Static Extreme Value Calibration}
 Standard Extreme Value Theory (SPOT) fits a Generalized Pareto Distribution to residuals exceeding an initial quantile $u$. However, telemetry noise profiles exhibit substantial variation in tail heaviness across sensor channels. In leptokurtic distributions ($\gamma_2 > 0$, heavy tails), static thresholds trigger frequent false alarms; in platykurtic distributions ($\gamma_2 < 0$), static thresholds miss low-amplitude structural faults.
@@ -31,7 +31,7 @@ Table~\ref{tab:ablations}(d) compares our kurtosis-adaptive EVT calibrator again
 
 \begin{table*}[t]
 \centering
-\caption{Systematic Ablation Studies of Core Inductive Components across Multi-Domain Telemetry Benchmarks. Panel (a) evaluates the impact of physical inductive priors; Panel (b) validates Coordinate Saliency Gating in high-dimensional sensor arrays ($K \ge 50$); Panel (c) tests Littlewood-Paley Dyadic Wavelet Shells on multi-scale dynamics; Panel (d) evaluates Kurtosis-Adaptive Extreme Value Calibration against static thresholding baselines.\label{tab:ablations}}
+\caption{Systematic Ablation Studies of Core Inductive Components across Multi-Domain Telemetry Benchmarks. Panels (b)--(d) evaluate \texttt{Operator-Entropy JEPA} as the base architecture. Panel (a) isolates physical inductive regularizers against unconstrained latent prediction and reconstructive baselines; Panel (b) isolates Coordinate Saliency Gating across multivariate sensor dimensions $K$; Panel (c) tests multi-scale Littlewood-Paley Dyadic Wavelet Shells (the full model scores $0.2340$ F1 on Daphnet in both Panels b and c); Panel (d) evaluates Kurtosis-Adaptive Extreme Value Calibration against static thresholding baselines.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
@@ -57,10 +57,10 @@ TS-JEPA (Unconstrained) & 0.1838 & 0.2860 & 0.2344 & 176,231 \\
 \toprule
 \textbf{Channel / Domain} & \textbf{Uniform Pooling} & \textbf{Saliency Gated} & \textbf{Relative Gain} \\
 \midrule
-NASA SMAP ($K=51$) & 0.1982 & \textbf{0.2854} & +44.0\% \\
-NASA MSL ($K=26$) & 0.1741 & \textbf{0.2651} & +52.3\% \\
+NASA MSL ($K=55$) & 0.1741 & \textbf{0.2651} & +52.3\% \\
+NASA SMAP ($K=25$) & 0.1982 & \textbf{0.2854} & +44.0\% \\
+GHL Loop ($K=14$) & 0.0782 & \textbf{0.1042} & +33.2\% \\
 Daphnet Kinematics ($K=9$) & 0.2114 & \textbf{0.2340} & +10.7\% \\
-GHL Separation ($K=14$) & 0.0782 & \textbf{0.1042} & +33.2\% \\
 \midrule
 \textbf{High-Dim Macro Avg} & 0.1655 & \textbf{0.2222} & \textbf{+34.3\%} \\
 \bottomrule
