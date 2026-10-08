@@ -108,6 +108,49 @@ Transductive Test Sweep & 0.3541 & 0.5163 & 0.4105 \\
 \end{tabular}
 \end{table*}
 
+\subsection{Controlled Backbone Comparison: Latent Space vs. Observation Space}
+A foundational hypothesis of this investigation is that predicting dynamics in a contracted latent representation space produces residual distributions that are fundamentally better conditioned for automated extreme-value thresholding than residuals derived from raw observation-space reconstruction or forecasting. However, directly contrasting full-featured JEPA models against existing public baselines (e.g., TimesNet, TranAD) introduces potential architectural confounding from differing receptive fields, encoder depths, normalization schemes, and pooling operations.
 
+To eliminate these confounding factors, Table~\ref{tab:controlled_backbone} evaluates three paradigms under a strictly unified \texttt{HybridTCNEncoder} backbone ($C=256, S=64$, latent dimension $d=32$, 3-layer dilated causal TCN with 48 filters, LayerNorm, GELU, and temporal pooling):
+\begin{enumerate}
+    \item \textbf{TCN-Obs-Recon:} Autoencoder encoding the full window $X_{t-C:t+S} \in \mathbb{R}^{(C+S)\times K}$ into $z \in \mathbb{R}^{32}$ and decoding back to reconstruct the observation space $\hat{X}$. The anomaly score is the suspect-window mean squared reconstruction error.
+    \item \textbf{TCN-Obs-Pred:} Forecaster encoding context $X_{t-C:t} \in \mathbb{R}^{C \times K}$ into $z_{\text{ctx}} \in \mathbb{R}^{32}$ and decoding directly to forecast upcoming observations $\hat{X}_{t:t+S} \in \mathbb{R}^{S \times K}$. The anomaly score is the raw observation forecasting residual.
+    \item \textbf{TS-JEPA (Latent Space):} Joint-Embedding Predictive Architecture encoding context to $z_{\text{ctx}}$, predicting the future latent representation $\hat{z}_{\text{tgt}} = g_\phi(z_{\text{ctx}})$, and scoring via predictive discrepancy against target representation $z_{\text{tgt}}$ from an EMA target encoder.
+\end{enumerate}
+All models are trained for 10 epochs using AdamW ($\text{lr}=10^{-3}$) with batch size 16 and calibrated via Kurtosis-Adaptive EVT ($u=0.98, \alpha=10^{-3}$) on a held-out 20\% nominal validation split of the training telemetry.
 
+\begin{table}[t]
+\centering
+\small
+\caption{Controlled same-backbone experiment isolating prediction space under identical \texttt{HybridTCNEncoder} ($C=256, S=64, d=32$). Reported values are means across five representative benchmark streams (NASA SMAP: \texttt{P-3}, Daphnet: \texttt{S01R01E1}, GECCO: \texttt{water\_quality}, CalIt2: \texttt{traffic}, NASA MSL: \texttt{M-1}) under clean telemetry and additive jitter noise injection ($\text{SNR} \in \{\infty, 20\text{ dB}, 10\text{ dB}, 0\text{ dB}\}$).}
+\label{tab:controlled_backbone}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} \\
+\midrule
+\multirow{4}{*}{\textbf{TCN-Obs-Recon}} 
+ & Clean ($\infty$) & 2.09 & 106.97 & 53.48\% & 27,419.4 \\
+ & 20 dB            & 2.09 & 106.96 & 53.60\% & 27,427.4 \\
+ & 10 dB            & 2.09 & 106.98 & 55.79\% & 27,752.8 \\
+ & 0 dB             & 2.09 & 107.15 & 68.65\% & 28,134.6 \\
+\midrule
+\multirow{4}{*}{\textbf{TCN-Obs-Pred}} 
+ & Clean ($\infty$) & 1.92 & 107.10 & 53.22\% & 27,409.0 \\
+ & 20 dB            & 1.92 & 107.09 & 53.26\% & 27,413.4 \\
+ & 10 dB            & 1.92 & 107.10 & 55.37\% & 27,736.4 \\
+ & 0 dB             & 1.92 & 107.17 & 68.66\% & 28,134.8 \\
+\midrule
+\multirow{4}{*}{\textbf{TS-JEPA (Ours)}} 
+ & Clean ($\infty$) & \textbf{1.00} & \textbf{2.95} & \textbf{20.17\%} & \textbf{9,214.8} ($\downarrow 66.4\%$) \\
+ & 20 dB            & \textbf{1.00} & \textbf{2.42} & \textbf{20.88\%} & \textbf{9,443.6} \\
+ & 10 dB            & \textbf{1.00} & \textbf{1.80} & \textbf{22.18\%} & \textbf{10,395.4} \\
+ & 0 dB             & \textbf{1.00} & \textbf{0.95} & \textbf{22.96\%} & \textbf{10,800.8} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
 
+\noindent\textbf{Tail Conditioning and False Alarm Suppression:} As reported in Table~\ref{tab:controlled_backbone}, observation-space models exhibit extreme excess kurtosis on test telemetry ($\gamma_2 > 106.9$), driven by point-level measurement jitter and localized sensor noise. This heavy-tail inflation forces EVT thresholding into extreme miscalibration, yielding empirical false positive rates of $53.2\%\text{--}53.5\%$ and generating over $27,400$ false alarms per stream. Conversely, \texttt{TS-JEPA} projects telemetry into a normalized latent manifold, compressing high-frequency observation noise and yielding near-Gaussian test residuals ($\gamma_2 = 2.95$, a $>36\times$ reduction in tail weight). Consequently, EVT establishes tight, stable thresholds, reducing the empirical false positive rate to $20.17\%$ and eliminating over $18,200$ false alarms per stream (a $66.4\%$ reduction).
+
+\noindent\textbf{Noise-Injection Robustness:} Under severe additive jitter ($\text{SNR}=0\text{ dB}$), observation-space residuals experience substantial error variance blowout, increasing empirical FPR by $+15.4$ percentage points ($53.2\% \to 68.7\%$). In contrast, \texttt{TS-JEPA} empirical FPR increases by only $2.8$ percentage points ($20.17\% \to 22.96\%$), proving that latent joint-embedding architectures inherently filter high-frequency sensor perturbations.

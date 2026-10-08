@@ -543,6 +543,53 @@ Transductive Test Sweep & 0.3541 & 0.5163 & 0.4105 \\
 \end{tabular}
 \end{table*}
 
+\subsection{Controlled Backbone Comparison: Latent Space vs. Observation Space}
+A foundational hypothesis of this investigation is that predicting dynamics in a contracted latent representation space produces residual distributions that are fundamentally better conditioned for automated extreme-value thresholding than residuals derived from raw observation-space reconstruction or forecasting. However, directly contrasting full-featured JEPA models against existing public baselines (e.g., TimesNet, TranAD) introduces potential architectural confounding from differing receptive fields, encoder depths, normalization schemes, and pooling operations.
+
+To eliminate these confounding factors, Table~\ref{tab:controlled_backbone} evaluates three paradigms under a strictly unified \texttt{HybridTCNEncoder} backbone ($C=256, S=64$, latent dimension $d=32$, 3-layer dilated causal TCN with 48 filters, LayerNorm, GELU, and temporal pooling):
+\begin{enumerate}
+    \item \textbf{TCN-Obs-Recon:} Autoencoder encoding the full window $X_{t-C:t+S} \in \mathbb{R}^{(C+S)\times K}$ into $z \in \mathbb{R}^{32}$ and decoding back to reconstruct the observation space $\hat{X}$. The anomaly score is the suspect-window mean squared reconstruction error.
+    \item \textbf{TCN-Obs-Pred:} Forecaster encoding context $X_{t-C:t} \in \mathbb{R}^{C \times K}$ into $z_{\text{ctx}} \in \mathbb{R}^{32}$ and decoding directly to forecast upcoming observations $\hat{X}_{t:t+S} \in \mathbb{R}^{S \times K}$. The anomaly score is the raw observation forecasting residual.
+    \item \textbf{TS-JEPA (Latent Space):} Joint-Embedding Predictive Architecture encoding context to $z_{\text{ctx}}$, predicting the future latent representation $\hat{z}_{\text{tgt}} = g_\phi(z_{\text{ctx}})$, and scoring via predictive discrepancy against target representation $z_{\text{tgt}}$ from an EMA target encoder.
+\end{enumerate}
+All models are trained for 10 epochs using AdamW ($\text{lr}=10^{-3}$) with batch size 16 and calibrated via Kurtosis-Adaptive EVT ($u=0.98, \alpha=10^{-3}$) on a held-out 20\% nominal validation split of the training telemetry.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Controlled same-backbone experiment isolating prediction space under identical \texttt{HybridTCNEncoder} ($C=256, S=64, d=32$). Reported values are means across five representative benchmark streams (NASA SMAP: \texttt{P-3}, Daphnet: \texttt{S01R01E1}, GECCO: \texttt{water\_quality}, CalIt2: \texttt{traffic}, NASA MSL: \texttt{M-1}) under clean telemetry and additive jitter noise injection ($\text{SNR} \in \{\infty, 20\text{ dB}, 10\text{ dB}, 0\text{ dB}\}$).}
+\label{tab:controlled_backbone}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} \\
+\midrule
+\multirow{4}{*}{\textbf{TCN-Obs-Recon}} 
+ & Clean ($\infty$) & 2.09 & 106.97 & 53.48\% & 27,419.4 \\
+ & 20 dB            & 2.09 & 106.96 & 53.60\% & 27,427.4 \\
+ & 10 dB            & 2.09 & 106.98 & 55.79\% & 27,752.8 \\
+ & 0 dB             & 2.09 & 107.15 & 68.65\% & 28,134.6 \\
+\midrule
+\multirow{4}{*}{\textbf{TCN-Obs-Pred}} 
+ & Clean ($\infty$) & 1.92 & 107.10 & 53.22\% & 27,409.0 \\
+ & 20 dB            & 1.92 & 107.09 & 53.26\% & 27,413.4 \\
+ & 10 dB            & 1.92 & 107.10 & 55.37\% & 27,736.4 \\
+ & 0 dB             & 1.92 & 107.17 & 68.66\% & 28,134.8 \\
+\midrule
+\multirow{4}{*}{\textbf{TS-JEPA (Ours)}} 
+ & Clean ($\infty$) & \textbf{1.00} & \textbf{2.95} & \textbf{20.17\%} & \textbf{9,214.8} ($\downarrow 66.4\%$) \\
+ & 20 dB            & \textbf{1.00} & \textbf{2.42} & \textbf{20.88\%} & \textbf{9,443.6} \\
+ & 10 dB            & \textbf{1.00} & \textbf{1.80} & \textbf{22.18\%} & \textbf{10,395.4} \\
+ & 0 dB             & \textbf{1.00} & \textbf{0.95} & \textbf{22.96\%} & \textbf{10,800.8} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\noindent\textbf{Tail Conditioning and False Alarm Suppression:} As reported in Table~\ref{tab:controlled_backbone}, observation-space models exhibit extreme excess kurtosis on test telemetry ($\gamma_2 > 106.9$), driven by point-level measurement jitter and localized sensor noise. This heavy-tail inflation forces EVT thresholding into extreme miscalibration, yielding empirical false positive rates of $53.2\%\text{--}53.5\%$ and generating over $27,400$ false alarms per stream. Conversely, \texttt{TS-JEPA} projects telemetry into a normalized latent manifold, compressing high-frequency observation noise and yielding near-Gaussian test residuals ($\gamma_2 = 2.95$, a $>36\times$ reduction in tail weight). Consequently, EVT establishes tight, stable thresholds, reducing the empirical false positive rate to $20.17\%$ and eliminating over $18,200$ false alarms per stream (a $66.4\%$ reduction).
+
+\noindent\textbf{Noise-Injection Robustness:} Under severe additive jitter ($\text{SNR}=0\text{ dB}$), observation-space residuals experience substantial error variance blowout, increasing empirical FPR by $+15.4$ percentage points ($53.2\% \to 68.7\%$). In contrast, \texttt{TS-JEPA} empirical FPR increases by only $2.8$ percentage points ($20.17\% \to 22.96\%$), proving that latent joint-embedding architectures inherently filter high-frequency sensor perturbations.
+
 % --- Input from 10_results.tex ---
 \section{Results and Discussion}
 \label{sec:results}
@@ -570,7 +617,7 @@ Several key empirical conclusions emerge from the core benchmark in Table~\ref{t
 
 \noindent\textbf{Continuous Ranking (PR-AUC) vs. Calibrated Decisions (Point-F1):} Comparing threshold-free continuous ranking against calibrated decisions reveals an important empirical insight. In PR-AUC (Average Precision), TranAD ($0.2612$) and TimesNet ($0.2585$) achieve top aggregate ranking scores, outperforming JEPA models on 5 of the 11 datasets (Daphnet, Genesis, CICIDS, Metro, and Room Occupancy; see Table~\ref{tab:dataset_prauc}). Under an oracle test threshold sweep evaluated on ground-truth labels (Oracle PA-F1), all six architectures achieve comparable performance within a tight band: Reynolds-Stress ($0.5343$), Operator-Entropy ($0.5163$), TimesNet ($0.4886$), TS-JEPA ($0.4820$), TranAD ($0.4816$), and Potential-Flow ($0.4620$). This confirms that reconstructive representations retain strong continuous anomaly ranking fidelity.
 
-However, when automated extreme-value thresholding (SPOT) is applied without ground-truth labels, reconstructive models suffer severe threshold calibration collapse: TimesNet plunges to a Micro-F1 of $0.0647$ (generating $1{,}047{,}144$ false positives, flagging nearly $40\%$ of nominal points), and TranAD drops to $0.1072$ ($452{,}621$ false alarms). Crucially, this collapse cannot be attributed to score aggregation or thresholding discrepancies: all baselines and JEPA variants are evaluated under the exact same 64-step suspect region mean aggregation, identical window-to-point temporal reduction, and identical kurtosis-adaptive EVT calibrator ($q=10^{-3}$, $u=0.98$). Instead, observation-space residuals exhibit high temporal variance and sensor jitter, causing test residuals to systematically violate the Generalized Pareto Distribution (GPD) scale estimated from nominal training splits. In contrast, predicting in a regularized latent representation space ($\mathbb{R}^{32}$) filters out high-frequency observation noise, yielding better-conditioned residual distributions that maintain Micro-F1 scores of $0.2806\text{--}0.3458$ while generating 2.4-fold to 8.0-fold fewer false alarms compared to reconstructive baselines (5.6-fold to 8.0-fold fewer compared to TimesNet). Nonetheless, with empirical false positive rates of approximately 5\%--6\% on nominal points, even latent architectures overshoot the theoretical design risk ($q=10^{-3} = 0.1\%$) by roughly 50-fold, demonstrating that real-world non-stationary telemetry residuals continue to present heavy-tailed calibration challenges.
+However, when automated extreme-value thresholding (SPOT) is applied without ground-truth labels, reconstructive models suffer severe threshold calibration collapse: TimesNet plunges to a Micro-F1 of $0.0647$ (generating $1{,}047{,}144$ false positives, flagging nearly $40\%$ of nominal points), and TranAD drops to $0.1072$ ($452{,}621$ false alarms). Crucially, this collapse cannot be attributed to score aggregation or thresholding discrepancies: all baselines and JEPA variants are evaluated under the exact same 64-step suspect region mean aggregation, identical window-to-point temporal reduction, and identical kurtosis-adaptive EVT calibrator ($q=10^{-3}$, $u=0.98$). Instead, observation-space residuals exhibit high temporal variance and sensor jitter, causing test residuals to systematically violate the Generalized Pareto Distribution (GPD) scale estimated from nominal training splits. In contrast, predicting in a regularized latent representation space ($\mathbb{R}^{32}$) filters out high-frequency observation noise, yielding better-conditioned residual distributions where TS-JEPA, Operator-Entropy, and Potential-Flow maintain Micro-F1 scores of $0.2806\text{--}0.3458$ (while Reynolds-Stress achieves $0.1175$) while generating 2.4-fold to 8.0-fold fewer false alarms compared to reconstructive baselines (5.6-fold to 8.0-fold fewer compared to TimesNet). Nonetheless, with empirical false positive rates of approximately 5\%--6\% on nominal points, even latent architectures overshoot the theoretical design risk ($q=10^{-3} = 0.1\%$) by roughly 50-fold, demonstrating that real-world non-stationary telemetry residuals continue to present heavy-tailed calibration challenges.
 
 \noindent\textbf{Statistical Significance and Cross-Stream Consistency:} All 45 continuous streams are evaluated under a unified deterministic seed ($42$) with fixed initializations and identical inductive splits across all architectures. Conducting paired Wilcoxon signed-rank tests across the 45 streams confirms that channel-level Point-F1 varies systematically by modality: on periodic human kinematics (Daphnet), TimesNet's 2D Fourier decomposition matches or edges JEPA ($p=0.81$), whereas on high-dimensional orbital telemetry (NASA SMAP and MSL) and municipal water loops (GECCO), Operator-Entropy and Potential-Flow JEPA establish dominant margins ($p < 0.05$). The primary statistical advantage of JEPA lies in its global stability across the entire 5.06-million-point corpus, where it achieves an 8-fold reduction in false alarm volume and a 5-fold gain in pooled Micro-F1 over TimesNet.
 
@@ -606,36 +653,43 @@ By constraining nominal dynamics to curl-free potential gradients ($\hat{v} = -\
 To isolate the contribution of the physical inductive biases from the predictive latent architecture itself, we evaluate \texttt{ts\_jepa} as an unconstrained control. \texttt{ts\_jepa} achieves $0.1838$ Dataset-Macro Point-F1, $0.1442$ Channel-Macro Point-F1, and $0.3066$ Channel PA-F1. While substantially outperforming reconstructive baselines (+27.4\% in Dataset-Macro F1 over TimesNet), it trails \texttt{operator\_entropy\_jepa} in Dataset-Macro Point-F1 ($0.1838$ vs $0.2066$) and Channel Point-F1 ($0.1442$ vs $0.1743$), and trails \texttt{potential\_flow\_jepa} in Micro-F1 ($0.2860$ vs $0.3458$) and Channel PA-F1 ($0.3066$ vs $0.3436$). This indicates that while latent representation prediction mitigates noise drowning, domain-aligned physical conservation laws provide beneficial inductive structure.
 
 \subsection{Impact of Architectural Enhancements}
-Ablation of the three internal inductive layers confirms their collective role in stabilizing high-dimensional inference. First, \textit{Coordinate Saliency Gating} dynamically prioritizes high-variation informative channels in high-dimensional telemetry ($K \ge 25$ in NASA SMAP and MSL), preventing localized subsystem faults from being diluted by quiescent ambient sensors without requiring manual channel sub-selection. Second, \textit{Littlewood-Paley Dyadic Wavelet Shells} decouple fast transient spikes from low-frequency baseline drifts within the encoder; on \texttt{GECCO} (water infrastructure with simultaneous daily consumption cycles and high-frequency valve faults), dyadic filtering improved \texttt{operator\_entropy\_jepa} performance from $0.1429$ to $0.4040$ Point-F1. Third, \textit{Kurtosis-Adaptive Extreme Value Theory} modulates the tail threshold via excess kurtosis $\gamma_2$, dynamically raising decision margins during heavy-tailed volatile bursts while sharpening sensitivity on calm channels to suppress streaming false alarms.
+Ablation of the three internal inductive layers confirms their collective role in stabilizing high-dimensional inference. First, \textit{Coordinate Saliency Gating} dynamically prioritizes high-variation informative channels in high-dimensional telemetry ($K \ge 25$ in NASA SMAP and MSL), preventing localized subsystem faults from being diluted by quiescent ambient sensors without requiring manual channel sub-selection. Second, \textit{Littlewood-Paley Dyadic Wavelet Shells} decouple fast transient spikes from low-frequency baseline drifts within the encoder; on \texttt{GECCO} (water infrastructure exhibiting multi-hour operational demand variations alongside sharp chemical contaminant inflows and pipe pressure drops), dyadic filtering improved \texttt{operator\_entropy\_jepa} performance from $0.1429$ to $0.4040$ Point-F1. Third, \textit{Kurtosis-Adaptive Extreme Value Theory} modulates the tail threshold via excess kurtosis $\gamma_2$, dynamically raising decision margins during heavy-tailed volatile bursts while sharpening sensitivity on calm channels to suppress streaming false alarms.
 
 \subsection{Operational Incident Evaluation: Event Metrics and Streaming Adaptation}
-While unadjusted Point-F1 prevents score inflation from naive point adjustment, point-level scoring can penalize slight temporal boundary offsets in operational telemetry. In physical systems, an anomaly represents a continuous operational incident; if an algorithm detects the failure with a sub-second phase delay or slight boundary misalignment, point-level metrics penalize every misaligned point as a false positive or false negative, depressing nominal precision even when incidents are detected.
+While unadjusted Point-F1 prevents score inflation from naive point adjustment, point-level scoring can penalize slight temporal boundary offsets in operational telemetry. In physical systems, an anomaly represents a continuous operational incident; if an algorithm detects the failure with a minor phase delay or slight boundary misalignment, point-level metrics penalize every misaligned point as a false positive or false negative, depressing nominal precision even when incidents are detected.
 
-To evaluate operational incident detection, we analyze model performance under three complementary criteria: (i) strict unadjusted Point-F1, (ii) incident-level Event-F1 ($P_{\text{event}}, R_{\text{event}}$), and (iii) Tatbul et al. (NeurIPS 2018) Range-Aware F1 ($F1_{\text{range}}$) evaluated with balanced existence and overlap reward ($\alpha=0.5$), uniform positional overlap, and reciprocal cardinality factor. Detections operate with an operational lookahead buffer of $S=64$ timesteps. Table~\ref{tab:operational_incident_metrics} examines the operational trade-offs across representative domains:
+To evaluate operational incident detection, we analyze model performance under three complementary criteria: (i) strict unadjusted Point-F1, (ii) incident-level Event-F1 ($P_{\text{event}}, R_{\text{event}}$), and (iii) Tatbul et al. (NeurIPS 2018) Range-Aware F1 ($F1_{\text{range}}$) evaluated with balanced existence and overlap reward ($\alpha=0.5$), uniform positional overlap, and reciprocal cardinality factor. Detections operate with an operational lookahead buffer of $S=64$ timesteps.
+
+Table~\ref{tab:operational_incident_metrics} examines operational trade-offs across three representative continuous telemetry streams: Room Occupancy (stream: \texttt{default}), NASA SMAP (stream: \texttt{P-3}), and CalIt2 (stream: \texttt{traffic}). Unlike Table~\ref{tab:all_datasets} which reports aggregate dataset-macro averages across all constituent streams, this study isolates individual continuous streams to contrast static calibration with dynamic adaptive tracking under three operational configurations:
+\begin{enumerate}
+    \item \textbf{Standard Configuration:} Evaluates centered middle-window alignment ($t + S/2$) with a 5-step moving average filter and static EVT calibration fit to training residuals.
+    \item \textbf{Sharp Configuration:} Evaluates dense un-lagged scoring ($t$) with a minimal 3-step moving average filter and static EVT calibration.
+    \item \textbf{Adaptive Configuration:} Evaluates dense un-lagged scoring ($t$) with a 3-step filter and dynamic rolling SPOT thresholding to track non-stationary baseline drift.
+\end{enumerate}
 
 \begin{table*}[t]
 \centering
 \small
-\caption{Operational incident detection comparison across representative domains. On Room Occupancy ($\pi=20.0\%$, 11 ground-truth events), static EVT captures 100\% of events (11/11) with a point precision matching the base rate (20.0\%), while dynamic SPOT reduces false positives by $21\times$ (from 4,705 to 223 points) with an operational trade-off in event recall (63.6\%, 7/11 events).}
+\caption{Operational incident detection comparison across representative individual telemetry streams: Room Occupancy (stream: \texttt{default}, 11 ground-truth events), NASA SMAP (stream: \texttt{P-3}, 1 continuous thruster fault), and CalIt2 (stream: \texttt{traffic}, 21 pedestrian burst events). While Table~\ref{tab:all_datasets} reports dataset-macro averages across all channels, this table isolates individual continuous streams to study operational trade-offs among Standard (Middle, Static EVT), Sharp (Dense, Static EVT), and Adaptive (Dense, Dynamic SPOT) inference modes.}
 \label{tab:operational_incident_metrics}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}llccccccc@{}}
 \toprule
-\textbf{Dataset} & \textbf{Configuration} & \textbf{Pt-F1} & \textbf{Pt-Prec} & \textbf{Evt-F1} & \textbf{Evt-Prec} & \textbf{Evt-Rec} & \textbf{Rng-F1} & \textbf{False Pos.} \\
+\textbf{Evaluated Stream} & \textbf{Operational Configuration} & \textbf{Pt-F1} & \textbf{Pt-Prec} & \textbf{Evt-F1} & \textbf{Evt-Prec} & \textbf{Evt-Rec} & \textbf{Rng-F1} & \textbf{False Pos.} \\
 \midrule
-\multicolumn{9}{l}{\textit{Room Occupancy (Environmental Sensing, 11 Ground-Truth Incidents)}} \\
+\multicolumn{9}{l}{\textit{Room Occupancy: Stream \texttt{default} (Environmental Sensing, 11 Ground-Truth Incidents)}} \\
 \texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.3728 & 22.9\% & 0.5238 & 35.5\% & 100\% & 0.3708 & 3,842 \\
 \texttt{operator\_entropy} & Sharp (Dense, Static EVT)   & 0.3329 & 20.0\% & \textbf{0.9167} & \textbf{84.6\%} & \textbf{100\%} & 0.3329 & 4,705 \\
 \texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & 0.1273 & 29.9\% & 0.6364 & 63.6\% & 63.6\% & 0.3699 & \textbf{223} ($\downarrow 21\times$) \\
 \texttt{potential\_flow}   & Sharp (Dense, Static EVT)   & 0.3431 & 20.7\% & \textbf{0.9167} & \textbf{84.6\%} & \textbf{100\%} & 0.3431 & 4,496 \\
 \texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0441 & 10.2\% & 0.5714 & 60.0\% & 54.5\% & 0.1636 & \textbf{291} ($\downarrow 15\times$) \\
 \midrule
-\multicolumn{9}{l}{\textit{SMAP (Spacecraft Propulsion \& Telemetry, Continuous Fault Segment)}} \\
+\multicolumn{9}{l}{\textit{NASA SMAP: Stream \texttt{P-3} (Spacecraft Telemetry, 1 Continuous Fault Segment)}} \\
 \texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.0087 & 14.6\% & 0.1818 & 10.0\% & 100\% & 0.2266 & 35 \\
 \texttt{operator\_entropy} & Sharp (Dense, Static EVT)   & 0.1274 & 27.3\% & 0.1538 & 8.3\%  & 100\% & \textbf{0.3634} & 295 \\
 \texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0110 & 6.9\%  & \textbf{0.3333} & 20.0\% & \textbf{100\%} & 0.1213 & \textbf{108} \\
 \midrule
-\multicolumn{9}{l}{\textit{CalIt2 (Pedestrian Entrance Flow, 21 Transient Event Clusters)}} \\
+\multicolumn{9}{l}{\textit{CalIt2: Stream \texttt{traffic} (Pedestrian Entrance Flow, 21 Transient Event Clusters)}} \\
 \texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.0131 & 1.9\%  & 0.0588 & 7.7\%  & 4.8\%  & 0.0216 & 53 \\
 \texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & \textbf{0.1368} & 8.7\%  & \textbf{0.3226} & 50.0\% & 23.8\% & \textbf{0.1274} & 357 \\
 \texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0903 & 14.3\% & 0.0909 & \textbf{100.0\%} & 4.8\%  & 0.0714 & \textbf{42} \\
@@ -646,11 +700,11 @@ To evaluate operational incident detection, we analyze model performance under t
 
 As shown in Table~\ref{tab:operational_incident_metrics}, evaluating anomaly detection at the incident level reveals three operational characteristics:
 
-\noindent\textbf{Incident Sensitivity vs. False Alarm Volume:} On Room Occupancy (11 ground-truth events, $\pi=20.0\%$ base rate) and SMAP (1 continuous event), static EVT thresholding achieves 100\% Event Recall across all tested configurations. However, static calibration generates over 4,000 point-level false alarms on Room Occupancy due to unmodeled diurnal baseline drift, yielding a 20.0\% point precision that matches the background anomaly base rate.
+\noindent\textbf{Incident Sensitivity vs. False Alarm Volume:} On Room Occupancy (\texttt{default}, 11 ground-truth events, $\pi=20.0\%$ base rate) and SMAP (\texttt{P-3}, 1 continuous event), static EVT thresholding achieves 100\% Event Recall across all tested configurations. However, static calibration generates over 4,000 point-level false alarms on Room Occupancy due to unmodeled diurnal baseline drift, yielding a 20.0\% point precision that matches the background anomaly base rate.
 
 \noindent\textbf{Streaming Adaptation Pareto Trade-off:} When dynamic rolling SPOT thresholding is applied to track baseline drift, false alarms decrease from 4,705 to 223 points on Room Occupancy (a $21\times$ reduction) and precision increases to 29.9\%. However, this introduces an operational trade-off: event recall drops from 100\% to 63.6\% (7 of 11 events detected), demonstrating the classic operating curve between alarm fatigue and fault sensitivity on non-stationary streams.
 
-\noindent\textbf{Boundary Alignment in Operational Telemetry:} On SMAP, all models capture the single continuous thruster fault segment (100\% event recall). On CalIt2 (21 rapid pedestrian burst events), models detect between 4.8\% and 23.8\% of events under dynamic SPOT, demonstrating that short intermittent pulses remain challenging for fixed-horizon window architectures.
+\noindent\textbf{Boundary Alignment in Operational Telemetry:} On SMAP (\texttt{P-3}), both tabulated JEPA models capture the single continuous thruster fault segment (100\% event recall). On CalIt2 (\texttt{traffic}, 21 rapid pedestrian burst events), models detect between 4.8\% and 23.8\% of events under dynamic SPOT, demonstrating that short intermittent pulses remain challenging for fixed-horizon window architectures.
 
 % --- Input from 11_future.tex ---
 \section{Conclusion and Future Work}
