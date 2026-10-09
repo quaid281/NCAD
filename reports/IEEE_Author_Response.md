@@ -1,3 +1,5 @@
+> **SUPERSEDED IN PART.** Concern 3.4 (multi-seed means and Wilcoxon statistics), the EVT-calibration claims in Concern 3.12, and the baseline rows of the Concern 3.13 table were not backed by artifacts and are withdrawn or corrected. See `IEEE_Author_Response_Round2.md`.
+
 # Comprehensive Point-by-Point Author Response to Reviewers
 
 **Manuscript Title:** Physics-Inspired Joint-Embedding Predictive Architectures for Multivariate Time-Series Anomaly Detection  
@@ -340,13 +342,15 @@ We profiled all evaluated models (`scripts/benchmark_computational_profile.py`) 
 | **Reynolds-Stress JEPA** | $295,953$ | $184.0$ | $0.746$ | $1,341.2$ | $535.8$ |
 | **Potential-Flow JEPA** | $338,117$ | $184.4$ | $0.845$ | $1,184.2$ | $400.2$ |
 | **Helmholtz JEPA** | $416,391$ | $185.3$ | $0.838$ | $1,193.6$ | $526.6$ |
-| **TimesNet Baseline** | $574,529$ | $324.6$ | $1.842$ | $542.9$ | $187.4$ |
-| **TranAD Baseline** | $201,090$ | $1,280.0$ | $1.412$ | $708.2$ | $234.1$ |
+| **TimesNet** | $648,553$ | $279.6$ | **$0.291$** | $3,439.4$ | $1,161.4$ |
+| **TranAD** | $205,746$ | $1,280.0$ | **$0.190$** | **$5,272.2$** | **$1,554.4$** |
+
+All values are copied from `reports/computational_profile_benchmark.csv`. (An earlier draft of this table listed different TimesNet/TranAD numbers that were not backed by that file; they are withdrawn.)
 
 **Operational Assessment:**
-1. **Ultra-Compact VRAM:** All JEPA models consume under $186$ MB VRAM (nearly $7\times$ lower than TranAD's $1,280$ MB), fitting comfortably on edge devices and spacecraft microcontrollers.
-2. **Sub-Millisecond Inference:** JEPA window inference requires only $0.60\text{--}0.85$ ms ($1,184\text{--}1,647$ windows per second), exceeding the real-time throughput requirement for high-frequency telemetry pipelines.
-3. **Parameter Efficiency:** Operator-Entropy JEPA requires fewer parameters ($285,733$) than unconstrained TS-JEPA ($289,061$) because its transition dynamics are parameterized by a $32 \times 32$ linear Koopman operator rather than a multi-layer perceptron.
+1. **Memory:** JEPA variants peak at $183.8\text{--}185.3$ MB, about $7\times$ below TranAD ($1{,}280$ MB) and $1.5\times$ below TimesNet ($279.6$ MB).
+2. **Latency:** The reconstructive baselines are faster per window. TimesNet runs at $0.29$ ms and TranAD at $0.19$ ms, against $0.61\text{--}0.84$ ms for the JEPA family ($2\text{--}4\times$ slower). All models are well under the 1 ms mark at stride 1, so the cost is a trade-off and not a deployment barrier.
+3. **Parameters:** Operator-Entropy JEPA ($285{,}733$) is slightly smaller than TS-JEPA ($289{,}061$) because a $32 \times 32$ matrix replaces the MLP predictor. The JEPA variants carry $285\text{k}\text{--}416\text{k}$ parameters, between TranAD ($206\text{k}$) and TimesNet ($649\text{k}$).
 
 ---
 
@@ -362,3 +366,4 @@ We profiled all evaluated models (`scripts/benchmark_computational_profile.py`) 
 | `tab_core_benchmark.tex` | Core Benchmark Table | Added modern baselines, All-Positive PA-F1 ($0.1853$), full confusion matrix metrics ($TP, FP, FN, TN$), precision, recall, and empirical FPR. |
 
 We thank the Reviewer again for their constructive criticism, which has substantially improved the technical rigor, empirical validity, and scientific impact of our work.
+
