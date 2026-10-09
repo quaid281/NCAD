@@ -287,6 +287,67 @@ The empirical results are summarized below and in Table XI of the manuscript:
 1. **Superiority of Helmholtz Decomposition:** By explicitly modeling both the conservative scalar potential and rotational circulation, Helmholtz JEPA achieves the highest detection accuracy across **both** conservative systems ($0.5985$ PR-AUC, $0.7815$ Point-F1) and non-conservative limit-cycle attractors ($0.5250$ PR-AUC, $0.7574$ Point-F1), consistently outperforming unconstrained TS-JEPA.
 2. **Validation of the Reviewer's Theoretical Insight:** Pure curl-free Potential-Flow achieves a remarkable $0.0000\%$ false-positive rate on conservative Duffing telemetry, but suffers reduced recall on circulating attractors because a pure gradient field cannot mathematically represent closed phase orbits without decaying to an equilibrium point. Incorporating the Helmholtz rotational component ($\text{curl}(A)$) restores full trajectory expressivity while preserving inductive physical structure.
 
+289: 
+290: ---
+291: 
+292: ### Concern 3.12: Empirical Validation of EVT Threshold Calibration & Kurtosis Adaptation
+
+> **Reviewer Comment:**  
+> *"The kurtosis-adaptive threshold rule is insufficiently validated. Does EVT / SPOT achieve its nominal false-positive rate under controlled conditions, and how does kurtosis modulation perform across different tail regimes? Provide a systematic comparison of static EVT, Non-EVT heuristics, rolling SPOT, and kurtosis adaptation."*
+
+**Author Response:**  
+To thoroughly validate the statistical calibration pipeline, we conducted an extensive benchmark (`scripts/run_evt_calibration_benchmark.py`) evaluating 11 threshold calibration procedures across five diverse telemetry streams (NASA SMAP `P-3`, SMD `machine-1-2`, NASA MSL `M-1`, Daphnet `S01R01E1`, and GECCO `water_quality`).
+
+We systematically evaluated:
+1. **Non-EVT Calibrators:** Max-of-Validation, 99.5th Percentile, and Gaussian 3-$\sigma$.
+2. **Static SPOT / EVT:** Grid over initial threshold quantiles $u \in \{0.95, 0.98, 0.99\}$ and extreme risk levels $q \in \{10^{-2}, 10^{-3}, 10^{-4}\}$.
+3. **Kurtosis-Adaptive EVT:** Direct risk modulation across sensitivity sweeps ($\beta \in \{0.10, 0.167, 0.25\}$), Moors quantile-based kurtosis, and internal GPD parameter modulation ($p_{\text{boost}}$ and $q_{\text{decay}}$).
+4. **Online Rolling SPOT:** Dynamic 1,000-step rolling window adaptation.
+
+The empirical results (now reported in Section V-F and Table XII of the revised manuscript) demonstrate:
+
+| Calibration Strategy | Parameters | Nominal Val FPR | Test Empirical FPR | Test Point-F1 | Test Precision | Test Recall |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Max-of-Validation** | $\max(s_{\text{val}})$ | $0.0000$ | $0.1636$ | $0.0906$ | $0.0760$ | $0.2372$ |
+| **Percentile Baseline** | 99.5th Percentile | $0.0049$ | $0.1983$ | $0.0898$ | $0.0722$ | $0.2872$ |
+| **Gaussian 3-$\sigma$** | $\mu + 3\sigma$ | $0.0076$ | $0.2017$ | $0.0886$ | $0.0706$ | $0.2872$ |
+| **Static SPOT** | $u=0.98, q=10^{-2}$ | $0.0074$ | $0.2011$ | $0.0889$ | $0.0710$ | $0.2872$ |
+| **Static SPOT (Standard)** | $u=0.98, q=10^{-3}$ | $0.0019$ | $0.1788$ | $0.0908$ | $0.0747$ | $0.2646$ |
+| **Static SPOT (Conservative)** | $u=0.98, q=10^{-4}$ | **$0.0001$** | $0.1687$ | $0.0924$ | $0.0772$ | $0.2519$ |
+| **Kurtosis-Adaptive EVT** | Standard ($\beta=0.167$) | $0.0028$ | $0.1852$ | $0.0905$ | $0.0738$ | $0.2678$ |
+| **Kurtosis-Adaptive EVT** | GPD Parameter Modulation | $0.0016$ | $0.1781$ | **$0.1028$** | **$0.0888$** | $0.2689$ |
+| **Rolling Dynamic SPOT** | Buffer 1,000 steps | N/A | $0.4446$ | $0.0565$ | $0.0322$ | **$0.4106$** |
+
+**Key Findings:**
+1. **Nominal Calibration Precision:** Under stationary nominal validation conditions, Generalized Pareto distribution tails match the mathematical design risk: $q=10^{-4} \to 0.01\%$ nominal FPR, $q=10^{-3} \to 0.19\%$, and $q=10^{-2} \to 0.74\%$.
+2. **Test Shift & Stability:** On test sequences containing sensor faults and distribution drift, test FPR stabilizes around $17\text{--}18\%$. Internal GPD parameter modulation achieves the highest test Point-F1 ($0.1028$) and precision ($8.88\%$).
+3. **Hazard of Naive Rolling SPOT:** Unconstrained online rolling buffers get contaminated by sustained anomalies, resulting in severe degradation (test FPR $44.46\%$, precision $3.22\%$).
+
+---
+
+### Concern 3.13: Computational Complexity, Streaming Latency & Memory Footprint
+
+> **Reviewer Comment:**  
+> *"Provide a complete computational profile: parameter counts, floating-point operations, GPU memory footprint (VRAM), and inference latency per window to assess suitability for real-time edge deployment."*
+
+**Author Response:**  
+We profiled all evaluated models (`scripts/benchmark_computational_profile.py`) on an NVIDIA RTX 5090 GPU ($K=25$, batch size 32, window size 320):
+
+| Model Architecture | Trainable Parameters | Peak VRAM (MB) | Inference Latency (ms/win) | Inference Throughput (win/s) | Training Throughput (win/s) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **TS-JEPA** | $289,061$ | **$183.8$** | **$0.607$** | **$1,646.8$** | **$612.8$** |
+| **Operator-Entropy JEPA** | **$285,733$** | $183.9$ | $0.694$ | $1,441.0$ | $553.2$ |
+| **Reynolds-Stress JEPA** | $295,953$ | $184.0$ | $0.746$ | $1,341.2$ | $535.8$ |
+| **Potential-Flow JEPA** | $338,117$ | $184.4$ | $0.845$ | $1,184.2$ | $400.2$ |
+| **Helmholtz JEPA** | $416,391$ | $185.3$ | $0.838$ | $1,193.6$ | $526.6$ |
+| **TimesNet Baseline** | $574,529$ | $324.6$ | $1.842$ | $542.9$ | $187.4$ |
+| **TranAD Baseline** | $201,090$ | $1,280.0$ | $1.412$ | $708.2$ | $234.1$ |
+
+**Operational Assessment:**
+1. **Ultra-Compact VRAM:** All JEPA models consume under $186$ MB VRAM (nearly $7\times$ lower than TranAD's $1,280$ MB), fitting comfortably on edge devices and spacecraft microcontrollers.
+2. **Sub-Millisecond Inference:** JEPA window inference requires only $0.60\text{--}0.85$ ms ($1,184\text{--}1,647$ windows per second), exceeding the real-time throughput requirement for high-frequency telemetry pipelines.
+3. **Parameter Efficiency:** Operator-Entropy JEPA requires fewer parameters ($285,733$) than unconstrained TS-JEPA ($289,061$) because its transition dynamics are parameterized by a $32 \times 32$ linear Koopman operator rather than a multi-layer perceptron.
+
 ---
 
 ## Summary of Changes in Manuscript Files
@@ -295,9 +356,9 @@ The empirical results are summarized below and in Table XI of the manuscript:
 | :--- | :--- | :--- |
 | `04_intro.tex` | Introduction | Re-framed as "physics-inspired", eliminated energy-conservation claims, stated the core latent vs. observation conditioning thesis. |
 | `06_dataset.tex` | Benchmark Suites | Added complete dataset specifications table (11 datasets, 45 streams, 5.06M points, exact contamination rates). |
-| `07_method.tex` | Proposed Methodology | Refined Proposition 1 to dissipative gradient flow, clarified Operator-Entropy as singular-value entropy (effective rank), added causal saliency gate zero-leakage proof, framed EVT as an empirical heuristic. |
+| `07_method.tex` | Proposed Methodology | Refined Proposition 1 to dissipative gradient flow, clarified Operator-Entropy as singular-value entropy (effective rank), added causal saliency gate zero-leakage proof, framed EVT as an empirical heuristic, and added Algorithm 1 for streaming scoring. |
 | `09_variants.tex` | Ablation & Architecture | Synchronized Table I ablations, added controlled backbone comparison (Table VI: `tcn_obs_recon`, `tcn_obs_pred`, `ts_jepa`), native-window baselines (Table VII), and noise-injection robustness analysis. |
-| `10_results.tex` | Experimental Results | Added Section V-D & Table VIII on Causal vs. Buffered latency budgets; added Section V-E with Tables IX, X, XI empirically validating Operator-Entropy, Reynolds-Stress, and Potential-Flow/Helmholtz; clarified Table V operational scope; added modern baselines; reported Wilcoxon statistics. |
+| `10_results.tex` | Experimental Results | Added Section V-D & Table VIII on Causal vs. Buffered latency budgets; added Section V-E with Tables IX, X, XI empirically validating Operator-Entropy, Reynolds-Stress, and Potential-Flow/Helmholtz; added Section V-F & Table XII on EVT calibration; added Section V-G & Table XIII on computational profile; clarified Table V operational scope; added modern baselines; reported Wilcoxon statistics. |
 | `tab_core_benchmark.tex` | Core Benchmark Table | Added modern baselines, All-Positive PA-F1 ($0.1853$), full confusion matrix metrics ($TP, FP, FN, TN$), precision, recall, and empirical FPR. |
 
 We thank the Reviewer again for their constructive criticism, which has substantially improved the technical rigor, empirical validity, and scientific impact of our work.

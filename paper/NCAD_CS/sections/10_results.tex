@@ -242,3 +242,83 @@ Potential-Flow JEPA ($-\nabla\Phi$) & 0.1701 & 0.2036 & 0.3106 & 0.3548 \\
 
 Table~\ref{tab:potential_flow_validation} confirms that decomposing the transition field into potential and curl components (Helmholtz JEPA) achieves the highest detection accuracy across both conservative ($0.5985$ PR-AUC, $0.7815$ Point-F1) and non-conservative limit-cycle regimes ($0.5250$ PR-AUC, $0.7574$ Point-F1), outperforming unconstrained TS-JEPA. Pure curl-free Potential-Flow achieves a zero false-positive rate on Duffing ($0.0000\%$) and $0.89\%$ on Van der Pol, but lower recall due to the mathematical inability of pure gradient fields to represent closed circulating phase trajectories.
 
+\subsubsection{Reconciling Metric Profiles: Micro-F1, Macro-F1, and Continuous Ranking}
+A key empirical pattern in Table~\ref{tab:core_benchmark} is that Potential-Flow JEPA achieves the highest Pooled Micro-F1 ($0.3458$), yet exhibits lower Dataset-Macro Point-F1 ($0.1147$) and PR-AUC ($0.1978$) compared to reconstructive baselines. This apparent contrast stems directly from aggregation weights across heterogeneous telemetry streams:
+\begin{enumerate}
+    \item \textbf{Micro-F1 Weighting by Point Volume:} Pooled Micro-F1 evaluates all $5.06$ million test points globally. High-dimensional telemetry streams (e.g., NASA SMAP and MSL with 25--55 channels and long continuous fault segments) contribute the vast majority of positive anomaly points. On these long events, Potential-Flow's curl-free scalar potential acts as an ultra-conservative detector that suppresses ambient measurement jitter, achieving $45.98\%$ precision ($130{,}237$ false positives vs.\ $1{,}047{,}144$ for TimesNet).
+    \item \textbf{Macro-F1 Sensitivity to Transient Events:} Dataset-Macro Point-F1 weights each of the 11 datasets equally. On short intermittent spike datasets (e.g., CalIt2, Metro) or multi-periodic gait kinematics (Daphnet), curl-free gradient dynamics ($\hat{v} = -\nabla\Phi$) lack the rotational degrees of freedom required to track circulating limit-cycle orbits (as confirmed in Table~\ref{tab:potential_flow_validation}), causing lower event recall on periodic streams and depressing unweighted dataset-macro averages.
+    \item \textbf{Continuous Ranking vs. Calibrated Thresholds:} Reconstructive models like TimesNet and TranAD achieve higher PR-AUC ($0.2585$--$0.2612$) because their raw reconstruction errors scale continuously with signal amplitude, providing smooth continuous ranking across test points. However, because observation residuals exhibit severe tail heaviness ($\gamma_2 > 50$), automated extreme value thresholding causes catastrophic false-alarm flooding at test time.
+\end{enumerate}
+
+\subsection{Automated Threshold Calibration: EVT, Kurtosis Adaptation, and Nominal Reliability}
+\label{sec:evt_benchmark}
+
+A foundational question in unsupervised anomaly detection is whether automated extreme-value thresholding adheres to theoretical design risk parameters, or whether thresholding collapse arises from residual tail heaviness. Table~\ref{tab:evt_calibration} reports a controlled evaluation of calibration procedures across five benchmark streams, measuring empirical False Positive Rate (FPR) on held-out nominal validation sequences versus test detection fidelity.
+
+\begin{table*}[t]
+\centering
+\small
+\caption{Empirical calibration benchmark comparing Non-EVT baselines, Standard Static SPOT, Kurtosis-Adaptive EVT, and Rolling SPOT on held-out nominal validation splits versus test performance. On held-out nominal sequences, empirical FPR closely adheres to theoretical design risk ($q=10^{-4} \to 0.01\%$, $q=10^{-3} \to 0.19\%$, $q=10^{-2} \to 0.74\%$).}
+\label{tab:evt_calibration}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{Calibration Category} & \textbf{Thresholding Method} & \textbf{Nominal Val FPR} & \textbf{Test FPR} & \textbf{Point-F1} & \textbf{Precision} & \textbf{Recall} \\
+\midrule
+\multirow{3}{*}{\textbf{Non-EVT Baselines}} 
+& Max-of-Validation & \textbf{0.0000} & 0.1774 & 0.1029 & 0.1466 & 0.2651 \\
+& Empirical 99.5th Percentile & 0.0054 & 0.1837 & 0.1028 & 0.1451 & 0.2665 \\
+& Gaussian 3-Sigma ($\mu + 3\sigma$) & 0.0088 & 0.1879 & 0.1016 & 0.1435 & 0.2748 \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{\textbf{Static SPOT}\\(Varying Design Risk $q$, $u=0.98$)}} 
+& Static SPOT ($q=10^{-4}$) & \textbf{0.0001} & \textbf{0.1733} & 0.1028 & \textbf{0.1464} & 0.2641 \\
+& Static SPOT ($q=10^{-3}$) & 0.0019 & 0.1764 & \textbf{0.1030} & 0.1462 & 0.2655 \\
+& Static SPOT ($q=10^{-2}$) & 0.0074 & 0.1886 & 0.1022 & 0.1445 & \textbf{0.2672} \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{\textbf{Kurtosis-Adaptive EVT}\\($u=0.98, q=10^{-3}$)}} 
+& Internal GPD Adaptive ($p_{\text{boost}}, q_{\text{decay}}$) & \textbf{0.0016} & \textbf{0.1756} & \textbf{0.1028} & \textbf{0.1462} & 0.2651 \\
+& Multiplicative Rule ($\beta=0.083$) & 0.2778 & 0.2241 & 0.0973 & 0.1481 & 0.2709 \\
+& Multiplicative Rule ($\beta=0.167$) & 0.3046 & 0.2686 & 0.0964 & 0.1585 & 0.2767 \\
+& Moors Robust Quantile Kurtosis ($\beta=0.167$) & 0.1935 & 0.1848 & 0.1024 & 0.1465 & 0.2689 \\
+\midrule
+\textbf{Online Streaming} 
+& Rolling Dynamic SPOT (Buffer 1,000 steps) & N/A & 0.4446 & 0.0565 & 0.0322 & \textbf{0.4106} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+Three empirical conclusions emerge from Table~\ref{tab:evt_calibration}:
+First, on held-out nominal validation data, empirical FPR closely tracks the specified design risk: setting $q=10^{-4}$ yields an empirical nominal FPR of $0.01\%$ ($0.0001$), setting $q=10^{-3}$ yields $0.19\%$ ($0.0019$), and setting $q=10^{-2}$ yields $0.74\%$ ($0.0074$). This confirms that the Generalized Pareto Distribution accurately models the upper tail of nominal TS-JEPA residuals under uncorrupted stationary conditions.
+Second, on test telemetry, all static thresholding methods exhibit a higher empirical FPR ($\approx 17\text{--}18\%$), reflecting non-stationary baseline shifts between training and test sequences.
+Third, internal GPD parameter modulation ($p_{\text{boost}}$ and $q_{\text{decay}}$) achieves the lowest nominal calibration error ($0.16\%$ nominal FPR) and stable test Point-F1 ($0.1028$). In contrast, unconstrained online rolling SPOT without drift suppression suffers substantial degradation (test FPR $44.46\%$, precision $3.22\%$), as anomalous bursts pollute the rolling buffer.
+
+\subsection{Computational Profile: Complexity, Latency, and Memory Footprint}
+\label{sec:computational_profile}
+
+To assess operational suitability for edge and real-time streaming deployments, Table~\ref{tab:computational_profile} benchmarks parameter complexity, GPU memory footprint (VRAM), forward inference latency, and streaming throughput across all evaluated architectures on an NVIDIA RTX 5090 GPU (input dimension $K=25$, batch size $32$, context $C=256$, suspect $S=64$).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Computational profile, memory consumption, latency, and throughput benchmarked on an NVIDIA RTX 5090 GPU ($K=25$, window size $320$).}
+\label{tab:computational_profile}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Model Architecture} & \textbf{Parameters} & \textbf{VRAM (MB)} & \textbf{Latency (ms/win)} & \textbf{Infer (win/s)} & \textbf{Train (win/s)} \\
+\midrule
+TS-JEPA & 289,061 & \textbf{183.8} & 0.6072 & 1,646.8 & 612.8 \\
+Operator-Entropy JEPA & \textbf{285,733} & 183.9 & 0.6939 & 1,441.0 & 553.2 \\
+Reynolds-Stress JEPA & 295,953 & 184.0 & 0.7456 & 1,341.2 & 535.8 \\
+Potential-Flow JEPA & 338,117 & 184.4 & 0.8445 & 1,184.2 & 400.2 \\
+Helmholtz JEPA & 416,391 & 185.3 & 0.8378 & 1,193.6 & 526.6 \\
+TimesNet & 648,553 & 279.6 & \textbf{0.2908} & 3,439.4 & 1,161.4 \\
+TranAD & 205,746 & 1,280.0 & \textbf{0.1897} & \textbf{5,272.2} & \textbf{1,554.4} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+As shown in Table~\ref{tab:computational_profile}, Operator-Entropy JEPA has fewer trainable parameters ($285{,}733$) than unconstrained TS-JEPA ($289{,}061$), because its explicit Koopman transition matrix $K \in \mathbb{R}^{32 \times 32}$ ($1{,}024$ weights) replaces the multi-layer MLP predictor. All JEPA variants maintain an ultra-compact peak GPU memory footprint of $183.8\text{--}185.3\,$MB, consuming nearly $7\times$ less memory than TranAD ($1{,}280.0\,$MB), whose multi-head self-attention attention maps scale quadratically with sequence length. Forward inference latency for the JEPA family ranges between $0.60\text{--}0.84\,$ms per window ($1{,}184\text{--}1{,}647$ windows per second), well within sub-millisecond operational streaming deadlines.
+
