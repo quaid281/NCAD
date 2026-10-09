@@ -9,7 +9,7 @@ To test whether the proposed physics-inspired regularizers provide measurable be
 \begin{enumerate}
     \item \textbf{Operator-Entropy vs. $\lambda_{\text{ent}}=0$ Control:} Disabling the spectral entropy regularizer ($\lambda_{\text{ent}}=0$) leaves Point-F1 unchanged ($0.018 \pm 0.019$ vs. $0.017 \pm 0.015$, difference $+0.001$, $95\%$ bootstrap interval $[-0.006, +0.009]$, Wilcoxon $p=1.00$). Both variants maintain PR-AUC around $0.155\text{--}0.156$.
     \item \textbf{Reynolds-Stress vs. $\alpha_{\text{stress}}=0$ Control:} Disabling the second-moment stress loss ($\alpha_{\text{stress}}=0$) yields $0.033 \pm 0.035$ Point-F1 compared to $0.017 \pm 0.012$ with the stress loss active. Scoring via the mean predictive discrepancy alone yields $0.040 \pm 0.022$. Neither difference exceeds random seed variation ($p \ge 0.375$).
-    \item \textbf{Potential-Flow vs. No-Regime Control:} Disabling the Harmonic Grassmannian regime routing ($K=1$) yields $0.068 \pm 0.082$ Point-F1 compared to $0.074 \pm 0.069$ with routing active (difference $+0.006$, interval $[-0.022, +0.032]$, $p=0.58$).
+    \item \textbf{Potential-Flow vs. No-Regime Control:} Disabling multi-subspace regime routing ($K_r=1$) yields $0.068 \pm 0.082$ Point-F1 compared to $0.074 \pm 0.069$ with routing active (difference $+0.006$, interval $[-0.022, +0.032]$, $p=0.58$).
 \end{enumerate}
 These controlled ablations demonstrate that the physical regularizers do not produce statistically detectable improvements over unconstrained latent prediction on telemetry.
 

@@ -1,13 +1,13 @@
-\section{Methodology: The Physics-Inspired Geometric JEPA Triad}
+\section{Methodology: Latent Representation Forecasting and Structured Inductive Priors}
 \label{sec:proposed_method}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/physics_jepa_triad_architecture.png}
-\caption{Architectural overview of the proposed Physics-Inspired Joint-Embedding Predictive Architecture (JEPA) framework. The historical context window $\mathbf{x}_{\text{ctx}}$ and suspect target window $\mathbf{x}_{\text{tgt}}$ are projected through multi-scale dyadic TCN encoders into latent representations $z_{\text{ctx}}$ and $z_{\text{tgt}}$. Rather than reconstructing raw observation-space waveforms (which causes false alarm flooding under ambient sensor jitter), the predictive core operates strictly in latent representation space, governed by three complementary physical inductive biases: Koopman operator spectral entropy, hydrodynamic Reynolds stress transport, and conservative potential flow field theory. Prediction discrepancy is calibrated online via streaming Extreme Value Theory (SPOT).\label{fig:triad_architecture}}
+\caption{Architectural overview of the Joint-Embedding Predictive Architecture (JEPA) telemetry monitoring framework. The historical context window $\mathbf{x}_{\text{ctx}}$ and suspect target window $\mathbf{x}_{\text{tgt}}$ are projected through multi-scale dyadic TCN encoders into latent representations $z_{\text{ctx}}$ and $z_{\text{tgt}}$. Rather than reconstructing raw observation-space waveforms (which causes false-alarm flooding under ambient sensor noise), the predictive core operates strictly in latent representation space. We examine an unconstrained non-linear predictor alongside three candidate physical inductive regularizers: Koopman operator spectral entropy, second-moment covariance closure, and continuous potential flow field modeling. Prediction residuals are calibrated via held-out Extreme Value Theory (SPOT).\label{fig:triad_architecture}}
 \end{figure*}
 
-This section formalizes the mathematical formulation and inductive biases of the proposed framework. 
+This section formalizes the mathematical formulation, latent predictors, and inductive biases of the proposed framework. 
 
 \subsection{Problem Formulation and Latent Space Prediction}
 \label{subsec:architecture}
@@ -23,11 +23,11 @@ To overcome this, we adopt the Joint-Embedding Predictive Architecture (JEPA) fr
 \begin{equation}
     \phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k, \quad m_k \in [0.996, 0.9995].
 \end{equation}
-The core objective is to predict target representations in latent space under physical dynamical constraints.
+The core objective is to forecast target representations directly in latent space, testing whether structured inductive priors condition prediction residuals for automated tail calibration.
 
-\subsection{The Physics-Inspired JEPA Triad}
+\subsection{Latent Predictor Architectures and Dynamical Inductive Priors}
 \label{subsec:triad_formulations}
-Rather than relying on unconstrained Euclidean regression, we incorporate physical domain regularizers through three complementary geometric formulations:
+To examine whether incorporating structured dynamical inductive biases stabilizes representation forecasting, we evaluate an unconstrained latent predictor alongside three candidate formulations inspired by physical dynamical principles:
 
 \subsubsection{Operator-Entropy JEPA (Spectral Dynamics \& Modal Dispersion)}
 In dynamical systems theory, non-linear trajectories can be analyzed via linear operators acting on observable functions (Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral}). In our architecture, the encoder maps the observation window to a finite-dimensional latent observable vector $z \in \mathbb{R}^D$. We parameterize the predictive transition between context and target latent states via a learned transition operator $\mathbf{K} \in \mathbb{R}^{D \times D}$:
@@ -62,7 +62,7 @@ with $\beta_{\text{norm}} = 1.0$. The total training objective is:
 \begin{equation}
     \mathcal{L}_{\text{Op-Entropy}} = \| \mathbf{K} z_{\text{ctx}} - z_{\text{tgt}} \|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K}),
 \end{equation}
-with $\lambda_{\text{ent}} = 0.5$ (the value used in all experiments). The implementation also applies a radial-heat damping layer, a Cohn--Elkies shell filter and a resolvent purification step to the latent vectors before the loss; these are shared with the $\lambda_{\text{ent}}=0$ control in Section~\ref{subsec:controlled_ablations}. We emphasize that $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ acts directly on the transition operator matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$, enforcing a non-collapsed, full-rank operator spectrum; it does not provide an analytical guarantee against representation collapse in the encoder itself. In practice, representation collapse in the encoder is mitigated through the asymmetric Exponential Moving Average (EMA) target encoder dynamics and stop-gradient operations common to self-supervised frameworks (e.g., BYOL \cite{grill2020bootstrap}, I-JEPA \cite{assran2023self}), rather than by $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ directly.
+with $\lambda_{\text{ent}} = 0.5$ (the value used in all experiments). All shared representation components (causal coordinate saliency gating, dyadic frequency shells, and LayerNorm) are held strictly fixed across models and controls, ensuring that performance differences isolate the transition operator loss and parameterization. We emphasize that $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ acts directly on the transition operator matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$, enforcing a non-collapsed, full-rank operator spectrum; it does not provide an analytical guarantee against representation collapse in the encoder itself. In practice, representation collapse in the encoder is mitigated through the asymmetric Exponential Moving Average (EMA) target encoder dynamics and stop-gradient operations common to self-supervised frameworks (e.g., BYOL \cite{grill2020bootstrap}, I-JEPA \cite{assran2023self}), rather than by $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ directly.
 
 \begin{proposition}[Operator Triviality Invariance]
 \label{prop:anti_collapse}
@@ -78,7 +78,7 @@ At $\mathbf{K} = \mathbf{0}$, prediction error is finite ($\mathcal{L}_{\text{pr
 \label{subsubsec:reynolds_stress_jepa}
 Reynolds decomposition splits a turbulent velocity field into a mean flow and a fluctuation component, where the Reynolds stress tensor captures the second moment of turbulent velocity fluctuations. We adapt the second-moment formulation as an inductive bias in latent representation space. The latent coordinates are learned feature embeddings rather than physical velocity components, and $\boldsymbol{\Sigma}$ is not a physical momentum-transport tensor.
 
-The context encoder output passes through a Hankel moment filter and a shearing-wavelet pulse block. A two-layer MLP predicts the target latent $\hat{z}_{\text{tgt}}$, followed by a Cohn--Elkies shell filter. The target encoder (EMA, stop-gradient) produces $z_{\text{tgt}}$ through matching filters. A learned linear map $\mathbf{P} \in \mathbb{R}^{d_s \times D}$ ($d_s = 16$) yields the empirical second-moment matrix:
+The context encoder outputs latent representation $z_{\text{ctx}} \in \mathbb{R}^D$, from which a two-layer MLP predicts the conditional mean target latent $\hat{z}_{\text{tgt}}$. The momentum target encoder (EMA, stop-gradient) produces the target representation $z_{\text{tgt}}$. A learned linear projection $\mathbf{P} \in \mathbb{R}^{d_s \times D}$ ($d_s = 16$) yields the empirical second-moment matrix:
 \begin{equation}
     \boldsymbol{\Sigma}_{\text{obs}} = (\mathbf{P} z_{\text{tgt}})(\mathbf{P} z_{\text{tgt}})^T + 10^{-3}\mathbf{I} \in \mathbb{S}_{++}^{d_s \times d_s}.
 \end{equation}
@@ -108,18 +108,18 @@ where $\Phi_\psi: \mathbb{R}^D \to \mathbb{R}$ is a scalar potential network par
 \end{equation}
 rendering $\Phi_\psi$ a strict Lyapunov function. Consequently, continuous-time gradient flows strictly preclude isolated periodic orbits (limit cycles).
 
-\paragraph{Continuous Velocity Field and Harmonic Grassmannian Regimes}
-Rather than parameterizing a discrete unconstrained displacement, our implementation constructs the continuous velocity field as the negative gradient of a scalar potential field $\Phi_\psi$:
+\paragraph{Continuous Velocity Field and Multi-Subspace Regime Routing}
+Rather than parameterizing a discrete unconstrained displacement, the continuous velocity field is constructed as the negative gradient of a parameterized scalar potential field $\Phi_\psi$:
 \begin{equation}
     \hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) = -\nabla_{z_t} \Phi_\psi(z_t, t, z_{\text{ctx}}, p_{\text{regime}}),
 \end{equation}
-where $\Phi_\psi$ is a three-layer residual MLP with LayerNorm and SiLU activations. The network is conditioned on the current state $z_t$, the continuous diffusion time $t \in [0, 1]$ via sinusoidal embeddings, the context representation $z_{\text{ctx}}$, and a discrete regime projection $p_{\text{regime}}$. The raw Euclidean gradient is projected onto the tangent bundle $T_{z_t} \mathbb{S}^{D-1}$ via \texttt{MovingTangentProjection}, stabilizing discrete trajectory integration and bounding the effective Lipschitz curvature.
+where $\Phi_\psi$ is a three-layer residual MLP with LayerNorm and SiLU activations. The network is conditioned on the current state $z_t$, the continuous diffusion time $t \in [0, 1]$ via sinusoidal embeddings, the context representation $z_{\text{ctx}}$, and a discrete operational regime projection $p_{\text{regime}}$. The raw Euclidean gradient is projected onto the tangent space orthogonal to unit vector $u = z_t / \|z_t\|_2$ via $v_\perp = v - \langle u, v \rangle u$, stabilizing discrete trajectory integration and bounding curvature.
 
-Discrete operational modes are modeled via a Harmonic Grassmannian Codebook maintaining $K=4$ orthonormal subspace frames $\mathbf{U}_k \in \operatorname{Gr}(d, D)$ ($d=8, D=32$, satisfying $\mathbf{U}_k^\top \mathbf{U}_k = \mathbf{I}_d$). The active regime projection $p_{\text{regime}}$ is selected via maximum subspace energy capture:
+Discrete operational modes are captured via $K_r = 4$ learnable orthonormal subspace projection matrices $\mathbf{U}_k \in \mathbb{R}^{D \times d}$ ($d=8, D=32$, satisfying $\mathbf{U}_k^\top \mathbf{U}_k = \mathbf{I}_d$). The active regime projection $p_{\text{regime}}$ is selected by identifying the subspace that captures maximal context energy:
 \begin{equation}
-    k^* = \arg\max_{k \in \{1,\dots,K\}} \|\mathbf{U}_k^\top z_{\text{ctx}}\|_2^2, \quad p_{\text{regime}} = \mathbf{U}_{k^*} \mathbf{U}_{k^*}^\top z_{\text{ctx}}.
+    k^* = \arg\max_{k \in \{1,\dots,K_r\}} \|\mathbf{U}_k^\top z_{\text{ctx}}\|_2^2, \quad p_{\text{regime}} = \mathbf{U}_{k^*} \mathbf{U}_{k^*}^\top z_{\text{ctx}}.
 \end{equation}
-During training, the frames are regularized with a Delsarte frame separation loss $\mathcal{L}_{\text{grass}} = \frac{2}{K(K-1)} \sum_{i < j} \|\mathbf{U}_i^\top \mathbf{U}_j\|_F^2$. In Section~\ref{subsec:controlled_ablations}, a no-regime control ($K=1$, $p_{\text{regime}} = \mathbf{0}$) evaluates performance when regime routing is disabled.
+During training, the subspace frames are regularized with an orthogonality separation loss $\mathcal{L}_{\text{subspace}} = \frac{2}{K_r(K_r-1)} \sum_{i < j} \|\mathbf{U}_i^\top \mathbf{U}_j\|_F^2$. In Section~\ref{subsec:controlled_ablations}, a single-regime control ($K_r=1$, $p_{\text{regime}} = \mathbf{0}$) evaluates performance when regime routing is disabled.
 
 \paragraph{Flow-Matching Objective, Numerical Midpoint Evaluation, and Dynamical Misspecification}
 We distinguish the continuous dynamical system from the empirical learning and inference objective. The theoretical Lyapunov dissipation argument applies to autonomous continuous gradient descent $\dot{z} = -\nabla\Phi(z)$. In contrast, our architecture trains $\hat{v} = -\nabla_{z_t}\Phi_\psi(z_t, t, z_{\text{ctx}}, p_{\text{regime}})$ via conditional flow matching (OT-CFM) along linear interpolation paths $z_t = (1-t)z_{\text{noise}} + t z_{\text{tgt}}$, where $t \sim \mathcal{U}(0, 1)$ and $z_{\text{noise}} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$:
@@ -140,7 +140,7 @@ During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t
 \begin{equation}
     \mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t)).
 \end{equation}
-For Reynolds-Stress JEPA, the score incorporates both the gated mean discrepancy and the gated fluctuation tensor residual: $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. Context and target representations across all JEPA variants pass through shared filtering stages: Hankel moment filters, Littlewood--Paley dyadic frequency shells, Cohn--Elkies shell filters, and resolvent purification layers. These modules are held fixed across the ablation controls in Section~\ref{subsec:controlled_ablations} to isolate the physical regularizers.
+For Reynolds-Stress JEPA, the score incorporates both the gated mean discrepancy and the gated fluctuation tensor residual: $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. All shared representation stages (causal coordinate saliency gating, Littlewood-Paley dyadic frequency shells, and LayerNorm) are held strictly fixed across all JEPA variants and ablation controls in Section~\ref{subsec:controlled_ablations} to isolate the effects of the predictive regularizers.
 
 \noindent\textbf{Operational Distinction: Zero-Lookahead Causal Filtering vs. Buffered Predictive Early Warning.}
 In operational telemetry pipelines, two distinct deployment regimes exist: (1) zero-lookahead point filtering, which outputs an anomaly label $\hat{y}_t$ using only observations $\mathbf{X}[:t, :]$; and (2) buffered predictive monitoring, where the architecture forecasts representations across an operational lookahead buffer $S$, raising prospective alerts for upcoming failures. TS-JEPA operates under regime (2): given historical context $x_{\text{ctx}} = \mathbf{X}[t-C:t, :]$, it projects future latent trajectory $\hat{z}_{\text{tgt}}$ over $[t, t+S]$. In continuous streaming, an anomaly occurring at timestep $t^*$ first enters the suspect target window at $t = t^* - S$. Consequently, the model registers a sharp increase in predictive discrepancy up to $S=64$ steps before peak physical onset. In our benchmark, we enforce strict unadjusted point-level evaluation at each decision time $t$ ($\text{stride}=1$). Because ground-truth point labels are strictly aligned to the physical anomaly window $[t^*, t^* + L]$, early warnings generated during the pre-onset interval $[t^* - S, t^*]$ are formally scored as point-level false alarms ($FP$). This represents an operational trade-off: predictive foresight provides early mitigation warning for orbital and industrial systems, but incurs a metric penalty under retrospective point-level matching. In operational incident analysis (Section VII.D), we also evaluate \textit{Middle} alignment, where the anomaly score is centered at $t + S/2$ to balance pre-onset and post-onset window overlap. Baseline models (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD) are evaluated under the exact identical sliding-window evaluation protocol, lookahead horizon, and standardization.
