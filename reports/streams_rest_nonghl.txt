@@ -1,0 +1,16 @@
+metro:traffic-volume
+room-occupancy:default
+room-occupancy:1
+MSL:C-1
+MSL:C-2
+MSL:D-14
+MSL:D-15
+MSL:D-16
+MSL:M-1
+SMAP:A-1
+SMAP:A-2
+SMAP:A-7
+SMAP:D-3
+SMAP:P-3
+SMAP:E-1
+swan:sf
