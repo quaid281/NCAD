@@ -34,6 +34,8 @@ To isolate algorithmic principles from external implementation discrepancies, al
 
 \noindent\textbf{Physics-Inspired Formulations:} Three candidate architectures incorporating spectral Koopman dissipation (\texttt{Operator-Entropy JEPA}, $285{,}733$ parameters at $K=25$; $214{,}981$ at $K=9$), turbulent momentum transport (\texttt{Reynolds-Stress JEPA}, $295{,}953$ parameters at $K=25$; $225{,}201$ at $K=9$), and conservative curl-free potential constraints (\texttt{Potential-Flow JEPA}, $338{,}117$ parameters at $K=25$; $267{,}365$ at $K=9$). In \texttt{Operator-Entropy JEPA}, parameterizing the linear Koopman transition $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$ directly via matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$ requires $D^2 = 1{,}024$ weights, replacing the MLP predictor and reducing overall capacity ($1.15\%$ smaller than TS-JEPA at $K=25$, and $1.5\%$ smaller at $K=9$). Reynolds-Stress introduces $+2.4\%$ parameters at $K=25$ for its covariance closure head, while Potential-Flow adds $+17.0\%$ parameters through its velocity-matching potential network. These specifications confirm that performance characteristics across models do not stem from parameter scaling discrepancies.
 
+\noindent\textbf{Linear AR Forecaster (Non-Neural Baseline):} A classical vector autoregressive baseline that fits a ridge-regularized linear mapping from flattened context windows $\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{C \cdot K}$ directly to target windows $\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{S \cdot K}$ in observation space ($C=256, S=64$). Anomaly scores are computed from raw observation-space prediction errors $\|\hat{\mathbf{x}}_{\text{tgt}} - \mathbf{x}_{\text{tgt}}\|_2^2$ and calibrated using the identical held-out EVT/SPOT procedure. This non-neural control isolates whether representation learning in latent space is necessary, or whether linear dynamics suffice for residual conditioning.
+
 \subsection{Multi-Tier Statistical Evaluation Metrics}
 \label{subsec:eval_metrics}
 Recent critical surveys in time-series anomaly detection \cite{kim2022towards, schmidl2022anomaly, wu2023current} demonstrate that standard evaluation protocols are plagued by severe reporting vulnerabilities, including point-adjustment inflation, channel-averaging imbalances, and arbitrary threshold gaming. To ensure transparency and reproducibility, we report evaluation metrics across multiple complementary tiers:
@@ -57,6 +59,10 @@ Micro-F1 directly penalizes models that flood long streams with hundreds of thou
     \text{PR-AUC} = \sum_{k} (R_k - R_{k-1}) P_k
 \end{equation}
 PR-AUC evaluates raw score ranking capability entirely independent of the threshold calibration mechanism.
+
+\noindent\textbf{Event Recall (Segment-Level Recall):} In real operational telemetry, an anomaly event consists of a contiguous interval of faulty timestamps $[t_{\text{start}}, t_{\text{end}}]$. An event is successfully detected if the model triggers at least one alarm during the segment: $\exists t \in [t_{\text{start}}, t_{\text{end}}]$ such that $\hat{y}_t = 1$. The Event Recall denotes the fraction of ground-truth anomaly events successfully captured across the benchmark.
+
+\noindent\textbf{Mean Detection Delay ($\Delta t$):} For each successfully detected anomaly segment $[t_{\text{start}}, t_{\text{end}}]$, the detection delay is the number of elapsed timesteps between fault onset and the earliest alarm: $\Delta t = \min\{t \in [t_{\text{start}}, t_{\text{end}}] : \hat{y}_t = 1\} - t_{\text{start}}$. The Mean Detection Delay averages $\Delta t$ across all detected events. Undetected events are reflected in the Event Recall rather than assigned an arbitrary latency penalty.
 
 \noindent\textbf{Trivial All-Positive Reference Baseline:} We report the analytical performance of a constant all-positive predictor ($\hat{y}_t = 1, \forall t$):
 \begin{equation}
