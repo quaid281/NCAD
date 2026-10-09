@@ -102,33 +102,35 @@ where $\Phi_\psi: \mathbb{R}^D \to \mathbb{R}$ is a scalar potential network par
 \end{equation}
 rendering $\Phi_\psi$ a strict Lyapunov function. Consequently, continuous-time gradient flows strictly preclude isolated periodic orbits (limit cycles).
 
-\paragraph{Discrete Residual Map and Contractivity Bound}
-In our discrete predictive architecture, prospective latent progression across horizon step $\eta > 0$ is realized via forward Euler integration:
+\paragraph{Continuous Velocity Field and Harmonic Grassmannian Regimes}
+Rather than parameterizing a discrete unconstrained displacement, our implementation constructs the continuous velocity field as the negative gradient of a scalar potential field $\Phi_\psi$:
 \begin{equation}
-    \hat{v}(z_{\text{ctx}}) = -\nabla_z \Phi_\psi(z_{\text{ctx}}), \quad \hat{z}_{\text{tgt}} = z_{\text{ctx}} + \eta \hat{v}(z_{\text{ctx}}).
+    \hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) = -\nabla_{z_t} \Phi_\psi(z_t, t, z_{\text{ctx}}, p_{\text{regime}}),
 \end{equation}
-As noted in dynamical systems theory, the non-existence of limit cycles in continuous flows does not automatically transfer to nonlinear discrete maps $z_{k+1} = z_k - \eta \nabla \Phi(z_k)$. Assuming $\Phi_\psi$ is $L$-smooth ($\|\nabla_z^2 \Phi_\psi(z)\|_2 \le L$ for all $z$), the classical Descent Lemma establishes:
-\begin{equation}
-    \Phi_\psi(\hat{z}_{\text{tgt}}) \le \Phi_\psi(z_{\text{ctx}}) - \eta \left( 1 - \frac{L \eta}{2} \right) \|\nabla_z \Phi_\psi(z_{\text{ctx}})\|_2^2.
-\end{equation}
-Monotonic potential dissipation and non-oscillatory contractive convergence are guaranteed if and only if the step size satisfies the contractivity condition:
-\begin{equation}
-    \eta < \frac{2}{L} \iff L < \frac{2}{\eta}.
-\end{equation}
-When local curvature exceeds $2/\eta$, discrete gradient steps can undergo period-doubling bifurcations and exhibit discrete 2-cycles or subharmonic oscillations. In our implementation, we stabilize discrete integration by normalizing velocity vectors onto the tangent bundle $T_{z} \mathbb{S}^{D-1}$ via \texttt{MovingTangentProjection}, bounding the effective Lipschitz constant $L$.
+where $\Phi_\psi$ is a three-layer residual MLP with LayerNorm and SiLU activations. The network is conditioned on the current state $z_t$, the continuous diffusion time $t \in [0, 1]$ via sinusoidal embeddings, the context representation $z_{\text{ctx}}$, and a discrete regime projection $p_{\text{regime}}$. The raw Euclidean gradient is projected onto the tangent bundle $T_{z_t} \mathbb{S}^{D-1}$ via \texttt{MovingTangentProjection}, stabilizing discrete trajectory integration and bounding the effective Lipschitz curvature.
 
-Because the curl of any $C^2$ gradient field is identically zero ($\nabla \times (\nabla \Phi) \equiv \mathbf{0}$), parameterizing velocity via $\hat{v} = -\nabla \Phi$ guarantees that the predicted trajectory field is \textit{strictly irrotational by construction}. Physical anomalies that introduce unmodeled circulation, non-conservative energy injection, or rotational work produce pronounced prediction discrepancies:
+Discrete operational modes are modeled via a Harmonic Grassmannian Codebook maintaining $K=4$ orthonormal subspace frames $\mathbf{U}_k \in \operatorname{Gr}(d, D)$ ($d=8, D=32$, satisfying $\mathbf{U}_k^\top \mathbf{U}_k = \mathbf{I}_d$). The active regime projection $p_{\text{regime}}$ is selected via maximum subspace energy capture:
 \begin{equation}
-    \mathcal{L}_{\text{Pot-Flow}} = \| -\nabla_z \Phi_\psi(z_{\text{ctx}}) - (z_{\text{tgt}} - z_{\text{ctx}}) \|_2^2.
+    k^* = \arg\max_{k \in \{1,\dots,K\}} \|\mathbf{U}_k^\top z_{\text{ctx}}\|_2^2, \quad p_{\text{regime}} = \mathbf{U}_{k^*} \mathbf{U}_{k^*}^\top z_{\text{ctx}}.
 \end{equation}
-While this curl-free inductive prior provides strong false-alarm suppression in stable physical and thermal subsystems (e.g., NASA MSL), telemetry regimes dominated by multi-periodic rotational limit cycles (such as human locomotion in Daphnet) can challenge discrete potential descent and are more effectively captured by harmonic Fourier formulations (such as TimesNet).
+During training, the frames are regularized with a Delsarte frame separation loss $\mathcal{L}_{\text{grass}} = \frac{2}{K(K-1)} \sum_{i < j} \|\mathbf{U}_i^\top \mathbf{U}_j\|_F^2$. In Section~\ref{subsec:controlled_ablations}, a no-regime control ($K=1$, $p_{\text{regime}} = \mathbf{0}$) evaluates performance when regime routing is disabled.
+
+\paragraph{Flow-Matching Objective and Anomaly Scoring}
+The potential field is trained via optimal-transport velocity matching along linear interpolation paths $z_t = (1-t)z_{\text{noise}} + t z_{\text{tgt}}$, where $t \sim \mathcal{U}(0, 1)$ and $z_{\text{noise}} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$:
+\begin{equation}
+    \mathcal{L}_{\text{Pot-Flow}} = \mathbb{E}_{t, z_{\text{noise}}} \left[ \| \hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) - (z_{\text{tgt}} - z_{\text{noise}}) \|_2^2 \right].
+\end{equation}
+At inference, the predictive discrepancy is evaluated at trajectory midpoint $t=0.5$ with $z_{\text{eval}} = 0.5 z_{\text{tgt}}$ against the target representation $z_{\text{tgt}}$: $\mathbf{e}(t) = \hat{v}(z_{\text{eval}}, 0.5, z_{\text{ctx}}, p_{\text{regime}}) - z_{\text{tgt}}$. The anomaly score is computed by passing $\mathbf{e}(t)$ through the latent coordinate-saliency gate: $\mathcal{S}(t) = g(\mathbf{e}(t))$.
+
+While parameterizing velocity via $\hat{v} = -\nabla \Phi$ enforces curl-free trajectory dynamics, empirical evaluations in Section~\ref{subsec:controlled_ablations} show that this constraint does not yield measurable gains over unconstrained latent forecasting on benchmark telemetry, and telemetry regimes with limit cycles (such as Daphnet) remain challenging for potential descent.
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
-During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect target windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed with a stride of 1 timestep. For all JEPA architectures, the anomaly score is computed as the latent predictive discrepancy between the predicted target representation $\hat{z}_{\text{tgt}}$ and the target encoder representation $z_{\text{tgt}}$:
+During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect target windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed with a stride of 1 timestep. For TS-JEPA, Operator-Entropy JEPA, and Potential-Flow JEPA, the anomaly score is computed by applying the latent coordinate-saliency gate $g(\cdot)$ (Section~\ref{subsubsec:causal_saliency_gating}) to the latent discrepancy vector $\mathbf{e}(t) = \hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t)$:
 \begin{equation}
-    \mathcal{S}(t) = \| \hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t) \|_2^2.
+    \mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t)).
 \end{equation}
+For Reynolds-Stress JEPA, the score incorporates both the gated mean discrepancy and the gated fluctuation tensor residual: $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. Context and target representations across all JEPA variants pass through shared filtering stages: Hankel moment filters, Littlewood--Paley dyadic frequency shells, Cohn--Elkies shell filters, and resolvent purification layers. These modules are held fixed across the ablation controls in Section~\ref{subsec:controlled_ablations} to isolate the physical regularizers.
 
 \noindent\textbf{Operational Distinction: Zero-Lookahead Causal Filtering vs. Buffered Predictive Early Warning.}
 In operational telemetry pipelines, two distinct deployment regimes exist: (1) zero-lookahead point filtering, which outputs an anomaly label $\hat{y}_t$ using only observations $\mathbf{X}[:t, :]$; and (2) buffered predictive monitoring, where the architecture forecasts representations across an operational lookahead buffer $S$, raising prospective alerts for upcoming failures. TS-JEPA operates under regime (2): given historical context $x_{\text{ctx}} = \mathbf{X}[t-C:t, :]$, it projects future latent trajectory $\hat{z}_{\text{tgt}}$ over $[t, t+S]$. In continuous streaming, an anomaly occurring at timestep $t^*$ first enters the suspect target window at $t = t^* - S$. Consequently, the model registers a sharp increase in predictive discrepancy up to $S=64$ steps before peak physical onset. In our benchmark, we enforce strict unadjusted point-level evaluation at each decision time $t$ ($\text{stride}=1$). Because ground-truth point labels are strictly aligned to the physical anomaly window $[t^*, t^* + L]$, early warnings generated during the pre-onset interval $[t^* - S, t^*]$ are formally scored as point-level false alarms ($FP$). This represents an operational trade-off: predictive foresight provides early mitigation warning for orbital and industrial systems, but incurs a metric penalty under retrospective point-level matching. In operational incident analysis (Section VII.D), we also evaluate \textit{Middle} alignment, where the anomaly score is centered at $t + S/2$ to balance pre-onset and post-onset window overlap. Baseline models (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD) are evaluated under the exact identical sliding-window evaluation protocol, lookahead horizon, and standardization.
