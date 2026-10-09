@@ -62,7 +62,7 @@ with $\beta_{\text{norm}} = 1.0$. The total training objective is:
 \begin{equation}
     \mathcal{L}_{\text{Op-Entropy}} = \| \mathbf{K} z_{\text{ctx}} - z_{\text{tgt}} \|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K}),
 \end{equation}
-with $\lambda_{\text{ent}} = 0.5$ (the value used in all experiments). The implementation also applies a radial-heat damping layer, a Cohn--Elkies shell filter and a resolvent purification step to the latent vectors before the loss; these are shared with the $\lambda_{\text{ent}}=0$ control in Section~\ref{subsec:controlled_ablations}. Note that representation collapse of the encoder is prevented by the asymmetric EMA target encoder with stop-gradient ($\bot$), while $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ acts as an explicit prior enforcing full-rank modal expressivity across the learned operator spectrum.
+with $\lambda_{\text{ent}} = 0.5$ (the value used in all experiments). The implementation also applies a radial-heat damping layer, a Cohn--Elkies shell filter and a resolvent purification step to the latent vectors before the loss; these are shared with the $\lambda_{\text{ent}}=0$ control in Section~\ref{subsec:controlled_ablations}. Note that representation collapse of the encoder is prevented by the asymmetric EMA target encoder with stop-gradient ($\bot$), while $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ is an explicit prior enforcing full-rank modal expressivity across the learned operator spectrum.
 
 \begin{proposition}[Anti-Collapse Invariance]
 \label{prop:anti_collapse}

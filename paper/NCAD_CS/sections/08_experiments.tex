@@ -56,7 +56,7 @@ where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\
 
 \subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
 \label{subsec:causal_vs_buffered_protocol}
-A critical operational consideration in real-time telemetry monitoring is the temporal availability of observations at decision time. To prevent confounding early-warning capabilities with future-observation access, we define and evaluate two distinct operational settings:
+A critical operational consideration in streaming telemetry monitoring is the temporal availability of observations at decision time. To prevent confounding early-warning capabilities with future-observation access, we define and evaluate two distinct operational settings:
 \begin{enumerate}
     \item \textbf{Strictly Causal Online Detection (Zero Lookahead):} At decision timestamp $T$, the detector accesses strictly historical observations up to the current time $\{X_\tau\}_{\tau \le T}$. Scores are mapped via trailing attribution, guaranteeing that alarms are generated with zero lookahead latency budget ($\text{Latency} = 0$).
     \item \textbf{Buffered Window Detection ($S=64$ Lookahead Delay):} An observation buffer of $S=64$ future timesteps is collected before evaluating target predictive consistency. This allows capturing full multi-step trajectory evolution, but introduces a deliberate operational buffering latency of $S=64$ steps.
