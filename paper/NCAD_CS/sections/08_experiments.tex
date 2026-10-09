@@ -53,3 +53,12 @@ PR-AUC evaluates raw score ranking capability entirely independent of the thresh
 where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\text{F1}_{\text{all-pos}}$ provides less discriminative value than an uncalibrated constant alarm.
 
 \noindent\textbf{Contiguous Point-Adjusted F1 (PA-F1):} Standard segment adjustment where detecting any single anomaly point expands to the entire contiguous anomaly segment. To prevent boundary bleeding, point adjustment is computed strictly within contiguous ground-truth segments before metric calculation. We also report the \textit{Test-Sweep PA-F1} (best post-hoc threshold scan) to quantify the remaining calibration gap.
+
+\subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
+\label{subsec:causal_vs_buffered_protocol}
+A critical operational consideration in real-time telemetry monitoring is the temporal availability of observations at decision time. To prevent confounding early-warning capabilities with future-observation access, we define and evaluate two distinct operational settings:
+\begin{enumerate}
+    \item \textbf{Strictly Causal Online Detection (Zero Lookahead):} At decision timestamp $T$, the detector accesses strictly historical observations up to the current time $\{X_\tau\}_{\tau \le T}$. Scores are mapped via trailing attribution, guaranteeing that alarms are generated with zero lookahead latency budget ($\text{Latency} = 0$).
+    \item \textbf{Buffered Window Detection ($S=64$ Lookahead Delay):} An observation buffer of $S=64$ future timesteps is collected before evaluating target predictive consistency. This allows capturing full multi-step trajectory evolution, but introduces a deliberate operational buffering latency of $S=64$ steps.
+\end{enumerate}
+For both settings, we explicitly record Mean Detection Delay ($\Delta t = t_{\text{alarm}} - t_{\text{onset}}$ in timesteps from ground-truth fault inception), Event Recall within delay budgets ($\Delta t \le 10, 64$ steps), and False Alarm Rate per 1,000 timesteps ($\text{FAR}_{1\text{k}}$).

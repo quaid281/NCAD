@@ -432,6 +432,15 @@ where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\
 
 \noindent\textbf{Contiguous Point-Adjusted F1 (PA-F1):} Standard segment adjustment where detecting any single anomaly point expands to the entire contiguous anomaly segment. To prevent boundary bleeding, point adjustment is computed strictly within contiguous ground-truth segments before metric calculation. We also report the \textit{Test-Sweep PA-F1} (best post-hoc threshold scan) to quantify the remaining calibration gap.
 
+\subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
+\label{subsec:causal_vs_buffered_protocol}
+A critical operational consideration in real-time telemetry monitoring is the temporal availability of observations at decision time. To prevent confounding early-warning capabilities with future-observation access, we define and evaluate two distinct operational settings:
+\begin{enumerate}
+    \item \textbf{Strictly Causal Online Detection (Zero Lookahead):} At decision timestamp $T$, the detector accesses strictly historical observations up to the current time $\{X_\tau\}_{\tau \le T}$. Scores are mapped via trailing attribution, guaranteeing that alarms are generated with zero lookahead latency budget ($\text{Latency} = 0$).
+    \item \textbf{Buffered Window Detection ($S=64$ Lookahead Delay):} An observation buffer of $S=64$ future timesteps is collected before evaluating target predictive consistency. This allows capturing full multi-step trajectory evolution, but introduces a deliberate operational buffering latency of $S=64$ steps.
+\end{enumerate}
+For both settings, we explicitly record Mean Detection Delay ($\Delta t = t_{\text{alarm}} - t_{\text{onset}}$ in timesteps from ground-truth fault inception), Event Recall within delay budgets ($\Delta t \le 10, 64$ steps), and False Alarm Rate per 1,000 timesteps ($\text{FAR}_{1\text{k}}$).
+
 % --- Input from 09_variants.tex ---
 \section{Ablation Studies and Analysis}
 \label{sec:ablations}
@@ -731,6 +740,135 @@ As shown in Table~\ref{tab:operational_incident_metrics}, evaluating anomaly det
 \noindent\textbf{Streaming Adaptation Pareto Trade-off:} When dynamic rolling SPOT thresholding is applied to track baseline drift, false alarms decrease from 4,705 to 223 points on Room Occupancy (a $21\times$ reduction) and precision increases to 29.9\%. However, this introduces an operational trade-off: event recall drops from 100\% to 63.6\% (7 of 11 events detected), demonstrating the classic operating curve between alarm fatigue and fault sensitivity on non-stationary streams.
 
 \noindent\textbf{Boundary Alignment in Operational Telemetry:} On SMAP (\texttt{P-3}), both tabulated JEPA models capture the single continuous thruster fault segment (100\% event recall). On CalIt2 (\texttt{traffic}, 21 rapid pedestrian burst events), models detect between 4.8\% and 23.8\% of events under dynamic SPOT, demonstrating that short intermittent pulses remain challenging for fixed-horizon window architectures.
+
+\subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
+\label{sec:causal_vs_buffered}
+
+Standard benchmark evaluations of sliding-window models evaluate window discrepancy over a target suspect region $S$, incurring an effective lookahead delay of $S$ steps ($S=64$ in our core benchmark, or $1.06$ seconds at $60\,$Hz). In mission-critical industrial operations, anomaly detection often requires strictly causal latency constraints where no future telemetry is observed ($\tau = 0$ lookahead).
+
+To quantify the operational trade-off between lookahead buffering and strictly causal detection, Table~\ref{tab:causal_vs_buffered} reports performance across five matched telemetry streams (NASA SMAP \texttt{P-3}, SMD \texttt{machine-1-2}, NASA MSL \texttt{M-1}, Daphnet \texttt{S01R01E1}, and GECCO \texttt{water\_quality}) under two operational protocols:
+\begin{enumerate}
+    \item \textbf{Strictly Causal Online Detection ($0$-Lookahead Delay):} Window scores are assigned strictly to the final observed point $t$, enforcing zero future information leakage.
+    \item \textbf{Buffered Window Detection ($64$-Lookahead Delay):} Window scores are assigned across the $64$-step target suspect horizon, incurring a 64-step lookahead latency before score aggregation.
+\end{enumerate}
+
+\begin{table*}[t]
+\centering
+\small
+\caption{Operational latency and detection fidelity under Strictly Causal ($0$-lookahead delay) versus Buffered Window ($64$-lookahead delay) inference across 5 representative telemetry streams. TS-JEPA achieves an empirical false-positive rate of $4.18\%$ ($\text{FAR}_{1\text{k}} = 41.76$ false alarms per 1k points) under causal online streaming, compared to $30.06\%$ for TimesNet and $20.81\%$ for TranAD.}
+\label{tab:causal_vs_buffered}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}llccccccc@{}}
+\toprule
+\textbf{Inference Setting} & \textbf{Model} & \textbf{Empirical FPR} & \textbf{$\text{FAR}_{1\text{k}}$ (/1k pts)} & \textbf{False Positives} & \textbf{Point-F1} & \textbf{Precision} & \textbf{Mean Delay ($\Delta t$)} & \textbf{Recall ($\tau \le 64$)} \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{\textbf{Strictly Causal}\\($0$-Lookahead)}} 
+& TS-JEPA & \textbf{0.0418} & \textbf{41.76} & \textbf{1,685.6} & 0.0688 & \textbf{0.1581} & 130.3 & 0.1071 \\
+& TimesNet & 0.3006 & 300.63 & 16,952.0 & 0.0774 & 0.1525 & 251.2 & 0.2286 \\
+& TranAD & 0.2081 & 208.13 & 16,637.6 & \textbf{0.0881} & 0.1255 & \textbf{43.2} & \textbf{0.3286} \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{\textbf{Buffered Window}\\($64$-Lookahead)}} 
+& TS-JEPA & \textbf{0.1514} & \textbf{151.39} & \textbf{2,696.0} & 0.0431 & 0.0355 & 89.6 & 0.1357 \\
+& TimesNet & 0.2800 & 280.03 & 16,916.8 & \textbf{0.0807} & 0.1404 & 235.3 & 0.2571 \\
+& TranAD & 0.1998 & 199.82 & 16,339.6 & 0.0197 & \textbf{0.2284} & \textbf{32.8} & \textbf{0.2786} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+Under strictly causal online streaming, TS-JEPA maintains an empirical false-positive rate of $4.18\%$ ($\text{FAR}_{1\text{k}} = 41.76$ false alarms per $1{,}000$ points), generating an average of $1{,}685.6$ false alarms across streams. In contrast, TimesNet and TranAD generate $16{,}952.0$ and $16{,}637.6$ false alarms (empirical FPRs of $30.06\%$ and $20.81\%$, respectively)---over $10\times$ the false alarm volume of TS-JEPA. On GECCO municipal water telemetry ($113{,}000$ test points), TimesNet and TranAD trigger over $81{,}500$ false alarms ($99.6\%$ FPR), whereas TS-JEPA triggers zero false alarms. When a $64$-step lookahead buffer is permitted, TS-JEPA's mean detection delay decreases from $130.3$ to $89.6$ steps ($2.6\times$ faster than TimesNet's $235.3$ steps).
+
+\subsection{Empirical Validation of Physical Inductive Formulations}
+\label{sec:physics_validation}
+
+To address whether the proposed mathematical regularizers provide demonstrable inductive properties rather than formal metaphors, we conduct controlled empirical validations for each component of the triad.
+
+\subsubsection{Operator-Entropy: Anti-Collapse Spectral Rank Preservation}
+A failure mode in joint-embedding architectures is dimensional collapse, where the learned transition operator projects representations onto a low-dimensional subspace. In Operator-Entropy JEPA, the transition operator $K \in \mathbb{R}^{D \times D}$ ($D=32$) is regularized via Von Neumann spectral entropy $S(\rho) = -\text{Tr}(\rho \log \rho)$ on the normalized Gram matrix $\rho = KK^T / \text{Tr}(KK^T)$ alongside a logarithmic energy barrier.
+
+We evaluate the effective rank using the RankMe metric ($\exp(\mathcal{H})$ where $\mathcal{H}$ is the spectral entropy of singular values), representation covariance conditioning, and downstream calibrated Point-F1 across five telemetry streams. Table~\ref{tab:operator_entropy_validation} compares Operator-Entropy JEPA against unconstrained Vanilla TS-JEPA, non-contrastive VICReg TS-JEPA, and Representation-Entropy JEPA (entropy applied directly to representation covariance rather than the transition operator).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Empirical spectral diagnostics of learned transition operators and representations across five benchmark telemetry streams ($D=32$). Operator-Entropy preserves full theoretical rank ($\exp(\mathcal{H}) = 31.996$ out of 32.0), preventing dimensional collapse.}
+\label{tab:operator_entropy_validation}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model Architecture} & \textbf{Operator Rank ($\text{RankMe}$)} & \textbf{Rep. Rank} & \textbf{Point-F1} & \textbf{Empirical FPR} \\
+\midrule
+Operator-Entropy JEPA & \textbf{31.996} & 3.564 & \textbf{0.0710} & 0.1497 \\
+Representation-Entropy JEPA & 24.647 & \textbf{7.579} & 0.0479 & 0.0442 \\
+Vanilla TS-JEPA (Unconstrained) & 24.807 & 3.993 & 0.0301 & \textbf{0.0371} \\
+VICReg TS-JEPA & 24.339 & 5.881 & 0.0043 & 0.0273 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+As shown in Table~\ref{tab:operator_entropy_validation}, unconstrained Vanilla TS-JEPA, VICReg, and Representation-Entropy collapse across $7\text{--}8$ singular modes, yielding an effective operator rank of $24.3\text{--}24.8$. In contrast, Operator-Entropy JEPA achieves an effective operator rank of $31.996$ out of a theoretical maximum of $32.0$, demonstrating that the spectral entropy regularizer strictly prevents modal collapse in the transition dynamics. This modal preservation yields a Point-F1 of $0.0710$ ($2.35\times$ higher than Vanilla TS-JEPA's $0.0301$ and $16.5\times$ higher than VICReg's $0.0043$).
+
+\subsubsection{Reynolds-Stress: Covariance Alignment vs. Marginal Perturbations}
+Reynolds-Stress JEPA aligns second-order latent fluctuation statistics ($\Sigma_{z'} = \frac{1}{B} \sum z' (z')^T$) between predicted and target horizons. To test whether this loss specifically detects cross-channel covariance breakdowns versus marginal variance shifts, we construct a controlled synthetic benchmark with two isolated anomaly regimes:
+\begin{enumerate}
+    \item \textbf{Pure Cross-Channel Covariance Anomaly:} Marginal distributions remain identical ($\mu=0, \sigma^2=1$), while cross-channel correlation $\rho(x_1, x_2)$ flips from $+0.85$ to $-0.85$.
+    \item \textbf{Pure Marginal Variance Anomaly:} Cross-channel correlation is preserved ($\rho = +0.85$), while marginal variance scales by $3.0\times$.
+\end{enumerate}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Controlled covariance vs.\ marginal anomaly benchmark. Reynolds-Stress JEPA improves marginal variance detection by $+76\%$ in PR-AUC over unconstrained TS-JEPA ($0.5838$ vs.\ $0.3313$).}
+\label{tab:covariance_validation}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{Pure Covariance Shift}} & \multicolumn{2}{c}{\textbf{Pure Marginal Shift}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Model Architecture} & \textbf{PR-AUC} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{Point-F1} \\
+\midrule
+Reynolds-Stress JEPA & 0.0498 & 0.0000 & 0.5838 & \textbf{0.0593} \\
+TS-JEPA (Unconstrained) & 0.0409 & 0.0000 & 0.3313 & 0.0000 \\
+TimesNet & \textbf{0.9313} & 0.6558 & \textbf{0.9998} & 0.6267 \\
+TranAD & 0.6761 & \textbf{0.7246} & 0.9343 & \textbf{0.6560} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:covariance_validation} demonstrates that on pure marginal variance shifts, Reynolds-Stress JEPA achieves a PR-AUC of $0.5838$ compared to $0.3313$ for unconstrained TS-JEPA (a $+76\%$ relative improvement), with an empirical FPR of $0.09\%$. On pure covariance shifts without marginal change, both latent models show reduced sensitivity ($0.0409\text{--}0.0498$ PR-AUC) relative to observation-space reconstructors ($0.6761\text{--}0.9313$), because temporal global pooling in standard 1D encoders averages out instantaneous phase alignments unless explicit cross-channel attention or relational graphs are utilized.
+
+\subsubsection{Potential-Flow \& Helmholtz Decomposition: Conservative vs. Circulating Dynamics}
+Potential-Flow JEPA parameterizes transition velocities as the negative gradient of a scalar potential ($\hat{v} = -\nabla\Phi$). While curl-free gradient fields enforce exact energy conservation ($\oint \hat{v} \cdot dr = 0$), non-conservative systems often exhibit limit cycles with non-zero circulation.
+
+To evaluate this inductive boundary, we compare Potential-Flow JEPA, Helmholtz-JEPA (which decomposes velocity into scalar potential plus solenoidal rotational circulation: $\hat{v} = -\nabla\Phi + \text{curl}(A)$), and unconstrained TS-JEPA across two controlled dynamical systems:
+\begin{enumerate}
+    \item \textbf{Conservative Duffing Oscillator:} Hamiltonian phase space with symplectic energy conservation; non-conservative damping dissipation injected as anomalies.
+    \item \textbf{Non-Conservative Van der Pol Oscillator:} Limit-cycle attractor with continuous phase vorticity; non-linear perturbation injected as anomalies.
+\end{enumerate}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Dynamical system validation comparing curl-free Potential-Flow ($\hat{v} = -\nabla\Phi$), Helmholtz decomposition ($\hat{v} = -\nabla\Phi + \text{curl}(A)$), and unconstrained TS-JEPA on conservative Hamiltonian vs.\ non-conservative limit-cycle phase spaces.}
+\label{tab:potential_flow_validation}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{Conservative Duffing}} & \multicolumn{2}{c}{\textbf{Non-Conservative Van der Pol}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Model Architecture} & \textbf{PR-AUC} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{Point-F1} \\
+\midrule
+Helmholtz JEPA ($\nabla\Phi + \text{curl}(A)$) & \textbf{0.5985} & \textbf{0.7815} & \textbf{0.5250} & \textbf{0.7574} \\
+TS-JEPA (Unconstrained) & 0.5855 & 0.7583 & 0.4577 & 0.6660 \\
+Potential-Flow JEPA ($-\nabla\Phi$) & 0.1701 & 0.2036 & 0.3106 & 0.3548 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:potential_flow_validation} confirms that decomposing the transition field into potential and curl components (Helmholtz JEPA) achieves the highest detection accuracy across both conservative ($0.5985$ PR-AUC, $0.7815$ Point-F1) and non-conservative limit-cycle regimes ($0.5250$ PR-AUC, $0.7574$ Point-F1), outperforming unconstrained TS-JEPA. Pure curl-free Potential-Flow achieves a zero false-positive rate on Duffing ($0.0000\%$) and $0.89\%$ on Van der Pol, but lower recall due to the mathematical inability of pure gradient fields to represent closed circulating phase trajectories.
 
 % --- Input from 11_future.tex ---
 \section{Conclusion and Future Work}
