@@ -6,6 +6,7 @@ compared pairwise (Wilcoxon signed-rank + bootstrap CI of the mean difference).
 Seed spread is reported as the SD of the stream-macro mean across seeds.
 Output: reports/multiseed_summary.md
 """
+import argparse
 import sys
 from pathlib import Path
 
@@ -14,10 +15,17 @@ import pandas as pd
 from scipy.stats import wilcoxon
 
 ROOT = Path(__file__).resolve().parents[1]
-df = pd.read_csv(ROOT / "reports" / "multiseed_heldout_benchmark.csv")
-extra = ROOT / "reports" / "multiseed_heldout_controls_extra.csv"
-if extra.exists():
-    df = pd.concat([df, pd.read_csv(extra)], ignore_index=True)
+ap = argparse.ArgumentParser()
+ap.add_argument("--inputs", nargs="*", default=None)
+ap.add_argument("--out", default=str(ROOT / "reports" / "multiseed_summary.md"))
+args = ap.parse_args()
+if args.inputs:
+    df = pd.concat([pd.read_csv(f) for f in args.inputs], ignore_index=True)
+else:
+    df = pd.read_csv(ROOT / "reports" / "multiseed_heldout_benchmark.csv")
+    extra = ROOT / "reports" / "multiseed_heldout_controls_extra.csv"
+    if extra.exists():
+        df = pd.concat([df, pd.read_csv(extra)], ignore_index=True)
 rng = np.random.default_rng(0)
 out = []
 
@@ -32,7 +40,11 @@ def stream_means(d, col):
 
 
 def macro_with_seed_sd(d, col, model):
-    per_seed = d[d.model == model].groupby(["seed", "dataset", "channel"])[col].mean().groupby("seed").mean()
+    d = d[d.model == model]
+    n_seeds = d.groupby(["dataset", "channel"]).seed.nunique()
+    full = set(n_seeds[n_seeds == n_seeds.max()].index)
+    d = d[[(a, b) in full for a, b in zip(d.dataset, d.channel)]]
+    per_seed = d.groupby(["seed", "dataset", "channel"])[col].mean().groupby("seed").mean()
     return per_seed.mean(), per_seed.std(ddof=1) if len(per_seed) > 1 else float("nan")
 
 
@@ -103,4 +115,4 @@ p()
 p("### Calibration gap: SPOT design risk 1e-3 vs measured held-out FPR, by model (buffered)")
 g = d0.groupby("model")[["hold_fpr", "hold_fpr_lo", "hold_fpr_hi"]].mean()
 p(g.round(4).to_markdown())
-(ROOT / "reports" / "multiseed_summary.md").write_text("\n".join(out), encoding="utf-8")
+Path(args.out).write_text("\n".join(out), encoding="utf-8")
