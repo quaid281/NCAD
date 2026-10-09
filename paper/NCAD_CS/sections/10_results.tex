@@ -47,13 +47,7 @@ The empirical data across all 33 streams refute this hypothesis:
     \item \textbf{Potential-Flow vs. TS-JEPA:} Potential-Flow performs significantly worse than unconstrained TS-JEPA across both calibrated Point-F1 (paired difference $-0.091$, $95\%$ CI $[-0.178, -0.019]$, $p=0.020$) and continuous ranking PR-AUC (paired difference $-0.076$, $95\%$ CI $[-0.142, -0.019]$, $p=0.039$). Potential-Flow outperforms TS-JEPA on only 5 of 33 streams.
 \end{enumerate}
 
-These findings are corroborated by the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a). When the underlying neural architecture is held fixed on the seven-stream multi-seed subset:
-\begin{itemize}
-    \item Disabling the spectral entropy loss ($\lambda_{\text{ent}}=0$) changes Point-F1 by $+0.001$ ($[-0.006, +0.009]$, $p=1.00$).
-    \item Disabling the Reynolds stress loss ($\alpha_{\text{stress}}=0$), or scoring via predictive mean error alone, produces differences that do not exceed seed noise ($p \ge 0.375$).
-    \item Disabling Grassmannian regime routing in Potential-Flow changes Point-F1 by $+0.006$ ($[-0.022, +0.032]$, $p=0.58$).
-\end{itemize}
-We conclude that the physical regularizers do not provide a measurable anomaly detection advantage over unconstrained latent prediction. Whatever performance differences exist between models arise from shared representation conditioning rather than the physical loss terms.
+These findings align with the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}: holding the neural backbone constant while disabling the spectral entropy loss, Reynolds stress loss, or Grassmannian regime routing produces changes well within seed noise ($p \ge 0.375$). We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
 
 \subsection{Mathematical Diagnostics of Physical Regularizers}
 \label{subsec:physics_diagnostics}
@@ -181,9 +175,7 @@ Third, on transient burst streams (CalIt2, 21 short spikes), models detect only 
 \subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
 \label{subsec:causal_vs_buffered}
 
-Sliding-window anomaly detection algorithms typically evaluate a target suspect region $S$, incurring an effective lookahead delay of $S$ steps ($S=64$ in our core protocol). In mission-critical streaming applications, algorithms must operate under strictly causal conditions ($\tau = 0$ lookahead).
-
-Table~\ref{tab:causal_vs_buffered} reports performance across five matched telemetry streams (NASA SMAP \texttt{P-3}, SMD \texttt{machine-1-2}, NASA MSL \texttt{M-1}, Daphnet \texttt{S01R01E1}, and GECCO \texttt{water\_quality}) under strictly causal ($0$-lookahead) versus buffered ($64$-lookahead) scoring.
+Table~\ref{tab:causal_vs_buffered} compares operational latency, false-alarm rates, and detection delay across five matched telemetry streams (NASA SMAP \texttt{P-3}, SMD \texttt{machine-1-2}, NASA MSL \texttt{M-1}, Daphnet \texttt{S01R01E1}, and GECCO \texttt{water\_quality}) under the strictly causal ($0$-lookahead) and buffered ($64$-lookahead) regimes defined in Section~\ref{subsec:causal_vs_buffered_protocol}.
 
 \begin{table*}[t]
 \centering

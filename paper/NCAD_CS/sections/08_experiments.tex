@@ -66,7 +66,7 @@ where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\
 
 \noindent\textbf{Contiguous Point-Adjusted F1 (PA-F1):} Standard segment adjustment where detecting any single anomaly point expands to the entire contiguous anomaly segment. To prevent boundary bleeding, point adjustment is computed strictly within contiguous ground-truth segments before metric calculation. We also report the \textit{Test-Sweep PA-F1} (best post-hoc threshold scan) to quantify the remaining calibration gap.
 
-\subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
+\subsection{Evaluation Regimes: Zero-Lookahead Causal vs. Buffered Inference}
 \label{subsec:causal_vs_buffered_protocol}
 A critical operational consideration in streaming telemetry monitoring is the temporal availability of observations at decision time. To prevent confounding early-warning capabilities with future-observation access, we define and evaluate two distinct operational settings:
 \begin{enumerate}

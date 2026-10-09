@@ -157,7 +157,7 @@ This domain evaluates urban infrastructure and cyber-physical networks. The \tex
 
 Each benchmark stream provides nominal training sequences and testing sequences containing labeled ground-truth anomalies. Continuous telemetry channels are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$), flooring standard deviations at $\max(\bm{\sigma}, 10^{-2})$ to prevent division by zero during flatline operational phases. While mission archives contain larger entity counts (the complete SMAP archive includes 55 telemetry entities and MSL includes 27 entities across subsystems), our benchmark evaluates standardized subsets studied in the telemetry anomaly detection literature \cite{Hundman2018b, schmidl2022anomaly} to ensure strict matching and reproducible runtime conditions across all baselines.
 
-To eliminate circular in-sample calibration and measure out-of-sample false-alarm rates under automated thresholding, we enforce a strict held-out calibration protocol. For each stream, the nominal training sequence is partitioned chronologically: the first 65\% is used to train model representations; the remaining 35\% is reserved for held-out evaluation, split into a calibration half (used to fit extreme-value thresholds without seeing test anomalies) and an evaluation half (separated by a 64-step isolation gap) on which nominal false-positive rates (FPR) are measured on data the threshold never saw. This multi-seed held-out protocol completes across 33 streams spanning seven distinct physical datasets: 6 Daphnet (wearable kinematics), 14 GHL (fluid transport), 4 MSL (planetary rovers), 6 SMAP (Earth observation satellites), Genesis (manufacturing automation), Metro (highway traffic), and SWAN (solar space weather). Streams with nominal blocks too short to support a calibration and an evaluation half with an isolation gap (CalIt2, Room-Occupancy, and two MSL streams) or where multi-seed stride-1 bootstrap evaluation over $10^6$ steps was computationally prohibitive (GECCO, CICIDS) are documented in Table~\ref{tab:dataset_specs}.
+To eliminate circular in-sample calibration and measure out-of-sample false-alarm rates under automated thresholding, each stream's nominal training sequence is partitioned chronologically into training (65\%), calibration (17.5\%), and held-out evaluation (17.5\%) blocks separated by an isolation gap (detailed in Section~\ref{subsec:exp_setup}). This held-out calibration protocol spans 33 streams across seven physical datasets: 6 Daphnet (wearable kinematics), 14 GHL (fluid transport), 4 MSL (planetary rovers), 6 SMAP (Earth observation satellites), Genesis (manufacturing automation), Metro (highway traffic), and SWAN (solar space weather). Streams with nominal blocks too short to support disjoint calibration and evaluation blocks (CalIt2, Room-Occupancy, and two MSL streams) or where multi-seed stride-1 bootstrap evaluation over $10^6$ steps was computationally prohibitive (GECCO, CICIDS) are reserved for operational case studies, as documented in Table~\ref{tab:dataset_specs}.
 
 Table~\ref{tab:dataset_specs} provides the technical specifications across the benchmark suite, totaling $2{,}079{,}507$ nominal training timesteps and $2{,}986{,}574$ test timesteps (over 5.06 million observations). We explicitly document the physical domain, channel dimension $K$, sampling resolution, sequence lengths, anomaly contamination ratio $\pi\%$, anomaly failure modes, and partition protocols to ensure experimental reproducibility.
 
@@ -285,7 +285,7 @@ Because $\boldsymbol{\Sigma}_{\text{obs}}$ is computed from an instantaneous lat
 \begin{equation}
     \mathcal{L}_{\text{Reynolds}} = \operatorname{MSE}(\hat{z}_{\text{tgt}}, z_{\text{tgt}}) + 0.1\, \operatorname{MSE}(\boldsymbol{\Sigma}_{\text{pred}}, \boldsymbol{\Sigma}_{\text{obs}}).
 \end{equation}
-At inference the anomaly score is $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$, where $g$ is the latent coordinate-saliency gate. The stress term enters both the training loss and the test score. In Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a), controlled ablations that disable the stress loss and score terms show that this auxiliary second-moment objective yields no statistically detectable improvement over standard latent regression ($p \ge 0.375$).
+At inference time, the anomaly score combines the mean latent discrepancy and the fluctuation tensor residual via the coordinate-saliency gate (formalized in Section~\ref{subsec:scoring_function}). The stress term enters both the training loss and the test score. In Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a), controlled ablations that disable the stress loss and score terms show that this auxiliary second-moment objective yields no statistically detectable improvement over standard latent regression ($p \ge 0.375$).
 
 \subsubsection{Potential-Flow JEPA (Conservative Field Theory)}
 \label{subsubsec:potential_flow_jepa}
@@ -493,7 +493,7 @@ where $\pi = P / (P+N)$ is the anomaly base rate. Any model failing to exceed $\
 
 \noindent\textbf{Contiguous Point-Adjusted F1 (PA-F1):} Standard segment adjustment where detecting any single anomaly point expands to the entire contiguous anomaly segment. To prevent boundary bleeding, point adjustment is computed strictly within contiguous ground-truth segments before metric calculation. We also report the \textit{Test-Sweep PA-F1} (best post-hoc threshold scan) to quantify the remaining calibration gap.
 
-\subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
+\subsection{Evaluation Regimes: Zero-Lookahead Causal vs. Buffered Inference}
 \label{subsec:causal_vs_buffered_protocol}
 A critical operational consideration in streaming telemetry monitoring is the temporal availability of observations at decision time. To prevent confounding early-warning capabilities with future-observation access, we define and evaluate two distinct operational settings:
 \begin{enumerate}
@@ -509,6 +509,7 @@ For both settings, we explicitly record Mean Detection Delay ($\Delta t = t_{\te
 To isolate the individual contributions of each mathematical and architectural component, we conduct controlled ablation experiments across multiple telemetry regimes.
 
 \subsection{Ablation 1: Physical Regularizer Controls on Fixed Architectures}
+\label{subsec:controlled_ablations}
 To test whether the proposed physics-inspired regularizers provide measurable benefits over unconstrained latent prediction, Table~\ref{tab:ablations}(a) reports controlled ablations on a multi-seed subset of seven benchmark streams (SMAP \texttt{P-3}, \texttt{A-1}; MSL \texttt{M-1}, \texttt{C-1}; SMD \texttt{machine-1-2}, \texttt{machine-1-3}; Daphnet \texttt{S01R01E1}; evaluated across 3 seeds under the held-out calibration protocol). In each comparison, the neural backbone is held strictly constant while the specific physical loss term or inductive module is disabled:
 \begin{enumerate}
     \item \textbf{Operator-Entropy vs. $\lambda_{\text{ent}}=0$ Control:} Disabling the spectral entropy regularizer ($\lambda_{\text{ent}}=0$) leaves Point-F1 unchanged ($0.018 \pm 0.019$ vs. $0.017 \pm 0.015$, difference $+0.001$, $95\%$ bootstrap interval $[-0.006, +0.009]$, Wilcoxon $p=1.00$). Both variants maintain PR-AUC around $0.155\text{--}0.156$.
@@ -545,10 +546,9 @@ Standard monolithic convolutions either over-smooth high-frequency transients or
 \end{equation}
 improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.4040$ on \texttt{Operator-Entropy JEPA}, while lifting Point-F1 on \texttt{SWAN} magnetograms from $0.2210$ to $0.4349$ and on \texttt{Daphnet} accelerometry from $0.0521$ to $0.0952$. Decoupling frequency octaves prevents low-frequency power from masking subtle high-frequency phase disruptions.
 
-\subsection{Ablation 4: Extreme Value Threshold Calibration on Nominal Splits}
-Table~\ref{tab:ablations}(d) evaluates threshold calibration rules on held-out nominal telemetry residuals. When Extreme Value Theory (SPOT) is calibrated with design risk $q=10^{-3}$, empirical false-positive rates on nominal evaluation data settle at $5.2\text{--}7.9\%$ for JEPA models and $24\text{--}30\%$ for reconstructive baselines, missing the theoretical $0.1\%$ risk target.
-
-Simple empirical quantile rules perform similarly: a fixed 99.5th percentile rule yields an empirical nominal FPR of $6.6\text{--}7.5\%$ with Point-F1 $0.245$, and taking the validation maximum yields an FPR of $5.2\text{--}6.9\%$ with Point-F1 $0.248$. Conversely, the kurtosis-adaptive multiplier $\tau_{\text{eff}} = \tau(1 + \frac{1}{6}\tanh\gamma_2)$ increases held-out nominal FPR from $0.052$ to $0.188$ on TS-JEPA and from $0.062$ to $0.110$ on Operator-Entropy, without improving Point-F1. This demonstrates that parametric EVT tail calibration provides no measurable advantage over standard empirical percentiles on real-world telemetry, and kurtosis heuristics do not resolve pre-asymptotic tail drift.
+\subsection{Ablation 4: Threshold Calibration Rules on Nominal Splits}
+\label{subsec:ablation_calibration}
+Table~\ref{tab:ablations}(d) isolates the effect of different calibration rules on held-out nominal telemetry residuals for TS-JEPA and Operator-Entropy JEPA. While standard SPOT ($q=10^{-3}$) achieves a nominal FPR of $0.052$ on TS-JEPA, simple non-parametric alternatives achieve comparable performance: a 99.5th percentile rule yields an FPR of $0.066$ ($0.245$ Point-F1), and taking the validation maximum yields $0.052$ ($0.248$ Point-F1). Modulating the threshold by sample excess kurtosis ($\tau_{\text{eff}} = \tau(1 + \frac{1}{6}\tanh\gamma_2)$) increases held-out FPR from $0.052$ to $0.188$ on TS-JEPA without improving Point-F1 ($0.231$ vs.\ $0.254$). Section~\ref{subsec:calibration_realities} and Table~\ref{tab:calibrator_comparison} provide the complete 33-stream benchmark evaluating these calibration behaviors across all learned architectures.
 
 \begin{table*}[t]
 \centering
@@ -748,13 +748,7 @@ The empirical data across all 33 streams refute this hypothesis:
     \item \textbf{Potential-Flow vs. TS-JEPA:} Potential-Flow performs significantly worse than unconstrained TS-JEPA across both calibrated Point-F1 (paired difference $-0.091$, $95\%$ CI $[-0.178, -0.019]$, $p=0.020$) and continuous ranking PR-AUC (paired difference $-0.076$, $95\%$ CI $[-0.142, -0.019]$, $p=0.039$). Potential-Flow outperforms TS-JEPA on only 5 of 33 streams.
 \end{enumerate}
 
-These findings are corroborated by the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a). When the underlying neural architecture is held fixed on the seven-stream multi-seed subset:
-\begin{itemize}
-    \item Disabling the spectral entropy loss ($\lambda_{\text{ent}}=0$) changes Point-F1 by $+0.001$ ($[-0.006, +0.009]$, $p=1.00$).
-    \item Disabling the Reynolds stress loss ($\alpha_{\text{stress}}=0$), or scoring via predictive mean error alone, produces differences that do not exceed seed noise ($p \ge 0.375$).
-    \item Disabling Grassmannian regime routing in Potential-Flow changes Point-F1 by $+0.006$ ($[-0.022, +0.032]$, $p=0.58$).
-\end{itemize}
-We conclude that the physical regularizers do not provide a measurable anomaly detection advantage over unconstrained latent prediction. Whatever performance differences exist between models arise from shared representation conditioning rather than the physical loss terms.
+These findings align with the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}: holding the neural backbone constant while disabling the spectral entropy loss, Reynolds stress loss, or Grassmannian regime routing produces changes well within seed noise ($p \ge 0.375$). We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
 
 \subsection{Mathematical Diagnostics of Physical Regularizers}
 \label{subsec:physics_diagnostics}
@@ -882,9 +876,7 @@ Third, on transient burst streams (CalIt2, 21 short spikes), models detect only 
 \subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
 \label{subsec:causal_vs_buffered}
 
-Sliding-window anomaly detection algorithms typically evaluate a target suspect region $S$, incurring an effective lookahead delay of $S$ steps ($S=64$ in our core protocol). In mission-critical streaming applications, algorithms must operate under strictly causal conditions ($\tau = 0$ lookahead).
-
-Table~\ref{tab:causal_vs_buffered} reports performance across five matched telemetry streams (NASA SMAP \texttt{P-3}, SMD \texttt{machine-1-2}, NASA MSL \texttt{M-1}, Daphnet \texttt{S01R01E1}, and GECCO \texttt{water\_quality}) under strictly causal ($0$-lookahead) versus buffered ($64$-lookahead) scoring.
+Table~\ref{tab:causal_vs_buffered} compares operational latency, false-alarm rates, and detection delay across five matched telemetry streams (NASA SMAP \texttt{P-3}, SMD \texttt{machine-1-2}, NASA MSL \texttt{M-1}, Daphnet \texttt{S01R01E1}, and GECCO \texttt{water\_quality}) under the strictly causal ($0$-lookahead) and buffered ($64$-lookahead) regimes defined in Section~\ref{subsec:causal_vs_buffered_protocol}.
 
 \begin{table*}[t]
 \centering

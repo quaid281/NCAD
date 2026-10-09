@@ -4,6 +4,7 @@
 To isolate the individual contributions of each mathematical and architectural component, we conduct controlled ablation experiments across multiple telemetry regimes.
 
 \subsection{Ablation 1: Physical Regularizer Controls on Fixed Architectures}
+\label{subsec:controlled_ablations}
 To test whether the proposed physics-inspired regularizers provide measurable benefits over unconstrained latent prediction, Table~\ref{tab:ablations}(a) reports controlled ablations on a multi-seed subset of seven benchmark streams (SMAP \texttt{P-3}, \texttt{A-1}; MSL \texttt{M-1}, \texttt{C-1}; SMD \texttt{machine-1-2}, \texttt{machine-1-3}; Daphnet \texttt{S01R01E1}; evaluated across 3 seeds under the held-out calibration protocol). In each comparison, the neural backbone is held strictly constant while the specific physical loss term or inductive module is disabled:
 \begin{enumerate}
     \item \textbf{Operator-Entropy vs. $\lambda_{\text{ent}}=0$ Control:} Disabling the spectral entropy regularizer ($\lambda_{\text{ent}}=0$) leaves Point-F1 unchanged ($0.018 \pm 0.019$ vs. $0.017 \pm 0.015$, difference $+0.001$, $95\%$ bootstrap interval $[-0.006, +0.009]$, Wilcoxon $p=1.00$). Both variants maintain PR-AUC around $0.155\text{--}0.156$.
@@ -40,10 +41,9 @@ Standard monolithic convolutions either over-smooth high-frequency transients or
 \end{equation}
 improves Point-F1 on \texttt{GECCO} from $0.1429$ to $0.4040$ on \texttt{Operator-Entropy JEPA}, while lifting Point-F1 on \texttt{SWAN} magnetograms from $0.2210$ to $0.4349$ and on \texttt{Daphnet} accelerometry from $0.0521$ to $0.0952$. Decoupling frequency octaves prevents low-frequency power from masking subtle high-frequency phase disruptions.
 
-\subsection{Ablation 4: Extreme Value Threshold Calibration on Nominal Splits}
-Table~\ref{tab:ablations}(d) evaluates threshold calibration rules on held-out nominal telemetry residuals. When Extreme Value Theory (SPOT) is calibrated with design risk $q=10^{-3}$, empirical false-positive rates on nominal evaluation data settle at $5.2\text{--}7.9\%$ for JEPA models and $24\text{--}30\%$ for reconstructive baselines, missing the theoretical $0.1\%$ risk target.
-
-Simple empirical quantile rules perform similarly: a fixed 99.5th percentile rule yields an empirical nominal FPR of $6.6\text{--}7.5\%$ with Point-F1 $0.245$, and taking the validation maximum yields an FPR of $5.2\text{--}6.9\%$ with Point-F1 $0.248$. Conversely, the kurtosis-adaptive multiplier $\tau_{\text{eff}} = \tau(1 + \frac{1}{6}\tanh\gamma_2)$ increases held-out nominal FPR from $0.052$ to $0.188$ on TS-JEPA and from $0.062$ to $0.110$ on Operator-Entropy, without improving Point-F1. This demonstrates that parametric EVT tail calibration provides no measurable advantage over standard empirical percentiles on real-world telemetry, and kurtosis heuristics do not resolve pre-asymptotic tail drift.
+\subsection{Ablation 4: Threshold Calibration Rules on Nominal Splits}
+\label{subsec:ablation_calibration}
+Table~\ref{tab:ablations}(d) isolates the effect of different calibration rules on held-out nominal telemetry residuals for TS-JEPA and Operator-Entropy JEPA. While standard SPOT ($q=10^{-3}$) achieves a nominal FPR of $0.052$ on TS-JEPA, simple non-parametric alternatives achieve comparable performance: a 99.5th percentile rule yields an FPR of $0.066$ ($0.245$ Point-F1), and taking the validation maximum yields $0.052$ ($0.248$ Point-F1). Modulating the threshold by sample excess kurtosis ($\tau_{\text{eff}} = \tau(1 + \frac{1}{6}\tanh\gamma_2)$) increases held-out FPR from $0.052$ to $0.188$ on TS-JEPA without improving Point-F1 ($0.231$ vs.\ $0.254$). Section~\ref{subsec:calibration_realities} and Table~\ref{tab:calibrator_comparison} provide the complete 33-stream benchmark evaluating these calibration behaviors across all learned architectures.
 
 \begin{table*}[t]
 \centering

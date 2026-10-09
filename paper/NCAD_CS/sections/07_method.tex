@@ -86,7 +86,7 @@ Because $\boldsymbol{\Sigma}_{\text{obs}}$ is computed from an instantaneous lat
 \begin{equation}
     \mathcal{L}_{\text{Reynolds}} = \operatorname{MSE}(\hat{z}_{\text{tgt}}, z_{\text{tgt}}) + 0.1\, \operatorname{MSE}(\boldsymbol{\Sigma}_{\text{pred}}, \boldsymbol{\Sigma}_{\text{obs}}).
 \end{equation}
-At inference the anomaly score is $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$, where $g$ is the latent coordinate-saliency gate. The stress term enters both the training loss and the test score. In Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a), controlled ablations that disable the stress loss and score terms show that this auxiliary second-moment objective yields no statistically detectable improvement over standard latent regression ($p \ge 0.375$).
+At inference time, the anomaly score combines the mean latent discrepancy and the fluctuation tensor residual via the coordinate-saliency gate (formalized in Section~\ref{subsec:scoring_function}). The stress term enters both the training loss and the test score. In Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a), controlled ablations that disable the stress loss and score terms show that this auxiliary second-moment objective yields no statistically detectable improvement over standard latent regression ($p \ge 0.375$).
 
 \subsubsection{Potential-Flow JEPA (Conservative Field Theory)}
 \label{subsubsec:potential_flow_jepa}
