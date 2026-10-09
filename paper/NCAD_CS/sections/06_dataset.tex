@@ -1,7 +1,7 @@
 \section{Multi-Sensor IoT and Remote Sensing Benchmark Suite}
 \label{sec:dataset}
 
-To evaluate our Physics-Inspired JEPA framework across diverse edge, cyber-physical, and orbital sensing dynamics, our benchmark suite comprises 11 datasets spanning 45 strictly matched continuous telemetry streams sourced from NASA spacecraft archives \cite{Hundman2018b}, the UCI Machine Learning Repository \cite{bachlin2010wearable, asuncion2007uci}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}. We organize these streams into four physical sensing domains:
+To evaluate Joint-Embedding Predictive Architectures and candidate physical regularizers across diverse edge, cyber-physical, and orbital sensing dynamics, our benchmark suite comprises 11 datasets spanning 45 continuous telemetry streams sourced from NASA spacecraft archives \cite{Hundman2018b}, the UCI Machine Learning Repository \cite{bachlin2010wearable, asuncion2007uci}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}. We evaluate 33 streams under our primary multi-seed held-out calibration protocol and reserve 12 streams for extended operational case studies. We organize these streams into four physical sensing domains:
 
 \subsection{Domain 1: Satellite and Spacecraft Telemetry (13 Streams)}
 This domain covers high-reliability orbital and deep-space telemetry. The \textit{NASA SMAP Earth Observation Satellite} \cite{Hundman2018b} (6 evaluated streams: \texttt{A-1}, \texttt{A-2}, \texttt{A-7}, \texttt{D-3}, \texttt{P-3}, \texttt{E-1}) provides continuous telemetry values alongside one-hot command vectors monitoring power, thermal, and attitude control subsystems. The \textit{NASA MSL Curiosity Rover} \cite{Hundman2018b} (6 evaluated streams: \texttt{C-1}, \texttt{C-2}, \texttt{D-14}, \texttt{D-15}, \texttt{D-16}, \texttt{M-1}) tracks robotic actuator, joint drive, and environmental streams during planetary surface operations. Finally, the \textit{SWAN-SF Space Weather Telemetry} \cite{angryk2020multivariate} (1 stream) provides solar photospheric vector magnetogram telemetry from NASA SDO/HMI, tracking active region magnetic field perturbations during solar eruptive events.
@@ -29,28 +29,28 @@ Table~\ref{tab:dataset_specs} provides the technical specifications across the b
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{ll c c r r c l l}
 \toprule
-\textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Streams} & \textbf{Dim $K$} & \textbf{$N_{\text{train}}$} & \textbf{$N_{\text{test}}$} & \textbf{Anom \% ($\pi$)} & \textbf{Primary Anomaly Typologies} & \textbf{Data Partition Protocol} \\
+\textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Streams (Held / Tot)} & \textbf{Dim $K$} & \textbf{$N_{\text{train}}$} & \textbf{$N_{\text{test}}$} & \textbf{Anom \% ($\pi$)} & \textbf{Primary Anomaly Typologies} & \textbf{Data Partition Protocol} \\
 \midrule
 \multicolumn{9}{l}{\textit{\textbf{Domain 1: Satellite and Spacecraft Remote Telemetry}}} \\
-NASA SMAP \cite{Hundman2018b}    & Soil Moisture Satellite Subsystems & 6  & 25 & 17,022    & 50,834    & 15.18\% & Subsystem power drops, thermal drifts, cmd faults & NASA JPL nominal/incident pre-split \\
-NASA MSL \cite{Hundman2018b}     & Curiosity Rover Robotic Actuators  & 6  & 55 & 12,331    & 13,566    & 22.88\% & Actuator stalls, motor spikes, sensor freezes     & NASA JPL nominal/incident pre-split \\
-SWAN-SF \cite{angryk2020multivariate}& Solar Photospheric Magnetograms   & 1  & 38 & 19,672    & 72,000    & 27.92\% & Active region magnetic field eruptive bursts      & Chronological temporal split \\
+NASA SMAP \cite{Hundman2018b}    & Soil Moisture Satellite Subsystems & 6 / 6   & 25 & 17,022    & 50,834    & 15.18\% & Subsystem power drops, thermal drifts, cmd faults & 65/17.5/17.5 held-out nominal split \\
+NASA MSL \cite{Hundman2018b}     & Curiosity Rover Robotic Actuators  & 4 / 6   & 55 & 12,331    & 13,566    & 22.88\% & Actuator stalls, motor spikes, sensor freezes     & 65/17.5/17.5 held-out (2 short excluded) \\
+SWAN-SF \cite{angryk2020multivariate}& Solar Photospheric Magnetograms   & 1 / 1   & 38 & 19,672    & 72,000    & 27.92\% & Active region magnetic field eruptive bursts      & 65/17.5/17.5 held-out nominal split \\
 \midrule
 \multicolumn{9}{l}{\textit{\textbf{Domain 2: Wearable Biometrics and Kinematics}}} \\
-Daphnet FoG \cite{bachlin2010wearable}& Wearable Body Sensor Accelerometry& 6  & 9  & 48,240    & 217,344   & 13.34\% & Freezing-of-Gait motor breakdown, limb tremors    & Subject-isolated session runs \\
+Daphnet FoG \cite{bachlin2010wearable}& Wearable Body Sensor Accelerometry& 6 / 6   & 9  & 48,240    & 217,344   & 13.34\% & Freezing-of-Gait motor breakdown, limb tremors    & 65/17.5/17.5 held-out nominal split \\
 \midrule
 \multicolumn{9}{l}{\textit{\textbf{Domain 3: Industrial Processes and Cyber-Physical Systems}}} \\
-GHL Heating Loop                 & Thermal and Fluid Transport Loop   & 14 & 16 & 1,645,137 & 1,154,014 & 1.35\%  & Valve sticking, heater failures, pressure surge   & Independent physics simulation runs \\
-Genesis Automation               & Robotic Pick-and-Place Demonstrator& 1  & 18 & 3,244     & 9,332     & 0.30\%  & Mechanical manipulation jams, gripper slip        & Chronological operational split \\
-GECCO Water IoT                  & Hydraulic and Water Distribution   & 1  & 9  & 27,560    & 83,113    & 1.54\%  & Chemical contamination, line bursts, pH drops     & Chronological infrastructure split \\
+GHL Heating Loop                 & Thermal and Fluid Transport Loop   & 14 / 14 & 16 & 1,645,137 & 1,154,014 & 1.35\%  & Valve sticking, heater failures, pressure surge   & 65/17.5/17.5 held-out nominal split \\
+Genesis Automation               & Robotic Pick-and-Place Demonstrator& 1 / 1   & 18 & 3,244     & 9,332     & 0.30\%  & Mechanical manipulation jams, gripper slip        & 65/17.5/17.5 held-out nominal split \\
+GECCO Water IoT                  & Hydraulic and Water Distribution   & 0 / 1   & 9  & 27,560    & 83,113    & 1.54\%  & Chemical contamination, line bursts, pH drops     & Operational case study ($>10^6$ steps) \\
 \midrule
 \multicolumn{9}{l}{\textit{\textbf{Domain 4: Smart Infrastructure and Environmental Sensing}}} \\
-Room-Occupancy \cite{candanedo2016accurate}& Ambient Environmental Sensing & 2  & 5  & 2,565     & 14,317    & 19.31\% & Room-occupancy transitions, airflow anomalies     & Chronological test split \\
-CICIDS Edge Network              & Edge Gateway Flow Telemetry        & 6  & 72 & 278,722   & 1,343,920 & 23.91\% & DDoS volume surges, brute force, port scans       & Temporal attack partition \\
-CalIt2 \cite{asuncion2007uci}    & Optical People-Flow Counter        & 1  & 2  & 940       & 4,032     & 3.42\%  & Crowd attendance surges, building ingress bursts  & Chronological event split \\
-Metro Traffic                    & Highway Loop Detector Volume       & 1  & 5  & 24,072    & 24,102    & 0.13\%  & Highway congestion, accidents, severe slowdowns   & Chronological calendar split \\
+Room-Occupancy \cite{candanedo2016accurate}& Ambient Environmental Sensing & 0 / 2   & 5  & 2,565     & 14,317    & 19.31\% & Room-occupancy transitions, airflow anomalies     & Incident case study (nominal too short) \\
+CICIDS Edge Network              & Edge Gateway Flow Telemetry        & 0 / 6   & 72 & 278,722   & 1,343,920 & 23.91\% & DDoS volume surges, brute force, port scans       & Extended archive ($>10^6$ steps) \\
+CalIt2 \cite{asuncion2007uci}    & Optical People-Flow Counter        & 0 / 1   & 2  & 940       & 4,032     & 3.42\%  & Crowd attendance surges, building ingress bursts  & Incident case study (nominal too short) \\
+Metro Traffic                    & Highway Loop Detector Volume       & 1 / 1   & 5  & 24,072    & 24,102    & 0.13\%  & Highway congestion, accidents, severe slowdowns   & 65/17.5/17.5 held-out nominal split \\
 \midrule
-\textbf{Total / Benchmark Suite} & \textbf{4 Diverse Physical Domains} & \textbf{45} & \textbf{2--72} & \textbf{2,079,507} & \textbf{2,986,574} & \textbf{13.72\% (avg)} & \textbf{Structural, contextual, and point faults} & \textbf{Pure inductive nominal training} \\
+\textbf{Total / Benchmark Suite} & \textbf{4 Diverse Physical Domains} & \textbf{33 / 45} & \textbf{2--72} & \textbf{2,079,507} & \textbf{2,986,574} & \textbf{13.72\% (avg)} & \textbf{Structural, contextual, and point faults} & \textbf{33 Primary Held-Out / 12 Case Studies} \\
 \bottomrule
 \end{tabular}%
 }

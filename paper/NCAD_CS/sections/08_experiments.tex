@@ -9,7 +9,19 @@ To ensure rigorous and fair comparison, all architectures are trained and evalua
 
 Context representations $z_{\text{ctx}} \in \mathbb{R}^D$ ($D=32$) are extracted using a causal dilated Temporal Convolutional Network (TCN) comprising 3 residual blocks with channel depth $F=48$, kernel size $K=5$, and dilation factors $d \in \{1, 2, 4\}$. While the convolutional receptive field across the 3 dilated blocks spans $1 + 2(K-1)\sum_l d_l = 57$ timesteps, global temporal average pooling across the resulting feature maps aggregates information across the entire context window $C=256$, condensing the sequence into a fixed-dimensional latent representation $z_{\text{ctx}} \in \mathbb{R}^D$ regularized by Layer Normalization and dropout ($p=0.20$). The momentum target encoder parameters $\theta_{\text{tgt}}$ are updated via Exponential Moving Average (EMA) tracking: $\theta_{\text{tgt}} \leftarrow m \theta_{\text{tgt}} + (1-m) \theta_{\text{ctx}}$, where momentum coefficient $m$ follows a cosine schedule from $m_{\text{base}}=0.996$ to $m_{\text{max}}=0.9995$.
 
-Models are optimized using AdamW with an initial learning rate $\eta=10^{-3}$ decayed to $\eta_{\text{min}}=10^{-5}$ via Cosine Annealing, weight decay $10^{-4}$, and mini-batch size $B=32$ across 20 training epochs on nominal telemetry sequences. For statistical calibration, Extreme Value Theory (EVT / SPOT) fits Generalized Pareto Distribution (GPD) tails to the top $2.0\%$ ($u=0.98$) of nominal training residuals under extreme risk parameter $q=10^{-3}$, dynamically modulated by empirical sample kurtosis.
+Models are optimized using AdamW with an initial learning rate $\eta=10^{-3}$ decayed to $\eta_{\text{min}}=10^{-5}$ via Cosine Annealing, weight decay $10^{-4}$, and mini-batch size $B=32$ across 20 training epochs on nominal telemetry sequences. 
+
+\paragraph{Held-Out Calibration Protocol}
+To evaluate out-of-sample threshold calibration without circularity or test-label leakage, we partition each stream's nominal telemetry into three strictly disjoint chronological blocks:
+\begin{enumerate}
+    \item \textbf{Training Block (first 65\%):} Used exclusively to train neural network representations and feature extraction weights.
+    \item \textbf{Nominal Calibration Block (subsequent 17.5\%):} Completely withheld from model training and hyperparameter tuning. Used exclusively to compute nominal residual scores and fit stream-specific extreme-value tail parameters (Generalized Pareto Distribution scale $\sigma$ and shape $\xi$ above the 98th percentile $u=0.98$ under design risk $q=10^{-3}$). Tail parameters are fitted independently per stream and per model architecture. Sample kurtosis $\gamma_2$ is estimated strictly within this calibration split.
+    \item \textbf{Nominal Evaluation Block (final 17.5\%):} Separated from the calibration block by an unobserved 64-step isolation gap to prevent window overlap. On this block, the empirical False Positive Rate (Held-Out FPR) is measured on nominal data the threshold never encountered during calibration.
+\end{enumerate}
+In the primary benchmark, thresholds remain fixed during test evaluation to measure the stability of static extreme-value bounds under operational distribution drift. In operational incident analysis (Section~\ref{subsec:incident_metrics}), dynamic rolling SPOT is evaluated to examine adaptive tracking of baseline drift.
+
+\paragraph{Multi-Seed Replication and Statistical Significance}
+To account for initialization variance, all principal learned models on the non-GHL benchmark streams and controlled ablations are trained across three independent random seeds (42, 123, and 456). We report mean performance, seed standard deviations, moving-block bootstrap 95\% confidence intervals (preserving temporal autocorrelation within streams), and two-sided Wilcoxon signed-rank tests for paired stream-level differences. Differences with $p > 0.05$ are treated as statistically inconclusive rather than evidence of equivalence.
 
 \subsection{Baseline Architectures and Parameter Capacities}
 To isolate algorithmic principles from external implementation discrepancies, all baselines are executed within a unified PyTorch benchmarking pipeline under identical windowing, standardization, and EVT calibration:
@@ -30,7 +42,7 @@ Recent critical surveys in time-series anomaly detection \cite{kim2022towards, s
 \begin{equation}
     \text{Macro-F1}_{\text{DS}} = \frac{1}{|\mathcal{D}|} \sum_{d \in \mathcal{D}} \left( \frac{1}{|C_d|} \sum_{c \in C_d} \text{F1}_{c} \right)
 \end{equation}
-where $\mathcal{D}$ is the set of benchmark datasets and $C_d$ is the set of channels in dataset $d$. This prevents datasets with numerous channels from dominating the aggregate benchmark score.
+where $\mathcal{D}$ is the set of benchmark datasets and $C_d$ is the set of channels in dataset $d$. This prevents datasets with numerous channels (such as GHL with 14 streams) from dominating the aggregate benchmark score, giving equal weight to each distinct physical application domain.
 
 \noindent\textbf{Pooled Micro Point-F1:} We pool all raw True Positives, False Positives, and False Negatives globally across all test timesteps:
 \begin{equation}
