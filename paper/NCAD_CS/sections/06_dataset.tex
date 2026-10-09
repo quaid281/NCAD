@@ -17,11 +17,11 @@ This domain evaluates urban infrastructure and cyber-physical networks. The \tex
 
 Each benchmark stream provides pre-split training sequences (consisting exclusively of nominal operational behavior) and testing sequences containing labeled ground-truth anomalies. Continuous numeric features are standardized via training statistics ($\bm{\mu}_{\text{train}}, \bm{\sigma}_{\text{train}}$), flooring standard deviations at $\max(\bm{\sigma}, 10^{-2})$ to prevent division by zero during flat-line operational phases. While full mission archives contain larger entity counts (the complete SMAP archive includes 55 telemetry entities and MSL includes 27 entities across various mission subsystems), our benchmark evaluates standardized subsets commonly studied in the multi-sensor benchmark literature \cite{Hundman2018b, schmidl2022anomaly} to ensure strict matching and reproducible runtime conditions across all baselines.
 
-Table~\ref{tab:dataset_specs} provides the complete technical specifications across all 11 benchmark datasets and 45 evaluated continuous telemetry streams, totaling $2{,}079{,}507$ nominal training timesteps and $2{,}986{,}574$ test timesteps (over 5.06 million observations). We explicitly document the physical domain, channel dimension $K$, sampling resolution, sequence lengths, anomaly contamination ratio $\pi\%$, anomaly failure modes, and partition protocols to guarantee complete experimental reproducibility.
+Table~\ref{tab:dataset_specs} provides the technical specifications across all 11 benchmark datasets and 45 evaluated continuous telemetry streams, totaling $2{,}079{,}507$ nominal training timesteps and $2{,}986{,}574$ test timesteps (over 5.06 million observations). We explicitly document the physical domain, channel dimension $K$, sampling resolution, sequence lengths, anomaly contamination ratio $\pi\%$, anomaly failure modes, and partition protocols to ensure experimental reproducibility.
 
 \begin{table*}[t]
 \centering
-\caption{Comprehensive Technical Specification of the Multi-Sensor IoT and Remote Sensing Benchmark Suite (45 Strictly Matched Telemetry Streams across 11 Diverse Modalities, Comprising Over 5.06 Million Time-Series Observations).}
+\caption{Technical Specifications of the Multi-Sensor IoT and Remote Sensing Benchmark Suite (45 Strictly Matched Telemetry Streams across 11 Diverse Modalities, Comprising Over 5.06 Million Time-Series Observations).}
 \label{tab:dataset_specs}
 \footnotesize
 \resizebox{\linewidth}{!}{%

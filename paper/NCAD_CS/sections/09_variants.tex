@@ -122,7 +122,7 @@ All models are trained for 10 epochs using AdamW ($\text{lr}=10^{-3}$) with batc
 \begin{table}[t]
 \centering
 \small
-\caption{Controlled same-backbone experiment isolating prediction space under identical \texttt{HybridTCNEncoder} ($C=256, S=64, d=32$). Reported values are means across five representative benchmark streams (NASA SMAP: \texttt{P-3}, Daphnet: \texttt{S01R01E1}, GECCO: \texttt{water\_quality}, CalIt2: \texttt{traffic}, NASA MSL: \texttt{M-1}) under clean telemetry and additive jitter noise injection ($\text{SNR} \in \{\infty, 20\text{ dB}, 10\text{ dB}, 0\text{ dB}\}$).}
+\caption{Controlled same-backbone experiment isolating prediction space under identical \texttt{HybridTCNEncoder} ($C=256, S=64, d=32$). Reported values are dataset-macro means across fifteen diverse benchmark streams across ten domains (NASA SMAP: \texttt{P-3}, \texttt{A-1}; NASA MSL: \texttt{M-1}, \texttt{C-1}; SMD: \texttt{machine-1-2}, \texttt{machine-1-3}; PSM: \texttt{default}; SWAN: \texttt{sf}; GECCO: \texttt{water\_quality}; Daphnet: \texttt{S01R01E1}, \texttt{S02R01E0}; CalIt2: \texttt{traffic}; Room Occupancy: \texttt{default}; Genesis: \texttt{default}; OPPORTUNITY: \texttt{S1-ADL2}) under clean telemetry and additive jitter noise injection ($\text{SNR} \in \{\infty, 20\text{ dB}, 10\text{ dB}, 0\text{ dB}\}$).}
 \label{tab:controlled_backbone}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}llcccc@{}}
@@ -130,27 +130,53 @@ All models are trained for 10 epochs using AdamW ($\text{lr}=10^{-3}$) with batc
 \textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} \\
 \midrule
 \multirow{4}{*}{\textbf{TCN-Obs-Recon}} 
- & Clean ($\infty$) & 2.09 & 106.97 & 53.48\% & 27,419.4 \\
- & 20 dB            & 2.09 & 106.96 & 53.60\% & 27,427.4 \\
- & 10 dB            & 2.09 & 106.98 & 55.79\% & 27,752.8 \\
- & 0 dB             & 2.09 & 107.15 & 68.65\% & 28,134.6 \\
+ & Clean ($\infty$) & 6.09 & 57.26 & 27.29\% & 10,554.7 \\
+ & 20 dB            & 6.09 & 57.23 & 27.47\% & 10,587.1 \\
+ & 10 dB            & 6.09 & 57.14 & 32.08\% & 11,168.1 \\
+ & 0 dB             & 6.09 & 57.09 & 54.10\% & 17,318.2 \\
 \midrule
 \multirow{4}{*}{\textbf{TCN-Obs-Pred}} 
- & Clean ($\infty$) & 1.92 & 107.10 & 53.22\% & 27,409.0 \\
- & 20 dB            & 1.92 & 107.09 & 53.26\% & 27,413.4 \\
- & 10 dB            & 1.92 & 107.10 & 55.37\% & 27,736.4 \\
- & 0 dB             & 1.92 & 107.17 & 68.66\% & 28,134.8 \\
+ & Clean ($\infty$) & 6.00 & 55.66 & 27.57\% & 10,455.2 \\
+ & 20 dB            & 6.00 & 56.09 & 27.93\% & 10,505.6 \\
+ & 10 dB            & 6.00 & 56.00 & 32.46\% & 11,025.9 \\
+ & 0 dB             & 6.00 & 55.66 & 50.98\% & 15,558.5 \\
 \midrule
 \multirow{4}{*}{\textbf{TS-JEPA (Ours)}} 
- & Clean ($\infty$) & \textbf{1.00} & \textbf{2.95} & \textbf{20.17\%} & \textbf{9,214.8} ($\downarrow 66.4\%$) \\
- & 20 dB            & \textbf{1.00} & \textbf{2.42} & \textbf{20.88\%} & \textbf{9,443.6} \\
- & 10 dB            & \textbf{1.00} & \textbf{1.80} & \textbf{22.18\%} & \textbf{10,395.4} \\
- & 0 dB             & \textbf{1.00} & \textbf{0.95} & \textbf{22.96\%} & \textbf{10,800.8} \\
+ & Clean ($\infty$) & \textbf{0.88} & \textbf{1.77} & \textbf{11.80\%} & \textbf{3,949.5} ($\downarrow 62.6\%$) \\
+ & 20 dB            & \textbf{0.88} & \textbf{1.67} & \textbf{12.25\%} & \textbf{4,061.3} \\
+ & 10 dB            & \textbf{0.88} & \textbf{1.54} & \textbf{12.72\%} & \textbf{4,248.9} \\
+ & 0 dB             & \textbf{0.88} & \textbf{1.53} & \textbf{13.94\%} & \textbf{4,269.0} \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-\noindent\textbf{Tail Conditioning and False Alarm Suppression:} As reported in Table~\ref{tab:controlled_backbone}, observation-space models exhibit extreme excess kurtosis on test telemetry ($\gamma_2 > 106.9$), driven by point-level measurement jitter and localized sensor noise. This heavy-tail inflation forces EVT thresholding into extreme miscalibration, yielding empirical false positive rates of $53.2\%\text{--}53.5\%$ and generating over $27,400$ false alarms per stream. Conversely, \texttt{TS-JEPA} projects telemetry into a normalized latent manifold, compressing high-frequency observation noise and yielding near-Gaussian test residuals ($\gamma_2 = 2.95$, a $>36\times$ reduction in tail weight). Consequently, EVT establishes tight, stable thresholds, reducing the empirical false positive rate to $20.17\%$ and eliminating over $18,200$ false alarms per stream (a $66.4\%$ reduction).
+\noindent\textbf{Tail Conditioning and False Alarm Suppression:} As reported in Table~\ref{tab:controlled_backbone}, observation-space models exhibit severe excess kurtosis across the fifteen benchmark streams ($\gamma_2 = 55.66\text{--}57.26$), driven by point-level measurement jitter and localized sensor noise. This heavy-tail inflation forces EVT thresholding into substantial miscalibration, yielding empirical false positive rates of $27.3\%\text{--}27.6\%$ and generating over $10,400$ false alarms per stream. Conversely, \texttt{TS-JEPA} projects telemetry into a normalized latent manifold, compressing high-frequency observation noise and yielding near-Gaussian test residuals ($\gamma_2 = 1.77$, a $>32\times$ reduction in tail weight). Consequently, EVT establishes tight, stable thresholds, reducing the empirical false positive rate to $11.80\%$ and eliminating over $6,500$ false alarms per stream (a $62.6\%$ reduction).
 
-\noindent\textbf{Noise-Injection Robustness:} Under severe additive jitter ($\text{SNR}=0\text{ dB}$), observation-space residuals experience substantial error variance blowout, increasing empirical FPR by $+15.4$ percentage points ($53.2\% \to 68.7\%$). In contrast, \texttt{TS-JEPA} empirical FPR increases by only $2.8$ percentage points ($20.17\% \to 22.96\%$), proving that latent joint-embedding architectures inherently filter high-frequency sensor perturbations.
+\noindent\textbf{Noise-Injection Robustness:} Under severe additive jitter ($\text{SNR}=0\text{ dB}$), observation-space residuals experience drastic variance inflation: empirical FPR nearly doubles for TCN-Obs-Recon ($27.29\% \to 54.10\%$, $+26.8$ percentage points). In stark contrast, \texttt{TS-JEPA} empirical FPR shifts by only $2.1$ percentage points ($11.80\% \to 13.94\%$), proving that latent joint-embedding architectures inherently filter high-frequency sensor perturbations across multi-domain physical telemetry.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Native-window baseline evaluation across five diverse benchmark streams (NASA SMAP: \texttt{P-3}, SMD: \texttt{machine-1-2}, NASA MSL: \texttt{M-1}, Daphnet: \texttt{S01R01E1}, GECCO: \texttt{water\_quality}). Shortening the context window to native sizes ($W=10$ for TranAD, $W=96$ for TimesNet) exacerbates residual tail heaviness ($\gamma_2 = 448.25$ and $98.14$) rather than curing it.}
+\label{tab:native_window_baselines}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model Configuration} & \textbf{Window $W$} & \textbf{Test $\gamma_2$} & \textbf{Mean False Pos.} & \textbf{Empirical FPR} \\
+\midrule
+\textbf{TimesNet (Native)} & 96  & 98.14  & 26,526.8 & 44.09\% \\
+\textbf{TimesNet (Long)}   & 320 & 32.04  & 27,041.0 & 51.26\% \\
+\midrule
+\textbf{TranAD (Native)}   & 10  & 448.25 & 18,765.4 & 24.51\% \\
+\textbf{TranAD (Long)}     & 320 & 29.93  & 16,671.0 & 31.76\% \\
+\midrule
+\textbf{TS-JEPA (Ours)}    & 320 & \textbf{3.14} & \textbf{10,678.8} & \textbf{22.57\%} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\noindent\textbf{Investigation of Native Window Horizons:} A secondary hypothesis is whether reconstructive baselines suffered under automated EVT calibration because they were evaluated on long temporal windows ($W=320$) rather than their originally proposed native horizons ($W=10$ for TranAD, $W=96$ for TimesNet). To test this, Table~\ref{tab:native_window_baselines} compares each baseline under both native and $W=320$ horizons across five diverse telemetry streams. 
+
+The empirical evidence refutes the window-length hypothesis. For TranAD, reducing the window to its native length ($W=10$) causes extreme residual tail inflation: average test excess kurtosis spikes to $\gamma_2 = 448.25$ (a $15\times$ increase over $W=320$, reaching $\gamma_2 = 809.32$ on GECCO and $781.44$ on SMAP). Because micro-windows contain minimal temporal context to average out high-frequency sensor noise, point glitches directly distort observation reconstruction, corrupting EVT tail estimation. Similarly, for TimesNet, native $W=96$ residuals exhibit heavy excess kurtosis ($\gamma_2 = 98.14$) and an average empirical false positive rate of $44.09\%$, generating over $26,500$ false alarms per stream. By contrast, \texttt{TS-JEPA} maintains well-conditioned residuals ($\gamma_2 = 3.14$) and achieves the lowest empirical false positive rate ($22.57\%$). Thus, observation-space residual corruption is an inherent property of raw signal reconstruction rather than a window-length artifact.

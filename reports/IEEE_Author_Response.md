@@ -54,17 +54,34 @@ To rigorously isolate the true effect of **latent representation prediction vers
 - **Model 2 (TCN-Obs-Pred):** Encodes only the context window $X_{t-C:t}$ into $z_{\text{ctx}} \in \mathbb{R}^{32}$ via `HybridTCNEncoder`, then decodes $z_{\text{ctx}}$ directly to the future suspect observations $\hat{X}_{t:t+S} \in \mathbb{R}^{S \times K}$. The anomaly score is the raw forecasting residual: $s_t = \frac{1}{S \cdot K} \sum_{\tau=1}^S \|x_{t+\tau} - \hat{x}_{t+\tau}\|_2^2$.
 - **Model 3 (TS-JEPA - Latent Space):** Encodes context $X_{t-C:t}$ to $z_{\text{ctx}} \in \mathbb{R}^{32}$ via online `HybridTCNEncoder`, projects through a predictor $g_\phi(z_{\text{ctx}}) \to \hat{z}_{\text{tgt}}$, and maps the suspect window $X_{t:t+S}$ via an EMA target encoder to $z_{\text{tgt}} \in \mathbb{R}^{32}$. The anomaly score is the latent predictive discrepancy: $s_t = \|\hat{z}_{\text{tgt}} - z_{\text{tgt}}\|_2^2$.
 
-The empirical results (reported across five representative benchmark streams: NASA SMAP \texttt{P-3}, Daphnet \texttt{S01R01E1}, GECCO \texttt{water\_quality}, CalIt2 \texttt{traffic}, NASA MSL \texttt{M-1}) decisively confirm that **the advantage of TS-JEPA stems from the representation space itself rather than architectural confounding**:
+The empirical results (reported as dataset-macro averages across fifteen diverse benchmark streams across ten domains: NASA SMAP \texttt{P-3}, \texttt{A-1}; NASA MSL \texttt{M-1}, \texttt{C-1}; SMD \texttt{machine-1-2}, \texttt{machine-1-3}; PSM \texttt{default}; SWAN \texttt{sf}; GECCO \texttt{water\_quality}; Daphnet \texttt{S01R01E1}, \texttt{S02R01E0}; CalIt2 \texttt{traffic}; Room Occupancy \texttt{default}; Genesis \texttt{default}; OPPORTUNITY \texttt{S1-ADL2}) decisively confirm that **the advantage of TS-JEPA stems from the representation space itself rather than architectural confounding**:
 
 | Architecture | Prediction Target | Clean Test $\gamma_2$ | Clean Empirical FPR | Clean Mean False Positives |
 | :--- | :--- | :---: | :---: | :---: |
-| **TCN-Obs-Recon** | Raw Observation Window (MSE) | $106.97$ | $53.48\%$ | $27,419.4$ |
-| **TCN-Obs-Pred**  | Future Observation Suspect (MSE) | $107.10$ | $53.22\%$ | $27,409.0$ |
-| **TS-JEPA (Ours)** | Contracted Latent Representation | **$2.95$** ($\downarrow 36\times$) | **$20.17\%$** | **$9,214.8$** ($\downarrow 66.4\%$) |
+| **TCN-Obs-Recon** | Raw Observation Window (MSE) | $57.26$ | $27.29\%$ | $10,554.7$ |
+| **TCN-Obs-Pred**  | Future Observation Suspect (MSE) | $55.66$ | $27.57\%$ | $10,455.2$ |
+| **TS-JEPA (Ours)** | Contracted Latent Representation | **$1.77$** ($\downarrow 32\times$) | **$11.80\%$** | **$3,949.5$** ($\downarrow 62.6\%$) |
 
-Under identical nominal validation calibration, raw observation-space residuals exhibit severe tail inflation ($\gamma_2 > 106.9$) and false alarm surges due to unmodeled observation noise ($>27,400$ false positives per stream). In stark contrast, latent predictive residuals (`ts_jepa`) contract ambient measurement noise, yielding near-Gaussian test residuals ($\gamma_2 = 2.95$), reducing the empirical false positive rate by more than half, and eliminating $18,204$ false alarms per stream.
+Under identical nominal validation calibration, raw observation-space residuals exhibit severe tail inflation ($\gamma_2 = 55.66\text{--}57.26$) and high false alarm rates ($>10,400$ false positives per stream). Under extreme additive noise ($0\text{ dB}$ SNR), observation-space empirical FPR jumps to $54.10\%$ ($+26.8$ points). In stark contrast, latent predictive residuals (`ts_jepa`) contract ambient measurement noise, yielding near-Gaussian test residuals ($\gamma_2 = 1.77$), reducing the empirical false positive rate to $11.80\%$ (a $62.6\%$ reduction), and remaining rock-solid under $0\text{ dB}$ SNR jitter ($11.80\% \to 13.94\%$, shifting by only $+2.1$ points).
 
 We have incorporated these controlled experimental results into Section IV-E, Section V-B, and Table~\ref{tab:controlled_backbone} of the revised manuscript.
+
+#### Native Window Horizon Evaluation (Addressing the Window-Length Hypothesis)
+The Reviewer astutely noted that TimesNet and TranAD were originally designed for shorter windows ($W \approx 96$ and $W \approx 10$). To test whether window size accounted for baseline EVT degradation, we performed a dedicated experiment evaluating both models under their native horizons versus $W=320$ alongside TS-JEPA across five diverse benchmark streams (NASA SMAP: `P-3`, SMD: `machine-1-2`, NASA MSL: `M-1`, Daphnet: `S01R01E1`, GECCO: `water_quality`).
+
+The empirical results (summarized below and in Table~\ref{tab:native_window_baselines} of the manuscript) conclusively refute the window-length hypothesis:
+
+| Model Configuration | Window $W$ | Test Excess Kurtosis ($\gamma_2$) | Mean False Positives | Empirical FPR |
+| :--- | :---: | :---: | :---: | :---: |
+| **TimesNet (Native)** | 96  | $98.14$  | $26,526.8$ | $44.09\%$ |
+| **TimesNet (Long)**   | 320 | $32.04$  | $27,041.0$ | $51.26\%$ |
+| **TranAD (Native)**   | 10  | $\mathbf{448.25}$ | $18,765.4$ | $24.51\%$ |
+| **TranAD (Long)**     | 320 | $29.93$  | $16,671.0$ | $31.76\%$ |
+| **TS-JEPA (Ours)**    | 320 | $\mathbf{3.14}$ | $\mathbf{10,678.8}$ | $\mathbf{22.57\%}$ |
+
+- **TranAD Native Window ($W=10$):** Shortening the window to 10 steps makes residual tail heaviness **$15\times$ worse** than at $W=320$ ($\gamma_2$ jumps from $29.93 \to \mathbf{448.25}$, reaching $809.32$ on GECCO and $781.44$ on SMAP). Without temporal context to smooth sensor jitter, observation reconstruction errors spike violently on point-level perturbations.
+- **TimesNet Native Window ($W=96$):** At native $W=96$, TimesNet still exhibits severe excess kurtosis ($\gamma_2 = 98.14$) and an empirical FPR of $44.09\%$, generating over $26,500$ false alarms per stream.
+- **Conclusion:** Reconstructive failure under EVT is not a windowing artifact; it is an inherent mathematical vulnerability of optimizing residuals in observation space. TS-JEPA maintains well-conditioned residuals ($\gamma_2 = 3.14$) and reduces false alarm volume by up to $60\%$.
 
 ---
 

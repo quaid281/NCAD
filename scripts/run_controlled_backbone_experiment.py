@@ -330,6 +330,16 @@ if __name__ == "__main__":
         ("GECCO", "water_quality"),
         ("CalIt2", "traffic"),
         ("MSL", "M-1"),
+        ("SMD", "machine-1-2"),
+        ("SMD", "machine-1-3"),
+        ("SMAP", "A-1"),
+        ("MSL", "C-1"),
+        ("PSM", "default"),
+        ("swan", "sf"),
+        ("room-occupancy", "default"),
+        ("Genesis", "default"),
+        ("Daphnet", "S02R01E0"),
+        ("OPPORTUNITY", "S1-ADL2"),
     ]
     out_path = ROOT / "reports" / "controlled_backbone_experiment.csv"
     existing_df = pd.DataFrame()
