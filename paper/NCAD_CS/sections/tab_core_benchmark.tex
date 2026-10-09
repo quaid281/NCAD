@@ -1,32 +1,24 @@
 \begin{table*}[t]
 \centering
-\caption{Multi-Tier Benchmark on Core Multi-Sensor Datasets (45 Strictly Matched Channels across 11 Diverse Modalities). We report unadjusted Point-F1 across three aggregation regimes: unweighted Dataset-Macro (equal $1/N$ dataset weight), Pooled Micro-F1 ($\sum \mathrm{TP}, \sum \mathrm{FP}, \sum \mathrm{FN}$), and Channel-Macro F1, alongside threshold-independent PR-AUC and Point-Adjusted F1 (PA-F1). The best result in each column is in \textbf{bold}, and the second best is \underline{underlined}. All models evaluated under identical pure inductive EVT calibration without transductive test-tail clamps.}
+\caption{Held-Out Calibration Benchmark across 33 Continuous Telemetry Streams (7 Physical Modalities). Thresholds are calibrated strictly on held-out nominal validation splits using Streaming Peaks-Over-Threshold (SPOT, $q=10^{-3}$) without access to test anomalies. We report Point-F1, threshold-free continuous ranking (PR-AUC), out-of-sample nominal False-Positive Rate (Held-Out FPR, measured on nominal data the threshold never saw), and Event Recall. ``Non-GHL'' denotes the stream-macro mean over 19 streams (Daphnet, MSL, SMAP, Genesis, Metro, SWAN) averaged across three seeds. ``Dataset-Macro'' is the unweighted average across the 7 dataset means. The best result in each column is in \textbf{bold}, and the second best is \underline{underlined}.}
 \label{tab:core_benchmark}
 \small
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{ll ccc c cc}
+\begin{tabular}{l cccc c c c}
 \toprule
-& & \multicolumn{3}{c}{\textbf{Strict Point-Level Evaluation (Unadjusted)}} & \textbf{Ranking} & \multicolumn{2}{c}{\textbf{Point-Adjusted (Literature Ref.)}} \\
-\cmidrule(lr){3-5} \cmidrule(lr){6-6} \cmidrule(lr){7-8}
-\textbf{Architecture} & \textbf{Physical Inductive Bias / Formulation} & \textbf{DS-Macro} $\uparrow$ & \textbf{Micro-F1} $\uparrow$ & \textbf{Chan-Macro} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{DS-Macro} $\uparrow$ & \textbf{Chan-Macro} $\uparrow$ \\
+& \multicolumn{4}{c}{\textbf{Non-GHL Streams (19 Streams, 3 Seeds)}} & \textbf{Summary} & \multicolumn{2}{c}{\textbf{Gasoil Heating Loop (14 Streams)}} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-6} \cmidrule(lr){7-8}
+\textbf{Model Architecture} & \textbf{Point-F1} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Event Recall} $\uparrow$ & \textbf{DS-Macro F1} $\uparrow$ & \textbf{Point-F1} $\uparrow$ & \textbf{Held-Out FPR} $\downarrow$ \\
 \midrule
-\multicolumn{8}{l}{\textit{\textbf{Proposed Physics-Inspired Geometric JEPA Triad}}} \\
-\textbf{Operator-Entropy JEPA} & Koopman Spectral Entropy ($\mathcal{H}_K$) & \textbf{0.2066} & 0.2806 & \textbf{0.1743} & 0.2541 & \underline{0.3320} & 0.3205 \\
-\textbf{Reynolds-Stress JEPA}  & Hydrodynamic Stress Tensor ($\mathbf{R}$) & 0.1544 & 0.1175 & \underline{0.1532} & 0.2406 & 0.3153 & \underline{0.3226} \\
-\textbf{Potential-Flow JEPA}   & Curl-Free Potential Field ($-\nabla \Phi$) & 0.1147 & \textbf{0.3458} & 0.1259 & 0.1978 & 0.3053 & \textbf{0.3436} \\
+\multicolumn{8}{l}{\textit{\textbf{Latent-Space Predictive Architectures (JEPAs)}}} \\
+\textbf{TS-JEPA (Unconstrained Control)} & \textbf{0.254} & \underline{0.333} & \textbf{0.066} & \underline{0.498} & \textbf{0.153} & 0.000 & 0.010 \\
+Operator-Entropy JEPA                    & \underline{0.241} & \textbf{0.348} & 0.079 & \underline{0.498} & \underline{0.134} & 0.001 & \underline{0.005} \\
+Reynolds-Stress JEPA                     & 0.208 & 0.321 & \underline{0.076} & 0.398 & 0.119 & 0.001 & \textbf{0.004} \\
+Potential-Flow JEPA                      & 0.095 & 0.205 & 0.096 & 0.331 & 0.065 & 0.000 & \underline{0.005} \\
 \midrule
-\multicolumn{8}{l}{\textit{\textbf{Ablation Control (Unconstrained Latent Prediction)}}} \\
-\textit{Vanilla TS-JEPA}      & Latent Prediction (Unconstrained) & \underline{0.1838} & \underline{0.2860} & 0.1442 & 0.2344 & \textbf{0.3449} & 0.3066 \\
-\midrule
-\multicolumn{8}{l}{\textit{\textbf{Published State-of-the-Art Deep Baselines (Unified Reimplementations)}}} \\
-TranAD (VLDB 2022)             & Reconstructive Transformer + Adversarial & 0.1609 & 0.1072 & 0.1319 & \textbf{0.2612} & 0.2689 & 0.2537 \\
-TimesNet (ICLR 2023)           & Multi-Period 2D Temporal Inception       & 0.1443 & 0.0647 & 0.1331 & \underline{0.2585} & 0.2373 & 0.2072 \\
-Anomaly Transformer (ICLR 2022)& Association Discrepancy (Prior vs. Series)& 0.0845 & 0.0228 & 0.0576 & \text{--} & 0.2350 & 0.2228 \\
-DCdetector (KDD 2023)          & Dual Attention Contrastive Discrepancy   & 0.0782 & 0.0258 & 0.0697 & \text{--} & 0.2602 & 0.2406 \\
-NCAD (KDD 2021)                & Contextual Contrastive Representation    & 0.0493 & 0.0116 & 0.0362 & \text{--} & 0.2376 & 0.1716 \\
-\midrule
-\multicolumn{8}{l}{\textit{\textbf{Theoretical Reference Limit}}} \\
-\textit{All-Positive Trivial Predictor} & Constant Positive ($\hat{y} \equiv 1$) & 0.1893 & 0.2372 & 0.1942 & \text{--} & \text{--} & \text{--} \\
+\multicolumn{8}{l}{\textit{\textbf{Observation-Space Reconstructive Baselines}}} \\
+TimesNet (ICLR 2023)                     & 0.207 & 0.336 & 0.297 & \textbf{0.586} & 0.104 & \textbf{0.022} & 0.058 \\
+TranAD (VLDB 2022)                       & 0.131 & 0.291 & 0.309 & 0.481 & 0.070 & \underline{0.021} & 0.049 \\
 \bottomrule
 \end{tabular}%
 }

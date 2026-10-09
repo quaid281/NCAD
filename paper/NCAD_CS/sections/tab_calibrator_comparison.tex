@@ -1,0 +1,37 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Calibrator comparison on identical score streams across 33 continuous telemetry streams under buffered inference. Theoretical design risk for SPOT is $q=10^{-3} = 0.1\%$. The share of runs whose 95\% bootstrap confidence interval excludes $q=10^{-3}$ demonstrates that automated calibration systematically overshoots on out-of-sample telemetry.}
+\label{tab:calibrator_comparison}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Model Architecture} & \textbf{Calibrator Rule} & \textbf{Held-Out Nominal FPR} & \textbf{CI Excludes $q=10^{-3}$} & \textbf{Point-F1} \\
+\midrule
+\multirow{4}{*}{\textbf{TS-JEPA (Control)}}
+ & Standard SPOT ($q=10^{-3}$)      & \textbf{0.0517} & 57\% & 0.1929 \\
+ & SPOT + Kurtosis ($\beta=0.167$) & 0.1880          & 84\% & \textbf{0.1947} \\
+ & Empirical 99.5th Percentile     & 0.0657          & 47\% & 0.1942 \\
+ & Validation Maximum              & 0.0524          & 60\% & 0.1922 \\
+\midrule
+\multirow{4}{*}{\textbf{Operator-Entropy}}
+ & Standard SPOT ($q=10^{-3}$)      & \textbf{0.0615} & 65\% & 0.1835 \\
+ & SPOT + Kurtosis ($\beta=0.167$) & 0.1098          & 76\% & 0.1666 \\
+ & Empirical 99.5th Percentile     & 0.0752          & 60\% & \textbf{0.1903} \\
+ & Validation Maximum              & 0.0691          & 63\% & 0.1869 \\
+\midrule
+\multirow{4}{*}{\textbf{TimesNet}}
+ & Standard SPOT ($q=10^{-3}$)      & \textbf{0.2388} & 87\% & 0.1614 \\
+ & SPOT + Kurtosis ($\beta=0.167$) & 0.2439          & 85\% & 0.1550 \\
+ & Empirical 99.5th Percentile     & 0.2488          & 91\% & \textbf{0.1626} \\
+ & Validation Maximum              & 0.2430          & 87\% & 0.1623 \\
+\midrule
+\multirow{4}{*}{\textbf{TranAD}}
+ & Standard SPOT ($q=10^{-3}$)      & \textbf{0.2459} & 84\% & 0.1039 \\
+ & SPOT + Kurtosis ($\beta=0.167$) & 0.2659          & 83\% & 0.1047 \\
+ & Empirical 99.5th Percentile     & 0.2616          & 88\% & \textbf{0.1062} \\
+ & Validation Maximum              & 0.2535          & 85\% & 0.1054 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

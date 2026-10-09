@@ -1,26 +1,22 @@
 \begin{table*}[t]
 \centering
-\caption{Per-Dataset Unadjusted Point-F1 Across All 11 Telemetry Benchmarks (45 Matched Streams) Alongside the Analytical All-Positive Trivial Predictor ($\hat{y} \equiv 1$). Best result for each dataset is in \textbf{bold}, and second best is \underline{underlined}. The bottom row reports unweighted Dataset-Macro averages matching Table~\ref{tab:core_benchmark}.}
+\caption{Per-Dataset Unadjusted Point-F1 Across All 7 Evaluated Telemetry Benchmarks (33 Matched Streams) under Held-Out Calibration (SPOT, $q=10^{-3}$). Best result for each dataset is in \textbf{bold}, and second best is \underline{underlined}. The bottom row reports unweighted Dataset-Macro averages matching Table~\ref{tab:core_benchmark}.}
 \label{tab:all_datasets}
 \small
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{ll ccc c cc c}
+\begin{tabular}{ll c cccc cc}
 \toprule
-\textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Operator-Entropy} & \textbf{Reynolds-Stress} & \textbf{Potential-Flow} & \textbf{Vanilla TS-JEPA} & \textbf{TranAD} & \textbf{TimesNet} & \textbf{All-Positive} \\
+\textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Streams} & \textbf{TS-JEPA (Control)} & \textbf{Operator-Entropy} & \textbf{Reynolds-Stress} & \textbf{Potential-Flow} & \textbf{TimesNet} & \textbf{TranAD} \\
 \midrule
-CalIt2         & Building Pedestrian Flow         & 0.0804 & 0.0000 & 0.0000 & 0.0000 & \underline{0.1441} & \textbf{0.1524} & 0.0519 \\
-cicids         & Network Intrusion Dynamics       & \underline{0.1576} & 0.0335 & \textbf{0.1703} & 0.1182 & 0.0835 & 0.0884 & 0.3059 \\
-Daphnet        & Wearable Parkinsonian Kinematics & 0.0952 & 0.0327 & 0.0824 & 0.0974 & \underline{0.1401} & \textbf{0.2158} & 0.2554 \\
-GECCO          & Municipal Water Infrastructure   & \textbf{0.4040} & \underline{0.3843} & 0.0045 & 0.2729 & 0.0304 & 0.0304 & 0.0304 \\
-Genesis        & Pick-and-Place Automation Testbed & \underline{0.0227} & 0.0000 & 0.0000 & \textbf{0.0606} & 0.0000 & 0.0000 & 0.0062 \\
-GHL            & Gasoil Heating Loop Dynamics     & \underline{0.0496} & \textbf{0.1367} & 0.0183 & 0.0222 & 0.0154 & 0.0242 & 0.0259 \\
-metro          & Interstate Highway Traffic (I-94) & \underline{0.0038} & 0.0031 & \textbf{0.0094} & 0.0034 & 0.0000 & 0.0000 & 0.0026 \\
-MSL            & NASA Mars Science Laboratory     & \textbf{0.2439} & 0.1484 & 0.1365 & 0.1423 & \underline{0.1920} & 0.1741 & 0.3929 \\
-room-occupancy & Smart Environmental Multi-Sensor & 0.3643 & 0.2407 & 0.3395 & 0.3405 & \textbf{0.5808} & \underline{0.5282} & 0.3303 \\
-SMAP           & NASA Soil Moisture Active Passive & \underline{0.4157} & \textbf{0.4205} & 0.3764 & 0.4102 & 0.2614 & 0.2334 & 0.2433 \\
-swan           & Solar Flare Magnetic Telemetry   & \underline{0.4349} & 0.2984 & 0.1247 & \textbf{0.5540} & 0.3217 & 0.1402 & 0.4375 \\
+Daphnet  & Wearable Parkinsonian Kinematics & 6  & \underline{0.155} & 0.134 & 0.135 & 0.066 & \textbf{0.245} & 0.149 \\
+GHL      & Gasoil Heating Loop Dynamics     & 14 & 0.000             & 0.001 & 0.001 & 0.000 & \textbf{0.022} & \underline{0.021} \\
+Genesis  & Pick-and-Place Automation        & 1  & \textbf{0.028}    & \underline{0.012} & 0.000 & 0.000 & 0.000 & 0.000 \\
+MSL      & NASA Mars Science Laboratory     & 4  & 0.257             & \textbf{0.281} & \underline{0.264} & 0.115 & 0.159 & 0.152 \\
+SMAP     & NASA Soil Moisture Active Passive & 6  & \textbf{0.441}    & \underline{0.427} & 0.331 & 0.137 & 0.304 & 0.166 \\
+Metro    & Interstate Highway Traffic (I-94) & 1  & 0.000             & 0.000 & 0.001 & \textbf{0.005} & \underline{0.001} & 0.000 \\
+SWAN     & Solar Flare Magnetic Telemetry   & 1  & \textbf{0.191}    & 0.081 & 0.102 & \underline{0.132} & 0.000 & 0.000 \\
 \midrule
-\textbf{Dataset-Macro Mean} & Across All 11 Benchmarks & \textbf{0.2066} & 0.1544 & 0.1147 & \underline{0.1838} & 0.1609 & 0.1443 & 0.1893 \\
+\textbf{Dataset-Macro Mean} & Across All 7 Benchmarks & 33 & \textbf{0.153} & \underline{0.134} & 0.119 & 0.065 & 0.104 & 0.070 \\
 \bottomrule
 \end{tabular}%
 }
