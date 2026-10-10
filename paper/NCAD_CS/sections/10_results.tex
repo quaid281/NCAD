@@ -51,7 +51,7 @@ The empirical data across all 33 streams refute this hypothesis:
     \item \textbf{Potential-Flow vs. TS-JEPA:} Potential-Flow performs significantly worse than unconstrained TS-JEPA across both calibrated Point-F1 (paired difference $-0.091$, $95\%$ CI $[-0.178, -0.019]$, $p=0.020$) and continuous ranking PR-AUC (paired difference $-0.076$, $95\%$ CI $[-0.142, -0.019]$, $p=0.039$). Potential-Flow outperforms TS-JEPA on only 5 of 33 streams.
 \end{enumerate}
 
-These findings align with the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}: holding the neural backbone constant while disabling the spectral entropy loss, Reynolds stress loss, or subspace regime routing produces changes well within seed noise ($p \ge 0.375$). We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
+These findings align with the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}: holding the neural backbone constant across all 19 non-GHL benchmark streams while disabling the spectral entropy loss ($\Delta F_1 = -0.003, p=0.62$) or Reynolds stress loss ($\Delta F_1 = +0.005, p=0.41$) produces changes well within seed noise ($p \ge 0.408$). We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
 
 \subsection{Mathematical Diagnostics of Physical Regularizers}
 \label{subsec:physics_diagnostics}
@@ -209,7 +209,9 @@ Under strictly causal streaming, TS-JEPA maintains an empirical false-positive r
 
 Two methodological trade-offs govern these results:
 First, the false-alarm reduction under strict causality comes at the expense of early event capture. TS-JEPA detects $10.7\%$ of anomaly events within $\tau \le 64$ steps under causal streaming, compared to $22.9\%$ for TimesNet and $32.9\%$ for TranAD.
-Second, when strictly causal inference is evaluated under held-out calibration across the full 33 streams, measured nominal FPR drops to $0.47\%\text{--}1.13\%$ for the JEPA family (vs.\ $20.14\%\text{--}22.02\%$ for baselines), but Point-F1 reverses: TS-JEPA reaches $0.1132 \pm 0.0447$, Operator-Entropy reaches $0.1018 \pm 0.0041$, Reynolds-Stress reaches $0.0697 \pm 0.0406$, and Potential-Flow reaches $0.0275 \pm 0.0161$, compared to $0.1983 \pm 0.0194$ for TimesNet and $0.1321 \pm 0.0164$ for TranAD. Strictly causal latent scoring therefore represents an operational choice that suppresses false alarms at the cost of lower point-level F1 and delayed event recall.
+\input{sections/tab_causal_benchmark.tex}
+
+Table~\ref{tab:causal_benchmark} reports the complete 33-stream benchmark under strictly causal ($0$-lookahead) streaming. Across all 33 streams, unconstrained TS-JEPA reduces held-out nominal FPR to $0.0047$ (compared to $0.2202$ for TimesNet and $0.2014$ for TranAD), representing an out-of-sample false-alarm suppression of over $45$-fold. However, causal Point-F1 drops to $0.1132 \pm 0.0447$ for TS-JEPA and $0.1018 \pm 0.0041$ for Operator-Entropy, whereas TimesNet achieves $0.1983 \pm 0.0194$. Event recall likewise declines from $57.97\%$ (TimesNet) to $42.81\%$ (TS-JEPA). This confirms that without a prospective lookahead buffer to observe multi-step trajectory evolution, latent predictive scoring functions as an ultra-conservative filter that prevents false alarms at the price of reduced detection sensitivity.
 
 \subsection{Automated Threshold Calibration Realities on Non-Stationary Telemetry}
 \label{subsec:calibration_realities}
@@ -225,6 +227,13 @@ Table~\ref{tab:calibrator_comparison} reports a controlled comparison of thresho
     \item \textbf{Parity with Simple Empirical Quantiles:} Simple non-parametric quantile rules match or exceed the performance of SPOT. On TS-JEPA, taking the validation maximum yields an empirical held-out FPR of $0.0524$ and Point-F1 of $0.1922$, while an empirical 99.5th percentile rule yields an FPR of $0.0657$ and Point-F1 of $0.1942$. Parametric GPD tail modeling provides no demonstrable benefit over simple empirical percentiles on these benchmarks.
     \item \textbf{Failure of Kurtosis-Adaptive Calibration:} The kurtosis-adaptive multiplier rule ($\tau_{\text{eff}} = \tau(1 + \frac{1}{6}\tanh\gamma_2)$) substantially degrades nominal calibration. On TS-JEPA, it inflates held-out nominal FPR from $0.0517$ to $0.1880$ (with CI excluding $q$ rising from $57\%$ to $84\%$), while yielding an indistinguishable Point-F1 ($0.1947$ vs.\ $0.1929$). On Operator-Entropy, it raises nominal FPR from $0.0615$ to $0.1098$. Excess kurtosis measured in training splits does not accurately forecast non-stationary tail shifts on out-of-sample telemetry.
 \end{enumerate}
+
+\input{sections/tab_evt_sensitivity.tex}
+
+Table~\ref{tab:evt_sensitivity} provides a multi-parameter sensitivity analysis of the extreme-value calibration procedure across varying initial tail thresholds $u$, theoretical design risk levels $q$, and kurtosis-adaptive coefficients $\beta$. Three key findings emerge:
+First, varying the initial threshold from $u=0.95$ to $u=0.99$ produces negligible changes in out-of-sample test FPR ($17.27\%\text{--}17.36\%$) and Point-F1 ($0.1028\text{--}0.1030$), indicating that GPD tail estimates are stable with respect to initial tail percentile selection.
+Second, scaling the theoretical design risk $q$ by two orders of magnitude (from $10^{-2}$ to $10^{-4}$) shifts validation FPR from $0.0074$ to $0.00009$, but test FPR shifts by less than $1.7\%$ (from $18.95\%$ to $17.27\%$), demonstrating that operational distribution drift completely dominates the theoretical design parameter.
+Third, increasing the kurtosis adjustment coefficient $\beta$ systematically degrades performance: at $\beta=0.083$, held-out validation FPR jumps from $0.0019$ to $0.2778$, and at $\beta=0.50$, it collapses to $0.5403$ (test FPR $60.96\%$), flooding the system with alarms. Non-parametric validation rules (such as Max-of-Validation and Empirical 99.5th Percentile) achieve comparable or superior nominal calibration ($0.0000\text{--}0.0054$ validation FPR) without requiring parametric tail assumptions.
 
 \subsection{Computational Profile: Complexity, Latency, and Memory Footprint}
 \label{subsec:computational_profile}

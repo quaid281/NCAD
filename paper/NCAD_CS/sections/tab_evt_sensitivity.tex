@@ -1,0 +1,39 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Sensitivity Analysis of Extreme Value Theory (SPOT) Calibration Parameters across Benchmark Streams. We evaluate the sensitivity of empirical False Positive Rates (on held-out nominal validation splits and test sequences) and Point-F1 across initial tail quantiles $u \in \{0.95, 0.98, 0.99\}$, design risk parameters $q \in \{10^{-2}, 10^{-3}, 10^{-4}\}$, and kurtosis adaptation coefficients $\beta \in \{0.0, 0.083, 0.167, 0.25, 0.50\}$ alongside non-parametric baselines.}
+\label{tab:evt_sensitivity}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}l cccc c@{}}
+\toprule
+\textbf{Threshold Calibration Method} & \textbf{Design $q$} & \textbf{Tail $u$} & \textbf{Val FPR} & \textbf{Test FPR} & \textbf{Point-F1} \\
+\midrule
+\multicolumn{6}{l}{\textit{\textbf{Initial Tail Quantile and Risk Level Sensitivity (Static SPOT)}}} \\
+Static SPOT ($u=0.95, q=10^{-4}$)      & $10^{-4}$ & 0.95 & 0.00009 & 0.1727 & 0.1029 \\
+Static SPOT ($u=0.95, q=10^{-3}$)      & $10^{-3}$ & 0.95 & 0.00190 & 0.1762 & 0.1030 \\
+Static SPOT ($u=0.95, q=10^{-2}$)      & $10^{-2}$ & 0.95 & 0.00741 & 0.1895 & 0.1020 \\
+\addlinespace[2pt]
+Static SPOT ($u=0.98, q=10^{-4}$)      & $10^{-4}$ & 0.98 & 0.00009 & 0.1733 & 0.1028 \\
+Static SPOT ($u=0.98, q=10^{-3}$) (Baseline)& $10^{-3}$ & 0.98 & 0.00190 & 0.1764 & 0.1030 \\
+Static SPOT ($u=0.98, q=10^{-2}$)      & $10^{-2}$ & 0.98 & 0.00743 & 0.1886 & 0.1022 \\
+\addlinespace[2pt]
+Static SPOT ($u=0.99, q=10^{-4}$)      & $10^{-4}$ & 0.99 & 0.00017 & 0.1736 & 0.1030 \\
+Static SPOT ($u=0.99, q=10^{-3}$)      & $10^{-3}$ & 0.99 & 0.00210 & 0.1763 & 0.1029 \\
+Static SPOT ($u=0.99, q=10^{-2}$)      & $10^{-2}$ & 0.99 & 0.00703 & 0.1862 & 0.1029 \\
+\midrule
+\multicolumn{6}{l}{\textit{\textbf{Kurtosis-Adaptive Multiplier Sensitivity ($\tau_{\text{eff}} = \tau(1 + \beta\tanh\gamma_2)$)}}} \\
+Kurtosis-Adaptive ($\beta=0.000$, Standard) & $10^{-3}$ & 0.98 & 0.00190 & 0.1764 & 0.1030 \\
+Kurtosis-Adaptive ($\beta=0.083$)           & $10^{-3}$ & 0.98 & 0.27780 & 0.2241 & 0.0973 \\
+Kurtosis-Adaptive ($\beta=0.167$)           & $10^{-3}$ & 0.98 & 0.30463 & 0.2686 & 0.0964 \\
+Kurtosis-Adaptive ($\beta=0.250$)           & $10^{-3}$ & 0.98 & 0.33991 & 0.3813 & 0.0995 \\
+Kurtosis-Adaptive ($\beta=0.500$)           & $10^{-3}$ & 0.98 & 0.54032 & 0.6096 & 0.2560 \\
+Moors Quantile Kurtosis ($\beta=0.167$)     & $10^{-3}$ & 0.98 & 0.19350 & 0.1848 & 0.1024 \\
+\midrule
+\multicolumn{6}{l}{\textit{\textbf{Non-Parametric Validation Baselines}}} \\
+Max-of-Validation                           & --        & --   & \textbf{0.00000} & \textbf{0.1774} & 0.1029 \\
+Empirical 99.5th Percentile                 & --        & --   & 0.00544 & 0.1837 & 0.1028 \\
+Gaussian 3-Sigma ($\mu + 3\sigma$)          & --        & --   & 0.00882 & 0.1879 & 0.1016 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

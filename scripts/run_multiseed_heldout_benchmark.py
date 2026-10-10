@@ -262,7 +262,13 @@ def main():
     if a.models:
         MODELS = a.models
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    streams = [tuple(s.split(":")) for s in a.streams] if a.streams else STREAMS
+    if a.streams and len(a.streams) == 1 and Path(a.streams[0]).exists():
+        raw_streams = [line.strip() for line in Path(a.streams[0]).read_text().splitlines() if line.strip()]
+        streams = [tuple(s.split(":")) for s in raw_streams]
+    elif a.streams:
+        streams = [tuple(s.split(":")) for s in a.streams]
+    else:
+        streams = STREAMS
     rows = []
     for ds, ch in streams:
         try:

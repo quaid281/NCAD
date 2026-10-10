@@ -534,13 +534,13 @@ To isolate the individual contributions of each mathematical and architectural c
 
 \subsection{Ablation 1: Physical Regularizer Controls on Fixed Architectures}
 \label{subsec:controlled_ablations}
-To test whether the proposed physics-inspired regularizers provide measurable benefits over unconstrained latent prediction, Table~\ref{tab:ablations}(a) reports controlled ablations on a multi-seed subset of seven benchmark streams (SMAP \texttt{P-3}, \texttt{A-1}; MSL \texttt{M-1}, \texttt{C-1}; SMD \texttt{machine-1-2}, \texttt{machine-1-3}; Daphnet \texttt{S01R01E1}; evaluated across 3 seeds under the held-out calibration protocol). In each comparison, the neural backbone is held strictly constant while the specific physical loss term or inductive module is disabled:
+To test whether the proposed physics-inspired regularizers provide measurable benefits over unconstrained latent prediction, Table~\ref{tab:ablations}(a) reports controlled ablations across all 19 non-GHL benchmark streams spanning six physical domains (Daphnet, MSL, SMAP, Genesis, Metro, and SWAN; evaluated across 3 seeds under the held-out calibration protocol). In each comparison, the neural backbone is held strictly constant while the specific physical loss term or inductive module is disabled:
 \begin{enumerate}
-    \item \textbf{Operator-Entropy vs. $\lambda_{\text{ent}}=0$ Control:} Disabling the spectral entropy regularizer ($\lambda_{\text{ent}}=0$) leaves Point-F1 unchanged ($0.018 \pm 0.019$ vs. $0.017 \pm 0.015$, difference $+0.001$, $95\%$ bootstrap interval $[-0.006, +0.009]$, Wilcoxon $p=1.00$). Both variants maintain PR-AUC around $0.155\text{--}0.156$.
-    \item \textbf{Reynolds-Stress vs. $\alpha_{\text{stress}}=0$ Control:} Disabling the second-moment stress loss ($\alpha_{\text{stress}}=0$) yields $0.033 \pm 0.035$ Point-F1 compared to $0.017 \pm 0.012$ with the stress loss active. Scoring via the mean predictive discrepancy alone yields $0.040 \pm 0.022$. Neither difference exceeds random seed variation ($p \ge 0.375$).
-    \item \textbf{Potential-Flow vs. No-Regime Control:} Disabling multi-subspace regime routing ($K_r=1$) yields $0.068 \pm 0.082$ Point-F1 compared to $0.074 \pm 0.069$ with routing active (difference $+0.006$, interval $[-0.022, +0.032]$, $p=0.58$).
+    \item \textbf{Operator-Entropy vs. $\lambda_{\text{ent}}=0$ Control:} Disabling the spectral entropy regularizer ($\lambda_{\text{ent}}=0$) leaves Point-F1 unchanged ($0.241 \pm 0.014$ vs. $0.244 \pm 0.024$, difference $-0.003$, $95\%$ bootstrap interval $[-0.011, +0.005]$, Wilcoxon $p=0.62$). Both variants maintain PR-AUC around $0.347\text{--}0.348$.
+    \item \textbf{Reynolds-Stress vs. $\alpha_{\text{stress}}=0$ Control:} Disabling the second-moment stress loss ($\alpha_{\text{stress}}=0$) yields $0.203 \pm 0.059$ Point-F1 compared to $0.208 \pm 0.071$ with the stress loss active (difference $+0.005$, interval $[-0.006, +0.016]$, $p=0.41$). Neither difference exceeds random seed variation ($p = 0.41$).
+    \item \textbf{Potential-Flow vs. No-Regime Control:} Disabling multi-subspace regime routing ($K_r=1$) yields $0.129 \pm 0.061$ Point-F1 compared to $0.096 \pm 0.026$ with routing active (difference $-0.033$, interval $[-0.060, -0.010]$, $p=0.048$). Both underperform unconstrained TS-JEPA ($0.254 \pm 0.015, p=0.020$).
 \end{enumerate}
-These controlled ablations demonstrate that the physical regularizers do not produce statistically detectable improvements over unconstrained latent prediction on telemetry.
+These controlled ablations across the full 19-stream suite demonstrate that the physical regularizers do not produce statistically detectable improvements over unconstrained latent prediction on telemetry.
 
 \subsection{Ablation 2: Coordinate Saliency Gating in High-Dimensional Sensor Arrays}
 In high-dimensional telemetry ($K \ge 25$), anomalous faults typically originate in a localized subsystem (e.g., a single valve or battery cell). In standard latent pooling:
@@ -576,7 +576,7 @@ Table~\ref{tab:ablations}(d) isolates the effect of different calibration rules 
 
 \begin{table*}[t]
 \centering
-\caption{Systematic Ablation Studies across Multi-Domain Telemetry Benchmarks. Panel (a) reports matched-capacity regularizer controls on fixed neural architectures across a 7-stream multi-seed subset (3 seeds; Point-F1 is stream-macro mean $\pm$ seed SD; held-out FPR is measured on nominal data the threshold never saw). Panel (b) isolates Coordinate Saliency Gating across multivariate sensor dimensions $K$. Panel (c) tests Littlewood-Paley Dyadic Wavelet Shells. Panel (d) compares threshold calibration strategies on held-out nominal telemetry splits.\label{tab:ablations}}
+\caption{Systematic Ablation Studies across Multi-Domain Telemetry Benchmarks. Panel (a) reports matched-capacity regularizer controls on fixed neural architectures across all 19 non-GHL benchmark streams (3 seeds; Point-F1 is stream-macro mean $\pm$ seed SD; held-out FPR is measured on nominal data the threshold never saw). Panel (b) isolates Coordinate Saliency Gating across multivariate sensor dimensions $K$. Panel (c) tests Littlewood-Paley Dyadic Wavelet Shells. Panel (d) compares threshold calibration strategies on held-out nominal telemetry splits.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
@@ -587,17 +587,16 @@ Table~\ref{tab:ablations}(d) isolates the effect of different calibration rules 
 \toprule
 \textbf{Model / Control} & \textbf{Point-F1 (buffered)} & \textbf{PR-AUC} & \textbf{Held-out FPR} & \textbf{Event Recall} \\
 \midrule
-TS-JEPA (Unconstrained) & $0.032 \pm 0.018$ & 0.137 & 0.047 & 0.099 \\
-Operator-Entropy JEPA & $0.018 \pm 0.019$ & 0.156 & 0.064 & 0.107 \\
-\quad $\lambda_{\text{ent}}=0$ control & $0.017 \pm 0.015$ & 0.155 & 0.080 & 0.131 \\
-Reynolds-Stress JEPA & $0.017 \pm 0.012$ & 0.156 & 0.042 & 0.149 \\
-\quad mean-only score & $0.040 \pm 0.022$ & 0.158 & 0.052 & 0.228 \\
-\quad $\alpha_{\text{stress}}=0$ control & $0.033 \pm 0.035$ & 0.144 & 0.042 & 0.161 \\
-Potential-Flow JEPA & $0.074 \pm 0.069$ & 0.170 & 0.051 & 0.307 \\
-\quad no-regime control & $0.068 \pm 0.082$ & 0.171 & 0.049 & 0.220 \\
+TS-JEPA (Unconstrained) & $0.254 \pm 0.015$ & 0.333 & 0.066 & 0.498 \\
+Operator-Entropy JEPA & $0.241 \pm 0.014$ & 0.348 & 0.079 & 0.498 \\
+\quad $\lambda_{\text{ent}}=0$ control & $0.244 \pm 0.024$ & 0.347 & 0.083 & 0.518 \\
+Reynolds-Stress JEPA & $0.208 \pm 0.071$ & 0.321 & 0.076 & 0.398 \\
+\quad $\alpha_{\text{stress}}=0$ control & $0.203 \pm 0.059$ & 0.311 & 0.066 & 0.414 \\
+Potential-Flow JEPA & $0.096 \pm 0.026$ & 0.205 & 0.097 & 0.331 \\
+\quad no-regime control ($K_r=1$) & $0.129 \pm 0.061$ & 0.265 & 0.081 & 0.392 \\
 \midrule
-TimesNet (Baseline) & $0.157 \pm 0.030$ & 0.355 & 0.356 & 0.728 \\
-TranAD (Baseline) & $0.161 \pm 0.007$ & 0.390 & 0.449 & 0.691 \\
+TimesNet (Baseline) & $0.207 \pm 0.014$ & 0.336 & 0.297 & 0.586 \\
+TranAD (Baseline) & $0.131 \pm 0.005$ & 0.291 & 0.309 & 0.481 \\
 \bottomrule
 \end{tabular}%
 }
@@ -776,7 +775,7 @@ The empirical data across all 33 streams refute this hypothesis:
     \item \textbf{Potential-Flow vs. TS-JEPA:} Potential-Flow performs significantly worse than unconstrained TS-JEPA across both calibrated Point-F1 (paired difference $-0.091$, $95\%$ CI $[-0.178, -0.019]$, $p=0.020$) and continuous ranking PR-AUC (paired difference $-0.076$, $95\%$ CI $[-0.142, -0.019]$, $p=0.039$). Potential-Flow outperforms TS-JEPA on only 5 of 33 streams.
 \end{enumerate}
 
-These findings align with the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}: holding the neural backbone constant while disabling the spectral entropy loss, Reynolds stress loss, or subspace regime routing produces changes well within seed noise ($p \ge 0.375$). We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
+These findings align with the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}: holding the neural backbone constant across all 19 non-GHL benchmark streams while disabling the spectral entropy loss ($\Delta F_1 = -0.003, p=0.62$) or Reynolds stress loss ($\Delta F_1 = +0.005, p=0.41$) produces changes well within seed noise ($p \ge 0.408$). We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
 
 \subsection{Mathematical Diagnostics of Physical Regularizers}
 \label{subsec:physics_diagnostics}
@@ -934,7 +933,9 @@ Under strictly causal streaming, TS-JEPA maintains an empirical false-positive r
 
 Two methodological trade-offs govern these results:
 First, the false-alarm reduction under strict causality comes at the expense of early event capture. TS-JEPA detects $10.7\%$ of anomaly events within $\tau \le 64$ steps under causal streaming, compared to $22.9\%$ for TimesNet and $32.9\%$ for TranAD.
-Second, when strictly causal inference is evaluated under held-out calibration across the full 33 streams, measured nominal FPR drops to $0.47\%\text{--}1.13\%$ for the JEPA family (vs.\ $20.14\%\text{--}22.02\%$ for baselines), but Point-F1 reverses: TS-JEPA reaches $0.1132 \pm 0.0447$, Operator-Entropy reaches $0.1018 \pm 0.0041$, Reynolds-Stress reaches $0.0697 \pm 0.0406$, and Potential-Flow reaches $0.0275 \pm 0.0161$, compared to $0.1983 \pm 0.0194$ for TimesNet and $0.1321 \pm 0.0164$ for TranAD. Strictly causal latent scoring therefore represents an operational choice that suppresses false alarms at the cost of lower point-level F1 and delayed event recall.
+\input{sections/tab_causal_benchmark.tex}
+
+Table~\ref{tab:causal_benchmark} reports the complete 33-stream benchmark under strictly causal ($0$-lookahead) streaming. Across all 33 streams, unconstrained TS-JEPA reduces held-out nominal FPR to $0.0047$ (compared to $0.2202$ for TimesNet and $0.2014$ for TranAD), representing an out-of-sample false-alarm suppression of over $45$-fold. However, causal Point-F1 drops to $0.1132 \pm 0.0447$ for TS-JEPA and $0.1018 \pm 0.0041$ for Operator-Entropy, whereas TimesNet achieves $0.1983 \pm 0.0194$. Event recall likewise declines from $57.97\%$ (TimesNet) to $42.81\%$ (TS-JEPA). This confirms that without a prospective lookahead buffer to observe multi-step trajectory evolution, latent predictive scoring functions as an ultra-conservative filter that prevents false alarms at the price of reduced detection sensitivity.
 
 \subsection{Automated Threshold Calibration Realities on Non-Stationary Telemetry}
 \label{subsec:calibration_realities}
@@ -950,6 +951,13 @@ Table~\ref{tab:calibrator_comparison} reports a controlled comparison of thresho
     \item \textbf{Parity with Simple Empirical Quantiles:} Simple non-parametric quantile rules match or exceed the performance of SPOT. On TS-JEPA, taking the validation maximum yields an empirical held-out FPR of $0.0524$ and Point-F1 of $0.1922$, while an empirical 99.5th percentile rule yields an FPR of $0.0657$ and Point-F1 of $0.1942$. Parametric GPD tail modeling provides no demonstrable benefit over simple empirical percentiles on these benchmarks.
     \item \textbf{Failure of Kurtosis-Adaptive Calibration:} The kurtosis-adaptive multiplier rule ($\tau_{\text{eff}} = \tau(1 + \frac{1}{6}\tanh\gamma_2)$) substantially degrades nominal calibration. On TS-JEPA, it inflates held-out nominal FPR from $0.0517$ to $0.1880$ (with CI excluding $q$ rising from $57\%$ to $84\%$), while yielding an indistinguishable Point-F1 ($0.1947$ vs.\ $0.1929$). On Operator-Entropy, it raises nominal FPR from $0.0615$ to $0.1098$. Excess kurtosis measured in training splits does not accurately forecast non-stationary tail shifts on out-of-sample telemetry.
 \end{enumerate}
+
+\input{sections/tab_evt_sensitivity.tex}
+
+Table~\ref{tab:evt_sensitivity} provides a multi-parameter sensitivity analysis of the extreme-value calibration procedure across varying initial tail thresholds $u$, theoretical design risk levels $q$, and kurtosis-adaptive coefficients $\beta$. Three key findings emerge:
+First, varying the initial threshold from $u=0.95$ to $u=0.99$ produces negligible changes in out-of-sample test FPR ($17.27\%\text{--}17.36\%$) and Point-F1 ($0.1028\text{--}0.1030$), indicating that GPD tail estimates are stable with respect to initial tail percentile selection.
+Second, scaling the theoretical design risk $q$ by two orders of magnitude (from $10^{-2}$ to $10^{-4}$) shifts validation FPR from $0.0074$ to $0.00009$, but test FPR shifts by less than $1.7\%$ (from $18.95\%$ to $17.27\%$), demonstrating that operational distribution drift completely dominates the theoretical design parameter.
+Third, increasing the kurtosis adjustment coefficient $\beta$ systematically degrades performance: at $\beta=0.083$, held-out validation FPR jumps from $0.0019$ to $0.2778$, and at $\beta=0.50$, it collapses to $0.5403$ (test FPR $60.96\%$), flooding the system with alarms. Non-parametric validation rules (such as Max-of-Validation and Empirical 99.5th Percentile) achieve comparable or superior nominal calibration ($0.0000\text{--}0.0054$ validation FPR) without requiring parametric tail assumptions.
 
 \subsection{Computational Profile: Complexity, Latency, and Memory Footprint}
 \label{subsec:computational_profile}
