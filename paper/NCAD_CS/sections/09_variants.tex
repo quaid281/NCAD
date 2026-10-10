@@ -120,6 +120,7 @@ Kurtosis Multiplier ($\beta=0.167$) & 0.188 & 0.231 & 0.224 \\
 \end{table*}
 
 \subsection{Controlled Backbone Comparison: Latent Space vs. Observation Space}
+\label{subsec:controlled_backbone}
 A foundational hypothesis of this investigation is that predicting dynamics in a contracted latent representation space produces residual distributions that are fundamentally better conditioned for automated extreme-value thresholding than residuals derived from raw observation-space reconstruction or forecasting. However, directly contrasting full-featured JEPA models against existing public baselines (e.g., TimesNet, TranAD) introduces potential architectural confounding from differing receptive fields, encoder depths, normalization schemes, and pooling operations.
 
 To eliminate these confounding factors, Table~\ref{tab:controlled_backbone} evaluates three architectural formulations under a strictly unified \texttt{HybridTCNEncoder} backbone ($C=256, S=64$, latent dimension $d=32$, 3-layer dilated causal TCN with 48 filters, LayerNorm, GELU, and temporal pooling):
@@ -130,41 +131,43 @@ To eliminate these confounding factors, Table~\ref{tab:controlled_backbone} eval
 \end{enumerate}
 All models are trained for 10 epochs using AdamW ($\text{lr}=10^{-3}$) with batch size 16 and calibrated via Kurtosis-Adaptive EVT ($u=0.98, \alpha=10^{-3}$) on a held-out 20\% nominal validation split of the training telemetry.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \small
 \caption{Controlled same-backbone experiment isolating prediction space under identical \texttt{HybridTCNEncoder} ($C=256, S=64, d=32$). Reported values are dataset-macro means across fifteen diverse benchmark streams across ten domains (NASA SMAP: \texttt{P-3}, \texttt{A-1}; NASA MSL: \texttt{M-1}, \texttt{C-1}; SMD: \texttt{machine-1-2}, \texttt{machine-1-3}; PSM: \texttt{default}; SWAN: \texttt{sf}; GECCO: \texttt{water\_quality}; Daphnet: \texttt{S01R01E1}, \texttt{S02R01E0}; CalIt2: \texttt{traffic}; Room Occupancy: \texttt{default}; Genesis: \texttt{default}; OPPORTUNITY: \texttt{S1-ADL2}) under clean telemetry and additive jitter noise injection ($\text{SNR} \in \{\infty, 20\text{ dB}, 10\text{ dB}, 0\text{ dB}\}$).}
 \label{tab:controlled_backbone}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}llcccc@{}}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}llcccccc@{}}
 \toprule
-\textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} \\
+\textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} & \textbf{Point-F1} & \textbf{Recall} \\
 \midrule
 \multirow{4}{*}{\textbf{TCN-Obs-Recon}} 
- & Clean ($\infty$) & 6.09 & 57.26 & 27.29\% & 10,554.7 \\
- & 20 dB            & 6.09 & 57.23 & 27.47\% & 10,587.1 \\
- & 10 dB            & 6.09 & 57.14 & 32.08\% & 11,168.1 \\
- & 0 dB             & 6.09 & 57.09 & 54.10\% & 17,318.2 \\
+ & Clean ($\infty$) & 6.09 & 57.26 & 27.29\% & 10,554.7 & 0.1977 & 0.4330 \\
+ & 20 dB            & 6.09 & 57.23 & 27.47\% & 10,587.1 & 0.1975 & 0.4337 \\
+ & 10 dB            & 6.09 & 57.14 & 32.08\% & 11,168.1 & 0.1904 & 0.4546 \\
+ & 0 dB             & 6.09 & 57.09 & 54.10\% & 17,318.2 & 0.2184 & 0.6400 \\
 \midrule
 \multirow{4}{*}{\textbf{TCN-Obs-Pred}} 
- & Clean ($\infty$) & 6.00 & 55.66 & 27.57\% & 10,455.2 \\
- & 20 dB            & 6.00 & 56.09 & 27.93\% & 10,505.6 \\
- & 10 dB            & 6.00 & 56.00 & 32.46\% & 11,025.9 \\
- & 0 dB             & 6.00 & 55.66 & 50.98\% & 15,558.5 \\
+ & Clean ($\infty$) & 6.00 & 55.66 & 27.57\% & 10,455.2 & 0.1916 & 0.4315 \\
+ & 20 dB            & 6.00 & 56.09 & 27.93\% & 10,505.6 & 0.1915 & 0.4328 \\
+ & 10 dB            & 6.00 & 56.00 & 32.46\% & 11,025.9 & 0.1984 & 0.4619 \\
+ & 0 dB             & 6.00 & 55.66 & 50.98\% & 15,558.5 & 0.2188 & 0.6414 \\
 \midrule
 \multirow{4}{*}{\textbf{TS-JEPA (Ours)}} 
- & Clean ($\infty$) & \textbf{0.88} & \textbf{1.77} & \textbf{11.80\%} & \textbf{3,949.5} ($\downarrow 62.6\%$) \\
- & 20 dB            & \textbf{0.88} & \textbf{1.67} & \textbf{12.25\%} & \textbf{4,061.3} \\
- & 10 dB            & \textbf{0.88} & \textbf{1.54} & \textbf{12.72\%} & \textbf{4,248.9} \\
- & 0 dB             & \textbf{0.88} & \textbf{1.53} & \textbf{13.94\%} & \textbf{4,269.0} \\
+ & Clean ($\infty$) & \textbf{0.88} & \textbf{1.77} & \textbf{11.80\%} & \textbf{3,949.5} ($\downarrow 62.6\%$) & 0.0785 & 0.1460 \\
+ & 20 dB            & \textbf{0.88} & \textbf{1.67} & \textbf{12.25\%} & \textbf{4,061.3} & 0.0741 & 0.1407 \\
+ & 10 dB            & \textbf{0.88} & \textbf{1.54} & \textbf{12.72\%} & \textbf{4,248.9} & 0.0691 & 0.1300 \\
+ & 0 dB             & \textbf{0.88} & \textbf{1.53} & \textbf{13.93\%} & \textbf{4,269.0} & 0.0670 & 0.1551 \\
 \bottomrule
 \end{tabular}%
 }
-\end{table}
+\end{table*}
 
-\noindent\textbf{Tail Conditioning and False Alarm Suppression:} As reported in Table~\ref{tab:controlled_backbone}, observation-space models exhibit severe excess kurtosis across the fifteen benchmark streams ($\gamma_2 = 55.66\text{--}57.26$), driven by point-level measurement jitter and localized sensor noise. This heavy-tail inflation forces EVT thresholding into substantial miscalibration, yielding empirical false positive rates of $27.3\%\text{--}27.6\%$ and generating over $10,400$ false alarms per stream. Conversely, \texttt{TS-JEPA} projects telemetry into a normalized latent manifold, compressing high-frequency observation noise and yielding near-Gaussian test residuals ($\gamma_2 = 1.77$, a $>32\times$ reduction in tail weight). Consequently, EVT establishes tight, stable thresholds, reducing the empirical false positive rate to $11.80\%$ and eliminating over $6,500$ false alarms per stream (a $62.6\%$ reduction).
+\noindent\textbf{Observation Reconstruction vs. Observation Forecasting:} A central question is whether the reduction in false alarms stems from forecasting upcoming dynamics rather than reconstructing full windows, or whether it requires representation in latent space. The matched-backbone results in Table~\ref{tab:controlled_backbone} resolve this question. Comparing TCN-Obs-Recon and TCN-Obs-Pred reveals virtually identical tail statistics and false-positive rates: validation kurtosis is $6.09$ vs.\ $6.00$, test kurtosis is $57.26$ vs.\ $55.66$, and clean empirical FPR is $27.29\%$ vs.\ $27.57\%$. Two-sided Wilcoxon signed-rank tests across the 15 streams confirm that observation reconstruction and observation forecasting are statistically indistinguishable in clean FPR ($p = 0.6784$) and Point-F1 ($p = 1.0000$). Forecasting in raw observation space does not condition residual tails because residuals directly reflect sensor jitter and point-level noise.
 
-\noindent\textbf{Noise-Injection Robustness:} Under severe additive jitter ($\text{SNR}=0\text{ dB}$), observation-space residuals experience drastic variance inflation: empirical FPR nearly doubles for TCN-Obs-Recon ($27.29\% \to 54.10\%$, $+26.8$ percentage points). In stark contrast, \texttt{TS-JEPA} empirical FPR shifts by only $2.1$ percentage points ($11.80\% \to 13.94\%$), proving that latent joint-embedding architectures inherently filter high-frequency sensor perturbations across multi-domain physical telemetry.
+\noindent\textbf{Latent Space Projection and Tail Compression:} Shifting the predictive loss to latent representation space (\texttt{TS-JEPA}) fundamentally alters the residual distribution. Test excess kurtosis drops from $55.66$ to $1.77$ (a $>31\times$ reduction in tail weight), producing near-Gaussian residuals. Under held-out EVT calibration, this tail compression significantly lowers the clean empirical false-positive rate from $27.57\%$ to $11.80\%$ (Wilcoxon $p = 0.0479$), eliminating over $6,500$ false alarms per stream. Under severe noise injection ($\text{SNR}=0\text{ dB}$), observation-space models experience a catastrophic failure in threshold calibration, with FPR surging past $50\%$ ($54.10\%$ for reconstruction, $50.98\%$ for forecasting). In contrast, \texttt{TS-JEPA} maintains an empirical FPR of $13.93\%$ ($p = 0.0026$), confirming that latent representations provide stability against external sensor perturbations.
+
+\noindent\textbf{The Operational Sensitivity Trade-Off:} The tail stability of latent prediction incurs a measurable operational trade-off in point-level detection sensitivity. As shown in Table~\ref{tab:controlled_backbone}, clean Point-F1 declines from $0.1916$ for TCN-Obs-Pred to $0.0785$ for TS-JEPA (Wilcoxon $p = 0.0054$), with point recall dropping from $0.4315$ to $0.1460$. Because the latent encoder condenses multi-channel sequences into semantic trajectory vectors, localized point anomalies that do not perturb macroscopic state evolution are filtered alongside noise. Latent prediction thus operates as a conservative state detector, suppressing false alarms at the price of reduced sensitivity to subtle, isolated point faults.
 
 \begin{table}[t]
 \centering

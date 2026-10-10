@@ -291,7 +291,7 @@ which strictly confines predictions to $\mathbb{S}_{++}^{d_s \times d_s}$ for al
 \end{equation}
 At inference time, the anomaly score combines the mean latent discrepancy and the fluctuation tensor residual via the coordinate-saliency gate (formalized in Section~\ref{subsec:scoring_function}). The stress term enters both the training loss and the test score. In Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a), controlled ablations that disable the stress loss and score terms show that this auxiliary second-moment objective yields no statistically detectable improvement over standard latent regression ($p \ge 0.375$).
 
-\subsubsection{Potential-Flow JEPA (Conservative Field Theory)}
+\subsubsection{Potential-Flow JEPA (Conservative Field Theory and Flow-Matching Derivation)}
 \label{subsubsec:potential_flow_jepa}
 Under the Helmholtz-Hodge decomposition theorem, any sufficiently smooth vector field $v \in C^1(\mathbb{R}^D, \mathbb{R}^D)$ can be resolved into an irrotational (curl-free) conservative potential gradient and a solenoidal (divergence-free) rotational field:
 \begin{equation}
@@ -301,11 +301,19 @@ In nominal physical equilibria, dissipative dynamical systems relax toward local
 \begin{equation}
     \dot{z}(\tau) = -\nabla_z \Phi_\psi(z(\tau)),
 \end{equation}
-where $\Phi_\psi: \mathbb{R}^D \to \mathbb{R}$ is a scalar potential network parameterized with smooth $C^2$ activation functions (e.g., SiLU). Along continuous trajectories of this autonomous system, the potential satisfies:
+where $\Phi_\psi: \mathbb{R}^D \to \mathbb{R}$ is a scalar potential network parameterized with smooth $C^2$ activation functions (e.g., SiLU).
+
+\begin{proposition}[Absence of Periodic Attractors in Gradient Flows]
+\label{prop:no_limit_cycles}
+Let $\dot{z} = -\nabla\Phi(z)$ be an autonomous gradient flow on $\mathbb{R}^D$ where $\Phi \in C^2(\mathbb{R}^D, \mathbb{R})$. There exist no non-constant periodic orbits.
+\end{proposition}
+\begin{proof}
+Suppose $\gamma(t)$ is a periodic orbit with period $T_p > 0$ such that $\gamma(t + T_p) = \gamma(t)$. Integrating the time derivative of $\Phi$ along the closed path yields:
 \begin{equation}
-    \frac{d}{d\tau} \Phi_\psi(z(\tau)) = \langle \nabla_z \Phi_\psi(z), \dot{z}(\tau) \rangle = -\|\nabla_z \Phi_\psi(z(\tau))\|_2^2 \le 0,
+    \int_0^{T_p} \frac{d\Phi(\gamma(t))}{dt} dt = \Phi(\gamma(T_p)) - \Phi(\gamma(0)) = 0.
 \end{equation}
-rendering $\Phi_\psi$ a strict Lyapunov function. Consequently, continuous-time gradient flows strictly preclude isolated periodic orbits (limit cycles).
+Applying the chain rule, $\frac{d\Phi(\gamma(t))}{dt} = \langle \nabla\Phi(\gamma(t)), \dot{\gamma}(t) \rangle = -\|\nabla\Phi(\gamma(t))\|_2^2 \le 0$. Since the integrand is non-positive, its integral can equal zero if and only if $\|\nabla\Phi(\gamma(t))\|_2 \equiv 0$ for all $t \in [0, T_p]$. Hence $\dot{\gamma}(t) \equiv \mathbf{0}$, meaning $\gamma(t)$ is an isolated fixed point, contradicting the assumption of a non-constant periodic orbit.
+\end{proof}
 
 \paragraph{Continuous Velocity Field and Multi-Subspace Regime Routing}
 Rather than parameterizing a discrete unconstrained displacement, the continuous velocity field is constructed as the negative gradient of a parameterized scalar potential field $\Phi_\psi$:
@@ -321,17 +329,31 @@ Discrete operational modes are captured via $K_r = 4$ learnable orthonormal subs
 During training, the subspace frames are regularized with an orthogonality separation loss $\mathcal{L}_{\text{subspace}} = \frac{2}{K_r(K_r-1)} \sum_{i < j} \|\mathbf{U}_i^\top \mathbf{U}_j\|_F^2$. In Section~\ref{subsec:controlled_ablations}, a single-regime control ($K_r=1$, $p_{\text{regime}} = \mathbf{0}$) evaluates performance when regime routing is disabled.
 
 \paragraph{Flow-Matching Objective, Numerical Midpoint Evaluation, and Dynamical Misspecification}
-We distinguish the continuous dynamical system from the empirical learning and inference objective. The theoretical Lyapunov dissipation argument applies to autonomous continuous gradient descent $\dot{z} = -\nabla\Phi(z)$. In contrast, our architecture trains $\hat{v} = -\nabla_{z_t}\Phi_\psi(z_t, t, z_{\text{ctx}}, p_{\text{regime}})$ via conditional flow matching (OT-CFM) along linear interpolation paths $z_t = (1-t)z_{\text{noise}} + t z_{\text{tgt}}$, where $t \sim \mathcal{U}(0, 1)$ and $z_{\text{noise}} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$:
+We distinguish the continuous dynamical system from the empirical learning and inference objective. The theoretical Lyapunov dissipation in Proposition~\ref{prop:no_limit_cycles} governs autonomous continuous gradient descent $\dot{z} = -\nabla\Phi(z)$. In contrast, our architecture trains the parameterized velocity field $\hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) = -\nabla_{z_t}\Phi_\psi(z_t, t, z_{\text{ctx}}, p_{\text{regime}})$ via conditional flow matching (OT-CFM) along linear interpolation paths between Gaussian noise $z_{\text{noise}} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and target latent representation $z_{\text{tgt}}$:
+\begin{equation}
+    z_t = (1-t)z_{\text{noise}} + t z_{\text{tgt}}, \quad t \sim \mathcal{U}(0, 1).
+\end{equation}
+The target conditional vector field along this optimal transport displacement interpolant is:
+\begin{equation}
+    v_t^*(z_t \mid z_{\text{tgt}}, z_{\text{noise}}) = \frac{d}{dt} z_t = z_{\text{tgt}} - z_{\text{noise}}.
+\end{equation}
+The conditional flow-matching training loss is:
 \begin{equation}
     \mathcal{L}_{\text{Pot-Flow}} = \mathbb{E}_{t, z_{\text{noise}}} \left[ \| \hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) - (z_{\text{tgt}} - z_{\text{noise}}) \|_2^2 \right].
 \end{equation}
-Under conditional flow matching with optimal transport paths, the conditional vector field along the interpolation is $u_t(z_t \mid z_{\text{tgt}}, z_{\text{noise}}) = z_{\text{tgt}} - z_{\text{noise}}$. Along the mean deterministic trajectory ($z_{\text{noise}} = \mathbf{0}$), the path simplifies to $z_t = t z_{\text{tgt}}$ and the reference target velocity is constant: $v_t^* = z_{\text{tgt}}$ for all $t \in [0, 1]$. At inference time, rather than numerically integrating an autonomous ODE across $t \in [0, 1]$, the detector queries the velocity field at the trajectory midpoint $t=0.5$ with state $z_{\text{eval}} = 0.5 z_{\text{tgt}}$:
+Along the deterministic mean trajectory ($z_{\text{noise}} = \mathbf{0}$), the interpolation simplifies to $z_t = t z_{\text{tgt}}$ and the reference target velocity is constant: $v_t^* = z_{\text{tgt}}$ for all $t \in [0, 1]$.
+
+At inference time, rather than numerically integrating an ODE from $t=0$ to $t=1$ via multi-step numerical solvers, the detector queries the velocity field at the trajectory midpoint $t=0.5$ with state $z_{\text{eval}} = 0.5 z_{\text{tgt}}$:
 \begin{equation}
     \mathbf{e}(t) = \hat{v}(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}, p_{\text{regime}}) - z_{\text{tgt}}.
 \end{equation}
-Because the reference target velocity along the mean path is $v_{0.5}^* = z_{\text{tgt}}$, this midpoint evaluation directly measures how closely the learned potential gradient reproduces the nominal target representation. This formulation matches the dimensionality ($D=32$) and Euclidean scale ($\mathcal{O}(1)$ under LayerNorm) of the unconstrained TS-JEPA residual $\mathbf{e}(t) = \hat{z}_{\text{tgt}} - z_{\text{tgt}}$. The anomaly score is computed by passing $\mathbf{e}(t)$ through the latent coordinate-saliency gate: $\mathcal{S}(t) = g(\mathbf{e}(t))$.
+Because the exact reference target velocity along the mean path is $v_{0.5}^* = z_{\text{tgt}}$, this midpoint evaluation directly measures the discrepancy between the learned potential gradient and the nominal target representation. This formulation matches the dimensionality ($D=32$) and Euclidean scale ($\mathcal{O}(1)$ under LayerNorm) of the unconstrained TS-JEPA residual $\mathbf{e}(t) = \hat{z}_{\text{tgt}} - z_{\text{tgt}}$. The anomaly score is computed by passing $\mathbf{e}(t)$ through the latent coordinate-saliency gate: $\mathcal{S}(t) = g(\mathbf{e}(t))$.
 
-Consequently, parameterizing $\hat{v} = -\nabla\Phi$ guarantees that the predicted velocity field is irrotational ($\nabla \times \hat{v} = \mathbf{0}$) at each instant of diffusion time $t$, but does not imply that the observed physical telemetry is conservative or governed by a potential function. In real industrial and biological telemetry characterized by periodic oscillations or limit cycles (such as gait rhythms in Daphnet), this irrotational restriction causes severe model misspecification, explaining why Potential-Flow JEPA underperforms unconstrained TS-JEPA ($F_1$ difference $-0.091, p=0.020$).
+\noindent\textbf{Dynamical Misspecification on Non-Conservative Telemetry:} Constraining the velocity field to be curl-free ($\nabla \times \hat{v} \equiv \mathbf{0}$) guarantees that the circulation along any closed path $\mathcal{C}$ in state space vanishes identically:
+\begin{equation}
+    \oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = -\oint_{\mathcal{C}} \nabla\Phi \cdot d\mathbf{r} = 0.
+\end{equation}
+While valid for purely dissipative physical equilibria, real-world multi-sensor telemetry routinely records non-conservative cyclic dynamics (such as motor revolutions, diurnal hydrological consumption cycles in GECCO, and periodic gait kinematics in Daphnet). Enforcing an irrotational velocity field creates fundamental dynamical misspecification by penalizing normal circulating orbits in representation space. This structural mismatch explains why Potential-Flow JEPA underperforms unconstrained TS-JEPA across our benchmark suite (paired Point-F1 difference $-0.091, p=0.020$).
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
@@ -342,32 +364,34 @@ During inference, sliding context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t
 For Reynolds-Stress JEPA, the score incorporates both the gated mean discrepancy and the gated fluctuation tensor residual: $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. All shared representation stages (causal coordinate saliency gating, Littlewood-Paley dyadic frequency shells, and LayerNorm) are held strictly fixed across all JEPA variants and ablation controls in Section~\ref{subsec:controlled_ablations} to isolate the effects of the predictive regularizers.
 
 \noindent\textbf{Operational Distinction: Zero-Lookahead Causal Filtering vs. Buffered Predictive Early Warning.}
-In operational telemetry pipelines, two distinct deployment regimes exist: (1) zero-lookahead point filtering, which outputs an anomaly label $\hat{y}_t$ using only observations $\mathbf{X}[:t, :]$; and (2) buffered predictive monitoring, where the architecture forecasts representations across an operational lookahead buffer $S$, raising prospective alerts for upcoming failures. TS-JEPA operates under regime (2): given historical context $x_{\text{ctx}} = \mathbf{X}[t-C:t, :]$, it projects future latent trajectory $\hat{z}_{\text{tgt}}$ over $[t, t+S]$. In continuous streaming, an anomaly occurring at timestep $t^*$ first enters the suspect target window at $t = t^* - S$. Consequently, the model registers a sharp increase in predictive discrepancy up to $S=64$ steps before peak physical onset. In our benchmark, we enforce strict unadjusted point-level evaluation at each decision time $t$ ($\text{stride}=1$). Because ground-truth point labels are strictly aligned to the physical anomaly window $[t^*, t^* + L]$, early warnings generated during the pre-onset interval $[t^* - S, t^*]$ are formally scored as point-level false alarms ($FP$). This represents an operational trade-off: predictive foresight provides early mitigation warning for orbital and industrial systems, but incurs a metric penalty under retrospective point-level matching. In operational incident analysis (Section VII.D), we also evaluate \textit{Middle} alignment, where the anomaly score is centered at $t + S/2$ to balance pre-onset and post-onset window overlap. Baseline models (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD) are evaluated under the exact identical sliding-window evaluation protocol, lookahead horizon, and standardization.
+In operational telemetry pipelines, two distinct deployment regimes exist: (1) zero-lookahead point filtering, which outputs an anomaly label $\hat{y}_t$ using only observations available up to time $t$; and (2) buffered predictive monitoring, where the architecture forecasts representations across an operational lookahead buffer $S$, raising prospective alerts for upcoming failures. TS-JEPA operates under regime (2): given historical context $x_{\text{ctx}} = \mathbf{X}[t-C:t, :]$, it projects future latent trajectory $\hat{z}_{\text{tgt}}$ over $[t, t+S]$. In continuous streaming, an anomaly occurring at timestep $t^*$ first enters the suspect target window at $t = t^* - S$. Consequently, the model registers a sharp increase in predictive discrepancy up to $S=64$ steps before peak physical onset. In our benchmark, we enforce strict unadjusted point-level evaluation at each decision time $t$ ($\text{stride}=1$). Because ground-truth point labels are strictly aligned to the physical anomaly window $[t^*, t^* + L]$, early warnings generated during the pre-onset interval $[t^* - S, t^*]$ are formally scored as point-level false alarms ($FP$). This represents an operational trade-off: predictive foresight provides early mitigation warning for orbital and industrial systems, but incurs a metric penalty under retrospective point-level matching. In operational incident analysis (Section VII.D), we also evaluate \textit{Middle} alignment, where the anomaly score is centered at $t + S/2$ to balance pre-onset and post-onset window overlap. Baseline models (TimesNet, TranAD, Anomaly Transformer, DCdetector, and NCAD) are evaluated under the exact identical sliding-window evaluation protocol, lookahead horizon, and standardization.
 
 \begin{algorithm}[t]
 \caption{Streaming Anomaly Scoring and Decision Calibration}
 \label{alg:scoring_protocol}
 \begin{algorithmic}[1]
-\Require Streaming telemetry $\mathbf{X} \in \mathbb{R}^{T \times K}$, context horizon $C=256$, suspect horizon $S=64$, deployment mode $\mathcal{M} \in \{\text{Causal}, \text{Buffered}\}$, calibrator $\mathcal{C}_{\text{EVT}}$ fit to nominal residuals.
+\Require Streaming telemetry $\mathbf{X} \in \mathbb{R}^{T \times K}$, filtration $\mathcal{F}_t = \sigma(\mathbf{X}[1:t, :])$, context horizon $C=256$, suspect horizon $S=64$, deployment mode $\mathcal{M} \in \{\text{Causal}, \text{Buffered}\}$, calibrator $\mathcal{C}_{\text{EVT}}$ fit to nominal residuals.
 \Ensure Point-level alarm stream $\hat{y}_t \in \{0, 1\}$ for $t \in [C, T]$.
 \State Initialize score buffer $\mathbf{s} \in \mathbb{R}^T \leftarrow \mathbf{0}$, hit counts $\mathbf{c} \in \mathbb{R}^T \leftarrow \mathbf{0}$.
 \For{$t = C$ \textbf{to} $T - S$}
-    \State Extract historical context: $\mathbf{x}_{\text{ctx}} \leftarrow \mathbf{X}[t - C : t, :]$
+    \State Extract historical context: $\mathbf{x}_{\text{ctx}} \leftarrow \mathbf{X}[t - C : t, :]$ \Comment{$\mathcal{F}_t$-measurable}
     \State Apply causal saliency gating: $\tilde{\mathbf{x}}_{\text{ctx}} \leftarrow \mathbf{x}_{\text{ctx}} \odot \mathbf{g}(\mathbf{x}_{\text{ctx}})$ \Comment{Zero target leakage}
     \State Encode latent context: $z_{\text{ctx}} \leftarrow E_\theta(\tilde{\mathbf{x}}_{\text{ctx}})$
     \State Forecast future latent representation: $\hat{z}_{\text{tgt}} \leftarrow P_\psi(z_{\text{ctx}})$
-    \State Extract prospective suspect horizon: $\mathbf{x}_{\text{tgt}} \leftarrow \mathbf{X}[t : t + S, :]$
-    \State Encode target representation: $z_{\text{tgt}} \leftarrow E_{\bar{\theta}}(\mathbf{x}_{\text{tgt}} \odot \mathbf{g}(\mathbf{x}_{\text{ctx}}))$
-    \State Compute latent predictive discrepancy: $\mathcal{D}_t \leftarrow \|\hat{z}_{\text{tgt}} - z_{\text{tgt}}\|_2^2$
     \If{$\mathcal{M} = \text{Causal}$ \textbf{($0$-Lookahead Delay)}}
-        \State Assign score strictly to current observed step: $s_t \leftarrow \mathcal{D}_t$
-        \State $\hat{y}_t \leftarrow \mathbb{I}(s_t > \tau_{\text{eff}})$ \Comment{Zero future delay}
+        \State Target is trailing window: $\mathbf{x}_{\text{tgt}}^{\text{causal}} \leftarrow \mathbf{X}[t - S : t, :]$ \Comment{Strictly $\mathcal{F}_t$-measurable}
+        \State Encode target: $z_{\text{tgt}} \leftarrow E_{\bar{\theta}}(\mathbf{x}_{\text{tgt}}^{\text{causal}} \odot \mathbf{g}(\mathbf{x}_{\text{ctx}}))$
+        \State Compute trailing predictive discrepancy: $s_t \leftarrow \|\hat{z}_{\text{tgt}} - z_{\text{tgt}}\|_2^2$
+        \State $\hat{y}_t \leftarrow \mathbb{I}(s_t > \tau_{\text{eff}})$ \Comment{Instantaneous decision at timestamp $t$}
     \ElsIf{$\mathcal{M} = \text{Buffered}$ \textbf{($S$-Lookahead Delay)}}
+        \State Extract prospective suspect horizon: $\mathbf{x}_{\text{tgt}} \leftarrow \mathbf{X}[t : t + S, :]$ \Comment{$\mathcal{F}_{t+S}$-measurable}
+        \State Encode target representation: $z_{\text{tgt}} \leftarrow E_{\bar{\theta}}(\mathbf{x}_{\text{tgt}} \odot \mathbf{g}(\mathbf{x}_{\text{ctx}}))$
+        \State Compute forward predictive discrepancy: $\mathcal{D}_t \leftarrow \|\hat{z}_{\text{tgt}} - z_{\text{tgt}}\|_2^2$
         \For{$\tau = t$ \textbf{to} $t + S - 1$}
             \State Accumulate suspect overlap: $s_\tau \leftarrow s_\tau + \mathcal{D}_t$, \quad $c_\tau \leftarrow c_\tau + 1$
         \EndFor
-        \State At lookahead finalization step $t$: $\bar{s}_t \leftarrow s_t / \max(c_t, 1)$
-        \State $\hat{y}_t \leftarrow \mathbb{I}(\bar{s}_t > \tau_{\text{eff}})$ \Comment{Buffered running average}
+        \State Finalize running average score at step $t$: $\bar{s}_t \leftarrow s_t / \max(c_t, 1)$
+        \State $\hat{y}_t \leftarrow \mathbb{I}(\bar{s}_t > \tau_{\text{eff}})$ \Comment{Finalized at timestamp $t+S$}
     \EndIf
 \EndFor
 \State \Return Binary alarm sequence $\hat{\mathbf{y}}$
@@ -446,7 +470,9 @@ In practical telemetry deployments, EVT cannot eliminate threshold calibration c
 \section{Experimental Protocol and Evaluation Metrics}
 \label{sec:exp}
 
-This section outlines the experimental setup, baseline architectures, and the multi-tier statistical evaluation protocol designed to prevent metric inflation.
+This section outlines the experimental setup, baseline architectures, master experiment matrix, and the multi-tier statistical evaluation protocol designed to prevent metric inflation.
+
+\input{sections/tab_master_matrix.tex}
 
 \subsection{Experimental Setup and Hyperparameters}
 \label{subsec:exp_setup}
@@ -465,8 +491,13 @@ To evaluate out-of-sample threshold calibration without circularity or test-labe
 \end{enumerate}
 In the primary benchmark, thresholds remain fixed during test evaluation to measure the stability of static extreme-value bounds under operational distribution drift. In operational incident analysis (Section~\ref{subsec:incident_metrics}), dynamic rolling SPOT is evaluated to examine adaptive tracking of baseline drift.
 
-\paragraph{Multi-Seed Replication and Statistical Significance}
-To account for initialization variance, all principal learned models on the non-GHL benchmark streams and controlled ablations are trained across three independent random seeds (42, 123, and 456). We report mean performance, seed standard deviations, moving-block bootstrap 95\% confidence intervals (preserving temporal autocorrelation within streams), and two-sided Wilcoxon signed-rank tests for paired stream-level differences. Differences with $p > 0.05$ are treated as statistically inconclusive rather than evidence of equivalence.
+\paragraph{Multi-Seed Replication, Primary Endpoints, and Multiplicity Controls}
+To account for initialization variance, all principal learned models on the non-GHL benchmark streams and controlled ablations are trained across three independent random seeds (42, 123, and 456). We define two co-primary hypothesis endpoints:
+\begin{enumerate}
+    \item \textbf{Nominal False-Positive Rate Reduction:} Evaluated via out-of-sample held-out nominal FPR to test whether latent prediction stabilizes automated EVT bounds against false-alarm flooding.
+    \item \textbf{Detection Parity:} Evaluated via unadjusted Point-F1 and continuous ranking PR-AUC to test whether false-alarm suppression is achieved without degrading discriminative detection.
+\end{enumerate}
+For statistical inference, we report mean performance, seed standard deviations, moving-block bootstrap 95\% confidence intervals (block length $L=64$, preserving temporal autocorrelation within continuous streams), and two-sided Wilcoxon signed-rank tests for paired stream-level differences. To control the family-wise error rate across multiple pairwise comparisons against baselines and ablation controls, $p$-values are adjusted using the Benjamini-Hochberg False Discovery Rate (FDR) procedure with nominal rate $q_{\text{FDR}} = 0.05$. Paired differences where the 95\% bootstrap confidence interval spans zero or adjusted $p > 0.05$ are treated as statistically inconclusive rather than evidence of equivalence.
 
 \subsection{Baseline Architectures and Parameter Capacities}
 To isolate algorithmic principles from external implementation discrepancies, all baselines are executed within a unified PyTorch benchmarking pipeline under identical windowing, standardization, and EVT calibration:
@@ -649,6 +680,7 @@ Kurtosis Multiplier ($\beta=0.167$) & 0.188 & 0.231 & 0.224 \\
 \end{table*}
 
 \subsection{Controlled Backbone Comparison: Latent Space vs. Observation Space}
+\label{subsec:controlled_backbone}
 A foundational hypothesis of this investigation is that predicting dynamics in a contracted latent representation space produces residual distributions that are fundamentally better conditioned for automated extreme-value thresholding than residuals derived from raw observation-space reconstruction or forecasting. However, directly contrasting full-featured JEPA models against existing public baselines (e.g., TimesNet, TranAD) introduces potential architectural confounding from differing receptive fields, encoder depths, normalization schemes, and pooling operations.
 
 To eliminate these confounding factors, Table~\ref{tab:controlled_backbone} evaluates three architectural formulations under a strictly unified \texttt{HybridTCNEncoder} backbone ($C=256, S=64$, latent dimension $d=32$, 3-layer dilated causal TCN with 48 filters, LayerNorm, GELU, and temporal pooling):
@@ -659,41 +691,43 @@ To eliminate these confounding factors, Table~\ref{tab:controlled_backbone} eval
 \end{enumerate}
 All models are trained for 10 epochs using AdamW ($\text{lr}=10^{-3}$) with batch size 16 and calibrated via Kurtosis-Adaptive EVT ($u=0.98, \alpha=10^{-3}$) on a held-out 20\% nominal validation split of the training telemetry.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \small
 \caption{Controlled same-backbone experiment isolating prediction space under identical \texttt{HybridTCNEncoder} ($C=256, S=64, d=32$). Reported values are dataset-macro means across fifteen diverse benchmark streams across ten domains (NASA SMAP: \texttt{P-3}, \texttt{A-1}; NASA MSL: \texttt{M-1}, \texttt{C-1}; SMD: \texttt{machine-1-2}, \texttt{machine-1-3}; PSM: \texttt{default}; SWAN: \texttt{sf}; GECCO: \texttt{water\_quality}; Daphnet: \texttt{S01R01E1}, \texttt{S02R01E0}; CalIt2: \texttt{traffic}; Room Occupancy: \texttt{default}; Genesis: \texttt{default}; OPPORTUNITY: \texttt{S1-ADL2}) under clean telemetry and additive jitter noise injection ($\text{SNR} \in \{\infty, 20\text{ dB}, 10\text{ dB}, 0\text{ dB}\}$).}
 \label{tab:controlled_backbone}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}llcccc@{}}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}llcccccc@{}}
 \toprule
-\textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} \\
+\textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} & \textbf{Point-F1} & \textbf{Recall} \\
 \midrule
 \multirow{4}{*}{\textbf{TCN-Obs-Recon}} 
- & Clean ($\infty$) & 6.09 & 57.26 & 27.29\% & 10,554.7 \\
- & 20 dB            & 6.09 & 57.23 & 27.47\% & 10,587.1 \\
- & 10 dB            & 6.09 & 57.14 & 32.08\% & 11,168.1 \\
- & 0 dB             & 6.09 & 57.09 & 54.10\% & 17,318.2 \\
+ & Clean ($\infty$) & 6.09 & 57.26 & 27.29\% & 10,554.7 & 0.1977 & 0.4330 \\
+ & 20 dB            & 6.09 & 57.23 & 27.47\% & 10,587.1 & 0.1975 & 0.4337 \\
+ & 10 dB            & 6.09 & 57.14 & 32.08\% & 11,168.1 & 0.1904 & 0.4546 \\
+ & 0 dB             & 6.09 & 57.09 & 54.10\% & 17,318.2 & 0.2184 & 0.6400 \\
 \midrule
 \multirow{4}{*}{\textbf{TCN-Obs-Pred}} 
- & Clean ($\infty$) & 6.00 & 55.66 & 27.57\% & 10,455.2 \\
- & 20 dB            & 6.00 & 56.09 & 27.93\% & 10,505.6 \\
- & 10 dB            & 6.00 & 56.00 & 32.46\% & 11,025.9 \\
- & 0 dB             & 6.00 & 55.66 & 50.98\% & 15,558.5 \\
+ & Clean ($\infty$) & 6.00 & 55.66 & 27.57\% & 10,455.2 & 0.1916 & 0.4315 \\
+ & 20 dB            & 6.00 & 56.09 & 27.93\% & 10,505.6 & 0.1915 & 0.4328 \\
+ & 10 dB            & 6.00 & 56.00 & 32.46\% & 11,025.9 & 0.1984 & 0.4619 \\
+ & 0 dB             & 6.00 & 55.66 & 50.98\% & 15,558.5 & 0.2188 & 0.6414 \\
 \midrule
 \multirow{4}{*}{\textbf{TS-JEPA (Ours)}} 
- & Clean ($\infty$) & \textbf{0.88} & \textbf{1.77} & \textbf{11.80\%} & \textbf{3,949.5} ($\downarrow 62.6\%$) \\
- & 20 dB            & \textbf{0.88} & \textbf{1.67} & \textbf{12.25\%} & \textbf{4,061.3} \\
- & 10 dB            & \textbf{0.88} & \textbf{1.54} & \textbf{12.72\%} & \textbf{4,248.9} \\
- & 0 dB             & \textbf{0.88} & \textbf{1.53} & \textbf{13.94\%} & \textbf{4,269.0} \\
+ & Clean ($\infty$) & \textbf{0.88} & \textbf{1.77} & \textbf{11.80\%} & \textbf{3,949.5} ($\downarrow 62.6\%$) & 0.0785 & 0.1460 \\
+ & 20 dB            & \textbf{0.88} & \textbf{1.67} & \textbf{12.25\%} & \textbf{4,061.3} & 0.0741 & 0.1407 \\
+ & 10 dB            & \textbf{0.88} & \textbf{1.54} & \textbf{12.72\%} & \textbf{4,248.9} & 0.0691 & 0.1300 \\
+ & 0 dB             & \textbf{0.88} & \textbf{1.53} & \textbf{13.93\%} & \textbf{4,269.0} & 0.0670 & 0.1551 \\
 \bottomrule
 \end{tabular}%
 }
-\end{table}
+\end{table*}
 
-\noindent\textbf{Tail Conditioning and False Alarm Suppression:} As reported in Table~\ref{tab:controlled_backbone}, observation-space models exhibit severe excess kurtosis across the fifteen benchmark streams ($\gamma_2 = 55.66\text{--}57.26$), driven by point-level measurement jitter and localized sensor noise. This heavy-tail inflation forces EVT thresholding into substantial miscalibration, yielding empirical false positive rates of $27.3\%\text{--}27.6\%$ and generating over $10,400$ false alarms per stream. Conversely, \texttt{TS-JEPA} projects telemetry into a normalized latent manifold, compressing high-frequency observation noise and yielding near-Gaussian test residuals ($\gamma_2 = 1.77$, a $>32\times$ reduction in tail weight). Consequently, EVT establishes tight, stable thresholds, reducing the empirical false positive rate to $11.80\%$ and eliminating over $6,500$ false alarms per stream (a $62.6\%$ reduction).
+\noindent\textbf{Observation Reconstruction vs. Observation Forecasting:} A central question is whether the reduction in false alarms stems from forecasting upcoming dynamics rather than reconstructing full windows, or whether it requires representation in latent space. The matched-backbone results in Table~\ref{tab:controlled_backbone} resolve this question. Comparing TCN-Obs-Recon and TCN-Obs-Pred reveals virtually identical tail statistics and false-positive rates: validation kurtosis is $6.09$ vs.\ $6.00$, test kurtosis is $57.26$ vs.\ $55.66$, and clean empirical FPR is $27.29\%$ vs.\ $27.57\%$. Two-sided Wilcoxon signed-rank tests across the 15 streams confirm that observation reconstruction and observation forecasting are statistically indistinguishable in clean FPR ($p = 0.6784$) and Point-F1 ($p = 1.0000$). Forecasting in raw observation space does not condition residual tails because residuals directly reflect sensor jitter and point-level noise.
 
-\noindent\textbf{Noise-Injection Robustness:} Under severe additive jitter ($\text{SNR}=0\text{ dB}$), observation-space residuals experience drastic variance inflation: empirical FPR nearly doubles for TCN-Obs-Recon ($27.29\% \to 54.10\%$, $+26.8$ percentage points). In stark contrast, \texttt{TS-JEPA} empirical FPR shifts by only $2.1$ percentage points ($11.80\% \to 13.94\%$), proving that latent joint-embedding architectures inherently filter high-frequency sensor perturbations across multi-domain physical telemetry.
+\noindent\textbf{Latent Space Projection and Tail Compression:} Shifting the predictive loss to latent representation space (\texttt{TS-JEPA}) fundamentally alters the residual distribution. Test excess kurtosis drops from $55.66$ to $1.77$ (a $>31\times$ reduction in tail weight), producing near-Gaussian residuals. Under held-out EVT calibration, this tail compression significantly lowers the clean empirical false-positive rate from $27.57\%$ to $11.80\%$ (Wilcoxon $p = 0.0479$), eliminating over $6,500$ false alarms per stream. Under severe noise injection ($\text{SNR}=0\text{ dB}$), observation-space models experience a catastrophic failure in threshold calibration, with FPR surging past $50\%$ ($54.10\%$ for reconstruction, $50.98\%$ for forecasting). In contrast, \texttt{TS-JEPA} maintains an empirical FPR of $13.93\%$ ($p = 0.0026$), confirming that latent representations provide stability against external sensor perturbations.
+
+\noindent\textbf{The Operational Sensitivity Trade-Off:} The tail stability of latent prediction incurs a measurable operational trade-off in point-level detection sensitivity. As shown in Table~\ref{tab:controlled_backbone}, clean Point-F1 declines from $0.1916$ for TCN-Obs-Pred to $0.0785$ for TS-JEPA (Wilcoxon $p = 0.0054$), with point recall dropping from $0.4315$ to $0.1460$. Because the latent encoder condenses multi-channel sequences into semantic trajectory vectors, localized point anomalies that do not perturb macroscopic state evolution are filtered alongside noise. Latent prediction thus operates as a conservative state detector, suppressing false alarms at the price of reduced sensitivity to subtle, isolated point faults.
 
 \begin{table}[t]
 \centering
@@ -742,7 +776,7 @@ Table~\ref{tab:core_benchmark} presents the empirical comparison across 33 conti
 
 Several primary empirical findings emerge from Table~\ref{tab:core_benchmark}:
 
-\noindent\textbf{False Alarm Suppression on Held-Out Telemetry:} The primary operational advantage of latent-space predictive architectures is a substantial reduction in nominal false alarms. On the 19 non-GHL streams, TS-JEPA achieves an out-of-sample nominal FPR of $0.066$, Operator-Entropy achieves $0.079$, and Reynolds-Stress achieves $0.076$, compared to $0.297$ for TimesNet and $0.309$ for TranAD. Across all 33 streams (seeds averaged), paired difference tests establish a statistically significant reduction in held-out FPR: TS-JEPA achieves a mean paired FPR reduction of $-0.154$ against TimesNet ($95\%$ bootstrap confidence interval $[-0.249, -0.071]$, Wilcoxon signed-rank $p=0.008$) and $-0.157$ against TranAD ($[-0.247, -0.082]$, $p=0.001$). Similarly, Operator-Entropy achieves a paired FPR reduction of $-0.148$ against TimesNet ($[-0.236, -0.069]$, $p=0.001$) and $-0.151$ against TranAD ($[-0.250, -0.065]$, $p=0.003$). Predicting residuals in contracted latent representations avoids observation-level high-frequency noise, yielding better-conditioned score distributions.
+\noindent\textbf{False Alarm Suppression on Held-Out Telemetry:} The primary operational advantage of latent-space predictive architectures is a substantial reduction in nominal false alarms. On the 19 non-GHL streams, TS-JEPA achieves an out-of-sample nominal FPR of $0.066$, Operator-Entropy achieves $0.079$, and Reynolds-Stress achieves $0.076$, compared to $0.297$ for TimesNet and $0.309$ for TranAD. Across all 33 streams (seeds averaged), paired difference tests establish a statistically significant reduction in held-out FPR: TS-JEPA achieves a mean paired FPR reduction of $-0.154$ against TimesNet ($95\%$ bootstrap confidence interval $[-0.249, -0.071]$, Wilcoxon signed-rank $p=0.008$) and $-0.157$ against TranAD ($[-0.247, -0.082]$, $p=0.001$). Similarly, Operator-Entropy achieves a paired FPR reduction of $-0.148$ against TimesNet ($[-0.236, -0.069]$, $p=0.001$) and $-0.151$ against TranAD ($[-0.250, -0.065]$, $p=0.003$). Predicting residuals in contracted latent representations avoids observation-level high-frequency noise, yielding better-conditioned score distributions (as isolated directly under the same-backbone ablation in Section~\ref{subsec:controlled_backbone} and Table~\ref{tab:controlled_backbone}).
 
 \noindent\textbf{Point-F1 and Continuous Ranking (PR-AUC) Parity:} While latent prediction suppresses nominal false alarms, it does not provide a statistically distinguishable improvement in overall detection fidelity. On the 19 non-GHL streams, TS-JEPA achieves a stream-macro Point-F1 of $0.254$ and PR-AUC of $0.333$ (dataset-macro Point-F1 of $0.153$), compared to $0.207$ Point-F1 and $0.336$ PR-AUC for TimesNet (dataset-macro Point-F1 of $0.104$), and $0.131$ Point-F1 and $0.291$ PR-AUC for TranAD (dataset-macro Point-F1 of $0.070$). Across all 33 streams, paired differences between TS-JEPA and TimesNet are $+0.018$ in Point-F1 ($95\%$ CI $[-0.052, +0.089]$, $p=0.55$) and $+0.002$ in PR-AUC ($[-0.098, +0.097]$, $p=0.30$). Against TranAD, the paired difference is $+0.062$ in Point-F1 ($[-0.012, +0.150]$, $p=0.94$) and $+0.027$ in PR-AUC ($[-0.075, +0.135]$, $p=0.30$). Thus, continuous ranking fidelity and calibrated Point-F1 remain statistically comparable between unconstrained latent prediction and observation-space reconstructive baselines.
 

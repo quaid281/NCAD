@@ -1,0 +1,14 @@
+\begin{table*}[t]
+\centering
+\caption{Matched-Backbone Controlled Ablation across 15 Telemetry Streams. All three models use the exact same \texttt{HybridTCNEncoder} backbone ($F=48, D=32, C=256, S=64$), identical training epochs (20), AdamW optimizer, and identical held-out EVT/SPOT validation calibration. Observation forecasting in raw sensor space matches reconstruction behavior ($\kappa \approx 56$, $\text{FPR} \approx 27.6\%$, $p=0.68$). Shifting the predictive loss to latent space compresses residual tails ($\kappa = 1.77$), significantly lowering clean false-alarm rate ($p=0.048$) and stabilizing against severe sensor noise ($0\,\text{dB}$ FPR $13.9\%$ vs.\ $51.0\%$, $p=0.0026$), at the cost of lower point-level recall.}
+\label{tab:controlled_backbone}
+\small
+\begin{tabular}{lcccccc} \toprule
+\textbf{Architecture \& Objective} & \textbf{Val. Kurtosis} & \textbf{Test Kurtosis} & \textbf{Clean FPR} & \textbf{0\,dB FPR} & \textbf{Clean Point-F1} & \textbf{Clean Recall} \\
+ & ($\kappa_{\text{val}}$) & ($\kappa_{\text{test}}$) & ($\text{SNR}=\infty$) & ($\text{SNR}=0\,\text{dB}$) & ($\text{SNR}=\infty$) & ($\text{SNR}=\infty$) \\ \midrule
+TCN Observation Autoencoder (Reconstruction) & $6.09 \pm 14.52$ & $57.26 \pm 106.74$ & $0.2729 \pm 0.343$ & $0.5410 \pm 0.415$ & $0.1977 \pm 0.169$ & $0.4330 \pm 0.402$ \\
+TCN Observation Forecaster (Observation-Space JEPA) & $6.00 \pm 14.51$ & $56.11 \pm 106.94$ & $0.2757 \pm 0.347$ & $0.5098 \pm 0.393$ & $0.1916 \pm 0.167$ & $0.4315 \pm 0.406$ \\
+TS-JEPA (Latent-Space Predictive JEPA) & $0.88 \pm 1.60$ & $1.77 \pm 1.68$ & $0.1180 \pm 0.223$ & $0.1393 \pm 0.293$ & $0.0785 \pm 0.119$ & $0.1460 \pm 0.254$ \\
+\bottomrule
+\end{tabular}
+\end{table*}

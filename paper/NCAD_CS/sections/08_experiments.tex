@@ -1,7 +1,9 @@
 \section{Experimental Protocol and Evaluation Metrics}
 \label{sec:exp}
 
-This section outlines the experimental setup, baseline architectures, and the multi-tier statistical evaluation protocol designed to prevent metric inflation.
+This section outlines the experimental setup, baseline architectures, master experiment matrix, and the multi-tier statistical evaluation protocol designed to prevent metric inflation.
+
+\input{sections/tab_master_matrix.tex}
 
 \subsection{Experimental Setup and Hyperparameters}
 \label{subsec:exp_setup}
@@ -20,8 +22,13 @@ To evaluate out-of-sample threshold calibration without circularity or test-labe
 \end{enumerate}
 In the primary benchmark, thresholds remain fixed during test evaluation to measure the stability of static extreme-value bounds under operational distribution drift. In operational incident analysis (Section~\ref{subsec:incident_metrics}), dynamic rolling SPOT is evaluated to examine adaptive tracking of baseline drift.
 
-\paragraph{Multi-Seed Replication and Statistical Significance}
-To account for initialization variance, all principal learned models on the non-GHL benchmark streams and controlled ablations are trained across three independent random seeds (42, 123, and 456). We report mean performance, seed standard deviations, moving-block bootstrap 95\% confidence intervals (preserving temporal autocorrelation within streams), and two-sided Wilcoxon signed-rank tests for paired stream-level differences. Differences with $p > 0.05$ are treated as statistically inconclusive rather than evidence of equivalence.
+\paragraph{Multi-Seed Replication, Primary Endpoints, and Multiplicity Controls}
+To account for initialization variance, all principal learned models on the non-GHL benchmark streams and controlled ablations are trained across three independent random seeds (42, 123, and 456). We define two co-primary hypothesis endpoints:
+\begin{enumerate}
+    \item \textbf{Nominal False-Positive Rate Reduction:} Evaluated via out-of-sample held-out nominal FPR to test whether latent prediction stabilizes automated EVT bounds against false-alarm flooding.
+    \item \textbf{Detection Parity:} Evaluated via unadjusted Point-F1 and continuous ranking PR-AUC to test whether false-alarm suppression is achieved without degrading discriminative detection.
+\end{enumerate}
+For statistical inference, we report mean performance, seed standard deviations, moving-block bootstrap 95\% confidence intervals (block length $L=64$, preserving temporal autocorrelation within continuous streams), and two-sided Wilcoxon signed-rank tests for paired stream-level differences. To control the family-wise error rate across multiple pairwise comparisons against baselines and ablation controls, $p$-values are adjusted using the Benjamini-Hochberg False Discovery Rate (FDR) procedure with nominal rate $q_{\text{FDR}} = 0.05$. Paired differences where the 95\% bootstrap confidence interval spans zero or adjusted $p > 0.05$ are treated as statistically inconclusive rather than evidence of equivalence.
 
 \subsection{Baseline Architectures and Parameter Capacities}
 To isolate algorithmic principles from external implementation discrepancies, all baselines are executed within a unified PyTorch benchmarking pipeline under identical windowing, standardization, and EVT calibration:
