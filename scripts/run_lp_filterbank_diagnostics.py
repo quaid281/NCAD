@@ -63,6 +63,53 @@ def band_half_power(omega: np.ndarray, psi: np.ndarray) -> tuple[float, float, f
     return peak_f, lo, hi
 
 
+# ----------------------------------------------------------------------
+# Standard multiresolution comparison (Reviewer Major Concern 3):
+# analytic Mallat-form octave-band frequency responses for orthonormal
+# DWTs, computed without pywt so the script stays dependency-free.
+# ----------------------------------------------------------------------
+HAAR_H0 = np.array([1.0, 1.0]) / np.sqrt(2.0)
+DB4_H0 = np.array([
+    (1.0 + np.sqrt(3.0)) / (4.0 * np.sqrt(2.0)),
+    (3.0 + np.sqrt(3.0)) / (4.0 * np.sqrt(2.0)),
+    (3.0 - np.sqrt(3.0)) / (4.0 * np.sqrt(2.0)),
+    (1.0 - np.sqrt(3.0)) / (4.0 * np.sqrt(2.0)),
+])
+
+
+def _h_response(h: np.ndarray, w: np.ndarray) -> np.ndarray:
+    """Discrete-time frequency response H(w) of filter taps h on w in [0, pi]."""
+    k = np.arange(h.size)
+    return (h[:, None] * np.exp(-1j * np.outer(k, w))).sum(axis=0)
+
+
+def dwt_octave_responses(h0: np.ndarray, omega: np.ndarray) -> np.ndarray:
+    """Squared-magnitude responses of the J=3 DWT octave bands + approximation,
+    evaluated on the normalized grid omega in [0, 1] (1 = Nyquist).
+
+    Mallat cascade: A3 = |H0(w) H0(2w) H0(4w)|^2, D3 = |H1(w) H0(2w) H0(4w)|^2,
+    D2 = |H1(w) H0(2w)|^2, D1 = |H1(w)|^2 with w = pi*omega and dyadic
+    frequency folding handled by evaluating H at 2^k w mod pi.
+    """
+    w = np.pi * omega
+    # Quadrature-mirror high-pass: g[k] = (-1)^k h0[N-1-k]
+    h1 = ((-1.0) ** np.arange(h0.size)) * h0[::-1]
+
+    # Evaluate at raw (possibly stretched) arguments: the exponential is
+    # 2*pi-periodic, so downsampling aliases are handled implicitly and the
+    # QMF power-complementarity |H0(w)|^2 + |H1(w)|^2 = 1 is preserved.
+    H0 = lambda ww: np.abs(_h_response(h0, ww)) ** 2  # noqa: E731
+    H1 = lambda ww: np.abs(_h_response(h1, ww)) ** 2  # noqa: E731
+
+    bands = np.stack([
+        H0(w) * H0(2.0 * w) * H0(4.0 * w),              # A3: [0, 1/8]
+        H0(w) * H0(2.0 * w) * H1(4.0 * w),              # D3: [1/8, 1/4]
+        H0(w) * H1(2.0 * w),                            # D2: [1/4, 1/2]
+        H1(w),                                          # D1: [1/2, 1]
+    ])
+    return bands
+
+
 def main() -> None:
     torch.manual_seed(0)
     np.random.seed(0)
@@ -151,6 +198,29 @@ def main() -> None:
         resp_df[f"psi_shell_{j}"] = psi_np[j]
         resp_df[f"ideal_band_{j}"] = ideal[j]
         resp_df[f"conv_response_shell_{j}"] = conv_responses[j]
+
+    # ------------------------------------------------------------------
+    # 6. Standard multiresolution comparison: Haar and DB4 DWT octave bands
+    #    vs the implemented smooth shells (mass inside the ideal octave).
+    # ------------------------------------------------------------------
+    ideal_edges = np.concatenate([[0.0], 2.0 ** np.arange(-(num_shells - 1), 0), [1.0]])
+    for wname, h0 in [("haar", HAAR_H0), ("db4", DB4_H0)]:
+        dwt = dwt_octave_responses(h0, omega)  # (4, F): [A3, D3, D2, D1]
+        # NOTE: orthonormal DWT band gains are NOT a unit partition -- each
+        # decimated band carries a x2^level power gain (Smith-Barnwell
+        # |H0|^2+|H1|^2 = 2 per stage). Reconstruction is exact by
+        # construction for the time-domain filter bank; we therefore
+        # compare band localization (mass inside the ideal octave) and
+        # effective bandwidth, not partition-of-unity, across methods.
+        for j in range(num_shells):
+            lo_e, hi_e = ideal_edges[j], ideal_edges[j + 1]
+            inside = (omega >= lo_e) & (omega <= hi_e)
+            mass = float(
+                np.trapezoid(dwt[j][inside], omega[inside])
+                / max(np.trapezoid(dwt[j], omega), 1e-12)
+            )
+            diagnostics[f"{wname}_band_{j}_mass_in_ideal_octave"] = mass
+            resp_df[f"{wname}_dwt_band_{j}"] = dwt[j]
 
     out_resp = ROOT / "reports" / "lp_filterbank_frequency_responses.csv"
     out_diag = ROOT / "reports" / "lp_filterbank_diagnostics.csv"

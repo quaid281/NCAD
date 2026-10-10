@@ -120,12 +120,17 @@ def train_model(name, tr_win, k, device, epochs):
     mt = {"TS-JEPA": "ts_jepa", "OpEntropy": "operator_entropy_jepa",
           "OpEntropy-lambda0": "operator_entropy_jepa", "Reynolds": "reynolds_stress_jepa",
           "Reynolds-meanscore": "reynolds_stress_jepa", "Reynolds-alpha0": "reynolds_stress_jepa",
+          "Reynolds-tempcov": "reynolds_stress_jepa", "Reynolds-batchcov": "reynolds_stress_jepa",
           "PotentialFlow": "potential_flow_jepa", "PotentialFlow-noregime": "potential_flow_jepa"}[name]
     extra = {"use_regimes": False} if name == "PotentialFlow-noregime" else {}
     cfg = CSMConfig(model_type=mt, context_size=C, suspect_size=S, latent_dim=32, **extra)
     m = build_ts_jepa_model(cfg, input_dim=k, device=device)
     if name == "Reynolds-alpha0":
         m.alpha_stress = 0.0
+    if name == "Reynolds-tempcov":
+        m.cov_mode = "temporal"
+    if name == "Reynolds-batchcov":
+        m.cov_mode = "batch"
     opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
     kw = {"alpha_entropy": 0.0} if name == "OpEntropy-lambda0" else {}
     for ep in range(epochs):

@@ -29,6 +29,10 @@ Thumbs.db
 *.npy
 *.csv
 !reports/stream_manifest.csv
+!reports/evt_tail_diagnostics.csv
+!reports/lp_filterbank_diagnostics.csv
+!reports/lp_filterbank_frequency_responses.csv
+!reports/heldout_reynolds_covmodes.csv
 *.json
 
 # Logs

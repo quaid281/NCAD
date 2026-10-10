@@ -93,6 +93,7 @@ class ReynoldsStressJEPAModel(JEPABase):
         self.ema_decay = ema_decay
         self.alpha_stress = alpha_stress
         self.alpha_cone = alpha_cone
+        self.cov_mode = "instant"
 
         self.target_encoder = self.init_target_encoder(context_encoder)
 
@@ -140,14 +141,35 @@ class ReynoldsStressJEPAModel(JEPABase):
         self.register_mahalanobis_buffers(latent_dim)
 
     def compute_observed_stress(self, z_tgt: torch.Tensor) -> torch.Tensor:
-        """Compute the empirical quadratic Reynolds stress tensor Sigma_obs in S_+."""
+        """Compute the empirical quadratic Reynolds stress tensor Sigma_obs in S_+.
+
+        cov_mode controls the estimator (ablation axis):
+        - "instant"  (default): rank-1 outer product of the projected pooled
+          target, ridge-regularized. Not a temporal covariance estimate.
+        - "temporal": per-sample covariance of projected target latents across
+          the target-horizon time axis (requires 3D z_tgt; falls back to
+          "instant" for pooled inputs).
+        - "batch":    covariance of projected target latents across the batch
+          dimension, broadcast per-sample (requires B > 1).
+        """
+        eye = torch.eye(self.stress_dim, device=z_tgt.device, dtype=z_tgt.dtype).unsqueeze(0)
+        if self.cov_mode == "temporal" and z_tgt.ndim == 3:
+            z_s = self.stress_proj(z_tgt)  # [B, T, d_s]
+            z_c = z_s - z_s.mean(dim=1, keepdim=True)
+            t = max(z_s.shape[1] - 1, 1)
+            sigma = torch.bmm(z_c.transpose(1, 2), z_c) / t  # [B, d_s, d_s]
+            return sigma + 1e-3 * eye
         if z_tgt.ndim == 3:
             z_tgt = z_tgt.mean(dim=1)
         z_s = self.stress_proj(z_tgt)  # [B, d_s]
+        if self.cov_mode == "batch" and z_s.shape[0] > 1:
+            z_c = z_s - z_s.mean(dim=0, keepdim=True)
+            sigma = (z_c.T @ z_c) / (z_s.shape[0] - 1)  # [d_s, d_s]
+            sigma = sigma.unsqueeze(0).expand(z_s.shape[0], -1, -1)
+            return sigma + 1e-3 * eye
         # Outer product: [B, d_s, d_s]
         sigma = torch.bmm(z_s.unsqueeze(2), z_s.unsqueeze(1))
         # Ensure symmetric positive semi-definiteness with minimum isotropic floor
-        eye = torch.eye(self.stress_dim, device=z_tgt.device, dtype=z_tgt.dtype).unsqueeze(0)
         return sigma + 1e-3 * eye
 
     def _extract_context(self, context_windows: torch.Tensor) -> torch.Tensor:
