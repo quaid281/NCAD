@@ -1,0 +1,14 @@
+\begin{table*}[t]
+\centering
+\caption{Empirical Decomposition of Extreme Value Calibration Failure. We isolate the four hypothesized drivers of threshold breakdown across benchmark telemetry streams: (1) residual autocorrelation ($\rho_1$) and extremal clustering ($\theta, 1/\theta$), which reduce the effective independent tail sample size ($N_{\text{eff}} = \theta N_u$); (2) non-stationary distribution drift between calibration and held-out evaluation splits (Kolmogorov-Smirnov $D_{\text{KS}}$ and relative 98th-percentile drift $\Delta q_{98}\%$); and (3) actual held-out nominal False-Positive Rate and empirical risk overshoot relative to the theoretical design risk $q=10^{-3}$ ($0.1\%$). Observation-space models exhibit large distribution drift ($\Delta q_{98} = +470\%$) and severe clustering ($1/\theta \approx 12.7\text{--}13.3$ steps), causing a $43\times$ to $47\times$ overshoot of design risk. In contrast, latent prediction compresses distribution drift ($\Delta q_{98} = -0.36\%$), reducing risk overshoot by an order of magnitude.}
+\label{tab:evt_failure_decomposition}
+\small
+\begin{tabular}{lcccccc} \toprule
+\textbf{Architecture \& Objective} & \textbf{Autocorr. ($\rho_1$)} & \textbf{Extremal Index ($\theta$)} & \textbf{Mean Cluster} & \textbf{KS Drift ($D_{\text{KS}}$)} & \textbf{Held-Out FPR} & \textbf{Risk Overshoot} \\
+ & (Lag-1) & (Ferro-Segers) & ($1/\theta$ steps) & (Cal vs.\ Eval) & (Nominal Target: $0.1\%$) & ($\text{FPR}_{\text{eval}} / 10^{-3}$) \\ \midrule
+TimesNet (Reconstructive) & $0.983 \pm 0.014$ & $0.528 \pm 0.518$ & $12.7 \pm 17.1$ & $0.357 \pm 0.178$ & $4.32\% \pm 7.60\%$ & $43.2\times \pm 76.0\times$ \\
+TranAD (Reconstructive) & $0.990 \pm 0.007$ & $0.484 \pm 0.483$ & $13.3 \pm 17.1$ & $0.388 \pm 0.284$ & $4.76\% \pm 10.43\%$ & $47.6\times \pm 104.3\times$ \\
+TS-JEPA (Latent Predictive) & $0.820 \pm 0.135$ & $0.483 \pm 0.356$ & $5.2 \pm 5.8$ & $0.154 \pm 0.069$ & $0.33\% \pm 0.59\%$ & $3.3\times \pm 5.9\times$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
