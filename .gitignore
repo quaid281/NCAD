@@ -43,3 +43,10 @@ results/
 notebooks/**/results/
 .pytest_cache/
 pytest-of-*/
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.out
+*.log
+*.synctex.gz

@@ -1,0 +1,96 @@
+% Moved to supplement (protocol matrix float).
+\section{Evaluation Protocol Matrix}
+\label{sup:protocol_matrix}
+
+\begin{table*}[t]
+\centering
+\caption{Master Experiment Matrix. Detailed breakdown of all evaluated stream subsets, partition boundaries, temporal isolation gaps, random seeds, and operational evaluation regimes across the empirical investigation.}
+\label{tab:master_matrix}
+\footnotesize
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lccccccp{5.2cm}@{}}
+\toprule
+\textbf{Experimental Suite} & \textbf{Streams} & \textbf{Domains} & \textbf{Partition Split} & \textbf{Isolation Gap} & \textbf{Seeds} & \textbf{Inference Protocol} & \textbf{Primary Hypotheses \& Tested Endpoints} \\
+\midrule
+\textbf{Primary Benchmark} & 33 & 7 & 65\% / 17.5\% / 17.5\% & 64 steps & 5/3\textsuperscript{\dag} & Buffered ($S=64$) & Out-of-sample held-out FPR, Point-F1, PR-AUC parity, event recall, and detection delay $\Delta t$ (Table~\ref{tab:core_benchmark}). \\
+\textbf{Active Non-GHL Suite} & 19 & 6 & 65\% / 17.5\% / 17.5\% & 64 steps & 5 & Buffered ($S=64$) & Paired bootstrap 95\% CIs and Wilcoxon signed-rank tests on active anomaly dynamics (Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)). \\
+\textbf{Matched Backbone} & 15 & 10 & 80\% / 20\% nominal & 64 steps & 1 & Buffered ($S=64$) & Isolates observation recon vs.\ observation pred vs.\ latent pred under identical \texttt{HybridTCNEncoder} and noise injection (Table~\ref{tab:controlled_backbone}). \\
+\textbf{Regularizer Controls} & 19 & 6 & 65\% / 17.5\% / 17.5\% & 64 steps & 3 & Buffered ($S=64$) & Controlled null hypothesis testing: $\lambda_{\text{ent}}=0$, $\alpha_{\text{stress}}=0$, and single-regime controls on fixed encoders (Table~\ref{tab:ablations}(a)). \\
+\textbf{Strictly Causal Suite} & 33 & 7 & 65\% / 17.5\% / 17.5\% & 64 steps & 1 & Causal ($0$-lookahead) & Zero-lookahead streaming latency, false alarms per 1k steps ($\text{FAR}_{1\text{k}}$), and early event recall (Table~\ref{tab:causal_benchmark}, Table~\ref{tab:causal_vs_buffered}). \\
+\textbf{EVT Multi-Parameter} & 33 & 7 & 65\% / 17.5\% / 17.5\% & 64 steps & 1 & Buffered ($S=64$) & Sensitivity across tail percentiles $u$, design risks $q$, kurtosis multipliers $\beta$, and non-parametric baselines (Table~\ref{tab:calibrator_comparison}, Table~\ref{tab:evt_sensitivity}). \\
+\textbf{Operational Incidents} & 3 & 3 & Continuous test & None & 1 & Standard / Sharp / Adaptive & Incident-level evaluation: Point-F1 vs.\ Event-F1 vs.\ Range-F1, and dynamic rolling SPOT drift tracking (Table~\ref{tab:operational_incident_metrics}). \\
+\bottomrule
+\multicolumn{8}{l}{\footnotesize \textsuperscript{\dag} Five seeds on the 19 non-GHL streams and GHL training loops 17--18; three seeds}\\
+\multicolumn{8}{l}{\footnotesize on the remaining twelve large GHL streams ($>10^{6}$ observations each) owing to training cost.}\\
+\end{tabular}%
+}
+\end{table*}
+
+\subsection{Streaming Scoring and Calibration Pseudocode}
+
+
+\subsection{Streaming Scoring and Calibration Pseudocode}
+\begin{algorithm}[t]
+\caption{Streaming Anomaly Scoring and Decision Calibration}
+\label{alg:scoring_protocol}
+\begin{algorithmic}[1]
+\Require Streaming telemetry $\mathbf{X} \in \mathbb{R}^{T \times K}$, filtration $\mathcal{F}_t = \sigma(\mathbf{X}[1:t, :])$, context horizon $C=256$, suspect horizon $S=64$, deployment mode $\mathcal{M} \in \{\text{Causal}, \text{Buffered}\}$, calibrator $\mathcal{C}_{\text{EVT}}$ fit to nominal residuals.
+\Ensure Point-level alarm stream $\hat{y}_t \in \{0, 1\}$ for $t \in [C, T]$.
+\State Initialize score buffer $\mathbf{s} \in \mathbb{R}^T \leftarrow \mathbf{0}$, hit counts $\mathbf{c} \in \mathbb{R}^T \leftarrow \mathbf{0}$.
+\For{$t = C$ \textbf{to} $T - S$}
+    \State Extract historical context: $\mathbf{x}_{\text{ctx}} \leftarrow \mathbf{X}[t - C : t, :]$ \Comment{$\mathcal{F}_t$-measurable}
+    \State Encode latent context: $z_{\text{ctx}} \leftarrow E_\theta(\mathbf{x}_{\text{ctx}})$
+    \State Forecast future latent representation: $\hat{z}_{\text{tgt}} \leftarrow P_\psi(z_{\text{ctx}})$
+    \If{$\mathcal{M} = \text{Causal}$ \textbf{($0$-Lookahead Delay)}}
+        \State Target is trailing window: $\mathbf{x}_{\text{tgt}}^{\text{causal}} \leftarrow \mathbf{X}[t - S : t, :]$ \Comment{Strictly $\mathcal{F}_t$-measurable}
+        \State Encode target: $z_{\text{tgt}} \leftarrow E_{\bar{\theta}}(\mathbf{x}_{\text{tgt}}^{\text{causal}})$
+        \State Compute trailing predictive discrepancy: $s_t \leftarrow \mathcal{D}_{\text{sal}}(\hat{z}_{\text{tgt}} - z_{\text{tgt}})$
+        \State $\hat{y}_t \leftarrow \mathbb{I}(s_t > \tau_{\text{eff}})$ \Comment{Instantaneous decision at timestamp $t$}
+    \ElsIf{$\mathcal{M} = \text{Buffered}$ \textbf{($S$-Lookahead Delay)}}
+        \State Extract prospective suspect horizon: $\mathbf{x}_{\text{tgt}} \leftarrow \mathbf{X}[t : t + S, :]$ \Comment{$\mathcal{F}_{t+S}$-measurable}
+        \State Encode target representation: $z_{\text{tgt}} \leftarrow E_{\bar{\theta}}(\mathbf{x}_{\text{tgt}})$
+        \State Compute forward predictive discrepancy: $\mathcal{D}_t \leftarrow \mathcal{D}_{\text{sal}}(\hat{z}_{\text{tgt}} - z_{\text{tgt}})$
+        \For{$\tau = t$ \textbf{to} $t + S - 1$}
+            \State Accumulate suspect overlap: $s_\tau \leftarrow s_\tau + \mathcal{D}_t$, \quad $c_\tau \leftarrow c_\tau + 1$
+        \EndFor
+        \State Finalize running average score at step $t$: $\bar{s}_t \leftarrow s_t / \max(c_t, 1)$
+        \State $\hat{y}_t \leftarrow \mathbb{I}(\bar{s}_t > \tau_{\text{eff}})$ \Comment{Finalized at timestamp $t+S$}
+    \EndIf
+\EndFor
+\State \Return Binary alarm sequence $\hat{\mathbf{y}}$
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Controlled Same-Backbone Comparison Table}
+\begin{table*}[t]
+
+\caption{Controlled same-backbone comparison isolating prediction space under an identical \texttt{HybridTCNEncoder} ($C{=}256, S{=}64$, $d{=}32$): dataset-macro means across 15 streams spanning ten domains, under clean telemetry and jitter injection ($\text{SNR} \in \{\infty, 20, 10, 0\text{ dB}\}$).}
+
+\label{tab:controlled_backbone}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}llcccccc@{}}
+\toprule
+\textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} & \textbf{Point-F1} & \textbf{Recall} \\
+\midrule
+\multirow{4}{*}{\textbf{TCN-Obs-Recon}} 
+ & Clean ($\infty$) & 6.09 & 57.26 & 27.29\% & 10,554.7 & 0.1977 & 0.4330 \\
+ & 20 dB            & 6.09 & 57.23 & 27.47\% & 10,587.1 & 0.1975 & 0.4337 \\
+ & 10 dB            & 6.09 & 57.14 & 32.08\% & 11,168.1 & 0.1904 & 0.4546 \\
+ & 0 dB             & 6.09 & 57.09 & 54.10\% & 17,318.2 & 0.2184 & 0.6400 \\
+\midrule
+\multirow{4}{*}{\textbf{TCN-Obs-Pred}} 
+ & Clean ($\infty$) & 6.00 & 55.66 & 27.57\% & 10,455.2 & 0.1916 & 0.4315 \\
+ & 20 dB            & 6.00 & 56.09 & 27.93\% & 10,505.6 & 0.1915 & 0.4328 \\
+ & 10 dB            & 6.00 & 56.00 & 32.46\% & 11,025.9 & 0.1984 & 0.4619 \\
+ & 0 dB             & 6.00 & 55.66 & 50.98\% & 15,558.5 & 0.2188 & 0.6414 \\
+\midrule
+\multirow{4}{*}{\textbf{TS-JEPA (Ours)}} 
+ & Clean ($\infty$) & \textbf{0.88} & \textbf{1.77} & \textbf{11.80\%} & \textbf{3,949.5} ($\downarrow 62.6\%$) & 0.0785 & 0.1460 \\
+ & 20 dB            & \textbf{0.88} & \textbf{1.67} & \textbf{12.25\%} & \textbf{4,061.3} & 0.0741 & 0.1407 \\
+ & 10 dB            & \textbf{0.88} & \textbf{1.54} & \textbf{12.72\%} & \textbf{4,248.9} & 0.0691 & 0.1300 \\
+ & 0 dB             & \textbf{0.88} & \textbf{1.53} & \textbf{13.93\%} & \textbf{4,269.0} & 0.0670 & 0.1551 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

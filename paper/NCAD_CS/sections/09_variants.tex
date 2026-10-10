@@ -5,43 +5,19 @@ To isolate the individual contributions of each mathematical and architectural c
 
 \subsection{Ablation 1: Physical Regularizer Controls on Fixed Architectures}
 \label{subsec:controlled_ablations}
-To test whether the proposed physics-inspired regularizers provide measurable benefits over unconstrained latent prediction, Table~\ref{tab:ablations}(a) reports controlled ablations across all 19 non-GHL benchmark streams spanning six physical domains (Daphnet, MSL, SMAP, Genesis, Metro, and SWAN; principal models evaluated across five seeds and ablation controls across three seeds under the held-out calibration protocol). In each comparison, the neural backbone is held strictly constant while the specific physical loss term or inductive module is disabled:
+To test whether the physics-inspired regularizers benefit detection, Table~\ref{tab:ablations}(a) reports controlled ablations across all 19 non-GHL streams (principal models at five seeds, controls at three, under the held-out protocol), disabling each physical term on a fixed backbone:
 \begin{enumerate}
-    \item \textbf{Operator-Entropy vs. $\lambda_{\text{ent}}=0$ Control:} Disabling the spectral entropy regularizer ($\lambda_{\text{ent}}=0$) leaves Point-F1 unchanged (three-seed matched pairing: $0.241 \pm 0.014$ vs. $0.244 \pm 0.024$, difference $-0.003$, $95\%$ bootstrap interval $[-0.011, +0.005]$, Wilcoxon $p=0.62$). Both variants maintain PR-AUC around $0.347\text{--}0.348$.
-    \item \textbf{Reynolds-Stress vs. $\alpha_{\text{stress}}=0$ Control:} Disabling the second-moment stress loss ($\alpha_{\text{stress}}=0$) yields $0.203 \pm 0.059$ Point-F1 compared to $0.208 \pm 0.071$ with the stress loss active (difference $+0.005$, interval $[-0.006, +0.016]$, $p=0.41$). Neither difference exceeds random seed variation ($p = 0.41$). The result is also insensitive to the covariance estimator itself: replacing the instantaneous rank-1 outer product $\boldsymbol{\Sigma}_{\text{obs}}$ with a per-sample temporal covariance across the target horizon (\texttt{Reynolds-tempcov}) or a batch-level covariance (\texttt{Reynolds-batchcov}) on nine non-GHL streams (three seeds) shifts Point-F1 by $-0.009$ and $-0.010$ and held-out FPR by $+0.004$ and $-0.042$ respectively --- none materially different. The rank-1 construction is therefore not the reason the regularizer fails to help; the second-moment term appears to carry no signal beyond ordinary latent prediction under either statistically richer estimator.
-    \item \textbf{Potential-Flow vs. No-Regime Control:} Disabling multi-subspace regime routing ($K_r=1$) yields $0.129 \pm 0.061$ Point-F1 compared to $0.096 \pm 0.026$ with routing active (difference $-0.033$, interval $[-0.060, -0.010]$, $p=0.048$). Both underperform unconstrained TS-JEPA ($0.234 \pm 0.030$ at five seeds, $p=0.013$).
+    \item \textbf{Operator-Entropy vs. $\lambda_{\text{ent}}=0$:} Disabling the spectral regularizer leaves Point-F1 unchanged ($0.241 \pm 0.014$ vs. $0.244 \pm 0.024$; difference $-0.003$, $95\%$ interval $[-0.011, +0.005]$, Wilcoxon $p=0.62$); PR-AUC stays $0.347\text{--}0.348$.
+    \item \textbf{Reynolds-Stress vs. $\alpha_{\text{stress}}=0$:} Disabling the stress loss yields $0.203 \pm 0.059$ vs. $0.208 \pm 0.071$ ($+0.005$, $[-0.006, +0.016]$, $p=0.41$). The null is also insensitive to the covariance estimator: per-sample temporal (\texttt{Reynolds-tempcov}) or batch (\texttt{Reynolds-batchcov}) covariances in place of the rank-1 outer product shift Point-F1 by $-0.009$/$-0.010$ and FPR by $+0.004$/$-0.042$ over nine streams --- the second-moment term carries no signal beyond ordinary latent prediction.
+    \item \textbf{Potential-Flow vs. no-regime ($K_r{=}1$):} Disabling regime routing \emph{improves} Point-F1 to $0.129 \pm 0.061$ from $0.096 \pm 0.026$ ($-0.033$, $[-0.060, -0.010]$, $p=0.048$); both underperform TS-JEPA ($0.234 \pm 0.030$, $p=0.013$).
 \end{enumerate}
-These controlled ablations across the full 19-stream suite demonstrate that the physical regularizers do not produce statistically detectable improvements over unconstrained latent prediction on telemetry.
+Across the full 19-stream suite, the physical regularizers produce no statistically detectable improvement over unconstrained latent prediction.
 
-\subsection{Ablation 2: Auxiliary Input-Channel Gating Variant in High-Dimensional Sensor Arrays}
-In high-dimensional telemetry ($K \ge 25$), anomalous faults typically originate in a localized subsystem (e.g., a single valve or battery cell). In standard latent pooling:
-\begin{equation}
-    z_{\text{pool}} = \frac{1}{K} \sum_{k=1}^K z_k
-\end{equation}
-the localized anomalous signal is diluted by ambient normal noise across the remaining quiescent channels. The deployed pipeline mitigates this dilution in latent space via the coordinate-saliency gate on predictive residuals (Section~\ref{subsubsec:causal_saliency_gating}); input channels are encoded unweighted. As an auxiliary variant, we separately evaluate the causal input-channel variance gate $\tilde{x}_k = x_k \cdot \sigma\left(\frac{s_k - \bar{s}}{\sigma_s + \epsilon}\right)$ applied symmetrically at training and scoring time. Table~\ref{tab:ablations}(b) compares this variant against uniform input weighting across four multivariate streams.
-
-\paragraph{Causal Leakage and Preprocessing Ablation}
-To characterize the input-gating variant without target-dependent leakage, we train four gating regimes under an identical TS-JEPA configuration ($C=256, S=64$, 10 epochs, seed 42, SPOT $q=10^{-3}$ calibrated on held-out nominal telemetry):
-\begin{enumerate}
-    \item \textbf{Shared Context-Derived Gating:} Gating weights $\mathbf{g} = g(\mathbf{x}_{\text{ctx}})$ are computed strictly from historical context and applied symmetrically to both context and target windows, guaranteeing strict causality ($\partial \mathbf{g} / \partial \mathbf{x}_{\text{tgt}} \equiv \mathbf{0}$).
-    \item \textbf{Target-Only Leaky Control:} Gating weights $\mathbf{g} = g(\mathbf{x}_{\text{tgt}})$ are computed from the suspect target window. This non-causal control artificially amplifies channels that spike within the target window and upper-bounds the benefit obtainable by violating temporal causality.
-    \item \textbf{Independent Gating:} Computing $g(\mathbf{x}_{\text{ctx}})$ for context and $g(\mathbf{x}_{\text{tgt}})$ for target applies asymmetric coordinate transformations, breaking latent metric alignment.
-    \item \textbf{Uniform Pooling (Deployed):} Input channels are encoded unweighted; this regime coincides with the deployed pipeline, in which dimensional drowning is controlled only by the latent coordinate-saliency gate.
-\end{enumerate}
-The measured regime comparison is reported in Table~\ref{tab:ablations}(b). The effect of input-channel gating is stream-dependent in both sign and magnitude: the context-derived gate substantially improves MSL ($0.047 \to 0.227$), where anomalies concentrate in few coordinates against many quiescent ones, but degrades SMAP ($0.280 \to 0.019$), where fault signatures are distributed across channels and variance weighting attenuates informative coordinates. Under macro-averaged Point-F1, uniform input weighting ($0.118$) outperforms the context-derived gate ($0.077$), while the non-causal target-only control is slightly higher ($0.128$); independent context/target gating is weakest ($0.071$). Because the leaky control captures only a small additional margin ($+8.6\%$ relative over causal gating), most of the gating effect is attributable to quiescent-noise suppression rather than target-window statistics. We therefore retain uniform input weighting in the deployed pipeline and report input-channel gating as an auxiliary variant whose benefit depends on the anomaly's cross-channel dispersion profile.
-
-\paragraph{Fault-Type Sensitivity of Channel Gating}
-\label{subsec:gate_fault_study}
-To characterize per-fault-type behavior, we inject six single-channel fault classes (flatline, stuck sensor, dropout, low-amplitude step, spike control, and mid-variance flatline) into six multivariate streams and evaluate four gating modes. Two findings emerge. First, the context-derived variance gate approximately doubles point recall relative to uniform pooling (macro $0.045$ vs.\ $0.023$) at roughly three times the nominal false-positive rate ($0.069$ vs.\ $0.019$); a robust-MAD variant is marginally stronger ($0.060$ recall). Second, the increase is concentrated on transient signatures, while quiet faults (flatline, stuck sensor, dropout) remain weakly detected under \textit{every} gating regime (point recall $0.02\text{--}0.07$). The blind spot therefore reflects the aggregate latent discrepancy signal on wide telemetry rather than a deficiency of gating alone, and input-channel gating is reported as an evaluated variant with a precision--recall trade-off rather than adopted in the deployed pipeline.
+\subsection{Ablation 2: Auxiliary Input-Channel Gating Variant}
+The auxiliary causal input-channel gate is compared against uniform pooling, a non-causal target-only leaky control, and independent context/target gating under identical TS-JEPA configuration (Supplementary Tables~\ref{tab:gating_variants}, \ref{tab:fault_recall}; full regime definitions and per-fault-type results in Supplementary Section~\ref{sup:gating}). The effect is stream-dependent (MSL $0.047 \to 0.227$, SMAP $0.280 \to 0.019$); macro Point-F1 favors uniform weighting ($0.118$ vs.\ $0.077$), and the leaky control's small margin ($+8.6\%$) shows the effect stems from quiescent-noise suppression rather than target statistics. The fault-type study finds gating roughly doubles point recall on transient faults at $\sim$$3\times$ the nominal FPR, while quiet faults (flatline, stuck sensor, dropout) remain weakly detected under \emph{every} regime (recall $0.02$--$0.07$). Input gating is therefore reported as an evaluated variant; the deployed pipeline retains uniform input weighting.
 
 \subsection{Ablation 3: Littlewood-Paley Dyadic Wavelet Shells}
-Real-world industrial and environmental telemetry contains compound temporal dynamics operating simultaneously across disjoint frequency bands. For instance, in municipal water infrastructure (\texttt{GECCO}), sensors record 24-hour diurnal consumption cycles alongside sudden pressure drops and pipe contaminant inflows across multi-hour horizons.
-
-Standard monolithic convolutions either over-smooth high-frequency transients or fail to capture long-period cycles. As reported in Table~\ref{tab:ablations}(c), replacing the standard convolutional front-end with the Fourier-domain dyadic shell decomposition:
-\begin{equation}
-    \mathbf{x}_j = \mathrm{irfft}(\Psi_j \odot \mathrm{rfft}(\mathbf{x})), \quad j \in \{0, 1, \dots, J-1\}
-\end{equation}
-followed by per-shell causal convolutions and learned scale routing, produces a modest and stream-dependent effect under an otherwise identical \texttt{TS-JEPA} configuration. Across five multivariate streams, the dyadic front-end improves macro-averaged buffered Point-F1 from $0.088$ to $0.131$ ($+49.6\%$ relative, $+0.044$ absolute), with gains concentrated on MSL ($0.002 \to 0.052$) and SMD ($0.000 \to 0.177$), a small regression on SMAP ($0.294 \to 0.261$), and near-zero detection on \texttt{GECCO} under both configurations. Two caveats apply: enabling the block adds approximately $1.6 \times 10^5$ parameters, so part of the gain may reflect capacity rather than frequency separation, and the measured shell overlap (Section~\ref{sec:proposed_method}) means the decomposition does not attain ideal octave isolation. The dyadic front-end is retained as a modest contributor, not the primary driver of the latent-residual conditioning effect.
+Monolithic convolutions either over-smooth transients or miss long-period cycles (e.g., GECCO's diurnal consumption alongside abrupt pressure drops). As reported in Table~\ref{tab:ablations}(b), replacing the standard front-end with the Fourier-domain dyadic shells ($\mathbf{x}_j = \mathrm{irfft}(\Psi_j \odot \mathrm{rfft}(\mathbf{x}))$) plus per-shell causal convolutions and learned routing yields a modest, stream-dependent effect under identical TS-JEPA configuration: macro buffered Point-F1 improves from $0.088$ to $0.131$ ($+49.6\%$ relative) across five multivariate streams, concentrated on MSL ($0.002 \to 0.052$) and SMD ($0.000 \to 0.177$), with a small SMAP regression ($0.294 \to 0.261$) and near-zero GECCO detection either way. Two caveats: the block adds $\approx 1.6\times 10^5$ parameters (part of the gain may be capacity), and measured shell overlap (Section~\ref{sec:proposed_method}) means octave isolation is not attained. The front-end is a modest contributor, not the primary driver.
 
 \subsection{Ablation 4: Threshold Calibration Rules on Nominal Splits}
 \label{subsec:ablation_calibration}
@@ -49,11 +25,11 @@ The complete calibrator comparison across all 33 streams and all learned archite
 
 \begin{table*}[t]
 \centering
-\caption{Systematic Ablation Studies across Multi-Domain Telemetry Benchmarks. Panel (a) reports matched-capacity regularizer controls on fixed neural architectures across all 19 non-GHL benchmark streams (five seeds for principal models, three for ablation controls; Point-F1 is stream-macro mean $\pm$ seed SD; held-out FPR is measured on nominal data the threshold never saw). Panel (b) evaluates the auxiliary input-channel saliency gating variant (not part of the deployed pipeline) across multivariate sensor dimensions $K$. Panel (c) tests the Littlewood-Paley dyadic shell front-end under an otherwise identical TS-JEPA configuration. Panel (d) reports macro point recall of the channel-gating variants under injected single-channel faults (six streams; threshold calibration strategies are evaluated separately in Table~\ref{tab:calibrator_comparison}).\label{tab:ablations}}
+\caption{Ablation studies. (a) Matched-capacity regularizer controls on fixed backbones, 19 non-GHL streams (Point-F1 = stream-macro mean $\pm$ seed SD; held-out FPR on unseen nominal data). (b) Dyadic-shell front-end on/off under identical TS-JEPA configuration. Auxiliary input-channel gating and fault-type recall panels are in Supplementary Section~\ref{sup:gating}.\label{tab:ablations}}
 \vspace{2pt}
 \begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.04\textwidth}}p{0.48\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) Regularizer Controls on Fixed Architectures}} & \multicolumn{1}{c}{\textbf{(b) Input-Channel Gating Variant (Auxiliary)}} \\
+\multicolumn{1}{c}{\textbf{(a) Regularizer Controls on Fixed Architectures}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
@@ -75,23 +51,6 @@ TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 \\
 }
 &
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-\textbf{Stream} & \textbf{Uniform (deployed)} & \textbf{Context Gate} & \textbf{Target-Only} & \textbf{Independent} \\
-\midrule
-NASA MSL \texttt{M-1} ($K=55$) & 0.047 & \textbf{0.227} & 0.051 & 0.070 \\
-NASA SMAP \texttt{P-3} ($K=25$) & \textbf{0.280} & 0.019 & 0.155 & 0.055 \\
-GHL Loop \texttt{17} ($K=23$) & 0.000 & 0.000 & 0.000 & 0.000 \\
-Daphnet \texttt{S01R01E1} ($K=9$) & 0.146 & 0.061 & \textbf{0.306} & 0.158 \\
-\midrule
-\textbf{Macro Avg} & \textbf{0.118} & 0.077 & 0.128 & 0.071 \\
-\bottomrule
-\end{tabular}%
-}
-\\[14pt]
-\multicolumn{1}{c}{\textbf{(c) Littlewood-Paley Dyadic Wavelet Shells}} & \multicolumn{1}{c}{\textbf{(d) Fault-Type Recall of Channel-Gate Modes}} \\
-\cmidrule(r){1-1} \cmidrule(l){2-2}
-\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lccc@{}}
 \toprule
 \textbf{Stream} & \textbf{Standard Conv} & \textbf{Dyadic Shells} & \textbf{$\Delta$} \\
@@ -106,23 +65,6 @@ GECCO \texttt{water\_quality} & 0.000 & 0.001 & $+0.001$ \\
 \bottomrule
 \end{tabular}%
 }
-&
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lccc@{}}
-\toprule
-\textbf{Injected Fault Type} & \textbf{Uniform} & \textbf{Var. Gate} & \textbf{Robust-MAD} \\
-\midrule
-Flatline & 0.021 & 0.043 & \textbf{0.058} \\
-Flatline (mid-var ch.) & 0.024 & 0.048 & \textbf{0.068} \\
-Stuck sensor & 0.021 & 0.043 & \textbf{0.058} \\
-Dropout & 0.020 & 0.043 & \textbf{0.058} \\
-Low-amplitude step & 0.030 & 0.049 & \textbf{0.062} \\
-$+5\sigma$ spike control & 0.023 & 0.042 & \textbf{0.059} \\
-\midrule
-Mean nominal FPR & \textbf{0.019} & 0.069 & 0.055 \\
-\bottomrule
-\end{tabular}%
-}
 \\
 \bottomrule
 \end{tabular}
@@ -130,76 +72,15 @@ Mean nominal FPR & \textbf{0.019} & 0.069 & 0.055 \\
 
 \subsection{Controlled Backbone Comparison: Latent Space vs. Observation Space}
 \label{subsec:controlled_backbone}
-A foundational hypothesis of this investigation is that predicting dynamics in a contracted latent representation space produces residual distributions that are fundamentally better conditioned for automated extreme-value thresholding than residuals derived from raw observation-space reconstruction or forecasting. However, directly contrasting full-featured JEPA models against existing public baselines (e.g., TimesNet, TranAD) introduces potential architectural confounding from differing receptive fields, encoder depths, normalization schemes, and pooling operations.
+A foundational hypothesis is that predicting in a contracted latent space produces residuals better conditioned for EVT thresholding than observation-space reconstruction or forecasting. Comparing full JEPA models against public baselines confounds receptive field, depth, and normalization; Supplementary Table~\ref{tab:controlled_backbone} therefore evaluates three formulations under a unified \texttt{HybridTCNEncoder} ($C{=}256, S{=}64$, $d{=}32$, 3-layer dilated causal TCN, LayerNorm, GELU, temporal pooling): \textbf{TCN-Obs-Recon} (reconstruction MSE), \textbf{TCN-Obs-Pred} (observation forecasting residual), and \textbf{TS-JEPA} (latent prediction against an EMA target), trained identically and calibrated via kurtosis-adaptive EVT on a held-out 20\% nominal split.
 
-To eliminate these confounding factors, Table~\ref{tab:controlled_backbone} evaluates three architectural formulations under a strictly unified \texttt{HybridTCNEncoder} backbone ($C=256, S=64$, latent dimension $d=32$, 3-layer dilated causal TCN with 48 filters, LayerNorm, GELU, and temporal pooling):
-\begin{enumerate}
-    \item \textbf{TCN-Obs-Recon:} Autoencoder encoding the full window $X_{t-C:t+S} \in \mathbb{R}^{(C+S)\times K}$ into $z \in \mathbb{R}^{32}$ and decoding back to reconstruct the observation space $\hat{X}$. The anomaly score is the suspect-window mean squared reconstruction error.
-    \item \textbf{TCN-Obs-Pred:} Forecaster encoding context $X_{t-C:t} \in \mathbb{R}^{C \times K}$ into $z_{\text{ctx}} \in \mathbb{R}^{32}$ and decoding directly to forecast upcoming observations $\hat{X}_{t:t+S} \in \mathbb{R}^{S \times K}$. The anomaly score is the raw observation forecasting residual.
-    \item \textbf{TS-JEPA (Latent Space):} Joint-Embedding Predictive Architecture encoding context to $z_{\text{ctx}}$, predicting the future latent representation $\hat{z}_{\text{tgt}} = g_\phi(z_{\text{ctx}})$, and scoring via predictive discrepancy against target representation $z_{\text{tgt}}$ from an EMA target encoder.
-\end{enumerate}
-All models are trained for 10 epochs using AdamW ($\text{lr}=10^{-3}$) with batch size 16 and calibrated via Kurtosis-Adaptive EVT ($u=0.98, \alpha=10^{-3}$) on a held-out 20\% nominal validation split of the training telemetry.
 
-\begin{table*}[t]
-\centering
-\small
-\caption{Controlled same-backbone experiment isolating prediction space under identical \texttt{HybridTCNEncoder} ($C=256, S=64, d=32$). Reported values are dataset-macro means across fifteen diverse benchmark streams across ten domains (NASA SMAP: \texttt{P-3}, \texttt{A-1}; NASA MSL: \texttt{M-1}, \texttt{C-1}; SMD: \texttt{machine-1-2}, \texttt{machine-1-3}; PSM: \texttt{default}; SWAN: \texttt{sf}; GECCO: \texttt{water\_quality}; Daphnet: \texttt{S01R01E1}, \texttt{S02R01E0}; CalIt2: \texttt{traffic}; Room Occupancy: \texttt{default}; Genesis: \texttt{default}; OPPORTUNITY: \texttt{S1-ADL2}) under clean telemetry and additive jitter noise injection ($\text{SNR} \in \{\infty, 20\text{ dB}, 10\text{ dB}, 0\text{ dB}\}$).}
-\label{tab:controlled_backbone}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}llcccccc@{}}
-\toprule
-\textbf{Model Backbone} & \textbf{Noise SNR} & \textbf{Val $\gamma_2$} & \textbf{Test $\gamma_2$} & \textbf{Empirical FPR} & \textbf{Mean False Pos.} & \textbf{Point-F1} & \textbf{Recall} \\
-\midrule
-\multirow{4}{*}{\textbf{TCN-Obs-Recon}} 
- & Clean ($\infty$) & 6.09 & 57.26 & 27.29\% & 10,554.7 & 0.1977 & 0.4330 \\
- & 20 dB            & 6.09 & 57.23 & 27.47\% & 10,587.1 & 0.1975 & 0.4337 \\
- & 10 dB            & 6.09 & 57.14 & 32.08\% & 11,168.1 & 0.1904 & 0.4546 \\
- & 0 dB             & 6.09 & 57.09 & 54.10\% & 17,318.2 & 0.2184 & 0.6400 \\
-\midrule
-\multirow{4}{*}{\textbf{TCN-Obs-Pred}} 
- & Clean ($\infty$) & 6.00 & 55.66 & 27.57\% & 10,455.2 & 0.1916 & 0.4315 \\
- & 20 dB            & 6.00 & 56.09 & 27.93\% & 10,505.6 & 0.1915 & 0.4328 \\
- & 10 dB            & 6.00 & 56.00 & 32.46\% & 11,025.9 & 0.1984 & 0.4619 \\
- & 0 dB             & 6.00 & 55.66 & 50.98\% & 15,558.5 & 0.2188 & 0.6414 \\
-\midrule
-\multirow{4}{*}{\textbf{TS-JEPA (Ours)}} 
- & Clean ($\infty$) & \textbf{0.88} & \textbf{1.77} & \textbf{11.80\%} & \textbf{3,949.5} ($\downarrow 62.6\%$) & 0.0785 & 0.1460 \\
- & 20 dB            & \textbf{0.88} & \textbf{1.67} & \textbf{12.25\%} & \textbf{4,061.3} & 0.0741 & 0.1407 \\
- & 10 dB            & \textbf{0.88} & \textbf{1.54} & \textbf{12.72\%} & \textbf{4,248.9} & 0.0691 & 0.1300 \\
- & 0 dB             & \textbf{0.88} & \textbf{1.53} & \textbf{13.93\%} & \textbf{4,269.0} & 0.0670 & 0.1551 \\
-\bottomrule
-\end{tabular}%
-}
-\end{table*}
 
-\noindent\textbf{Observation Reconstruction vs. Observation Forecasting:} A central question is whether the reduction in false alarms stems from forecasting upcoming dynamics rather than reconstructing full windows, or whether it requires representation in latent space. The matched-backbone results in Table~\ref{tab:controlled_backbone} resolve this question. Comparing TCN-Obs-Recon and TCN-Obs-Pred reveals virtually identical tail statistics and false-positive rates: validation kurtosis is $6.09$ vs.\ $6.00$, test kurtosis is $57.26$ vs.\ $55.66$, and clean empirical FPR is $27.29\%$ vs.\ $27.57\%$. Two-sided Wilcoxon signed-rank tests across the 15 streams confirm that observation reconstruction and observation forecasting are statistically indistinguishable in clean FPR ($p = 0.6784$) and Point-F1 ($p = 1.0000$). Forecasting in raw observation space does not condition residual tails because residuals directly reflect sensor jitter and point-level noise.
+\noindent\textbf{Observation Reconstruction vs. Observation Forecasting:} The matched-backbone results resolve whether false-alarm reduction stems from forecasting or from latent representation: TCN-Obs-Recon and TCN-Obs-Pred exhibit virtually identical tails ($\gamma_2$: $6.09$/$6.00$ val, $57.26$/$55.66$ test; clean FPR $27.29\%$/$27.57\%$) and are statistically indistinguishable across the 15 streams (Wilcoxon clean FPR $p = 0.6784$; Point-F1 $p = 1.0000$). Forecasting in raw observation space does not condition residual tails because residuals directly reflect sensor jitter.
 
-\noindent\textbf{Latent Space Projection and Tail Compression:} Shifting the predictive loss to latent representation space (\texttt{TS-JEPA}) fundamentally alters the residual distribution. Test excess kurtosis drops from $55.66$ to $1.77$ (a $>31\times$ reduction in tail weight), producing near-Gaussian residuals. Under held-out EVT calibration, this tail compression significantly lowers the clean empirical false-positive rate from $27.57\%$ to $11.80\%$ (Wilcoxon $p = 0.0479$), eliminating over $6,500$ false alarms per stream. Under severe noise injection ($\text{SNR}=0\text{ dB}$), observation-space models experience a catastrophic failure in threshold calibration, with FPR surging past $50\%$ ($54.10\%$ for reconstruction, $50.98\%$ for forecasting). In contrast, \texttt{TS-JEPA} maintains an empirical FPR of $13.93\%$ ($p = 0.0026$), confirming that latent representations provide stability against external sensor perturbations.
+\noindent\textbf{Latent Space Projection and Tail Compression:} Latent-space prediction fundamentally reshapes the residual distribution: test excess kurtosis drops from $55.66$ to $1.77$ ($>31\times$), and clean empirical FPR falls from $27.57\%$ to $11.80\%$ (Wilcoxon $p = 0.0479$, $\approx 6{,}500$ fewer false alarms per stream). Under $0$-dB noise injection, observation-space FPR surges past $50\%$ while TS-JEPA holds at $13.93\%$ ($p = 0.0026$).
 
-\noindent\textbf{The Operational Sensitivity Trade-Off:} The tail stability of latent prediction incurs a measurable operational trade-off in point-level detection sensitivity. As shown in Table~\ref{tab:controlled_backbone}, clean Point-F1 declines from $0.1916$ for TCN-Obs-Pred to $0.0785$ for TS-JEPA (Wilcoxon $p = 0.0054$), with point recall dropping from $0.4315$ to $0.1460$. Because the latent encoder condenses multi-channel sequences into semantic trajectory vectors, localized point anomalies that do not perturb macroscopic state evolution are filtered alongside noise. Latent prediction thus operates as a conservative state detector, suppressing false alarms at the price of reduced sensitivity to subtle, isolated point faults.
+\noindent\textbf{The Operational Sensitivity Trade-Off:} This stability costs detection sensitivity: clean Point-F1 declines from $0.1916$ (TCN-Obs-Pred) to $0.0785$ ($p = 0.0054$), with recall dropping $0.4315 \to 0.1460$ --- localized point anomalies that do not perturb macroscopic state are filtered with the noise. Latent prediction thus acts as a conservative state detector.
 
-\begin{table}[t]
-\centering
-\small
-\caption{Native-window baseline evaluation across five diverse benchmark streams (NASA SMAP: \texttt{P-3}, SMD: \texttt{machine-1-2}, NASA MSL: \texttt{M-1}, Daphnet: \texttt{S01R01E1}, GECCO: \texttt{water\_quality}). Shortening the context window to native sizes ($W=10$ for TranAD, $W=96$ for TimesNet) exacerbates residual tail heaviness ($\gamma_2 = 448.25$ and $98.14$) rather than curing it.}
-\label{tab:native_window_baselines}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-\textbf{Model Configuration} & \textbf{Window $W$} & \textbf{Test $\gamma_2$} & \textbf{Mean False Pos.} & \textbf{Empirical FPR} \\
-\midrule
-\textbf{TimesNet (Native)} & 96  & 98.14  & 26,526.8 & 44.09\% \\
-\textbf{TimesNet (Long)}   & 320 & 32.04  & 27,041.0 & 51.26\% \\
-\midrule
-\textbf{TranAD (Native)}   & 10  & 448.25 & 18,765.4 & 24.51\% \\
-\textbf{TranAD (Long)}     & 320 & 29.93  & 16,671.0 & 31.76\% \\
-\midrule
-\textbf{TS-JEPA (Ours)}    & 320 & \textbf{3.14} & \textbf{10,678.8} & \textbf{22.57\%} \\
-\bottomrule
-\end{tabular}%
-}
-\end{table}
 
-\noindent\textbf{Investigation of Native Window Horizons:} A secondary hypothesis is whether reconstructive baselines suffered under automated EVT calibration because they were evaluated on long temporal windows ($W=320$) rather than their originally proposed native horizons ($W=10$ for TranAD, $W=96$ for TimesNet). To test this, Table~\ref{tab:native_window_baselines} compares each baseline under both native and $W=320$ horizons across five diverse telemetry streams. 
-
-The empirical evidence refutes the window-length hypothesis. For TranAD, reducing the window to its native length ($W=10$) causes extreme residual tail inflation: average test excess kurtosis spikes to $\gamma_2 = 448.25$ (a $15\times$ increase over $W=320$, reaching $\gamma_2 = 809.32$ on GECCO and $781.44$ on SMAP). Because micro-windows contain minimal temporal context to average out high-frequency sensor noise, point glitches directly distort observation reconstruction, corrupting EVT tail estimation. Similarly, for TimesNet, native $W=96$ residuals exhibit heavy excess kurtosis ($\gamma_2 = 98.14$) and an average empirical false positive rate of $44.09\%$, generating over $26,500$ false alarms per stream. By contrast, \texttt{TS-JEPA} maintains well-conditioned residuals ($\gamma_2 = 3.14$) and achieves the lowest empirical false positive rate ($22.57\%$). Thus, observation-space residual corruption is an inherent property of raw signal reconstruction rather than a window-length artifact.
+\noindent\textbf{Investigation of Native Window Horizons:} A secondary hypothesis is that baselines suffered under EVT calibration only because of the long $W{=}320$ window. Supplementary Table~\ref{tab:native_window_baselines} refutes this: native horizons \emph{worsen} tail conditioning. TranAD at $W{=}10$ spikes to $\gamma_2 = 448.25$ (vs.\ $29.93$ at $W{=}320$) --- micro-windows lack the context to average out sensor noise --- and TimesNet at $W{=}96$ shows $\gamma_2 = 98.14$ with $44.09\%$ empirical FPR. TS-JEPA retains well-conditioned residuals ($\gamma_2 = 3.14$, FPR $22.57\%$): observation-space tail corruption is inherent to raw reconstruction, not a window-length artifact.

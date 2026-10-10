@@ -1,0 +1,62 @@
+% Auxiliary input-channel gating variant: full specification + studies (moved from main text for page limit).
+\section{Auxiliary Input-Channel Saliency Gate: Specification and Studies}
+\label{sup:gating}
+
+\subsection{Formal Specification}
+To prevent dimensional drowning in input space without target-window leakage, the strictly causal \textit{Causal Channel Saliency Gate} computes channel dispersion strictly from historical context $\mathbf{x}_{\text{ctx}} = \mathbf{X}[t-C:t, :] \in \mathbb{R}^{C \times K}$:
+\begin{equation}
+    v_k^{\text{ctx}} = \operatorname{Var}_{\tau \in [t-C, t]}(x_{\tau, k}) = \frac{1}{C-1} \sum_{\tau=t-C}^t \left(x_{\tau, k} - \bar{x}_k^{\text{ctx}}\right)^2,
+\end{equation}
+\begin{equation}
+    s_k = \frac{v_k^{\text{ctx}}}{\sum_{j=1}^K v_j^{\text{ctx}} + \epsilon}, \quad g_k = \sigma\left(\frac{s_k - \bar{s}}{\sigma_s + \epsilon}\right),
+\end{equation}
+where $\sigma(\cdot)$ is the logistic sigmoid, $\epsilon = 10^{-6}$, $\bar{s} = 1/K$ is the uniform variance-share expectation, and $\sigma_s = \sqrt{\frac{1}{K}\sum_{k=1}^K (s_k - \bar{s})^2 + \epsilon}$ is the cross-channel dispersion; $(s_k - 1/K)/\sigma_s$ is the spatial z-score of channel energy. The modulation vector $\mathbf{g} \in (0,1)^K$ scales input channels symmetrically in both encoders, $\tilde{\mathbf{x}}[:, k] = \mathbf{x}[:, k] \cdot g_k$. Because $\mathbf{g}$ depends exclusively on $\mathbf{x}_{\text{ctx}}$, $\partial g_k / \partial \mathbf{x}_{\text{tgt}} \equiv \mathbf{0}$ for all $k$.
+
+\subsection{Gating-Regime Comparison and Fault-Type Sensitivity}
+\label{subsec:gate_fault_study}
+Four gating regimes were trained under an identical TS-JEPA configuration ($C{=}256, S{=}64$, seed 42, SPOT $q{=}10^{-3}$ on held-out nominal telemetry): \emph{context-derived gating} ($\mathbf{g} = g(\mathbf{x}_{\text{ctx}})$ applied symmetrically; strictly causal), a non-causal \emph{target-only leaky control} ($\mathbf{g} = g(\mathbf{x}_{\text{tgt}})$, upper-bounding the benefit of violating causality), \emph{independent} context/target gating (asymmetric; breaks latent metric alignment), and \emph{uniform pooling} (deployed). The effect is stream-dependent in sign and magnitude: the context gate substantially improves MSL ($0.047 \to 0.227$), where anomalies concentrate in few coordinates, but degrades SMAP ($0.280 \to 0.019$), where fault signatures are distributed. Macro Point-F1 ranks uniform ($0.118$) above context gating ($0.077$), with the leaky control at $0.128$ and independent gating weakest ($0.071$). Since the leaky control adds only $+8.6\%$ relative over causal gating, most of the effect reflects quiescent-noise suppression rather than target statistics.
+
+For per-fault-type behavior, six single-channel fault classes (flatline, stuck sensor, dropout, low-amplitude step, spike control, mid-variance flatline) were injected into six multivariate streams under four gating modes. Two findings emerge. First, the context-derived variance gate approximately doubles point recall relative to uniform pooling (macro $0.045$ vs.\ $0.023$) at roughly three times the nominal false-positive rate ($0.069$ vs.\ $0.019$); a robust-MAD variant is marginally stronger ($0.060$ recall). Second, the increase concentrates on transient signatures, while quiet faults (flatline, stuck sensor, dropout) remain weakly detected under \textit{every} gating regime (point recall $0.02\text{--}0.07$). The blind spot therefore reflects the aggregate latent discrepancy signal on wide telemetry rather than a deficiency of gating alone.
+
+\begin{table}[h]
+\centering
+\caption{Auxiliary input-channel gating variant (not deployed): Point-F1 under uniform, context-gate, target-only-leaky, and independent gating.}
+\label{tab:gating_variants}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Stream} & \textbf{Uniform (deployed)} & \textbf{Context Gate} & \textbf{Target-Only} & \textbf{Independent} \\
+\midrule
+NASA MSL \texttt{M-1} ($K=55$) & 0.047 & \textbf{0.227} & 0.051 & 0.070 \\
+NASA SMAP \texttt{P-3} ($K=25$) & \textbf{0.280} & 0.019 & 0.155 & 0.055 \\
+GHL Loop \texttt{17} ($K=23$) & 0.000 & 0.000 & 0.000 & 0.000 \\
+Daphnet \texttt{S01R01E1} ($K=9$) & 0.146 & 0.061 & \textbf{0.306} & 0.158 \\
+\midrule
+\textbf{Macro Avg} & \textbf{0.118} & 0.077 & 0.128 & 0.071 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Macro point recall of gating modes under injected single-channel faults.}
+\label{tab:fault_recall}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Injected Fault Type} & \textbf{Uniform} & \textbf{Var. Gate} & \textbf{Robust-MAD} \\
+\midrule
+Flatline & 0.021 & 0.043 & \textbf{0.058} \\
+Flatline (mid-var ch.) & 0.024 & 0.048 & \textbf{0.068} \\
+Stuck sensor & 0.021 & 0.043 & \textbf{0.058} \\
+Dropout & 0.020 & 0.043 & \textbf{0.058} \\
+Low-amplitude step & 0.030 & 0.049 & \textbf{0.062} \\
+$+5\sigma$ spike control & 0.023 & 0.042 & \textbf{0.059} \\
+\midrule
+Mean nominal FPR & \textbf{0.019} & 0.069 & 0.055 \\
+\bottomrule
+\end{tabular}%
+}
+
+\end{table}

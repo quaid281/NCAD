@@ -1,6 +1,6 @@
 \begin{table*}[t]
 \centering
-\caption{Held-Out Calibration Benchmark across 33 Continuous Telemetry Streams (7 Physical Modalities). Thresholds are calibrated strictly on held-out nominal validation splits using Streaming Peaks-Over-Threshold (SPOT, $q=10^{-3}$) without access to test anomalies. We report out-of-sample nominal False-Positive Rate (Held-Out FPR, measured on nominal data the threshold never saw), unadjusted Point-F1, threshold-free continuous ranking (PR-AUC), Event Recall, and Mean Detection Delay ($\Delta t$ in timesteps, stream-macro mean delay from fault inception to first alarm). ``Non-GHL'' denotes the stream-macro mean over 19 streams (Daphnet, MSL, SMAP, Genesis, Metro, SWAN) averaged across five seeds. ``Dataset-Macro'' is the unweighted average across the 7 dataset means. The best result in each column is in \textbf{bold}, and the second best is \underline{underlined}.}
+\caption{Held-out calibration benchmark, 33 telemetry streams (7 domains). Thresholds: SPOT ($q{=}10^{-3}$) on held-out nominal splits. Metrics: held-out nominal FPR (on data the threshold never saw), unadjusted Point-F1, PR-AUC, Event Recall, mean detection delay $\Delta t$. ``Non-GHL'': stream-macro over 19 streams at five seeds; ``Dataset-Macro'': unweighted mean of the 7 dataset means. Best in \textbf{bold}, second \underline{underlined}.}
 \label{tab:core_benchmark}
 \small
 \resizebox{\linewidth}{!}{%

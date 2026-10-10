@@ -1,0 +1,11 @@
+% Proofs moved to supplement (page-limit restructure).
+\section{Proofs of Propositions}
+\label{sup:proofs}
+
+\begin{proof}[Proof of Proposition~1 (Operator Triviality Invariance)]
+(i) At $\mathbf{K} = \mathbf{0}$ the implemented barrier is saturated at its floor: $r_{\text{safe}} = \epsilon$ is constant on a neighborhood of $\mathbf{0}$, so $\Phi_{\text{energy}}$ contributes zero gradient there, while the prediction term has gradient $\nabla_{\mathbf{K}}\mathcal{L}_{\text{pred}}\big|_{\mathbf{0}} = -\frac{2}{B}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^T \neq \mathbf{0}$ by the coupling assumption. Hence $\mathbf{K} = \mathbf{0}$ is not a stationary point and cannot be a local minimizer; the floored penalty remains finite, $\mathcal{R}_{\text{spectral}}(\mathbf{0}) \le \log D + \beta_{\text{norm}}(\epsilon - 1 - \log \epsilon) \approx \log D + 12.8\,\beta_{\text{norm}}$. (ii) For the unfloored barrier, $-\log r \to +\infty$ as $\|\mathbf{K}\|_F \to 0^+$ while $\mathcal{L}_{\text{pred}} \to E_{\text{tgt}} < \infty$, so $\mathcal{L}(\mathbf{K}) \to +\infty$; the identity operator satisfies $\Delta\mathcal{H}(\mathbf{I}) = \Phi_{\text{energy}}(\mathbf{I}) = 0$ with strictly finite loss, so $\mathbf{K} = \mathbf{0}$ cannot be a global minimizer in the idealization either. The divergence statement (ii) applies to the unfloored limit only; the anti-triviality guarantee for the trained objective rests on (i).
+\end{proof}
+
+\begin{proof}[Proof of Proposition~2 (Absence of Periodic Attractors in Gradient Flows)]
+Suppose $\gamma(t)$ is a periodic orbit with period $T_p > 0$ such that $\gamma(t + T_p) = \gamma(t)$. Integrating the time derivative of $\Phi$ along the closed path yields $\int_0^{T_p} \frac{d\Phi(\gamma(t))}{dt} dt = \Phi(\gamma(T_p)) - \Phi(\gamma(0)) = 0$. Applying the chain rule, $\frac{d\Phi(\gamma(t))}{dt} = \langle \nabla\Phi(\gamma(t)), \dot{\gamma}(t) \rangle = -\|\nabla\Phi(\gamma(t))\|_2^2 \le 0$. Since the integrand is non-positive, its integral can equal zero if and only if $\|\nabla\Phi(\gamma(t))\|_2 \equiv 0$ for all $t \in [0, T_p]$. Hence $\dot{\gamma}(t) \equiv \mathbf{0}$, meaning $\gamma(t)$ is an isolated fixed point, contradicting the assumption of a non-constant periodic orbit.
+\end{proof}

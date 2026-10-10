@@ -1,0 +1,81 @@
+% Moved to supplement from Results Section VI.C (page-limit restructure).
+\section{Mathematical Diagnostics of Physical Regularizers}
+\label{sup:math_diagnostics}
+
+To understand why the proposed regularizers enforce their intended mathematical properties yet fail to improve downstream anomaly detection, we conduct targeted dynamical diagnostic experiments.
+
+\subsubsection{Operator-Entropy: Anti-Collapse Spectral Rank Preservation}
+In Operator-Entropy JEPA, the transition operator $K \in \mathbb{R}^{D \times D}$ ($D=32$) is regularized via Von Neumann spectral entropy $S(\rho) = -\text{Tr}(\rho \log \rho)$ on normalized Gram matrix $\rho = KK^T / \text{Tr}(KK^T)$. Table~\ref{tab:operator_entropy_validation} evaluates effective operator rank via the RankMe metric ($\exp(\mathcal{H})$ where $\mathcal{H}$ is the spectral entropy of singular values), representation covariance conditioning, and downstream calibrated Point-F1 across five telemetry streams.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Empirical spectral diagnostics of learned transition operators and representations across five benchmark telemetry streams ($D=32$). Operator-Entropy preserves full theoretical rank ($\exp(\mathcal{H}) = 31.996$ out of 32.0), preventing dimensional collapse.}
+\label{tab:operator_entropy_validation}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model Architecture} & \textbf{Operator Rank ($\text{RankMe}$)} & \textbf{Rep. Rank} & \textbf{Point-F1} & \textbf{Empirical FPR} \\
+\midrule
+Operator-Entropy JEPA & \textbf{31.996} & 3.564 & \textbf{0.0710} & 0.1497 \\
+Representation-Entropy JEPA & 24.647 & \textbf{7.579} & 0.0479 & 0.0442 \\
+Vanilla TS-JEPA (Unconstrained) & 24.807 & 3.993 & 0.0301 & \textbf{0.0371} \\
+VICReg TS-JEPA & 24.339 & 5.881 & 0.0043 & 0.0273 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+As shown in Table~\ref{tab:operator_entropy_validation}, unconstrained Vanilla TS-JEPA and VICReg collapse across $7\text{--}8$ singular modes, yielding an effective operator rank of $24.3\text{--}24.8$. Operator-Entropy JEPA achieves an effective operator rank of $31.996$ out of $32.0$, confirming that the regularizer prevents modal collapse. However, full operator rank does not improve downstream anomaly detection: telemetry anomalies are frequently localized subsystem deviations occurring in low-dimensional subspaces. Preserving high-rank transition dynamics forces the model to track ambient high-frequency variations, which does not enhance fault discrimination.
+
+\subsubsection{Reynolds-Stress: Covariance Alignment vs. Marginal Perturbations}
+Reynolds-Stress JEPA aligns second-order latent fluctuation statistics ($\Sigma_{z'} = \frac{1}{B} \sum z' (z')^T$) between predicted and target horizons. Table~\ref{tab:covariance_validation} compares models on synthetic telemetry isolating pure cross-channel correlation flips ($\rho: +0.85 \to -0.85$) from pure marginal variance scaling ($3.0\times$).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Controlled covariance vs.\ marginal anomaly benchmark. Reynolds-Stress JEPA improves marginal variance detection over unconstrained TS-JEPA ($0.5838$ vs.\ $0.3313$ PR-AUC), but both latent models struggle on pure correlation flips.}
+\label{tab:covariance_validation}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{Pure Covariance Shift}} & \multicolumn{2}{c}{\textbf{Pure Marginal Shift}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Model Architecture} & \textbf{PR-AUC} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{Point-F1} \\
+\midrule
+Reynolds-Stress JEPA & 0.0498 & 0.0000 & 0.5838 & \textbf{0.0593} \\
+TS-JEPA (Unconstrained) & 0.0409 & 0.0000 & 0.3313 & 0.0000 \\
+TimesNet & \textbf{0.9313} & 0.6558 & \textbf{0.9998} & 0.6267 \\
+TranAD & 0.6761 & \textbf{0.7246} & 0.9343 & \textbf{0.6560} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:covariance_validation} indicates that on marginal variance shifts, Reynolds-Stress improves PR-AUC by $+76\%$ over TS-JEPA ($0.5838$ vs.\ $0.3313$). However, on pure covariance shifts without marginal changes, both latent models show low sensitivity ($0.041\text{--}0.050$ PR-AUC) relative to observation-space baselines ($0.676\text{--}0.931$). Standard temporal pooling across channels averages out instantaneous phase alignments, preventing the second-moment loss from isolating cross-channel relationship shifts unless explicit pairwise relational graphs are modeled.
+
+\subsubsection{Potential-Flow: Conservative vs. Circulating Dynamics}
+Potential-Flow JEPA constrains transition velocities to curl-free potential gradients ($\hat{v} = -\nabla\Phi$). Table~\ref{tab:potential_flow_validation} evaluates Potential-Flow against Helmholtz-JEPA (decomposing velocity into gradient plus solenoidal circulation: $\hat{v} = -\nabla\Phi + \text{curl}(A)$) and unconstrained TS-JEPA across two dynamical benchmarks: a conservative Duffing oscillator and a non-conservative Van der Pol limit-cycle attractor.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Dynamical system validation comparing curl-free Potential-Flow ($\hat{v} = -\nabla\Phi$), Helmholtz decomposition ($\hat{v} = -\nabla\Phi + \text{curl}(A)$), and unconstrained TS-JEPA on conservative Hamiltonian vs.\ non-conservative limit-cycle phase spaces.}
+\label{tab:potential_flow_validation}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{Conservative Duffing}} & \multicolumn{2}{c}{\textbf{Non-Conservative Van der Pol}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Model Architecture} & \textbf{PR-AUC} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{Point-F1} \\
+\midrule
+Helmholtz JEPA ($\nabla\Phi + \text{curl}(A)$) & \textbf{0.5985} & \textbf{0.7815} & \textbf{0.5250} & \textbf{0.7574} \\
+TS-JEPA (Unconstrained) & 0.5855 & 0.7583 & 0.4577 & 0.6660 \\
+Potential-Flow JEPA ($-\nabla\Phi$) & 0.1701 & 0.2036 & 0.3106 & 0.3548 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:potential_flow_validation} confirms that pure curl-free potential flow is mathematically incapable of representing closed circulating orbits, yielding poor detection on Van der Pol ($0.3548$ Point-F1 vs.\ $0.7574$ for Helmholtz JEPA). Because physical telemetry often exhibits non-conservative, cyclic behavior (e.g., diurnal cycles, rotational turbines), enforcing irrotational dynamics severely penalizes normal circulating trajectories, explaining Potential-Flow's poor benchmark performance ($0.065$ dataset-macro F1 in Table~\ref{tab:core_benchmark}).
+

@@ -1,6 +1,6 @@
 \begin{table*}[t]
 \centering
-\caption{Strictly Causal Streaming Anomaly Detection Benchmark ($0$-Lookahead Delay) across 33 Continuous Telemetry Streams. Alarms are generated using strictly historical observations ($\tau \le t$) with trailing attribution and calibrated via held-out nominal SPOT ($q=10^{-3}$). Latent predictive architectures reduce held-out nominal false alarms down to $0.97\%\text{--}1.89\%$ (a 12-fold to 25-fold reduction compared to reconstructive baselines), but at the operational cost of lower causal Point-F1 and reduced event recall.}
+\caption{Strictly causal streaming benchmark ($0$-lookahead, trailing attribution), 33 streams, held-out SPOT ($q{=}10^{-3}$). Latent predictors cut nominal false alarms to $0.97\%\text{--}1.89\%$ (12--25$\times$ below reconstructive baselines) at the cost of lower causal Point-F1 and event recall.}
 \label{tab:causal_benchmark}
 \small
 \resizebox{\linewidth}{!}{%

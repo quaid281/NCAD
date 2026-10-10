@@ -1,0 +1,112 @@
+% Moved to supplement: dataset specs + per-dataset metrics + native-window study.
+\section{Benchmark Suite and Stream Detail}
+\label{sup:dataset_detail}
+
+\begin{table*}[t]
+\centering
+\caption{Benchmark suite specifications: 45 matched telemetry streams across 11 datasets ($>$5.06M observations).}
+\label{tab:dataset_specs}
+\scriptsize
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{ll c c r r c l l}
+\toprule
+\textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Streams (Held / Tot)} & \textbf{Dim $K$} & \textbf{$N_{\text{train}}$} & \textbf{$N_{\text{test}}$} & \textbf{Anom \% ($\pi$)} & \textbf{Primary Anomaly Typologies} & \textbf{Data Partition Protocol} \\
+\midrule
+\multicolumn{9}{l}{\textit{\textbf{Domain 1: Satellite and Spacecraft Remote Telemetry}}} \\
+NASA SMAP \cite{Hundman2018b}    & Soil Moisture Satellite Subsystems & 6 / 6   & 25 & 17,022    & 50,834    & 15.18\% & Subsystem power drops, thermal drifts, cmd faults & 65/17.5/17.5 held-out nominal split \\
+NASA MSL \cite{Hundman2018b}     & Curiosity Rover Robotic Actuators  & 4 / 6   & 55 & 12,331    & 13,566    & 22.88\% & Actuator stalls, motor spikes, sensor freezes     & 65/17.5/17.5 held-out (2 short excluded) \\
+SWAN-SF \cite{angryk2020multivariate}& Solar Photospheric Magnetograms   & 1 / 1   & 38 & 19,672    & 72,000    & 27.92\% & Active region magnetic field eruptive bursts      & 65/17.5/17.5 held-out nominal split \\
+\midrule
+\multicolumn{9}{l}{\textit{\textbf{Domain 2: Wearable Biometrics and Kinematics}}} \\
+Daphnet FoG \cite{bachlin2010wearable}& Wearable Body Sensor Accelerometry& 6 / 6   & 9  & 48,240    & 217,344   & 13.34\% & Freezing-of-Gait motor breakdown, limb tremors    & 65/17.5/17.5 held-out nominal split \\
+\midrule
+\multicolumn{9}{l}{\textit{\textbf{Domain 3: Industrial Processes and Cyber-Physical Systems}}} \\
+GHL Heating Loop                 & Thermal and Fluid Transport Loop   & 14 / 14 & 16 & 1,645,137 & 1,154,014 & 1.35\%  & Valve sticking, heater failures, pressure surge   & 65/17.5/17.5 held-out nominal split \\
+Genesis Automation               & Robotic Pick-and-Place Demonstrator& 1 / 1   & 18 & 3,244     & 9,332     & 0.30\%  & Mechanical manipulation jams, gripper slip        & 65/17.5/17.5 held-out nominal split \\
+GECCO Water IoT                  & Hydraulic and Water Distribution   & 0 / 1   & 9  & 27,560    & 83,113    & 1.54\%  & Chemical contamination, line bursts, pH drops     & Operational case study ($>10^6$ steps) \\
+\midrule
+\multicolumn{9}{l}{\textit{\textbf{Domain 4: Smart Infrastructure and Environmental Sensing}}} \\
+Room-Occupancy \cite{candanedo2016accurate}& Ambient Environmental Sensing & 0 / 2   & 5  & 2,565     & 14,317    & 19.31\% & Room-occupancy transitions, airflow anomalies     & Incident case study (nominal too short) \\
+CICIDS Edge Network              & Edge Gateway Flow Telemetry        & 0 / 6   & 72 & 278,722   & 1,343,920 & 23.91\% & DDoS volume surges, brute force, port scans       & Extended archive ($>10^6$ steps) \\
+CalIt2 \cite{asuncion2007uci}    & Optical People-Flow Counter        & 0 / 1   & 2  & 940       & 4,032     & 3.42\%  & Crowd attendance surges, building ingress bursts  & Incident case study (nominal too short) \\
+Metro Traffic                    & Highway Loop Detector Volume       & 1 / 1   & 5  & 24,072    & 24,102    & 0.13\%  & Highway congestion, accidents, severe slowdowns   & 65/17.5/17.5 held-out nominal split \\
+\midrule
+\textbf{Total / Benchmark Suite} & \textbf{4 Diverse Physical Domains} & \textbf{33 / 45} & \textbf{2--72} & \textbf{2,079,507} & \textbf{2,986,574} & \textbf{13.72\% (avg)} & \textbf{Structural, contextual, and point faults} & \textbf{33 Primary Held-Out / 12 Case Studies} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+
+\begin{table*}[t]
+\centering
+\caption{Per-Dataset Precision-Recall Area Under the Curve (PR-AUC / Average Precision) Across All 7 Evaluated Telemetry Benchmarks (33 Matched Channels). The best result for each dataset is in \textbf{bold}, and the second best is \underline{underlined}. Continuous ranking evaluates the unthresholded predictive scores.}
+\label{tab:dataset_prauc}
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{ll c cccc cc}
+\toprule
+\textbf{Dataset} & \textbf{Physical Telemetry Domain} & \textbf{Streams} & \textbf{TS-JEPA (Control)} & \textbf{Operator-Entropy} & \textbf{Reynolds-Stress} & \textbf{Potential-Flow} & \textbf{TimesNet} & \textbf{TranAD} \\
+\midrule
+Daphnet  & Wearable Parkinsonian Kinematics & 6  & 0.137 & 0.150 & 0.151 & 0.144 & \textbf{0.343} & \underline{0.280} \\
+GHL      & Gasoil Heating Loop Dynamics     & 14 & \textbf{0.016} & \underline{0.015} & 0.011 & 0.013 & 0.009 & 0.010 \\
+Genesis  & Pick-and-Place Automation        & 1  & \textbf{0.053} & 0.009 & 0.005 & 0.005 & \underline{0.020} & 0.006 \\
+MSL      & NASA Mars Science Laboratory     & 4  & 0.427 & \textbf{0.445} & \underline{0.413} & 0.281 & 0.310 & 0.294 \\
+SMAP     & NASA Soil Moisture Active Passive & 6  & \underline{0.539} & \textbf{0.591} & 0.522 & 0.261 & 0.463 & 0.350 \\
+Metro    & Interstate Highway Traffic (I-94) & 1  & 0.001 & 0.001 & 0.001 & 0.001 & \underline{0.002} & \textbf{0.002} \\
+SWAN     & Solar Flare Magnetic Telemetry   & 1  & \underline{0.519} & 0.370 & 0.397 & 0.325 & 0.292 & \textbf{0.562} \\
+\midrule
+\textbf{Dataset-Macro Mean} & Across All 7 Benchmarks & 33 & \textbf{0.242} & \underline{0.227} & 0.214 & 0.147 & 0.206 & 0.216 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Per-Dataset Unadjusted Point-F1 Across All 7 Evaluated Telemetry Benchmarks (33 Matched Streams) under Held-Out Calibration (SPOT, $q=10^{-3}$; up to five seeds on non-GHL streams). Best result for each dataset is in \textbf{bold}, and second best is \underline{underlined}. The bottom row reports unweighted Dataset-Macro averages matching Table~\ref{tab:core_benchmark}.}
+\label{tab:all_datasets}
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{ll c cccc cc}
+\toprule
+\textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Streams} & \textbf{TS-JEPA (Control)} & \textbf{Operator-Entropy} & \textbf{Reynolds-Stress} & \textbf{Potential-Flow} & \textbf{TimesNet} & \textbf{TranAD} \\
+\midrule
+Daphnet  & Wearable Parkinsonian Kinematics & 6  & 0.125             & 0.136 & 0.111 & 0.057 & \textbf{0.229} & \underline{0.144} \\
+GHL      & Gasoil Heating Loop Dynamics     & 14 & 0.000             & 0.001 & 0.001 & 0.000 & \textbf{0.022} & \underline{0.021} \\
+Genesis  & Pick-and-Place Automation        & 1  & \textbf{0.017}    & \underline{0.007} & 0.000 & 0.002 & 0.000 & 0.000 \\
+MSL      & NASA Mars Science Laboratory     & 4  & \underline{0.237} & \textbf{0.303} & 0.219 & 0.122 & 0.158 & 0.151 \\
+SMAP     & NASA Soil Moisture Active Passive & 6  & \textbf{0.415}    & \underline{0.401} & 0.376 & 0.117 & 0.289 & 0.167 \\
+Metro    & Interstate Highway Traffic (I-94) & 1  & 0.000             & 0.000 & \underline{0.001} & \textbf{0.004} & \underline{0.001} & 0.000 \\
+SWAN     & Solar Flare Magnetic Telemetry   & 1  & \textbf{0.241}    & 0.060 & \underline{0.148} & 0.146 & 0.000 & 0.000 \\
+\midrule
+\textbf{Dataset-Macro Mean} & Across All 7 Benchmarks & 33 & \textbf{0.148} & \underline{0.130} & 0.122 & 0.064 & 0.100 & 0.069 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+
+
+\begin{table}[t]
+\centering
+\small
+\caption{Native-window baseline evaluation across five diverse benchmark streams (NASA SMAP: \texttt{P-3}, SMD: \texttt{machine-1-2}, NASA MSL: \texttt{M-1}, Daphnet: \texttt{S01R01E1}, GECCO: \texttt{water\_quality}). Shortening the context window to native sizes ($W=10$ for TranAD, $W=96$ for TimesNet) exacerbates residual tail heaviness ($\gamma_2 = 448.25$ and $98.14$) rather than curing it.}
+\label{tab:native_window_baselines}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model Configuration} & \textbf{Window $W$} & \textbf{Test $\gamma_2$} & \textbf{Mean False Pos.} & \textbf{Empirical FPR} \\
+\midrule
+\textbf{TimesNet (Native)} & 96  & 98.14  & 26,526.8 & 44.09\% \\
+\textbf{TimesNet (Long)}   & 320 & 32.04  & 27,041.0 & 51.26\% \\
+\midrule
+\textbf{TranAD (Native)}   & 10  & 448.25 & 18,765.4 & 24.51\% \\
+\textbf{TranAD (Long)}     & 320 & 29.93  & 16,671.0 & 31.76\% \\
+\midrule
+\textbf{TS-JEPA (Ours)}    & 320 & \textbf{3.14} & \textbf{10,678.8} & \textbf{22.57\%} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+

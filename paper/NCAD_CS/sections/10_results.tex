@@ -1,214 +1,48 @@
 \section{Results and Discussion}
 \label{sec:results}
 
-This section reports empirical evaluations and dynamical diagnostics across 33 matched continuous telemetry streams spanning seven physical sensing domains under the held-out calibration protocol. We evaluate whether forward prediction in latent representation space produces residual distributions that are better conditioned for automated thresholding, investigate the empirical behavior of physics-inspired regularizers against unconstrained latent controls, analyze operational streaming latency, and quantify the reliability of extreme-value threshold calibration on real telemetry.
+We report evaluations across 33 matched telemetry streams under the held-out calibration protocol: whether latent prediction conditions residuals for automated thresholding, the empirical behavior of the physics-inspired regularizers, operational latency, and the reliability of EVT calibration on real telemetry.
 
 \input{sections/tab_core_benchmark.tex}
 
 \subsection{Benchmark Performance on Continuous Telemetry}
 \label{subsec:core_benchmark}
 
-Table~\ref{tab:core_benchmark} presents the empirical comparison across 33 continuous telemetry streams evaluated under the held-out calibration protocol of Section~\ref{subsec:exp_setup} (SPOT, $u=0.98, q=10^{-3}$). Figure~\ref{fig:hero_sota_comparison} illustrates the comparative profile across strict Point-F1, continuous ranking (PR-AUC), and held-out nominal FPR.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.95\textwidth]{figures/hero_models_sota_comparison.png}
-\caption{Held-Out Calibration Benchmark across 33 continuous telemetry streams (Non-GHL stream-macro means averaged across five seeds). Latent-space predictive architectures achieve an approximately four-fold reduction in held-out nominal False-Positive Rate compared to reconstructive baselines, while maintaining comparable Point-F1 and PR-AUC.\label{fig:hero_sota_comparison}}
-\end{figure*}
+Table~\ref{tab:core_benchmark} presents the empirical comparison across 33 continuous telemetry streams evaluated under the held-out calibration protocol of Section~\ref{subsec:exp_setup} (SPOT, $u=0.98, q=10^{-3}$).
 
 Several primary empirical findings emerge from Table~\ref{tab:core_benchmark}:
 
-\noindent\textbf{False Alarm Suppression on Held-Out Telemetry:} The primary operational advantage of latent-space predictive architectures is a substantial reduction in nominal false alarms. On the 19 non-GHL streams, TS-JEPA achieves an out-of-sample nominal FPR of $0.076$, Operator-Entropy achieves $0.086$, and Reynolds-Stress achieves $0.078$, compared to $0.300$ for TimesNet and $0.307$ for TranAD. Across all 33 streams (seeds averaged), paired difference tests establish a statistically significant reduction in held-out FPR: TS-JEPA achieves a mean paired FPR reduction of $-0.150$ against TimesNet ($95\%$ bootstrap confidence interval $[-0.245, -0.067]$, Wilcoxon signed-rank $p=0.007$) and $-0.150$ against TranAD ($[-0.246, -0.070]$, $p=0.004$). Similarly, Operator-Entropy achieves a paired FPR reduction of $-0.146$ against TimesNet ($[-0.236, -0.068]$, $p=0.003$) and $-0.146$ against TranAD ($[-0.245, -0.060]$, $p=0.002$). Predicting residuals in contracted latent representations avoids observation-level high-frequency noise, yielding better-conditioned score distributions (as isolated directly under the same-backbone ablation in Section~\ref{subsec:controlled_backbone} and Table~\ref{tab:controlled_backbone}).
+\noindent\textbf{False Alarm Suppression on Held-Out Telemetry:} On the 19 non-GHL streams, latent predictors achieve held-out nominal FPR $0.076$--$0.086$ versus $0.300$ (TimesNet) and $0.307$ (TranAD). Across all 33 streams (seeds averaged), the paired FPR reduction is statistically significant: TS-JEPA $-0.150$ vs.\ TimesNet ($95\%$ CI $[-0.245, -0.067]$, Wilcoxon $p{=}0.007$) and $-0.150$ vs.\ TranAD ($[-0.246, -0.070]$, $p{=}0.004$); Operator-Entropy shows $-0.146$ vs.\ TimesNet ($p{=}0.003$) and $-0.146$ vs.\ TranAD ($p{=}0.002$). Latent residuals avoid observation-level noise, yielding better-conditioned score distributions (isolated under the same-backbone control, Section~\ref{subsec:controlled_backbone}).
 
-\noindent\textbf{Point-F1 and Continuous Ranking (PR-AUC) Parity:} While latent prediction suppresses nominal false alarms, it does not provide a statistically distinguishable improvement in overall detection fidelity. On the 19 non-GHL streams, TS-JEPA achieves a stream-macro Point-F1 of $0.234$ and PR-AUC of $0.323$ (dataset-macro Point-F1 of $0.148$), compared to $0.197$ Point-F1 and $0.329$ PR-AUC for TimesNet (dataset-macro Point-F1 of $0.100$), and $0.130$ Point-F1 and $0.287$ PR-AUC for TranAD (dataset-macro Point-F1 of $0.069$). Across all 33 streams, paired differences between TS-JEPA and TimesNet are $+0.012$ in Point-F1 ($95\%$ CI $[-0.053, +0.075]$, $p=0.54$) and $-0.000$ in PR-AUC ($[-0.098, +0.092]$, $p=0.39$). Against TranAD, the paired difference is $+0.051$ in Point-F1 ($[-0.015, +0.129]$, $p=0.88$) and $+0.023$ in PR-AUC ($[-0.077, +0.125]$, $p=0.16$). Thus, continuous ranking fidelity and calibrated Point-F1 remain statistically comparable between unconstrained latent prediction and observation-space reconstructive baselines.
+\noindent\textbf{Point-F1 and Continuous Ranking (PR-AUC) Parity:} False-alarm suppression does not translate into statistically distinguishable detection gains. On the non-GHL subset TS-JEPA attains $0.234$ Point-F1 / $0.323$ PR-AUC versus $0.197$/$0.329$ (TimesNet) and $0.130$/$0.287$ (TranAD). Across all 33 streams the paired differences are inconclusive: vs.\ TimesNet $+0.012$ F1 (CI $[-0.053, +0.075]$, $p{=}0.54$), $-0.000$ PR-AUC ($p{=}0.39$); vs.\ TranAD $+0.051$ F1 ($p{=}0.88$), $+0.023$ PR-AUC ($p{=}0.16$).
 
-\noindent\textbf{Event Recall and Detection Conservatism:} The lower false-positive rate of latent predictive models is accompanied by a reduction in event recall. On the 19 non-GHL streams, TimesNet captures $58.6\%$ of ground-truth anomaly events, and TranAD captures $48.1\%$, whereas TS-JEPA captures $49.8\%$, Reynolds-Stress captures $39.8\%$, and Potential-Flow captures $33.1\%$. Latent-space residuals act as a more conservative detector: by filtering high-frequency variations, subtle anomaly onsets that do not produce large latent coordinate shifts are missed, suppressing false alarms at the expense of lower event sensitivity.
+\noindent\textbf{Event Recall and Detection Conservatism:} Lower FPR accompanies lower event recall: on non-GHL streams TimesNet captures $58.6\%$ of events and TranAD $48.1\%$, versus $49.8\%$ (TS-JEPA), $39.8\%$ (Reynolds), $33.1\%$ (Potential-Flow). Subtle onsets that do not shift dominant latent coordinates are filtered with the noise.
 
-\noindent\textbf{Detection Delay Trade-Offs ($\Delta t$):} Table~\ref{tab:core_benchmark} also reports the mean detection delay $\Delta t$ in timesteps from fault inception to the earliest alarm across detected events. Detection latency varies substantially across architectures. TimesNet responds most rapidly to raw observation anomalies, averaging $\Delta t = 48$ steps, while TS-JEPA incurs a mean delay of $80$ steps and the physics-inspired variants are slower still (Reynolds-Stress $133$ steps, Potential-Flow $147$ steps, Operator-Entropy $192$ steps). TranAD exhibits the longest delay of any evaluated model ($234$ steps). Because latent encoders smooth out high-frequency observation noise, alarms trigger only after anomalous deviations propagate into the dominant coordinates of representation space. Operational deployments must therefore weigh the roughly four-fold reduction in nominal false alarms against an increase in initial detection latency relative to the fastest baseline.
+\noindent\textbf{Detection Delay Trade-Offs ($\Delta t$):} Mean detection delay (Table~\ref{tab:core_benchmark}) varies widely: TimesNet responds fastest ($\Delta t{=}48$ steps), TS-JEPA averages $80$, and the physics variants are slower still ($133$--$192$); TranAD is slowest ($234$). Because latent encoders smooth observation noise, alarms trigger only once anomalies propagate into dominant latent coordinates --- deployments trade ~4$\times$ fewer nominal false alarms for added initial latency.
 
-\noindent\textbf{Necessity of Nonlinear Representation Learning (Linear AR Control):} To establish whether non-neural linear dynamics suffice for residual conditioning, Table~\ref{tab:core_benchmark} includes a ridge-regularized Linear Autoregressive Forecaster. Under the identical held-out calibration protocol, Linear AR achieves an exceptionally low nominal FPR of $0.006$ and zero detection delay ($\Delta t = 0.0$ steps) on the events it captures. However, its calibrated Point-F1 collapses to $0.057$ (dataset-macro Point-F1 of $0.038$), capturing only $47.8\%$ of events with a point precision of just $4.35\%$. Because an observation-space linear model lacks the capacity to capture cross-channel interactions and temporal non-linearities, its residual scores fail to discriminate subtle operational faults from background variance. This non-neural baseline confirms that trivial linear forecasting cannot deliver viable anomaly detection, establishing that nonlinear latent representation learning is necessary to combine controlled false-alarm rates with usable detection accuracy.
+\noindent\textbf{Necessity of Nonlinear Representation Learning (Linear AR Control):} A ridge-regularized linear AR forecaster under identical calibration attains FPR $0.006$ but collapses to Point-F1 $0.057$ (precision $4.35\%$): observation-space linear dynamics cannot separate faults from background variance. Nonlinear latent representation is necessary to combine controlled false alarms with usable detection.
 
-\input{sections/tab_all_datasets.tex}
-\input{sections/tab_dataset_prauc.tex}
-
-\noindent\textbf{Domain-Specific Telemetry Dynamics:} Tables~\ref{tab:all_datasets} and~\ref{tab:dataset_prauc} report the per-dataset breakdown of unadjusted Point-F1 and PR-AUC across the seven evaluated benchmarks. Relative performance depends on the underlying physical sensing regime:
-\begin{enumerate}
-    \item \textbf{Periodic Kinematics (Daphnet):} On wearable Parkinsonian accelerometry (6 streams), TimesNet leads in Point-F1 ($0.245$) and PR-AUC ($0.343$) over TS-JEPA ($0.155$ F1, $0.137$ PR-AUC). The 2D Fourier representation in TimesNet captures multi-frequency gait periodicity that standard 1D latent projections compress.
-    \item \textbf{Spacecraft Telemetry (NASA MSL and SMAP):} On spacecraft telemetry, latent prediction leads. On SMAP (6 streams), TS-JEPA achieves $0.441$ Point-F1 and $0.539$ PR-AUC, while Operator-Entropy reaches $0.427$ F1 and $0.591$ PR-AUC, outperforming TimesNet ($0.304$ F1, $0.463$ PR-AUC) and TranAD ($0.166$ F1, $0.350$ PR-AUC). On MSL (4 streams), Operator-Entropy ($0.281$ F1, $0.445$ PR-AUC) and TS-JEPA ($0.257$ F1, $0.427$ PR-AUC) outperform TimesNet ($0.159$ F1, $0.310$ PR-AUC).
-    \item \textbf{Solar Flare Magnetograms (SWAN):} On SWAN solar telemetry, TS-JEPA achieves $0.191$ Point-F1 and $0.519$ PR-AUC, whereas TimesNet triggers zero test detections ($0.000$ F1, $0.292$ PR-AUC) due to severe threshold miscalibration.
-    \item \textbf{Quiescent and Heavy-Imbalance Streams (GHL and Metro):} On Gasoil Heating Loop (14 streams) and Metro traffic, all models struggle with near-zero Point-F1 ($0.000\text{--}0.022$). In GHL, anomalies consist of subtle actuator drifts amidst stationary background telemetry; in Metro, extreme traffic volume surges produce out-of-distribution residuals that evade static EVT bounds.
-\end{enumerate}
+\noindent\textbf{Domain-Specific Telemetry Dynamics:} Supplementary Tables~\ref{tab:all_datasets}--\ref{tab:dataset_prauc} report the per-dataset Point-F1/PR-AUC breakdown. Relative performance depends on the physical sensing regime: TimesNet leads on Daphnet periodic kinematics ($0.245$ F1, $0.343$ PR-AUC vs.\ TS-JEPA $0.155$/$0.137$), where 2D Fourier decomposition captures multi-frequency gait structure; latent prediction leads on spacecraft telemetry (SMAP: TS-JEPA $0.441$ F1 / OpEntropy $0.591$ PR-AUC; MSL: OpEntropy $0.281$ F1 / $0.445$ PR-AUC, versus TimesNet $0.304$/$0.159$ F1). On SWAN, TimesNet triggers zero test detections under severe threshold miscalibration ($0.000$ F1 despite $0.292$ PR-AUC). On GHL and Metro, all models struggle ($0.000\text{--}0.022$ F1): subtle actuator drifts against stationary backgrounds and extreme traffic surges evade static EVT bounds respectively.
 
 \subsection{Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}
 \label{subsec:eval_physics_priors}
 
-A central hypothesis evaluated in this investigation is whether incorporating physics-inspired inductive regularizers into latent representations (Koopman spectral entropy, Reynolds stress closure, and potential-flow curl-free dynamics) improves anomaly detection performance over an unconstrained latent predictive architecture (\texttt{TS-JEPA}).
-
-The empirical data across all 33 streams refute this hypothesis:
+Does adding physics-inspired regularizers (Koopman spectral entropy, Reynolds-stress closure, curl-free potential flow) improve detection over unconstrained \texttt{TS-JEPA}? The 33-stream data refute this:
 \begin{enumerate}
-    \item \textbf{Operator-Entropy vs. TS-JEPA:} Across all 33 streams (seeds averaged), Operator-Entropy yields a mean paired difference of $+0.002$ in Point-F1 ($95\%$ bootstrap CI $[-0.025, +0.029]$, Wilcoxon $p=0.69$) and $-0.000$ in PR-AUC ($[-0.021, +0.020]$, $p=0.49$). Held-out nominal FPR difference is $+0.004$ ($[-0.018, +0.029]$, $p=0.77$). Across 33 streams, Operator-Entropy outperforms TS-JEPA in Point-F1 on only 8 streams.
-    \item \textbf{Reynolds-Stress vs. TS-JEPA:} Reynolds-Stress yields a paired difference of $-0.015$ in Point-F1 ($[-0.043, +0.007]$, $p=0.50$) and a statistically significant reduction in PR-AUC ($-0.011$, $[-0.028, +0.007]$, $p=0.014$). Held-out FPR difference is $-0.002$ ($[-0.025, +0.024]$, $p=0.81$). Reynolds-Stress leads TS-JEPA in F1 on 10 of 33 streams.
-    \item \textbf{Potential-Flow vs. TS-JEPA:} Potential-Flow performs significantly worse than unconstrained TS-JEPA on calibrated Point-F1 (paired difference $-0.084$, $95\%$ CI $[-0.162, -0.021]$, $p=0.013$), with a corresponding deficit in continuous ranking PR-AUC (paired difference $-0.072$, $95\%$ CI $[-0.136, -0.018]$, $p=0.060$). Potential-Flow outperforms TS-JEPA on only 5 of 33 streams.
+    \item \textbf{Operator-Entropy vs. TS-JEPA:} paired difference $+0.002$ Point-F1 (CI $[-0.025, +0.029]$, $p{=}0.69$), $-0.000$ PR-AUC ($p{=}0.49$), $+0.004$ FPR ($p{=}0.77$); leads on only 8 of 33 streams.
+    \item \textbf{Reynolds-Stress vs. TS-JEPA:} $-0.015$ Point-F1 ($[-0.043, +0.007]$, $p{=}0.50$), a significant PR-AUC deficit ($-0.011$, $p{=}0.014$), $-0.002$ FPR ($p{=}0.81$); leads on 10 of 33.
+    \item \textbf{Potential-Flow vs. TS-JEPA:} significantly worse Point-F1 ($-0.084$, $[-0.162, -0.021]$, $p{=}0.013$) and PR-AUC ($-0.072$, $p{=}0.060$); leads on 5 of 33.
 \end{enumerate}
 
 These findings align with the matched-capacity regularizer controls in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}, where disabling each physical loss term on a fixed backbone produces changes well within seed noise. We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
 
-\subsection{Mathematical Diagnostics of Physical Regularizers}
-\label{subsec:physics_diagnostics}
 
-To understand why the proposed regularizers enforce their intended mathematical properties yet fail to improve downstream anomaly detection, we conduct targeted dynamical diagnostic experiments.
+The dynamical diagnostics evaluating \emph{why} each regularizer fails (operator rank preservation without detection gain, covariance-shift insensitivity, and curl-free misspecification on cyclic telemetry) are reported in Supplementary Section~\ref{sup:math_diagnostics} (Tables~\ref{tab:operator_entropy_validation}--\ref{tab:potential_flow_validation}).
 
-\subsubsection{Operator-Entropy: Anti-Collapse Spectral Rank Preservation}
-In Operator-Entropy JEPA, the transition operator $K \in \mathbb{R}^{D \times D}$ ($D=32$) is regularized via Von Neumann spectral entropy $S(\rho) = -\text{Tr}(\rho \log \rho)$ on normalized Gram matrix $\rho = KK^T / \text{Tr}(KK^T)$. Table~\ref{tab:operator_entropy_validation} evaluates effective operator rank via the RankMe metric ($\exp(\mathcal{H})$ where $\mathcal{H}$ is the spectral entropy of singular values), representation covariance conditioning, and downstream calibrated Point-F1 across five telemetry streams.
-
-\begin{table}[t]
-\centering
-\small
-\caption{Empirical spectral diagnostics of learned transition operators and representations across five benchmark telemetry streams ($D=32$). Operator-Entropy preserves full theoretical rank ($\exp(\mathcal{H}) = 31.996$ out of 32.0), preventing dimensional collapse.}
-\label{tab:operator_entropy_validation}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-\textbf{Model Architecture} & \textbf{Operator Rank ($\text{RankMe}$)} & \textbf{Rep. Rank} & \textbf{Point-F1} & \textbf{Empirical FPR} \\
-\midrule
-Operator-Entropy JEPA & \textbf{31.996} & 3.564 & \textbf{0.0710} & 0.1497 \\
-Representation-Entropy JEPA & 24.647 & \textbf{7.579} & 0.0479 & 0.0442 \\
-Vanilla TS-JEPA (Unconstrained) & 24.807 & 3.993 & 0.0301 & \textbf{0.0371} \\
-VICReg TS-JEPA & 24.339 & 5.881 & 0.0043 & 0.0273 \\
-\bottomrule
-\end{tabular}%
-}
-\end{table}
-
-As shown in Table~\ref{tab:operator_entropy_validation}, unconstrained Vanilla TS-JEPA and VICReg collapse across $7\text{--}8$ singular modes, yielding an effective operator rank of $24.3\text{--}24.8$. Operator-Entropy JEPA achieves an effective operator rank of $31.996$ out of $32.0$, confirming that the regularizer prevents modal collapse. However, full operator rank does not improve downstream anomaly detection: telemetry anomalies are frequently localized subsystem deviations occurring in low-dimensional subspaces. Preserving high-rank transition dynamics forces the model to track ambient high-frequency variations, which does not enhance fault discrimination.
-
-\subsubsection{Reynolds-Stress: Covariance Alignment vs. Marginal Perturbations}
-Reynolds-Stress JEPA aligns second-order latent fluctuation statistics ($\Sigma_{z'} = \frac{1}{B} \sum z' (z')^T$) between predicted and target horizons. Table~\ref{tab:covariance_validation} compares models on synthetic telemetry isolating pure cross-channel correlation flips ($\rho: +0.85 \to -0.85$) from pure marginal variance scaling ($3.0\times$).
-
-\begin{table}[t]
-\centering
-\small
-\caption{Controlled covariance vs.\ marginal anomaly benchmark. Reynolds-Stress JEPA improves marginal variance detection over unconstrained TS-JEPA ($0.5838$ vs.\ $0.3313$ PR-AUC), but both latent models struggle on pure correlation flips.}
-\label{tab:covariance_validation}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-& \multicolumn{2}{c}{\textbf{Pure Covariance Shift}} & \multicolumn{2}{c}{\textbf{Pure Marginal Shift}} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-\textbf{Model Architecture} & \textbf{PR-AUC} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{Point-F1} \\
-\midrule
-Reynolds-Stress JEPA & 0.0498 & 0.0000 & 0.5838 & \textbf{0.0593} \\
-TS-JEPA (Unconstrained) & 0.0409 & 0.0000 & 0.3313 & 0.0000 \\
-TimesNet & \textbf{0.9313} & 0.6558 & \textbf{0.9998} & 0.6267 \\
-TranAD & 0.6761 & \textbf{0.7246} & 0.9343 & \textbf{0.6560} \\
-\bottomrule
-\end{tabular}%
-}
-\end{table}
-
-Table~\ref{tab:covariance_validation} indicates that on marginal variance shifts, Reynolds-Stress improves PR-AUC by $+76\%$ over TS-JEPA ($0.5838$ vs.\ $0.3313$). However, on pure covariance shifts without marginal changes, both latent models show low sensitivity ($0.041\text{--}0.050$ PR-AUC) relative to observation-space baselines ($0.676\text{--}0.931$). Standard temporal pooling across channels averages out instantaneous phase alignments, preventing the second-moment loss from isolating cross-channel relationship shifts unless explicit pairwise relational graphs are modeled.
-
-\subsubsection{Potential-Flow: Conservative vs. Circulating Dynamics}
-Potential-Flow JEPA constrains transition velocities to curl-free potential gradients ($\hat{v} = -\nabla\Phi$). Table~\ref{tab:potential_flow_validation} evaluates Potential-Flow against Helmholtz-JEPA (decomposing velocity into gradient plus solenoidal circulation: $\hat{v} = -\nabla\Phi + \text{curl}(A)$) and unconstrained TS-JEPA across two dynamical benchmarks: a conservative Duffing oscillator and a non-conservative Van der Pol limit-cycle attractor.
-
-\begin{table}[t]
-\centering
-\small
-\caption{Dynamical system validation comparing curl-free Potential-Flow ($\hat{v} = -\nabla\Phi$), Helmholtz decomposition ($\hat{v} = -\nabla\Phi + \text{curl}(A)$), and unconstrained TS-JEPA on conservative Hamiltonian vs.\ non-conservative limit-cycle phase spaces.}
-\label{tab:potential_flow_validation}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-& \multicolumn{2}{c}{\textbf{Conservative Duffing}} & \multicolumn{2}{c}{\textbf{Non-Conservative Van der Pol}} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-\textbf{Model Architecture} & \textbf{PR-AUC} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{Point-F1} \\
-\midrule
-Helmholtz JEPA ($\nabla\Phi + \text{curl}(A)$) & \textbf{0.5985} & \textbf{0.7815} & \textbf{0.5250} & \textbf{0.7574} \\
-TS-JEPA (Unconstrained) & 0.5855 & 0.7583 & 0.4577 & 0.6660 \\
-Potential-Flow JEPA ($-\nabla\Phi$) & 0.1701 & 0.2036 & 0.3106 & 0.3548 \\
-\bottomrule
-\end{tabular}%
-}
-\end{table}
-
-Table~\ref{tab:potential_flow_validation} confirms that pure curl-free potential flow is mathematically incapable of representing closed circulating orbits, yielding poor detection on Van der Pol ($0.3548$ Point-F1 vs.\ $0.7574$ for Helmholtz JEPA). Because physical telemetry often exhibits non-conservative, cyclic behavior (e.g., diurnal cycles, rotational turbines), enforcing irrotational dynamics severely penalizes normal circulating trajectories, explaining Potential-Flow's poor benchmark performance ($0.065$ dataset-macro F1 in Table~\ref{tab:core_benchmark}).
-
-\subsection{Operational Incident Evaluation: Event Metrics and Adaptation}
-\label{subsec:incident_metrics}
-
-Evaluating telemetry solely by point-level metrics can penalize slight temporal boundary offsets in continuous anomalies. In operational systems, faults represent extended continuous incidents; a detector that identifies the event with a minor phase lag is penalized on every out-of-boundary point.
-
-To analyze operational incident detection, Table~\ref{tab:operational_incident_metrics} evaluates three complementary metrics across three telemetry streams: Room Occupancy (stream: \texttt{default}, 11 events), NASA SMAP (stream: \texttt{P-3}, 1 event), and CalIt2 (stream: \texttt{traffic}, 21 events). We compare strict Point-F1, Event-F1 ($P_{\text{event}}, R_{\text{event}}$), and Tatbul et al. Range-Aware F1 ($F1_{\text{range}}$) across three operational inference configurations: Standard (middle-window, static EVT), Sharp (dense causal, static EVT), and Adaptive (dense, dynamic rolling SPOT).
-
-\begin{table*}[t]
-\centering
-\small
-\caption{Operational incident detection comparison across representative telemetry streams: Room Occupancy (stream: \texttt{default}, 11 ground-truth events), NASA SMAP (stream: \texttt{P-3}, 1 thruster fault), and CalIt2 (stream: \texttt{traffic}, 21 pedestrian burst events). We contrast Standard (Middle, Static EVT), Sharp (Dense, Static EVT), and Adaptive (Dense, Dynamic SPOT) inference modes.}
-\label{tab:operational_incident_metrics}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}llccccccc@{}}
-\toprule
-\textbf{Evaluated Stream} & \textbf{Operational Configuration} & \textbf{Pt-F1} & \textbf{Pt-Prec} & \textbf{Evt-F1} & \textbf{Evt-Prec} & \textbf{Evt-Rec} & \textbf{Rng-F1} & \textbf{False Pos.} \\
-\midrule
-\multicolumn{9}{l}{\textit{Room Occupancy: Stream \texttt{default} (Environmental Sensing, 11 Ground-Truth Incidents)}} \\
-\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.3728 & 22.9\% & 0.5238 & 35.5\% & 100\% & 0.3708 & 3,842 \\
-\texttt{operator\_entropy} & Sharp (Dense, Static EVT)   & 0.3329 & 20.0\% & \textbf{0.9167} & \textbf{84.6\%} & \textbf{100\%} & 0.3329 & 4,705 \\
-\texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & 0.1273 & 29.9\% & 0.6364 & 63.6\% & 63.6\% & 0.3699 & \textbf{223} ($\downarrow 21\times$) \\
-\texttt{potential\_flow}   & Sharp (Dense, Static EVT)   & 0.3431 & 20.7\% & \textbf{0.9167} & \textbf{84.6\%} & \textbf{100\%} & 0.3431 & 4,496 \\
-\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0441 & 10.2\% & 0.5714 & 60.0\% & 54.5\% & 0.1636 & \textbf{291} ($\downarrow 15\times$) \\
-\midrule
-\multicolumn{9}{l}{\textit{NASA SMAP: Stream \texttt{P-3} (Spacecraft Telemetry, 1 Continuous Fault Segment)}} \\
-\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.0087 & 14.6\% & 0.1818 & 10.0\% & 100\% & 0.2266 & 35 \\
-\texttt{operator\_entropy} & Sharp (Dense, Static EVT)   & 0.1274 & 27.3\% & 0.1538 & 8.3\%  & 100\% & \textbf{0.3634} & 295 \\
-\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0110 & 6.9\%  & \textbf{0.3333} & 20.0\% & \textbf{100\%} & 0.1213 & \textbf{108} \\
-\midrule
-\multicolumn{9}{l}{\textit{CalIt2: Stream \texttt{traffic} (Pedestrian Entrance Flow, 21 Transient Event Clusters)}} \\
-\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.0131 & 1.9\%  & 0.0588 & 7.7\%  & 4.8\%  & 0.0216 & 53 \\
-\texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & \textbf{0.1368} & 8.7\%  & \textbf{0.3226} & 50.0\% & 23.8\% & \textbf{0.1274} & 357 \\
-\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0903 & 14.3\% & 0.0909 & \textbf{100.0\%} & 4.8\%  & 0.0714 & \textbf{42} \\
-\bottomrule
-\end{tabular}%
-}
-\end{table*}
-
-Table~\ref{tab:operational_incident_metrics} highlights three operational characteristics:
-First, static EVT thresholding achieves 100\% event recall on Room Occupancy and SMAP (\texttt{P-3}), but generates over 4,000 false alarm points on Room Occupancy due to unmodeled diurnal baseline shifts, causing point precision to collapse to $20.0\%$.
-Second, dynamic rolling SPOT suppresses false alarms by $21\times$ (from 4,705 to 223 points) and raises precision to $29.9\%$, but event recall drops from 100\% to $63.6\%$. Tracking non-stationary drift via rolling quantiles creates an operational trade-off between alarm fatigue and missed events.
-Third, on transient burst streams (CalIt2, 21 short spikes), models detect only $4.8\%\text{--}23.8\%$ of events under rolling SPOT, demonstrating that short pulses remain difficult to distinguish from ambient noise.
-
-\subsection{Operational Latency: Strictly Causal Online Detection vs. Buffered Horizons}
+\subsection{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}
 \label{subsec:causal_vs_buffered}
 
-Table~\ref{tab:causal_vs_buffered} compares operational latency, false-alarm rates, and detection delay across five matched telemetry streams (NASA SMAP \texttt{P-3}, SMD \texttt{machine-1-2}, NASA MSL \texttt{M-1}, Daphnet \texttt{S01R01E1}, and GECCO \texttt{water\_quality}) under the strictly causal ($0$-lookahead) and buffered ($64$-lookahead) regimes defined in Section~\ref{subsec:causal_vs_buffered_protocol}.
-
-\begin{table*}[t]
-\centering
-\small
-\caption{Operational latency and detection fidelity under Strictly Causal ($0$-lookahead delay) versus Buffered Window ($64$-lookahead delay) inference across 5 representative telemetry streams. Under causal streaming, TS-JEPA achieves an empirical false-positive rate of $4.18\%$ ($\text{FAR}_{1\text{k}} = 41.76$ false alarms per 1k points), compared to $30.06\%$ for TimesNet and $20.81\%$ for TranAD.}
-\label{tab:causal_vs_buffered}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}llccccccc@{}}
-\toprule
-\textbf{Inference Setting} & \textbf{Model} & \textbf{Empirical FPR} & \textbf{$\text{FAR}_{1\text{k}}$ (/1k pts)} & \textbf{False Positives} & \textbf{Point-F1} & \textbf{Precision} & \textbf{Mean Delay ($\Delta t$)} & \textbf{Recall ($\tau \le 64$)} \\
-\midrule
-\multirow{3}{*}{\shortstack[l]{\textbf{Strictly Causal}\\($0$-Lookahead)}} 
-& TS-JEPA & \textbf{0.0418} & \textbf{41.76} & \textbf{1,685.6} & 0.0688 & \textbf{0.1581} & 130.3 & 0.1071 \\
-& TimesNet & 0.3006 & 300.63 & 16,952.0 & 0.0774 & 0.1525 & 251.2 & 0.2286 \\
-& TranAD & 0.2081 & 208.13 & 16,637.6 & \textbf{0.0881} & 0.1255 & \textbf{43.2} & \textbf{0.3286} \\
-\midrule
-\multirow{3}{*}{\shortstack[l]{\textbf{Buffered Window}\\($64$-Lookahead)}} 
-& TS-JEPA & \textbf{0.1514} & \textbf{151.39} & \textbf{2,696.0} & 0.0431 & 0.0355 & 89.6 & 0.1357 \\
-& TimesNet & 0.2800 & 280.03 & 16,916.8 & \textbf{0.0807} & 0.1404 & 235.3 & 0.2571 \\
-& TranAD & 0.1998 & 199.82 & 16,339.6 & 0.0197 & \textbf{0.2284} & \textbf{32.8} & \textbf{0.2786} \\
-\bottomrule
-\end{tabular}%
-}
-\end{table*}
-
-Under strictly causal streaming, TS-JEPA maintains an empirical false-positive rate of $4.18\%$ ($41.76$ false alarms per $1{,}000$ points), generating an average of $1{,}685.6$ false alarms per stream. In contrast, TimesNet and TranAD generate $16{,}952.0$ and $16{,}637.6$ false alarms (empirical FPRs of $30.06\%$ and $20.81\%$). On GECCO water telemetry ($113{,}000$ test points), TimesNet and TranAD trigger over $81{,}500$ false alarms ($99.6\%$ FPR), whereas TS-JEPA triggers zero false alarms.
-
-Two methodological trade-offs govern these results:
-First, the false-alarm reduction under strict causality comes at the expense of early event capture. TS-JEPA detects $10.7\%$ of anomaly events within $\tau \le 64$ steps under causal streaming, compared to $22.9\%$ for TimesNet and $32.9\%$ for TranAD.
+Event-level (incident) metrics, operational latency under dense vs.\ buffered inference, and rolling-SPOT adaptation case studies on Room-Occupancy, SMAP \texttt{P-3}, CalIt2, and a five-stream causal-vs-buffered panel are reported in Supplementary Section~\ref{sup:operational} (Tables~\ref{tab:operational_incident_metrics}, \ref{tab:causal_vs_buffered}): dynamic rolling SPOT suppresses false alarms up to $21\times$ on drift-prone streams at the cost of event recall (100\% $\to$ 63.6\%), and TS-JEPA causal false-positive rate ($4.18\%$) is an order of magnitude below reconstructive baselines ($20.8\%$--$30.1\%$).
 \input{sections/tab_causal_benchmark.tex}
 
 Table~\ref{tab:causal_benchmark} reports the complete 33-stream benchmark under strictly causal ($0$-lookahead) streaming. Across all 33 streams, unconstrained TS-JEPA reduces held-out nominal FPR to $0.0136$ (compared to $0.2427$ for TimesNet and $0.2219$ for TranAD), an out-of-sample false-alarm suppression of roughly $18$-fold. However, causal Point-F1 drops to $0.1118 \pm 0.0412$ for TS-JEPA and $0.1093 \pm 0.0085$ for Operator-Entropy, whereas TimesNet achieves $0.2091 \pm 0.0265$. Event recall likewise declines from $58.82\%$ (TimesNet) to $46.55\%$ (TS-JEPA). This confirms that without a prospective lookahead buffer to observe multi-step trajectory evolution, latent predictive scoring functions as an ultra-conservative filter that prevents false alarms at the price of reduced detection sensitivity.
@@ -223,58 +57,18 @@ A critical requirement for autonomous telemetry monitoring is whether automated 
 
 \input{sections/tab_calibrator_comparison.tex}
 
-Table~\ref{tab:calibrator_comparison} reports a controlled comparison of threshold calibrators evaluated on identical score streams across the 33 continuous telemetry streams under buffered inference. The empirical results demonstrate several key realities:
+Table~\ref{tab:calibrator_comparison} compares threshold calibrators on identical score streams across all 33 streams under buffered inference. Four realities emerge:
 \begin{enumerate}
-    \item \textbf{Systematic Design-Risk Overshoot:} Extreme-value thresholding via SPOT ($u=0.98, q=10^{-3}$) systematically fails to achieve its design risk on out-of-sample nominal telemetry. Across all 33 streams, empirical nominal FPR averages $6.51\%$ for TS-JEPA, $7.33\%$ for Operator-Entropy, $26.09\%$ for TimesNet, and $26.55\%$ for TranAD, overshooting the theoretical $0.1\%$ target by $65$-fold to $266$-fold.
-    \item \textbf{High Failure Rate Across Streams:} The 95\% bootstrap confidence intervals for held-out nominal FPR strictly exclude the theoretical design risk $q=10^{-3}$ in $64\%$ of TS-JEPA runs, $66\%$ of Operator-Entropy runs, $87\%$ of TimesNet runs, and $84\%$ of TranAD runs. Real-world telemetry exhibits non-stationary baseline drift and seasonal fluctuations that violate the stationary tail assumptions of Extreme Value Theory.
-    \item \textbf{Parity with Simple Empirical Quantiles:} Simple non-parametric quantile rules match or exceed the performance of SPOT. On TS-JEPA, taking the validation maximum yields an empirical held-out FPR of $0.0686$ and Point-F1 of $0.1985$, while an empirical 99.5th percentile rule yields an FPR of $0.0838$ and Point-F1 of $0.1995$. Parametric GPD tail modeling provides no demonstrable benefit over simple empirical percentiles on these benchmarks.
-    \item \textbf{Failure of Kurtosis-Adaptive Calibration:} The kurtosis-adaptive multiplier rule ($\tau_{\text{eff}} = \tau(1 + \frac{1}{6}\tanh\gamma_2)$) substantially degrades nominal calibration. On TS-JEPA, it inflates held-out nominal FPR from $0.0651$ to $0.2205$ (with CI excluding $q$ rising from $64\%$ to $84\%$), while yielding a statistically indistinguishable Point-F1 ($0.2113$ vs.\ $0.1968$ under standard SPOT). On Operator-Entropy, it raises nominal FPR from $0.0733$ to $0.1506$. Excess kurtosis measured in training splits does not accurately forecast non-stationary tail shifts on out-of-sample telemetry.
+    \item \textbf{Systematic design-risk overshoot:} SPOT ($u{=}0.98, q{=}10^{-3}$) never achieves its design risk out-of-sample --- held-out nominal FPR averages $6.51\%$ (TS-JEPA), $7.33\%$ (OpEntropy), $26.09\%$ (TimesNet), $26.55\%$ (TranAD), a $65$--$266\times$ overshoot.
+    \item \textbf{High failure rate:} 95\% bootstrap CIs exclude $q$ in $64\%$/$66\%$/$87\%$/$84\%$ of runs (TS-JEPA/OpEntropy/TimesNet/TranAD); non-stationary drift violates EVT's stationary-tail assumptions.
+    \item \textbf{Parity with empirical quantiles:} on TS-JEPA, validation-maximum gives FPR $0.0686$ / F1 $0.1985$ and empirical p99.5 gives $0.0838$ / $0.1995$ --- parametric GPD tail modeling confers no demonstrable benefit.
+    \item \textbf{Kurtosis-adaptive failure:} the multiplier inflates TS-JEPA FPR from $0.0651$ to $0.2205$ (CI-exclusion $64\% \to 84\%$) with indistinguishable F1 ($0.2113$ vs.\ $0.1968$); calibration-split kurtosis does not forecast out-of-sample tail shifts.
 \end{enumerate}
 
 To separate the candidate causes of calibration failure, we recorded per-stream tail-fit diagnostics on a nine-stream non-GHL subset (TS-JEPA and TimesNet, three seeds each; \texttt{reports/evt\_tail\_diagnostics.csv}). Three observations disentangle the mechanism. First, tail-sample scarcity is genuine: the median exceedance count above $u = p_{98}$ is only $21$ (range $16$--$70$), and the Grimshaw estimator returns the degenerate boundary shape $\xi = -0.9$ in $33\%$ of TS-JEPA and $52\%$ of TimesNet fits, so tail-estimation error is real. Second, goodness-of-fit is nonetheless not the dominant failure: a Kolmogorov--Smirnov test of the excesses against each fitted GPD rejects at $p < 0.05$ in only $6/27$ (TS-JEPA) and $8/27$ (TimesNet) cells. Third, realized held-out FPR varies from $0.0$ to $0.67$ across seeds on the \emph{same} stream under fits that pass the KS test --- direct evidence that inter-block distribution drift, not tail mis-specification, drives the overshoot. Exceedances are also strongly clustered (mean of $10$--$22$ exceedances per cluster, more pronounced for TimesNet, whose residuals spike in sustained bursts), which inflates the effective variance of the FPR estimate beyond what an i.i.d.\ tail model assumes. Finally, the empirical 99.5th-percentile rule achieves an equal or lower held-out FPR than SPOT in roughly half the cells ($13/27$ TS-JEPA, $16/27$ TimesNet), confirming that parametric tail extrapolation confers no reliability advantage under this drift regime.
 
-\input{sections/tab_evt_sensitivity.tex}
 
-Table~\ref{tab:evt_sensitivity} provides a multi-parameter sensitivity analysis of the extreme-value calibration procedure across varying initial tail thresholds $u$, theoretical design risk levels $q$, and kurtosis-adaptive coefficients $\beta$. Three key findings emerge:
-First, varying the initial threshold from $u=0.95$ to $u=0.99$ produces negligible changes in out-of-sample test FPR ($17.27\%\text{--}17.36\%$) and Point-F1 ($0.1028\text{--}0.1030$), indicating that GPD tail estimates are stable with respect to initial tail percentile selection.
-Second, scaling the theoretical design risk $q$ by two orders of magnitude (from $10^{-2}$ to $10^{-4}$) shifts validation FPR from $0.0074$ to $0.00009$, but test FPR shifts by less than $1.7\%$ (from $18.95\%$ to $17.27\%$), demonstrating that operational distribution drift completely dominates the theoretical design parameter.
-Third, increasing the kurtosis adjustment coefficient $\beta$ systematically degrades performance: at $\beta=0.083$, held-out validation FPR jumps from $0.0019$ to $0.2778$, and at $\beta=0.50$, it collapses to $0.5403$ (test FPR $60.96\%$), flooding the system with alarms. Non-parametric validation rules (such as Max-of-Validation and Empirical 99.5th Percentile) achieve comparable or superior nominal calibration ($0.0000\text{--}0.0054$ validation FPR) without requiring parametric tail assumptions.
+\paragraph{Extended calibration diagnostics}
+The multi-parameter EVT sensitivity sweep ($u$, $q$, kurtosis coefficient $\beta$) and the four-mechanism failure decomposition (extremal clustering via the Ferro--Segers extremal index, two-sample KS drift, GPD goodness-of-fit rejection, and empirical risk overshoot) are reported in Supplementary Section~\ref{sup:evt_detail} (Tables~\ref{tab:evt_sensitivity} and~\ref{tab:evt_failure_decomposition}). The decomposition attributes the design-risk overshoot primarily to inter-block distribution drift and extremal clustering rather than tail mis-estimation, consistent with the per-stream tail diagnostics above.
 
-\input{sections/tab_evt_failure_decomposition.tex}
-
-To diagnose why extreme-value calibration breaks down on operational telemetry, Table~\ref{tab:evt_failure_decomposition} isolates four statistical mechanisms across benchmark telemetry streams:
-\begin{enumerate}
-    \item \textbf{Residual Autocorrelation and Extremal Clustering:} The Pickands-Balkema-de Haan theorem \cite{balkema1974residual} requires mutually independent tail exceedances. However, reconstructive observation residuals exhibit serial correlation, with lag-1 autocorrelation $\rho_1 = 0.983 \pm 0.014$ for TimesNet and $\rho_1 = 0.990 \pm 0.007$ for TranAD. Using the Ferro-Segers extremal index estimator \cite{ferro2003inference}, observation exceedances form persistent temporal clusters with mean cluster sizes of $1/\theta = 12.7$ to $13.3$ steps (reaching $45.0$ steps on GECCO water quality telemetry). Clustering collapses the effective independent tail sample size ($N_{\text{eff}} = \theta N_u$) from $N_u = 77\text{--}91$ observations down to $N_{\text{eff}} \approx 2\text{--}6$ independent clusters. In contrast, latent prediction compresses lag-1 autocorrelation to $\rho_1 = 0.820 \pm 0.135$ and mean cluster size to $5.2 \pm 5.8$ steps.
-    \item \textbf{Non-Stationary Distribution Drift:} Non-stationarity drives a wedge between calibration and held-out evaluation splits. Two-sample Kolmogorov-Smirnov tests reveal substantial drift in reconstructive models ($D_{\text{KS}} = 0.357 \pm 0.178$ for TimesNet; $D_{\text{KS}} = 0.388 \pm 0.284$ for TranAD; $p < 10^{-13}$ across streams). This drift shifts the 98th percentile of nominal residuals by $+470.8\%$ on TimesNet and $+48.6\%$ on TranAD between splits. Conversely, TS-JEPA maps temporal sequences into an abstract representation space where environmental shifts are compressed, yielding less than half the KS distance ($D_{\text{KS}} = 0.154 \pm 0.069$) and near-zero relative tail drift ($\Delta q_{98} = -0.36\% \pm 14.1\%$).
-    \item \textbf{GPD Goodness-of-Fit Degradation:} Cram{\'e}r-von Mises tests for Generalized Pareto tail convergence reject the stationary GPD null hypothesis ($p < 0.05$) across autocorrelated observation streams. Because parameter estimation fits a stationary tail model to non-stationary, autocorrelated bursts, parametric SPOT thresholds provide no advantage over simple empirical validation percentiles.
-    \item \textbf{Empirical Risk Overshoot:} Against the specified design risk $q = 10^{-3}$ ($0.1\%$), TimesNet generates a held-out nominal FPR of $4.32\% \pm 7.60\%$ ($43.2\times$ overshoot), and TranAD produces $4.76\% \pm 10.43\%$ ($47.6\times$ overshoot). By suppressing residual drift and tail clustering, TS-JEPA curbs the empirical nominal FPR to $0.33\% \pm 0.59\%$ ($3.3\times$ overshoot), reducing the discrepancy between theoretical risk and operational deployment by an order of magnitude.
-\end{enumerate}
-
-\subsection{Computational Profile: Complexity, Latency, and Memory Footprint}
-\label{subsec:computational_profile}
-
-Table~\ref{tab:computational_profile} benchmarks parameter complexity, peak GPU memory footprint (VRAM), forward inference latency, and streaming throughput across all evaluated architectures on an NVIDIA RTX 5090 GPU (input dimension $K=25$, batch size $32$, context $C=256$, suspect $S=64$).
-
-\begin{table}[t]
-\centering
-\small
-\caption{Computational profile, memory consumption, latency, and throughput benchmarked on an NVIDIA RTX 5090 GPU ($K=25$, window size $320$).}
-\label{tab:computational_profile}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-\textbf{Model Architecture} & \textbf{Parameters} & \textbf{VRAM (MB)} & \textbf{Latency (ms/win)} & \textbf{Infer (win/s)} & \textbf{Train (win/s)} \\
-\midrule
-TS-JEPA & 289,061 & \textbf{183.8} & 0.6072 & 1,646.8 & 612.8 \\
-Operator-Entropy JEPA & \textbf{285,733} & 183.9 & 0.6939 & 1,441.0 & 553.2 \\
-Reynolds-Stress JEPA & 295,953 & 184.0 & 0.7456 & 1,341.2 & 535.8 \\
-Potential-Flow JEPA & 338,117 & 184.4 & 0.8445 & 1,184.2 & 400.2 \\
-Helmholtz JEPA & 416,391 & 185.3 & 0.8378 & 1,193.6 & 526.6 \\
-TimesNet & 648,553 & 279.6 & \textbf{0.2908} & 3,439.4 & 1,161.4 \\
-TranAD & 205,746 & 1,280.0 & \textbf{0.1897} & \textbf{5,272.2} & \textbf{1,554.4} \\
-\bottomrule
-\end{tabular}%
-}
-\end{table}
-
-As shown in Table~\ref{tab:computational_profile}, Operator-Entropy JEPA possesses fewer trainable parameters ($285{,}733$) than unconstrained TS-JEPA ($289{,}061$), because its explicit Koopman transition matrix $K \in \mathbb{R}^{32 \times 32}$ ($1{,}024$ weights) replaces the multi-layer MLP predictor. All JEPA variants maintain a compact peak GPU memory footprint of $183.8\text{--}185.3\,$MB, consuming nearly $7\times$ less memory than TranAD ($1{,}280.0\,$MB), whose self-attention maps scale quadratically with window length. Forward inference latency for the JEPA family ranges between $0.60\text{--}0.84\,$ms per window ($1{,}184\text{--}1{,}647$ windows per second). While TimesNet ($0.29\,$ms) and TranAD ($0.19\,$ms) achieve faster forward inference, the JEPA family operates well within sub-millisecond operational streaming deadlines on GPU hardware. These measurements characterize workstation accelerator throughput; on resource-constrained embedded processors or flight microcontrollers lacking dedicated tensor cores, sequential end-to-end latency depends directly on clock frequencies and memory bandwidth, motivating integer quantization (Section~\ref{sec:conclusion}) for edge deployment.
+Computational profiling (parameters, VRAM, inference latency, throughput) is reported in Supplementary Table~\ref{tab:computational_profile}: the JEPA family uses $183.8\text{--}185.3$~MB peak memory (nearly $7\times$ less than TranAD) at $0.60\text{--}0.84$~ms per-window inference.
