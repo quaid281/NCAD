@@ -8,7 +8,7 @@ This section reports empirical evaluations and dynamical diagnostics across 33 m
 \subsection{Benchmark Performance on Continuous Telemetry}
 \label{subsec:core_benchmark}
 
-Table~\ref{tab:core_benchmark} presents the empirical comparison across 33 continuous telemetry streams evaluated under the held-out calibration protocol. Models are trained on the first 65\% of each nominal sequence, and extreme-value thresholds (SPOT, $u=0.98, q=10^{-3}$) are calibrated on a strictly held-out 17.5\% nominal segment, with out-of-sample nominal False-Positive Rate (Held-Out FPR) evaluated on the remaining nominal 17.5\% segment (isolated by a 64-step gap). Figure~\ref{fig:hero_sota_comparison} illustrates the comparative profile across strict Point-F1, continuous ranking (PR-AUC), and held-out nominal FPR.
+Table~\ref{tab:core_benchmark} presents the empirical comparison across 33 continuous telemetry streams evaluated under the held-out calibration protocol of Section~\ref{subsec:exp_setup} (SPOT, $u=0.98, q=10^{-3}$). Figure~\ref{fig:hero_sota_comparison} illustrates the comparative profile across strict Point-F1, continuous ranking (PR-AUC), and held-out nominal FPR.
 
 \begin{figure*}[t]
 \centering
@@ -51,7 +51,7 @@ The empirical data across all 33 streams refute this hypothesis:
     \item \textbf{Potential-Flow vs. TS-JEPA:} Potential-Flow performs significantly worse than unconstrained TS-JEPA across both calibrated Point-F1 (paired difference $-0.091$, $95\%$ CI $[-0.178, -0.019]$, $p=0.020$) and continuous ranking PR-AUC (paired difference $-0.076$, $95\%$ CI $[-0.142, -0.019]$, $p=0.039$). Potential-Flow outperforms TS-JEPA on only 5 of 33 streams.
 \end{enumerate}
 
-These findings align with the matched-capacity regularizer controls reported in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}: holding the neural backbone constant across all 19 non-GHL benchmark streams while disabling the spectral entropy loss ($\Delta F_1 = -0.003, p=0.62$) or Reynolds stress loss ($\Delta F_1 = +0.005, p=0.41$) produces changes well within seed noise ($p \ge 0.408$). We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
+These findings align with the matched-capacity regularizer controls in Table~\ref{tab:ablations}(a) and Section~\ref{subsec:controlled_ablations}, where disabling each physical loss term on a fixed backbone produces changes well within seed noise. We conclude that the physical regularizers provide no measurable anomaly detection advantage over unconstrained latent prediction. Performance differences between models stem from shared representation conditioning rather than the physical loss terms.
 
 \subsection{Mathematical Diagnostics of Physical Regularizers}
 \label{subsec:physics_diagnostics}
@@ -212,6 +212,9 @@ First, the false-alarm reduction under strict causality comes at the expense of 
 \input{sections/tab_causal_benchmark.tex}
 
 Table~\ref{tab:causal_benchmark} reports the complete 33-stream benchmark under strictly causal ($0$-lookahead) streaming. Across all 33 streams, unconstrained TS-JEPA reduces held-out nominal FPR to $0.0047$ (compared to $0.2202$ for TimesNet and $0.2014$ for TranAD), representing an out-of-sample false-alarm suppression of over $45$-fold. However, causal Point-F1 drops to $0.1132 \pm 0.0447$ for TS-JEPA and $0.1018 \pm 0.0041$ for Operator-Entropy, whereas TimesNet achieves $0.1983 \pm 0.0194$. Event recall likewise declines from $57.97\%$ (TimesNet) to $42.81\%$ (TS-JEPA). This confirms that without a prospective lookahead buffer to observe multi-step trajectory evolution, latent predictive scoring functions as an ultra-conservative filter that prevents false alarms at the price of reduced detection sensitivity.
+
+\paragraph{Buffered Early-Warning Lead Time}
+To separate prospective warning capability from detection fidelity, we measure the fraction of events first alerted before their labeled onset under buffered inference across five streams. TS-JEPA warns $12.3\%$ of events pre-onset ($7$ of $57$ pooled), with a median lead time of $180$ steps and $23.8$ false warnings per $1{,}000$ nominal steps. TimesNet warns $73.7\%$ of events pre-onset at a comparable median lead ($204$ steps) but emits $206.4$ false warnings per $1{,}000$ nominal steps; on GECCO it alerts $37$ of $37$ events early while generating $873.6$ false warnings per $1{,}000$ nominal steps, approaching a constant-alarm regime. Pre-onset coverage is therefore confounded by the underlying alarm rate: at its conservative operating point, TS-JEPA trades early-warning coverage for an order-of-magnitude lower nuisance-alarm rate.
 
 \subsection{Automated Threshold Calibration Realities on Non-Stationary Telemetry}
 \label{subsec:calibration_realities}
