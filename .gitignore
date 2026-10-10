@@ -28,6 +28,7 @@ Thumbs.db
 *.npz
 *.npy
 *.csv
+!reports/stream_manifest.csv
 *.json
 
 # Logs
