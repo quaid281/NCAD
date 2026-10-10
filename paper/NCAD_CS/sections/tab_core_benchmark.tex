@@ -1,24 +1,24 @@
 \begin{table*}[t]
 \centering
-\caption{Held-Out Calibration Benchmark across 33 Continuous Telemetry Streams (7 Physical Modalities). Thresholds are calibrated strictly on held-out nominal validation splits using Streaming Peaks-Over-Threshold (SPOT, $q=10^{-3}$) without access to test anomalies. We report out-of-sample nominal False-Positive Rate (Held-Out FPR, measured on nominal data the threshold never saw), unadjusted Point-F1, threshold-free continuous ranking (PR-AUC), Event Recall, and Mean Detection Delay ($\Delta t$ in timesteps). ``Non-GHL'' denotes the stream-macro mean over 19 streams (Daphnet, MSL, SMAP, Genesis, Metro, SWAN) averaged across three seeds. ``Dataset-Macro'' is the unweighted average across the 7 dataset means. The best result in each column is in \textbf{bold}, and the second best is \underline{underlined}.}
+\caption{Held-Out Calibration Benchmark across 33 Continuous Telemetry Streams (7 Physical Modalities). Thresholds are calibrated strictly on held-out nominal validation splits using Streaming Peaks-Over-Threshold (SPOT, $q=10^{-3}$) without access to test anomalies. We report out-of-sample nominal False-Positive Rate (Held-Out FPR, measured on nominal data the threshold never saw), unadjusted Point-F1, threshold-free continuous ranking (PR-AUC), Event Recall, and Mean Detection Delay ($\Delta t$ in timesteps, stream-macro mean delay from fault inception to first alarm). ``Non-GHL'' denotes the stream-macro mean over 19 streams (Daphnet, MSL, SMAP, Genesis, Metro, SWAN) averaged across five seeds. ``Dataset-Macro'' is the unweighted average across the 7 dataset means. The best result in each column is in \textbf{bold}, and the second best is \underline{underlined}.}
 \label{tab:core_benchmark}
 \small
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{l ccccc c cc}
 \toprule
-& \multicolumn{5}{c}{\textbf{Non-GHL Streams (19 Streams, 3 Seeds)}} & \textbf{Summary} & \multicolumn{2}{c}{\textbf{Gasoil Heating Loop (14 Streams)}} \\
+& \multicolumn{5}{c}{\textbf{Non-GHL Streams (19 Streams, 5 Seeds)}} & \textbf{Summary} & \multicolumn{2}{c}{\textbf{Gasoil Heating Loop (14 Streams)}} \\
 \cmidrule(lr){2-6} \cmidrule(lr){7-7} \cmidrule(lr){8-9}
 \textbf{Model Architecture} & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{Event Recall} $\uparrow$ & \textbf{Mean Delay ($\Delta t$)} $\downarrow$ & \textbf{DS-Macro F1} $\uparrow$ & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1} $\uparrow$ \\
 \midrule
 \multicolumn{9}{l}{\textit{\textbf{Latent-Space Predictive Architectures (JEPAs)}}} \\
-\textbf{TS-JEPA (Unconstrained Control)} & \underline{0.066} & \textbf{0.254} & \underline{0.333} & \underline{0.498} & 89.6 & \textbf{0.153} & 0.010 & 0.000 \\
-Operator-Entropy JEPA                    & 0.079 & \underline{0.241} & \textbf{0.348} & \underline{0.498} & 129.9 & \underline{0.134} & \underline{0.005} & 0.001 \\
-Reynolds-Stress JEPA                     & 0.076 & 0.208 & 0.321 & 0.398 & 129.2 & 0.119 & \textbf{0.004} & 0.001 \\
-Potential-Flow JEPA                      & 0.096 & 0.095 & 0.205 & 0.331 & 176.6 & 0.065 & \underline{0.005} & 0.000 \\
+\textbf{TS-JEPA (Unconstrained Control)} & \underline{0.076} & \underline{0.234} & \underline{0.323} & 0.481 & 80.3 & \textbf{0.148} & 0.010 & 0.000 \\
+Operator-Entropy JEPA                    & 0.086 & \textbf{0.237} & \underline{0.323} & \underline{0.506} & 192.3 & \underline{0.130} & \underline{0.005} & 0.001 \\
+Reynolds-Stress JEPA                     & 0.078 & 0.207 & 0.307 & 0.434 & 132.8 & 0.122 & \textbf{0.004} & 0.001 \\
+Potential-Flow JEPA                      & 0.091 & 0.089 & 0.201 & 0.303 & 146.9 & 0.064 & \underline{0.005} & 0.000 \\
 \midrule
 \multicolumn{9}{l}{\textit{\textbf{Observation-Space Reconstructive Baselines}}} \\
-TimesNet (ICLR 2023)                     & 0.297 & 0.207 & 0.336 & \textbf{0.586} & \underline{37.8} & 0.104 & 0.058 & \textbf{0.022} \\
-TranAD (VLDB 2022)                       & 0.309 & 0.131 & 0.291 & 0.481 & 42.4 & 0.070 & 0.049 & \underline{0.021} \\
+TimesNet (ICLR 2023)                     & 0.300 & 0.197 & \textbf{0.329} & \textbf{0.583} & \underline{48.5} & 0.100 & 0.058 & \textbf{0.022} \\
+TranAD (VLDB 2022)                       & 0.307 & 0.130 & 0.287 & 0.490 & 234.4 & 0.069 & 0.049 & \underline{0.021} \\
 \midrule
 \multicolumn{9}{l}{\textit{\textbf{Non-Neural Linear Baseline}}} \\
 Linear AR Forecaster                     & \textbf{0.006} & 0.057 & 0.262 & 0.478 & \textbf{0.0} & 0.038 & \textbf{0.002} & 0.000 \\

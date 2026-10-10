@@ -1,6 +1,6 @@
 \begin{table*}[t]
 \centering
-\caption{Per-Dataset Unadjusted Point-F1 Across All 7 Evaluated Telemetry Benchmarks (33 Matched Streams) under Held-Out Calibration (SPOT, $q=10^{-3}$). Best result for each dataset is in \textbf{bold}, and second best is \underline{underlined}. The bottom row reports unweighted Dataset-Macro averages matching Table~\ref{tab:core_benchmark}.}
+\caption{Per-Dataset Unadjusted Point-F1 Across All 7 Evaluated Telemetry Benchmarks (33 Matched Streams) under Held-Out Calibration (SPOT, $q=10^{-3}$; up to five seeds on non-GHL streams). Best result for each dataset is in \textbf{bold}, and second best is \underline{underlined}. The bottom row reports unweighted Dataset-Macro averages matching Table~\ref{tab:core_benchmark}.}
 \label{tab:all_datasets}
 \small
 \resizebox{\linewidth}{!}{%
@@ -8,15 +8,15 @@
 \toprule
 \textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Streams} & \textbf{TS-JEPA (Control)} & \textbf{Operator-Entropy} & \textbf{Reynolds-Stress} & \textbf{Potential-Flow} & \textbf{TimesNet} & \textbf{TranAD} \\
 \midrule
-Daphnet  & Wearable Parkinsonian Kinematics & 6  & \underline{0.155} & 0.134 & 0.135 & 0.066 & \textbf{0.245} & 0.149 \\
+Daphnet  & Wearable Parkinsonian Kinematics & 6  & 0.125             & 0.136 & 0.111 & 0.057 & \textbf{0.229} & \underline{0.144} \\
 GHL      & Gasoil Heating Loop Dynamics     & 14 & 0.000             & 0.001 & 0.001 & 0.000 & \textbf{0.022} & \underline{0.021} \\
-Genesis  & Pick-and-Place Automation        & 1  & \textbf{0.028}    & \underline{0.012} & 0.000 & 0.000 & 0.000 & 0.000 \\
-MSL      & NASA Mars Science Laboratory     & 4  & 0.257             & \textbf{0.281} & \underline{0.264} & 0.115 & 0.159 & 0.152 \\
-SMAP     & NASA Soil Moisture Active Passive & 6  & \textbf{0.441}    & \underline{0.427} & 0.331 & 0.137 & 0.304 & 0.166 \\
-Metro    & Interstate Highway Traffic (I-94) & 1  & 0.000             & 0.000 & 0.001 & \textbf{0.005} & \underline{0.001} & 0.000 \\
-SWAN     & Solar Flare Magnetic Telemetry   & 1  & \textbf{0.191}    & 0.081 & 0.102 & \underline{0.132} & 0.000 & 0.000 \\
+Genesis  & Pick-and-Place Automation        & 1  & \textbf{0.017}    & \underline{0.007} & 0.000 & 0.002 & 0.000 & 0.000 \\
+MSL      & NASA Mars Science Laboratory     & 4  & \underline{0.237} & \textbf{0.303} & 0.219 & 0.122 & 0.158 & 0.151 \\
+SMAP     & NASA Soil Moisture Active Passive & 6  & \textbf{0.415}    & \underline{0.401} & 0.376 & 0.117 & 0.289 & 0.167 \\
+Metro    & Interstate Highway Traffic (I-94) & 1  & 0.000             & 0.000 & \underline{0.001} & \textbf{0.004} & \underline{0.001} & 0.000 \\
+SWAN     & Solar Flare Magnetic Telemetry   & 1  & \textbf{0.241}    & 0.060 & \underline{0.148} & 0.146 & 0.000 & 0.000 \\
 \midrule
-\textbf{Dataset-Macro Mean} & Across All 7 Benchmarks & 33 & \textbf{0.153} & \underline{0.134} & 0.119 & 0.065 & 0.104 & 0.070 \\
+\textbf{Dataset-Macro Mean} & Across All 7 Benchmarks & 33 & \textbf{0.148} & \underline{0.130} & 0.122 & 0.064 & 0.100 & 0.069 \\
 \bottomrule
 \end{tabular}%
 }

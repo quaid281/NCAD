@@ -146,3 +146,28 @@ Two discrepancies between the manuscript text and the deployed code were found d
 - The fault-type blind spot is now stated quantitatively in the boundary-conditions paragraph.
 
 **H2. Littlewood-Paley description did not match the code.** The earlier text claimed 1D depthwise convolutions with kernel lengths {11,7,5,3}. The implementation (`LittlewoodPaleyDyadicBlock`) constructs smooth shells directly in the rFFT domain, normalizes them into an exact bin-wise partition of unity, applies the split via `irfft(Psi_j * rfft(x))`, and then processes each shell with full (non-depthwise) causal convolutions of kernel sizes (15,9,5,3), a learned softmax scale router, a residual connection scaled by gamma=0.1, and LayerNorm. The method text now describes this pipeline, reports the measured diagnostics (partition error 1.2e-7, reconstruction error 4.4e-8, ~70% shell energy recovery, Nyquist concentration of the top shell), and the front-end ablation claim is replaced by the measured on/off results (macro Point-F1 0.088 -> 0.131 across five streams), with the added-parameter caveat stated.
+
+---
+
+## I. Multi-Seed Extension to Five Seeds (Statistical-Rigor Requirement)
+
+**Reviewer requirement:** *Report at least five independent training seeds for the principal models, where computationally feasible.*
+
+**Artifacts:** `reports/heldout_nonghl_seeds45.csv`, `reports/heldout_nonghl_seeds45_a.csv`, `reports/heldout_nonghl_seeds45_b.csv` (seeds 7 and 2024, identical protocol to `heldout_45stream*.csv`, six principal models), plus `reports/heldout_ghl_seeds45_{a,b}.csv` for the GHL extension (in progress at time of writing).
+
+All 19 non-GHL streams now carry five seeds (42, 123, 456, 7, 2024); on completion of the GHL extension, GHL loops 17/18 will carry five seeds and the twelve large GHL streams (>1M observations each) three seeds, as documented in the master matrix footnote and Section V. Recomputing every reported statistic at five seeds shifts values modestly without altering any conclusion:
+
+| Claim | 3 seeds | 5 seeds |
+|---|---|---|
+| TS-JEPA vs TimesNet held-out FPR | -0.154, p=0.008 | -0.150, p=0.007 |
+| TS-JEPA vs TranAD held-out FPR | -0.157, p=0.001 | -0.150, p=0.004 |
+| TS-JEPA vs TimesNet Point-F1 parity | +0.018, p=0.55 | +0.012, p=0.54 |
+| TS-JEPA vs TranAD Point-F1 | +0.062, p=0.94 | +0.051, p=0.88 |
+| OpEntropy vs TS-JEPA Point-F1 | -0.007, p=0.71 | +0.002, p=0.69 |
+| Reynolds vs TS-JEPA Point-F1 | -0.026, p=0.33 | -0.015, p=0.50 |
+| PotentialFlow vs TS-JEPA Point-F1 | -0.091, p=0.020 | -0.084, p=0.013 |
+| TS-JEPA non-GHL FPR / F1 | 0.066 / 0.254 | 0.076 / 0.234 |
+
+Two headline framing updates follow from the recompute: (i) the nominal-FPR reduction is stated as *roughly four-fold* (0.300/0.076 = 3.9x, 0.307/0.076 = 4.0x) rather than 4--5x; (ii) on non-GHL Point-F1, Operator-Entropy (0.237) now marginally exceeds TS-JEPA (0.234), consistent with the paper's null-finding framing that the regularizer differences lie within seed noise. No significance boundary is crossed by any paired test. All tables (`tab_core_benchmark`, `tab_causal_benchmark`, `tab_calibrator_comparison`, `tab_all_datasets`) and in-text statistics were regenerated from the merged five-seed artifacts.
+
+**Additional manuscript corrections in this pass:** the univariate saliency-gate identity case now documents the explicit K=1 short-circuit branch (sigma(0)=0.5 is not identity); a calibrator-assignment paragraph in Section V maps every experiment to standard SPOT vs. the tanh(gamma_2)/6 adaptive variant; the conclusion states the within-dataset scope limitation; and detection delays in Table I are now stream-macro means computed from the same held-out artifacts as the other columns (the previous column mixed sources and has been corrected, including the TranAD delay, which is 234 steps, not the previously reported 42).

@@ -8,14 +8,16 @@
 \toprule
 \textbf{Experimental Suite} & \textbf{Streams} & \textbf{Domains} & \textbf{Partition Split} & \textbf{Isolation Gap} & \textbf{Seeds} & \textbf{Inference Protocol} & \textbf{Primary Hypotheses \& Tested Endpoints} \\
 \midrule
-\textbf{Primary Benchmark} & 33 & 7 & 65\% / 17.5\% / 17.5\% & 64 steps & 3 & Buffered ($S=64$) & Out-of-sample held-out FPR, Point-F1, PR-AUC parity, event recall, and detection delay $\Delta t$ (Table~\ref{tab:core_benchmark}). \\
-\textbf{Active Non-GHL Suite} & 19 & 6 & 65\% / 17.5\% / 17.5\% & 64 steps & 3 & Buffered ($S=64$) & Paired bootstrap 95\% CIs and Wilcoxon signed-rank tests on active anomaly dynamics (Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)). \\
+\textbf{Primary Benchmark} & 33 & 7 & 65\% / 17.5\% / 17.5\% & 64 steps & 5/3\textsuperscript{\dag} & Buffered ($S=64$) & Out-of-sample held-out FPR, Point-F1, PR-AUC parity, event recall, and detection delay $\Delta t$ (Table~\ref{tab:core_benchmark}). \\
+\textbf{Active Non-GHL Suite} & 19 & 6 & 65\% / 17.5\% / 17.5\% & 64 steps & 5 & Buffered ($S=64$) & Paired bootstrap 95\% CIs and Wilcoxon signed-rank tests on active anomaly dynamics (Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)). \\
 \textbf{Matched Backbone} & 15 & 10 & 80\% / 20\% nominal & 64 steps & 1 & Buffered ($S=64$) & Isolates observation recon vs.\ observation pred vs.\ latent pred under identical \texttt{HybridTCNEncoder} and noise injection (Table~\ref{tab:controlled_backbone}). \\
 \textbf{Regularizer Controls} & 19 & 6 & 65\% / 17.5\% / 17.5\% & 64 steps & 3 & Buffered ($S=64$) & Controlled null hypothesis testing: $\lambda_{\text{ent}}=0$, $\alpha_{\text{stress}}=0$, and single-regime controls on fixed encoders (Table~\ref{tab:ablations}(a)). \\
 \textbf{Strictly Causal Suite} & 33 & 7 & 65\% / 17.5\% / 17.5\% & 64 steps & 1 & Causal ($0$-lookahead) & Zero-lookahead streaming latency, false alarms per 1k steps ($\text{FAR}_{1\text{k}}$), and early event recall (Table~\ref{tab:causal_benchmark}, Table~\ref{tab:causal_vs_buffered}). \\
 \textbf{EVT Multi-Parameter} & 33 & 7 & 65\% / 17.5\% / 17.5\% & 64 steps & 1 & Buffered ($S=64$) & Sensitivity across tail percentiles $u$, design risks $q$, kurtosis multipliers $\beta$, and non-parametric baselines (Table~\ref{tab:calibrator_comparison}, Table~\ref{tab:evt_sensitivity}). \\
 \textbf{Operational Incidents} & 3 & 3 & Continuous test & None & 1 & Standard / Sharp / Adaptive & Incident-level evaluation: Point-F1 vs.\ Event-F1 vs.\ Range-F1, and dynamic rolling SPOT drift tracking (Table~\ref{tab:operational_incident_metrics}). \\
 \bottomrule
+\multicolumn{8}{l}{\footnotesize \textsuperscript{\dag} Five seeds on the 19 non-GHL streams and GHL training loops 17--18; three seeds}\\
+\multicolumn{8}{l}{\footnotesize on the remaining twelve large GHL streams ($>10^{6}$ observations each) owing to training cost.}\\
 \end{tabular}%
 }
 \end{table*}

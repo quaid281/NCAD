@@ -1,6 +1,6 @@
 \begin{table*}[t]
 \centering
-\caption{Strictly Causal Streaming Anomaly Detection Benchmark ($0$-Lookahead Delay) across 33 Continuous Telemetry Streams. Alarms are generated using strictly historical observations ($\tau \le t$) with trailing attribution and calibrated via held-out nominal SPOT ($q=10^{-3}$). Latent predictive architectures reduce held-out nominal false alarms down to $0.47\%\text{--}1.13\%$ (a 20-fold to 45-fold reduction compared to reconstructive baselines), but at the operational cost of lower causal Point-F1 and reduced event recall.}
+\caption{Strictly Causal Streaming Anomaly Detection Benchmark ($0$-Lookahead Delay) across 33 Continuous Telemetry Streams. Alarms are generated using strictly historical observations ($\tau \le t$) with trailing attribution and calibrated via held-out nominal SPOT ($q=10^{-3}$). Latent predictive architectures reduce held-out nominal false alarms down to $0.97\%\text{--}1.89\%$ (a 12-fold to 25-fold reduction compared to reconstructive baselines), but at the operational cost of lower causal Point-F1 and reduced event recall.}
 \label{tab:causal_benchmark}
 \small
 \resizebox{\linewidth}{!}{%
@@ -9,14 +9,14 @@
 \textbf{Model Architecture} & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1 (Mean $\pm$ SD)} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{Event Recall} $\uparrow$ & \textbf{Test FPR} $\downarrow$ & \textbf{Operational Setting} \\
 \midrule
 \multicolumn{7}{l}{\textit{\textbf{Latent-Space Predictive Architectures (JEPAs)}}} \\
-\textbf{TS-JEPA (Unconstrained Control)} & \textbf{0.0047} & \underline{0.1132 $\pm$ 0.0447} & \textbf{0.2495} & \underline{0.4281} & \textbf{0.0624} & Strictly Causal ($0$-lookahead) \\
-Operator-Entropy JEPA                    & 0.0095 & 0.1018 $\pm$ 0.0041 & 0.2422 & 0.3937 & 0.0794 & Strictly Causal ($0$-lookahead) \\
-Reynolds-Stress JEPA                     & \underline{0.0090} & 0.0697 $\pm$ 0.0406 & \underline{0.2492} & 0.4007 & 0.0885 & Strictly Causal ($0$-lookahead) \\
-Potential-Flow JEPA                      & 0.0113 & 0.0275 $\pm$ 0.0161 & 0.1608 & 0.3587 & \underline{0.0294} & Strictly Causal ($0$-lookahead) \\
+\textbf{TS-JEPA (Unconstrained Control)} & 0.0136 & 0.1118 $\pm$ 0.0412 & 0.2672 & 0.4655 & 0.0844 & Strictly Causal ($0$-lookahead) \\
+Operator-Entropy JEPA                    & 0.0189 & 0.1093 $\pm$ 0.0085 & 0.2528 & 0.4692 & 0.0986 & Strictly Causal ($0$-lookahead) \\
+Reynolds-Stress JEPA                     & \underline{0.0111} & 0.0876 $\pm$ 0.0367 & \underline{0.2700} & 0.4563 & \underline{0.0842} & Strictly Causal ($0$-lookahead) \\
+Potential-Flow JEPA                      & \textbf{0.0097} & 0.0233 $\pm$ 0.0166 & 0.1775 & 0.3428 & \textbf{0.0289} & Strictly Causal ($0$-lookahead) \\
 \midrule
 \multicolumn{7}{l}{\textit{\textbf{Observation-Space Reconstructive Baselines}}} \\
-TimesNet (ICLR 2023)                     & 0.2202 & \textbf{0.1983 $\pm$ 0.0194} & \textbf{0.2698} & \textbf{0.5797} & 0.2640 & Strictly Causal ($0$-lookahead) \\
-TranAD (VLDB 2022)                       & 0.2014 & 0.1321 $\pm$ 0.0164 & 0.2274 & 0.5563 & 0.2492 & Strictly Causal ($0$-lookahead) \\
+TimesNet (ICLR 2023)                     & 0.2427 & \textbf{0.2091 $\pm$ 0.0265} & \textbf{0.2931} & \textbf{0.5882} & 0.2163 & Strictly Causal ($0$-lookahead) \\
+TranAD (VLDB 2022)                       & 0.2219 & \underline{0.1405 $\pm$ 0.0154} & 0.2483 & \underline{0.5334} & 0.2027 & Strictly Causal ($0$-lookahead) \\
 \bottomrule
 \end{tabular}%
 }

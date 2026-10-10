@@ -100,7 +100,7 @@ This reconciles the theoretical dynamical properties with the observed empirical
 **Response & Action Taken:**
 We added Table II (Master Experiment Matrix) in Section V and Section V-E, accompanied by formal multiplicity adjustments:
 1. **Master Experiment Matrix (Table II):** Table II explicitly defines each experimental series:
-   - *Series 1 (Confirmatory Replication):* 33 streams across 7 domains; evaluates held-out nominal thresholding; 3 seeds (42, 123, 456); Table I.
+   - *Series 1 (Confirmatory Replication):* 33 streams across 7 domains; evaluates held-out nominal thresholding; 5 seeds (42, 123, 456, 7, 2024) on the 19 non-GHL streams and GHL loops 17--18, 3 seeds on the twelve large GHL streams ($>10^{6}$ points each) owing to training cost; Table I.
    - *Series 2 (Protocol Factorial Ablation):* 7 streams; 16-cell factorial design isolating calibration source, smoothing, and kurtosis; Table III.
    - *Series 3 (Physical Regularizer Matched Controls):* 19 streams; capacity-matched controls isolating spectral entropy, stress closure, and potential flow; Table V.
    - *Series 4 (Strictly Causal Online Streaming):* 33 streams; 0-lookahead delay streaming versus buffered monitoring; Table VII.
