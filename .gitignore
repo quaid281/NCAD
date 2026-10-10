@@ -50,3 +50,8 @@ pytest-of-*/
 *.out
 *.log
 *.synctex.gz
+!reports/heldout_nonghl_seeds45.csv
+!reports/heldout_nonghl_seeds45_a.csv
+!reports/heldout_nonghl_seeds45_b.csv
+!reports/heldout_ghl_seeds45_a.csv
+!reports/heldout_ghl_seeds45_b.csv

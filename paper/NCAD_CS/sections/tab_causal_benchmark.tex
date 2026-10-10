@@ -1,22 +1,24 @@
 \begin{table*}[t]
 \centering
-\caption{Strictly causal streaming benchmark ($0$-lookahead, trailing attribution), 33 streams, held-out SPOT ($q{=}10^{-3}$). Latent predictors cut nominal false alarms to $0.97\%\text{--}1.89\%$ (12--25$\times$ below reconstructive baselines) at the cost of lower causal Point-F1 and event recall.}
+\caption{Strictly causal streaming benchmark ($0$-lookahead, trailing attribution), 33 streams, held-out SPOT ($q{=}10^{-3}$). ``Non-GHL'': 19 streams at five seeds (stream-macro, $\pm$ seed SD); ``GHL'': 14 streams at three-to-five seeds. Latent predictors cut nominal false alarms to $0.97\%\text{--}1.89\%$ on non-GHL (12--25$\times$ below reconstructive baselines) at the cost of lower causal Point-F1 and event recall.}
 \label{tab:causal_benchmark}
 \small
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{l ccccc c}
+\begin{tabular}{l ccccc c cc}
 \toprule
-\textbf{Model Architecture} & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1 (Mean $\pm$ SD)} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{Event Recall} $\uparrow$ & \textbf{Test FPR} $\downarrow$ & \textbf{Operational Setting} \\
+& \multicolumn{5}{c}{\textbf{Non-GHL Streams (19 Streams, 5 Seeds)}} & \multicolumn{3}{c}{\textbf{Gasoil Heating Loop (14 Streams)}} \\
+\cmidrule(lr){2-6} \cmidrule(lr){7-9}
+\textbf{Model Architecture} & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1 (Mean $\pm$ SD)} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{Event Recall} $\uparrow$ & \textbf{Test FPR} $\downarrow$ & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1} $\uparrow$ & \textbf{Event Recall} $\uparrow$ \\
 \midrule
-\multicolumn{7}{l}{\textit{\textbf{Latent-Space Predictive Architectures (JEPAs)}}} \\
-\textbf{TS-JEPA (Unconstrained Control)} & 0.0136 & 0.1118 $\pm$ 0.0412 & 0.2672 & 0.4655 & 0.0844 & Strictly Causal ($0$-lookahead) \\
-Operator-Entropy JEPA                    & 0.0189 & 0.1093 $\pm$ 0.0085 & 0.2528 & 0.4692 & 0.0986 & Strictly Causal ($0$-lookahead) \\
-Reynolds-Stress JEPA                     & \underline{0.0111} & 0.0876 $\pm$ 0.0367 & \underline{0.2700} & 0.4563 & \underline{0.0842} & Strictly Causal ($0$-lookahead) \\
-Potential-Flow JEPA                      & \textbf{0.0097} & 0.0233 $\pm$ 0.0166 & 0.1775 & 0.3428 & \textbf{0.0289} & Strictly Causal ($0$-lookahead) \\
+\multicolumn{9}{l}{\textit{\textbf{Latent-Space Predictive Architectures (JEPAs)}}} \\
+\textbf{TS-JEPA (Unconstrained Control)} & 0.0136 & 0.1118 $\pm$ 0.0412 & 0.2672 & 0.4655 & 0.0844 & 0.0035 & 0.000 & 0.000 \\
+Operator-Entropy JEPA                    & 0.0189 & 0.1093 $\pm$ 0.0085 & 0.2528 & 0.4692 & 0.0986 & 0.0085 & 0.001 & 0.024 \\
+Reynolds-Stress JEPA                     & \underline{0.0111} & 0.0876 $\pm$ 0.0367 & \underline{0.2700} & 0.4563 & \underline{0.0842} & \textbf{0.0023} & 0.002 & 0.014 \\
+Potential-Flow JEPA                      & \textbf{0.0097} & 0.0233 $\pm$ 0.0166 & 0.1775 & 0.3428 & \textbf{0.0289} & 0.0047 & \underline{0.006} & \underline{0.032} \\
 \midrule
-\multicolumn{7}{l}{\textit{\textbf{Observation-Space Reconstructive Baselines}}} \\
-TimesNet (ICLR 2023)                     & 0.2427 & \textbf{0.2091 $\pm$ 0.0265} & \textbf{0.2931} & \textbf{0.5882} & 0.2163 & Strictly Causal ($0$-lookahead) \\
-TranAD (VLDB 2022)                       & 0.2219 & \underline{0.1405 $\pm$ 0.0154} & 0.2483 & \underline{0.5334} & 0.2027 & Strictly Causal ($0$-lookahead) \\
+\multicolumn{9}{l}{\textit{\textbf{Observation-Space Reconstructive Baselines}}} \\
+TimesNet (ICLR 2023)                     & 0.2427 & \textbf{0.2091 $\pm$ 0.0265} & \textbf{0.2931} & \textbf{0.5882} & 0.2163 & 0.0563 & \textbf{0.022} & \textbf{0.850} \\
+TranAD (VLDB 2022)                       & 0.2219 & \underline{0.1405 $\pm$ 0.0154} & 0.2483 & \underline{0.5334} & 0.2027 & 0.0398 & 0.018 & 0.811 \\
 \bottomrule
 \end{tabular}%
 }
