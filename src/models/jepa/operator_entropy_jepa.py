@@ -171,7 +171,8 @@ class OperatorEntropyJEPAModel(JEPABase):
         predictor_layers: int = 2,
         ema_decay: float = 0.996,
         alpha_entropy: float = 0.5,
-        alpha_rep_entropy: float = 0.02,
+        alpha_rep_entropy: float = 0.005,
+        beta_lyapunov: float = 0.0,
         spectral_gap_min: float = 0.1,
         dropout: float = 0.05,
         use_radial_heat: bool = True,
@@ -183,6 +184,7 @@ class OperatorEntropyJEPAModel(JEPABase):
         self.ema_decay = ema_decay
         self.alpha_entropy = alpha_entropy
         self.alpha_rep_entropy = alpha_rep_entropy
+        self.beta_lyapunov = beta_lyapunov
         self.spectral_gap_min = spectral_gap_min
         self.use_koopman_matrix = use_koopman_matrix
 
@@ -264,6 +266,7 @@ class OperatorEntropyJEPAModel(JEPABase):
         var_weight: float = 0.0,
         alpha_entropy: Optional[float] = None,
         alpha_rep_entropy: Optional[float] = None,
+        beta_lyapunov: Optional[float] = None,
         gap_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
@@ -290,6 +293,11 @@ class OperatorEntropyJEPAModel(JEPABase):
             if alpha_rep_entropy is not None
             else getattr(config, "alpha_rep_entropy", self.alpha_rep_entropy)
         )
+        effective_beta_lyap = (
+            beta_lyapunov
+            if beta_lyapunov is not None
+            else getattr(config, "beta_lyapunov", self.beta_lyapunov)
+        )
 
         if self.use_koopman_matrix and self.K is not None:
             reg_K = spectral_operator_entropy_loss(self.K, gamma_norm=1.0, beta_norm=1.0)
@@ -303,9 +311,23 @@ class OperatorEntropyJEPAModel(JEPABase):
             cov_z = 0.5 * (cov_ctx + cov_tgt)
             reg_Z = covariance_spectral_entropy(cov_z)
         else:
+            cov_ctx = None
+            cov_tgt = None
             reg_Z = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
 
-        total_loss = pred_loss + effective_alpha * reg_K + effective_alpha_rep * reg_Z
+        # 3. Discrete Lyapunov Invariance Defect: ||Cov(z_pred) - Cov(z_tgt)||_F^2 / D
+        if effective_beta_lyap > 0 and num_samples > 1 and cov_tgt is not None:
+            cov_pred = compute_empirical_covariance(z_pred)
+            lyapunov_defect = torch.norm(cov_pred - cov_tgt, p="fro") ** 2 / float(self.latent_dim)
+        else:
+            lyapunov_defect = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
+
+        total_loss = (
+            pred_loss
+            + effective_alpha * reg_K
+            + effective_alpha_rep * reg_Z
+            + effective_beta_lyap * lyapunov_defect
+        )
 
         # Compute diagnostic spectral metrics under no_grad()
         with torch.no_grad():
@@ -328,6 +350,7 @@ class OperatorEntropyJEPAModel(JEPABase):
             "pred_loss": pred_loss.item(),
             "reg_K": reg_K.item(),
             "reg_Z": reg_Z.item(),
+            "lyapunov_defect": lyapunov_defect.item(),
             "spectral_reg": (effective_alpha * reg_K + effective_alpha_rep * reg_Z).item(),
             "vn_loss": reg_Z.item(),
             "gap_loss": gap_loss.item(),

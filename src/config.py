@@ -64,7 +64,8 @@ class CSMConfig:
     use_resolvent_covariance: bool = True  # Resolvent operator precision vs standard pinv
 
     alpha_entropy: float = 0.5  # Operator entropy regularizer weight for operator_entropy_jepa
-    alpha_rep_entropy: float = 0.02  # Representation entropy regularizer weight for operator_entropy_jepa
+    alpha_rep_entropy: float = 0.005  # Representation entropy regularizer weight for operator_entropy_jepa
+    beta_lyapunov: float = 0.0  # Discrete Lyapunov defect penalty weight for operator_entropy_jepa
     use_koopman_matrix: bool = True  # Use explicit Koopman transition matrix for operator_entropy_jepa
 
     n_regimes: int = 4  # Number of Grassmannian discrete regime subspaces for potential_flow_jepa

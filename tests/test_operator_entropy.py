@@ -301,3 +301,32 @@ def test_non_koopman_mode_objective():
     assert pred_has_grad
 
 
+def test_discrete_lyapunov_invariance_defect():
+    """Verify Discrete Lyapunov Invariance Defect penalizes covariance misalignment and propagates gradients."""
+    D = 16
+    K_in = 3
+    encoder = HybridTCNEncoder(input_dim=K_in, latent_dim=D, filters=16, tcn_layers=2)
+    model = OperatorEntropyJEPAModel(
+        context_encoder=encoder,
+        latent_dim=D,
+        alpha_entropy=0.5,
+        alpha_rep_entropy=0.005,
+        beta_lyapunov=0.05,
+        use_koopman_matrix=True,
+    )
+    assert model.beta_lyapunov == 0.05
+
+    B = 8
+    x_ctx = torch.randn(B, 32, K_in)
+    x_tgt = torch.randn(B, 16, K_in)
+
+    loss, metrics = model.compute_objective(x_ctx, x_tgt)
+    assert "lyapunov_defect" in metrics
+    assert metrics["lyapunov_defect"] >= 0.0
+
+    loss.backward()
+    assert model.K.grad is not None
+    assert model.K.grad.norm().item() > 0.0
+
+
+
