@@ -79,3 +79,11 @@ Potential-Flow JEPA ($-\nabla\Phi$) & 0.1701 & 0.2036 & 0.3106 & 0.3548 \\
 
 Table~\ref{tab:potential_flow_validation} confirms that pure curl-free potential flow is mathematically incapable of representing closed circulating orbits, yielding poor detection on Van der Pol ($0.3548$ Point-F1 vs.\ $0.7574$ for Helmholtz JEPA). Because physical telemetry often exhibits non-conservative, cyclic behavior (e.g., diurnal cycles, rotational turbines), enforcing irrotational dynamics severely penalizes normal circulating trajectories, explaining Potential-Flow's poor benchmark performance ($0.065$ dataset-macro F1 in Table~\ref{tab:core_benchmark}).
 
+
+\subsubsection{Multiscale Front-End: Dyadic-Shell Construction}
+\label{sup:frontend_construction}
+The encoder front-end constructs $J{=}4$ dyadic shells on an $N_{\text{fft}}=256$ real-FFT grid ($F=129$ non-negative bins $\omega_m = m/N_{\text{fft}}$). Dyadic center frequencies sit at $c_j = 2^{j-J+1}$, $j \in \{0,1,2,3\}$. Unnormalized profiles combine a half-Gaussian anchored at DC ($j=0$), log-frequency octave bells $\tilde{\Psi}_j(\omega_m) = \exp(-(\log_2 \omega_m - \log_2 c_j)^2 / 2\sigma^2)$ with bandwidth $\sigma = 0.6$ ($j \in \{1,2\}$), and a plateau toward Nyquist ($j=J-1$), normalized bin-wise into an exact partition of unity:
+\begin{equation}
+    \Psi_j[\omega_m] = \frac{\tilde{\Psi}_j(\omega_m)}{\sum_{l=0}^{J-1} \tilde{\Psi}_l(\omega_m)}, \quad \sum_{j=0}^{J-1} \Psi_j[\omega_m] \equiv 1.0.
+\end{equation}
+The split is applied as $\mathbf{x}_j = \mathrm{irfft}(\Psi_j \odot \mathrm{rfft}(\mathbf{x}))$ (PoU deviation $<1.2\times10^{-7}$, reconstruction error $<5\times10^{-8}$). Each shell feeds a full (non-depthwise) causal 1D convolution with kernels $k \in \{15,9,5,3\}$ and causal padding $p=k-1$, recombined by a softmax router over pooled per-shell energies, a $1{\times}1$ projection, residual scaling $\gamma=0.1$, and LayerNorm. Because shells overlap smoothly, band energies are correlated ($\sum_j \|\mathbf{x}_j\|^2$ recovers $\approx 70\%$ of signal energy) and the finest shell concentrates near Nyquist; per-band in-octave spectral mass is $\{0.50,0.33,0.20,{\approx}1.00\}$ versus $\{0.78,0.50,0.55,0.82\}$ (Haar) and $\{0.86,0.63,0.64,0.87\}$ (DB4) (\texttt{reports/lp\_filterbank\_diagnostics.csv}).

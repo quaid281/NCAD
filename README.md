@@ -184,6 +184,33 @@ python -m pytest tests/test_audit_fixes.py tests/test_baselines.py -v
 
 ---
 
+## Reproducing the Manuscript's Tables
+
+Environment: `python` = the conda env at `C:/Users/andre/anaconda3/envs/alpha/python.exe`
+(torch required). Data lives in `mTSBench_data/<dataset>/`; stream lists in
+`reports/streams_*.txt`; the stream-to-split manifest is `reports/stream_manifest.csv`
+(regenerate via `scripts/build_stream_manifest.py`).
+
+| Paper artifact | Command | Output |
+| :-- | :-- | :-- |
+| Core + causal benchmarks (Tables II, III) | `python scripts/run_multiseed_heldout_benchmark.py --seeds 42 123 456 7 2024 --streams reports/streams_19_nonghl.txt --out reports/heldout.csv` (+ GHL stream lists) | `reports/heldout_*.csv` |
+| Statistical test map (Supp. Table) | `python scripts/build_test_map.py` | `reports/test_map.csv`, `sections/sup_test_map.tex` |
+| Calibrator comparison (Table IV) | `python scripts/analyze_multiseed.py --inputs reports/heldout_*.csv` | `reports/multiseed_summary.md` |
+| Matched-backbone controls (R3) | `python scripts/run_multiseed_heldout_benchmark.py --models TS-JEPA TCN-ObsRecon TCN-ObsPred JEPA-CtxRecon JEPA-NoEMA --dump-scores reports/score_dumps` | `reports/score_dumps/*.npz` |
+| Residual diagnostics (R3) | `python scripts/analyze_score_dumps.py` | `reports/residual_diagnostics.csv` |
+| Matched-FPR evaluation (R3) | `python scripts/run_matched_fpr_analysis.py` | `reports/matched_fpr_evaluation.csv` |
+| Controlled drift calibration (R3) | `python scripts/run_controlled_drift_calibration.py` | `reports/controlled_drift_calibration.csv` |
+| EVT failure decomposition | `python scripts/run_evt_failure_decomposition.py` | `reports/evt_failure_decomposition.csv` |
+| Timeline figure | `python scripts/generate_timeline_diagram.py` | `figures/timeline_inference_regimes.{pdf,png}` |
+| Manuscript | `python scripts/build_standalone.py`, then in `paper/NCAD_CS/`: `tectonic --keep-intermediates NCAD_CS_supplement.tex && tectonic NCAD_CS_standalone.tex` | `NCAD_CS_standalone.pdf` |
+
+Note: the supplement must be compiled *before* the standalone **with
+`--keep-intermediates`** so its `.aux` is written to disk — `\externaldocument`
+reads that file to resolve supplementary cross-references. Without the flag,
+Tectonic keeps intermediates internal and the standalone shows `??` markers.
+
+---
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

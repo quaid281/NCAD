@@ -2,14 +2,15 @@
 
 ## Hard Rules
 
-- **Page limit: the manuscript must stay under 14 pages.** Every revision
-  round (reviewer responses, new tables/paragraphs/experiments) grows the
-  paper; before committing manuscript changes, compile
-  `paper/NCAD_CS/NCAD_CS_standalone.tex` and check the page count. If over
-  budget, condense elsewhere — tighten prose, shrink tables, move detail to
-  `reports/` artifacts — rather than exceeding the limit. Prefer adding
-  evidence via supplementary artifacts (`reports/*.csv`, `scripts/`) cited
-  in text over adding pages of in-paper detail.
+- **Page limit: the manuscript must stay at or below 12 pages.** Target venue
+  is IEEE Transactions on Neural Networks and Learning Systems (TNNLS).
+  Standard full paper length is 10 pages; over-length charge is $200/page
+  beyond 10 pages up to a 15-page cap. The author budget allows at most 2
+  extra pages, setting a hard ceiling of 12 pages total. Before committing
+  manuscript changes, compile `paper/NCAD_CS/NCAD_CS_standalone.tex` and verify
+  page count. If over budget, condense elsewhere — tighten prose, shrink
+  tables, move detailed proofs and ablation analyses to `reports/` or the
+  supplementary document `NCAD_CS_supplement.tex` rather than exceeding 12 pages.
 - **Never let manuscript claims exceed the measured evidence.** Latent
   predictive residuals reduce false alarms; the physics-inspired
   regularizers show no reliable aggregate benefit — report them as honest
@@ -23,6 +24,36 @@
   `heldout_reynolds_covmodes.csv`).
 - **Git:** work on `dev`; the user syncs/pushes `main`. Use the standard
   Devin commit trailer (`Generated with [Devin]` / Co-Authored-By).
+
+## IEEE TNNLS Guidelines & Article Structure
+
+Guidelines references:
+- Submission guidelines: https://cis.ieee.org/publications/t-neural-networks-and-learning-systems/tnnls-guidelines-for-paper-submission
+- Article structure: https://journals.ieeeauthorcenter.ieee.org/create-your-ieee-journal-article/create-the-text-of-your-article/structure-your-article/
+
+Key requirements:
+- **Page Limits (Full Papers):** Standard length is 10 pages. Overlength cap
+  is 15 pages ($200 per page over 10 pages). Author budget allows at most 2
+  extra pages, setting a hard ceiling of 12 pages.
+- **Title:** Specific, concise, and descriptive. Avoid assertions of novelty
+  such as "new" or "novel".
+- **Abstract:** Exactly one paragraph, up to 250 words. Self-contained:
+  no math symbols, equations, footnotes, or citations. Include 3–5 standardized
+  keywords from the IEEE Thesaurus.
+- **First Footnote (Unnumbered):** Structured into three mandatory paragraphs:
+  1. Dates (received, revised, accepted); corresponding author name;
+     financial support and funding sources; disclosure of any prior
+     conference presentation (with DOI) or thesis material.
+  2. Author affiliations: department, institution, city, state/province,
+     country, and corresponding author email address.
+  3. IEEE-provided notice for supplementary materials or color figures.
+- **Section Ordering:** Title $\rightarrow$ Abstract $\rightarrow$ Keywords
+  $\rightarrow$ First Footnote $\rightarrow$ Introduction $\rightarrow$
+  Methodology $\rightarrow$ Equations (typeset via IEEE guidelines)
+  $\rightarrow$ Results (tables for numerical values, figures for trends)
+  $\rightarrow$ Discussion $\rightarrow$ Conclusion (no inflated claims)
+  $\rightarrow$ References (strictly supportive, no citation padding)
+  $\rightarrow$ Acknowledgments.
 
 ## Environment
 

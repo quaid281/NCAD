@@ -41,6 +41,7 @@ from src.config import CSMConfig
 from src.data.data_loader import DataLoader
 from src.engine.trainer import build_ts_jepa_model
 from src.models.baselines import TimesNet, TranAD
+from src.models.encoders.tcn_encoder import HybridTCNEncoder
 from src.scoring.event_fusion import (
     _extract_segments,
     aggregate_window_scores,
@@ -59,6 +60,44 @@ MODELS = [
     "TS-JEPA", "OpEntropy", "OpEntropy-lambda0", "Reynolds", "Reynolds-meanscore",
     "Reynolds-alpha0", "PotentialFlow", "TimesNet", "TranAD",
 ]
+
+
+class TCNObsForecaster(nn.Module):
+    """Matched-backbone control: forecast the suspect window in observation space."""
+
+    def __init__(self, input_dim, context_len=C, suspect_len=S, latent_dim=32):
+        super().__init__()
+        self.suspect_len = suspect_len
+        self.encoder = HybridTCNEncoder(input_dim=input_dim, latent_dim=latent_dim,
+                                        filters=48, tcn_layers=3)
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, 64), nn.LayerNorm(64), nn.GELU(),
+            nn.Linear(64, suspect_len * input_dim),
+        )
+        self.input_dim = input_dim
+
+    def forward(self, ctx):
+        z = self.encoder(ctx)
+        return self.decoder(z).view(-1, self.suspect_len, self.input_dim)
+
+
+class TCNObsReconstructor(nn.Module):
+    """Matched-backbone control: reconstruct the full window in observation space."""
+
+    def __init__(self, input_dim, total_len=W, latent_dim=32):
+        super().__init__()
+        self.total_len = total_len
+        self.encoder = HybridTCNEncoder(input_dim=input_dim, latent_dim=latent_dim,
+                                        filters=48, tcn_layers=3)
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, 64), nn.LayerNorm(64), nn.GELU(),
+            nn.Linear(64, total_len * input_dim),
+        )
+        self.input_dim = input_dim
+
+    def forward(self, x):
+        z = self.encoder(x)
+        return self.decoder(z).view(-1, self.total_len, self.input_dim)
 
 
 def load_stream(ds, ch):
@@ -87,6 +126,65 @@ def batches(arr, bs):
 
 def train_model(name, tr_win, k, device, epochs):
     """Return a window-score function for the trained model."""
+    # Training-free nonparametric references (reviewer-requested simple baselines).
+    if name == "PCA-Recon":
+        # PCA-subspace reconstruction on the suspect slice; k_pc=min(8, S*k)
+        # components fit on standardized training windows only.
+        X = tr_win[:, C:, :].reshape(len(tr_win), -1)
+        mu = X.mean(axis=0)
+        npc = min(8, X.shape[1] - 1)
+        V = np.linalg.svd(X - mu, full_matrices=False)[2][:npc]
+        proj = V.T @ V
+
+        def score(w):
+            Xw = w[:, C:, :].reshape(len(w), -1) - mu
+            resid = Xw - Xw @ proj
+            return (resid ** 2).mean(axis=1)
+        return score
+
+    if name == "ZScoreMax":
+        # Per-channel z-score of the suspect slice against training-window
+        # target statistics; window score = worst channel/timestep deviation.
+        mu = tr_win[:, C:, :].mean(axis=(0, 1))
+        sd = tr_win[:, C:, :].std(axis=(0, 1)) + 1e-8
+
+        def score(w):
+            z = np.abs((w[:, C:, :] - mu) / sd)
+            return z.reshape(len(w), -1).max(axis=1)
+        return score
+
+    if name in ("TCN-ObsRecon", "TCN-ObsPred"):
+        if name == "TCN-ObsRecon":
+            m = TCNObsReconstructor(input_dim=k).to(device)
+        else:
+            m = TCNObsForecaster(input_dim=k).to(device)
+        opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
+        for ep in range(epochs):
+            m.train()
+            for b in batches(tr_win, 16):
+                b = b.to(device)
+                if name == "TCN-ObsRecon":
+                    loss = nn.functional.mse_loss(m(b), b)
+                else:
+                    loss = nn.functional.mse_loss(m(b[:, :C]), b[:, C:])
+                opt.zero_grad(set_to_none=True)
+                loss.backward()
+                opt.step()
+
+        def score(w):
+            m.eval()
+            out = []
+            with torch.no_grad():
+                for i in range(0, len(w), 128):
+                    ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 128])).float().to(device)
+                    if name == "TCN-ObsRecon":
+                        rec = m(ch)[:, C:]
+                    else:
+                        rec = m(ch[:, :C])
+                    out.append(((rec - ch[:, C:]) ** 2).mean(dim=(-2, -1)).cpu().numpy())
+            return np.concatenate(out)
+        return score
+
     if name in ("TimesNet", "TranAD"):
         if name == "TimesNet":
             m = TimesNet(c_in=k, d_model=48, d_ff=96, e_layers=2).to(device)
@@ -121,6 +219,7 @@ def train_model(name, tr_win, k, device, epochs):
           "OpEntropy-lambda0": "operator_entropy_jepa", "Reynolds": "reynolds_stress_jepa",
           "Reynolds-meanscore": "reynolds_stress_jepa", "Reynolds-alpha0": "reynolds_stress_jepa",
           "Reynolds-tempcov": "reynolds_stress_jepa", "Reynolds-batchcov": "reynolds_stress_jepa",
+          "JEPA-CtxRecon": "ts_jepa", "JEPA-NoEMA": "ts_jepa",
           "PotentialFlow": "potential_flow_jepa", "PotentialFlow-noregime": "potential_flow_jepa"}[name]
     extra = {"use_regimes": False} if name == "PotentialFlow-noregime" else {}
     cfg = CSMConfig(model_type=mt, context_size=C, suspect_size=S, latent_dim=32, **extra)
@@ -133,15 +232,23 @@ def train_model(name, tr_win, k, device, epochs):
         m.cov_mode = "batch"
     opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
     kw = {"alpha_entropy": 0.0} if name == "OpEntropy-lambda0" else {}
+    ctx_recon = name == "JEPA-CtxRecon"
     for ep in range(epochs):
         m.train()
         for b in batches(tr_win, 16):
             b = b.to(device)
-            loss, _ = m.compute_objective(b[:, :C], b[:, C:], cfg, **kw)
+            # JEPA-CtxRecon: latent-reconstruction control. Identical JEPA machinery
+            # (EMA target encoder, predictor, VICReg loss) but the target is the EMA
+            # encoding of the *context* window rather than the future window --
+            # isolates prediction vs. latent compression/reconstruction.
+            tgt = b[:, :C] if ctx_recon else b[:, C:]
+            loss, _ = m.compute_objective(b[:, :C], tgt, cfg, **kw)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
-            m.update_target_encoder()
+            # JEPA-NoEMA: online-target control (hard copy each step) isolates the
+            # EMA target encoder's contribution to residual conditioning.
+            m.update_target_encoder(1.0 if name == "JEPA-NoEMA" else None)
 
     mean_only = name in ("Reynolds-meanscore", "Reynolds-alpha0")
 
@@ -155,6 +262,8 @@ def train_model(name, tr_win, k, device, epochs):
                     zc = m._extract_context(ch[:, :C])
                     d = m.target_encoder(ch[:, C:]) - m.predictor(zc)
                     out.append(m.saliency_gate(d).cpu().numpy())
+                elif ctx_recon:
+                    out.append(m.compute_predictive_discrepancy(ch[:, :C], ch[:, :C]).cpu().numpy())
                 else:
                     out.append(m.compute_predictive_discrepancy(ch[:, :C], ch[:, C:]).cpu().numpy())
         return np.concatenate(out)
@@ -202,7 +311,7 @@ def thresholds(cal):
     }, kurt
 
 
-def run(ds, ch, seeds, device, epochs, val_frac, out_rows):
+def run(ds, ch, seeds, device, epochs, val_frac, out_rows, dump_dir=None):
     train, test, y = load_stream(ds, ch)
     n_val = int(len(train) * val_frac)
     tr, va = train[:-n_val], train[-n_val:]
@@ -219,6 +328,15 @@ def run(ds, ch, seeds, device, epochs, val_frac, out_rows):
         return
     for seed in seeds:
         for name in MODELS:
+            dump_paths = None
+            if dump_dir is not None:
+                dump_paths = {
+                    mp: dump_dir / f"{ds}__{ch}__{seed}__{name}__{mp}.npz"
+                    for mp in ("smear", "trailing")
+                }
+                if all(p.exists() for p in dump_paths.values()):
+                    print(f"   seed={seed} {name} cached, skipping", flush=True)
+                    continue
             torch.manual_seed(seed)
             np.random.seed(seed)
             score = train_model(name, tr_w, k, device, epochs)
@@ -236,6 +354,11 @@ def run(ds, ch, seeds, device, epochs, val_frac, out_rows):
                     continue
                 ths, kurt = thresholds(cal)
                 ts, tl = tp[tm], y[tm]
+                if dump_paths is not None:
+                    np.savez_compressed(
+                        dump_paths[mapping],
+                        cal=cal, hold=hold, test_scores=ts, test_labels=tl,
+                    )
                 pr = float(average_precision_score(tl, ts)) if tl.sum() > 0 else float("nan")
                 for cname, th in ths.items():
                     ind = (hold > th).astype(float)
@@ -262,6 +385,8 @@ def main():
     ap.add_argument("--streams", nargs="*", default=None, help="DS:channel entries")
     ap.add_argument("--models", nargs="*", default=None, help="subset of MODELS (or PotentialFlow-noregime)")
     ap.add_argument("--out", default=str(ROOT / "reports" / "multiseed_heldout_benchmark.csv"))
+    ap.add_argument("--dump-scores", default=None,
+                    help="Directory for raw per-timestep score arrays (npz per stream/seed/model/mapping)")
     a = ap.parse_args()
     global MODELS
     if a.models:
@@ -274,10 +399,13 @@ def main():
         streams = [tuple(s.split(":")) for s in a.streams]
     else:
         streams = STREAMS
+    dump_dir = Path(a.dump_scores) if a.dump_scores else None
+    if dump_dir is not None:
+        dump_dir.mkdir(parents=True, exist_ok=True)
     rows = []
     for ds, ch in streams:
         try:
-            run(ds, ch, a.seeds, device, a.epochs, a.val_frac, rows)
+            run(ds, ch, a.seeds, device, a.epochs, a.val_frac, rows, dump_dir=dump_dir)
         except Exception as e:  # keep going; log the failure in the output
             print(f"   FAILED {ds}:{ch}: {type(e).__name__}: {e}", flush=True)
         pd.DataFrame(rows).to_csv(a.out, index=False)
