@@ -1,6 +1,6 @@
 \section{Revision Experiments}\label{sup:revision_experiments}
 
-This section collects the analyses added in response to review: matched-backbone and score-space-matched residual diagnostics, detection quality on the operating-characteristic grid, a controlled-drift calibration study, training-free and distance-based references, detection-delay intersection, trivial-baseline comparison, drift attribution, and the Potential-Flow inference-path test.
+This section collects the analyses added in response to review: matched-backbone and score-space-matched residual diagnostics, detection quality on the operating-characteristic grid, a controlled-drift calibration study, training-free and distance-based references, detection-delay intersection, trivial-baseline comparison, drift attribution, the Potential-Flow inference-path test, and multi-dataset comparisons against published deep anomaly detection baselines.
 
 \begin{table}[t]
 \centering
@@ -273,3 +273,55 @@ swan:sf & trailing & noise-matched & 0.002 & 0.004 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{Multi-dataset benchmark comparison for published deep anomaly detection baselines across 11 telemetry datasets (130 streams; unified pipeline under SPOT calibration). Panel A reports unadjusted Point-F1; Panel B reports Point-Adjusted F1 (PA-F1). Macro averages weight each dataset equally; Stream-Macro averages across all 130 evaluation streams. Best result in \textbf{bold}, second \underline{underlined}.}\label{tab:sota_baselines}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Dataset & Streams & NCAD & DCdetector & Anom.Trans. & TimesNet & TranAD & TS-JEPA \\
+\midrule
+\multicolumn{8}{l}{\textit{Panel A: Unadjusted Point-F1}} \\
+CalIt2       &  1 & 0.019 & 0.049 & 0.122 & \underline{0.147} & \textbf{0.165} & 0.047 \\
+CICIDS       &  6 & 0.010 & 0.004 & 0.011 & \underline{0.091} & \textbf{0.118} & 0.035 \\
+Daphnet      & 26 & 0.080 & \underline{0.124} & 0.104 & \textbf{0.141} & 0.120 & 0.099 \\
+GECCO        &  1 & 0.192 & \textbf{0.216} & 0.050 & 0.030 & 0.030 & \underline{0.205} \\
+Genesis      &  1 & 0.000 & 0.000 & \underline{0.070} & 0.000 & 0.000 & \textbf{0.077} \\
+GHL          & 14 & 0.000 & 0.000 & 0.016 & \underline{0.025} & 0.015 & \textbf{0.048} \\
+Metro        &  1 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & \textbf{0.001} \\
+MSL          & 26 & 0.073 & 0.070 & 0.101 & 0.181 & \underline{0.205} & \textbf{0.217} \\
+Room-Occ.    &  2 & 0.055 & 0.149 & 0.355 & \underline{0.540} & \textbf{0.543} & 0.355 \\
+SMAP         & 51 & 0.137 & 0.136 & 0.079 & \underline{0.177} & 0.171 & \textbf{0.267} \\
+SWAN         &  1 & 0.070 & 0.020 & 0.097 & 0.082 & \underline{0.348} & \textbf{0.404} \\
+\midrule
+\textbf{Macro Mean}  & 11  & 0.058 & 0.070 & 0.091 & 0.129 & \underline{0.156} & \textbf{0.160} \\
+\textbf{Stream Mean} & 130 & 0.088 & 0.097 & 0.082 & 0.151 & \underline{0.152} & \textbf{0.186} \\
+\midrule
+\multicolumn{8}{l}{\textit{Panel B: Point-Adjusted F1 (PA-F1)}} \\
+CalIt2       &  1 & 0.019 & 0.049 & 0.122 & \underline{0.147} & \textbf{0.165} & 0.077 \\
+CICIDS       &  6 & 0.077 & 0.004 & 0.044 & 0.102 & \textbf{0.222} & \underline{0.170} \\
+Daphnet      & 26 & 0.412 & \underline{0.441} & \textbf{0.472} & 0.343 & 0.309 & 0.421 \\
+GECCO        &  1 & \textbf{0.507} & 0.319 & 0.056 & 0.030 & 0.030 & \underline{0.456} \\
+Genesis      &  1 & 0.000 & 0.000 & \underline{0.202} & 0.000 & 0.000 & \textbf{0.297} \\
+GHL          & 14 & 0.000 & 0.000 & \textbf{0.219} & 0.032 & 0.088 & \underline{0.089} \\
+Metro        &  1 & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 & \textbf{0.001} \\
+MSL          & 26 & 0.212 & 0.263 & 0.247 & 0.364 & \underline{0.377} & \textbf{0.500} \\
+Room-Occ.    &  2 & 0.426 & 0.235 & 0.429 & \underline{0.554} & \textbf{0.641} & 0.355 \\
+SMAP         & 51 & \underline{0.390} & 0.293 & 0.159 & 0.281 & 0.227 & \textbf{0.467} \\
+SWAN         &  1 & \textbf{0.725} & 0.713 & \underline{0.724} & 0.714 & 0.681 & 0.578 \\
+\midrule
+\textbf{Macro Mean}  & 11  & \underline{0.252} & 0.211 & 0.243 & 0.233 & 0.249 & \textbf{0.310} \\
+\textbf{Stream Mean} & 130 & \underline{0.298} & 0.268 & 0.247 & 0.275 & 0.263 & \textbf{0.401} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Multi-Dataset Baseline Benchmark Analysis}
+Table~\ref{tab:sota_baselines} evaluates TS-JEPA against published deep anomaly detection baselines across all 11 shared benchmark datasets (130 continuous telemetry streams) using the unified out-of-sample calibration protocol (standard SPOT, $u=0.98, q=10^{-3}$). Two empirical findings stand out:
+
+\emph{Contrastive sensitivity under tail calibration}: NCAD \cite{carmona2021neural}, which trains against synthetic point and contextual anomalies, achieves respectable Point-Adjusted F1 ($0.252$ macro, $0.298$ stream-level) but collapses to $0.058$ macro Point-F1 ($0.088$ stream-level). Point adjustment masks rampant false alarms because an isolated trigger within a long anomaly awards full segment credit. When evaluated strictly point-by-point, synthetic anomalies fail to transfer to physical process deviations (yielding near-zero detection on GHL, Genesis, and Metro). Similarly, dual-attention discrepancy contrasting in DCdetector \cite{yang2023dcdetector} and Anomaly Transformer \cite{xu2022anomaly} collapses to $0.070$ and $0.091$ macro Point-F1 due to severe tail-threshold overshoots on non-stationary baselines.
+
+\emph{Forecasting versus latent representation}: Observation-space forecasters (TimesNet \cite{wu2023timesnet}: $0.129$ macro Point-F1; TranAD \cite{tuli2022tranad}: $0.156$) outperform contrastive baselines on point metrics but remain constrained by raw observation noise. TS-JEPA achieves leading macro Point-F1 ($0.160$) and stream-level Point-F1 ($0.186$), alongside leading Point-Adjusted F1 ($0.310$ macro, $0.401$ stream-level), indicating that predicting representations in latent space preserves fault dynamics across disparate physical domains without synthetic anomaly synthesis.

@@ -216,6 +216,107 @@ def drift_link_table():
     return "\n".join(lines)
 
 
+def sota_baselines_table():
+    df = pd.read_csv(ROOT / "reports" / "all_models_multidataset_benchmark.csv")
+    common = ['CalIt2', 'cicids', 'Daphnet', 'GECCO', 'Genesis', 'GHL', 'metro', 'MSL', 'room-occupancy', 'SMAP', 'swan']
+    models = ['ncad', 'dcdetector', 'anomaly_transformer', 'timesnet', 'tranad', 'ts_jepa']
+    df_c = df[df.dataset.isin(common) & df.model.isin(models)]
+    p_f1 = df_c.groupby(['dataset', 'model'])['point_f1'].mean().unstack()[models]
+    pa_f1 = df_c.groupby(['dataset', 'model'])['pa_f1'].mean().unstack()[models]
+    counts = df_c.groupby('dataset')['channel'].nunique()
+
+    dataset_labels = {
+        'CalIt2': 'CalIt2', 'cicids': 'CICIDS', 'Daphnet': 'Daphnet', 'GECCO': 'GECCO',
+        'Genesis': 'Genesis', 'GHL': 'GHL', 'metro': 'Metro', 'MSL': 'MSL',
+        'room-occupancy': 'Room-Occ.', 'SMAP': 'SMAP', 'swan': 'SWAN'
+    }
+
+    lines = [
+        r"\begin{table}[t]",
+        r"\centering",
+        r"\scriptsize",
+        r"\caption{Multi-dataset benchmark comparison for published deep anomaly detection baselines across 11 telemetry datasets (130 streams; unified pipeline under SPOT calibration). Panel A reports unadjusted Point-F1; Panel B reports Point-Adjusted F1 (PA-F1). Macro averages weight each dataset equally; Stream-Macro averages across all 130 evaluation streams. Best result in \textbf{bold}, second \underline{underlined}.}\label{tab:sota_baselines}",
+        r"\resizebox{\columnwidth}{!}{%",
+        r"\begin{tabular}{@{}lccccccc@{}}",
+        r"\toprule",
+        r"Dataset & Streams & NCAD & DCdetector & Anom.Trans. & TimesNet & TranAD & TS-JEPA \\",
+        r"\midrule",
+        r"\multicolumn{8}{l}{\textit{Panel A: Unadjusted Point-F1}} \\"
+    ]
+
+    for d in common:
+        vals = [p_f1.loc[d, m] for m in models]
+        max_val = max(vals)
+        second_val = sorted(vals, reverse=True)[1] if len(vals) > 1 else -1
+        cells = []
+        for v in vals:
+            s = f"{v:.3f}"
+            if v == max_val and v > 0:
+                s = r"\textbf{" + s + "}"
+            elif v == second_val and v > 0:
+                s = r"\underline{" + s + "}"
+            cells.append(s)
+        lines.append(f"{dataset_labels[d]:12s} & {counts[d]:2d} & " + " & ".join(cells) + r" \\")
+
+    macro_vals = [p_f1[m].mean() for m in models]
+    max_m = max(macro_vals)
+    second_m = sorted(macro_vals, reverse=True)[1]
+    m_cells = [(r"\textbf{" + f"{v:.3f}" + "}" if v == max_m else r"\underline{" + f"{v:.3f}" + "}" if v == second_m else f"{v:.3f}") for v in macro_vals]
+    lines.append(r"\midrule")
+    lines.append(r"\textbf{Macro Mean}  & 11  & " + " & ".join(m_cells) + r" \\")
+
+    stream_vals = [df_c[df_c.model==m]['point_f1'].mean() for m in models]
+    max_s = max(stream_vals)
+    second_s = sorted(stream_vals, reverse=True)[1]
+    s_cells = [(r"\textbf{" + f"{v:.3f}" + "}" if v == max_s else r"\underline{" + f"{v:.3f}" + "}" if v == second_s else f"{v:.3f}") for v in stream_vals]
+    lines.append(r"\textbf{Stream Mean} & 130 & " + " & ".join(s_cells) + r" \\")
+
+    lines.append(r"\midrule")
+    lines.append(r"\multicolumn{8}{l}{\textit{Panel B: Point-Adjusted F1 (PA-F1)}} \\")
+
+    for d in common:
+        vals = [pa_f1.loc[d, m] for m in models]
+        max_val = max(vals)
+        second_val = sorted(vals, reverse=True)[1] if len(vals) > 1 else -1
+        cells = []
+        for v in vals:
+            s = f"{v:.3f}"
+            if v == max_val and v > 0:
+                s = r"\textbf{" + s + "}"
+            elif v == second_val and v > 0:
+                s = r"\underline{" + s + "}"
+            cells.append(s)
+        lines.append(f"{dataset_labels[d]:12s} & {counts[d]:2d} & " + " & ".join(cells) + r" \\")
+
+    macro_vals = [pa_f1[m].mean() for m in models]
+    max_m = max(macro_vals)
+    second_m = sorted(macro_vals, reverse=True)[1]
+    m_cells = [(r"\textbf{" + f"{v:.3f}" + "}" if v == max_m else r"\underline{" + f"{v:.3f}" + "}" if v == second_m else f"{v:.3f}") for v in macro_vals]
+    lines.append(r"\midrule")
+    lines.append(r"\textbf{Macro Mean}  & 11  & " + " & ".join(m_cells) + r" \\")
+
+    stream_vals = [df_c[df_c.model==m]['pa_f1'].mean() for m in models]
+    max_s = max(stream_vals)
+    second_s = sorted(stream_vals, reverse=True)[1]
+    s_cells = [(r"\textbf{" + f"{v:.3f}" + "}" if v == max_s else r"\underline{" + f"{v:.3f}" + "}" if v == second_s else f"{v:.3f}") for v in stream_vals]
+    lines.append(r"\textbf{Stream Mean} & 130 & " + " & ".join(s_cells) + r" \\")
+
+    lines += [
+        r"\bottomrule",
+        r"\end{tabular}%",
+        "}",
+        r"\end{table}",
+        "",
+        r"\subsection{Multi-Dataset Baseline Benchmark Analysis}",
+        r"Table~\ref{tab:sota_baselines} evaluates TS-JEPA against published deep anomaly detection baselines across all 11 shared benchmark datasets (130 continuous telemetry streams) using the unified out-of-sample calibration protocol (standard SPOT, $u=0.98, q=10^{-3}$). Two empirical findings stand out:",
+        "",
+        r"\emph{Contrastive sensitivity under tail calibration}: NCAD \cite{carmona2021neural}, which trains against synthetic point and contextual anomalies, achieves respectable Point-Adjusted F1 ($0.252$ macro, $0.298$ stream-level) but collapses to $0.058$ macro Point-F1 ($0.088$ stream-level). Point adjustment masks rampant false alarms because an isolated trigger within a long anomaly awards full segment credit. When evaluated strictly point-by-point, synthetic anomalies fail to transfer to physical process deviations (yielding near-zero detection on GHL, Genesis, and Metro). Similarly, dual-attention discrepancy contrasting in DCdetector \cite{yang2023dcdetector} and Anomaly Transformer \cite{xu2022anomaly} collapses to $0.070$ and $0.091$ macro Point-F1 due to severe tail-threshold overshoots on non-stationary baselines.",
+        "",
+        r"\emph{Forecasting versus latent representation}: Observation-space forecasters (TimesNet \cite{wu2023timesnet}: $0.129$ macro Point-F1; TranAD \cite{tuli2022tranad}: $0.156$) outperform contrastive baselines on point metrics but remain constrained by raw observation noise. TS-JEPA achieves leading macro Point-F1 ($0.160$) and stream-level Point-F1 ($0.186$), alongside leading Point-Adjusted F1 ($0.310$ macro, $0.401$ stream-level), indicating that predicting representations in latent space preserves fault dynamics across disparate physical domains without synthetic anomaly synthesis."
+    ]
+    return "\n".join(lines)
+
+
 def main():
     rd = pd.read_csv(ROOT / "reports" / "residual_diagnostics.csv")
     mf = pd.read_csv(ROOT / "reports" / "matched_fpr_evaluation.csv")
@@ -231,15 +332,18 @@ def main():
            "detection quality on the operating-characteristic grid, a "
            "controlled-drift calibration study, training-free and distance-based "
            "references, detection-delay intersection, trivial-baseline "
-           "comparison, drift attribution, and the Potential-Flow "
-           "inference-path test.",
+           "comparison, drift attribution, the Potential-Flow "
+           "inference-path test, and multi-dataset comparisons against "
+           "published deep anomaly detection baselines.",
            "",
            residual_table(rd), "", oc_table(), "", matched_fpr_table(mf), "",
            drift_table(dc), "", nonparam_table(npdf), "",
-           trivial_delay_table(), "", drift_link_table(), "", noise_table()]
+           trivial_delay_table(), "", drift_link_table(), "", noise_table(), "",
+           sota_baselines_table()]
     OUT.write_text("\n".join(tex), encoding="utf-8")
     print(f"wrote {OUT}")
 
 
 if __name__ == "__main__":
     main()
+
