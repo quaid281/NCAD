@@ -67,6 +67,7 @@ class CSMConfig:
     alpha_rep_entropy: float = 0.005  # Representation entropy regularizer weight for operator_entropy_jepa
     beta_lyapunov: float = 0.0  # Discrete Lyapunov defect penalty weight for operator_entropy_jepa
     use_koopman_matrix: bool = True  # Use explicit Koopman transition matrix for operator_entropy_jepa
+    use_cayley_operator: bool = False  # Use Cayley transform orthogonal-dissipative gate for operator_entropy_jepa
 
     n_regimes: int = 4  # Number of Grassmannian discrete regime subspaces for potential_flow_jepa
     subspace_dim: int = 8  # Dimension of each regime subspace for potential_flow_jepa

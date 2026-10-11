@@ -177,6 +177,7 @@ class OperatorEntropyJEPAModel(JEPABase):
         dropout: float = 0.05,
         use_radial_heat: bool = True,
         use_koopman_matrix: bool = True,
+        use_cayley_operator: bool = False,
     ):
         super().__init__()
         self.context_encoder = context_encoder
@@ -187,13 +188,22 @@ class OperatorEntropyJEPAModel(JEPABase):
         self.beta_lyapunov = beta_lyapunov
         self.spectral_gap_min = spectral_gap_min
         self.use_koopman_matrix = use_koopman_matrix
+        self.use_cayley_operator = use_cayley_operator
 
         self.target_encoder = self.init_target_encoder(context_encoder)
 
-        if use_koopman_matrix:
+        if use_cayley_operator:
+            # Cayley transform orthogonal-dissipative gate: W = (I+S+D)^{-1}(I-S-D)
+            # Enforces ||W||_2 <= 1.0 and rho(W) <= 1.0 strictly by algebraic construction
+            from src.models.geometric_layers import CayleyOrthogonalGate
+            self.cayley_gate = CayleyOrthogonalGate(dim=latent_dim, bias=False)
+            self.K = None
+            self.predictor = None
+        elif use_koopman_matrix:
             # Explicit Koopman transition matrix K in R^{D x D} (1,024 parameters for D=32)
             # Initialized near identity with small random perturbations
             self.K = nn.Parameter(torch.eye(latent_dim) + 0.01 * torch.randn(latent_dim, latent_dim))
+            self.cayley_gate = None
             self.predictor = None
         else:
             layers = []
@@ -210,6 +220,7 @@ class OperatorEntropyJEPAModel(JEPABase):
             layers.append(nn.LayerNorm(latent_dim))
             self.predictor = nn.Sequential(*layers)
             self.K = None
+            self.cayley_gate = None
 
         # ResolventPurification instantiation removed (unused in forward/loss)
         self.resolvent = None
@@ -230,9 +241,20 @@ class OperatorEntropyJEPAModel(JEPABase):
 
     def _predict(self, z: torch.Tensor) -> torch.Tensor:
         """Apply the predictive transition operator."""
-        if self.use_koopman_matrix:
+        if self.use_cayley_operator and self.cayley_gate is not None:
+            return self.cayley_gate(z)
+        if self.use_koopman_matrix and self.K is not None:
             return z @ self.K.T
         return self.predictor(z)
+
+    @property
+    def effective_transition_matrix(self) -> Optional[torch.Tensor]:
+        """Return the active linear transition operator matrix if applicable."""
+        if self.use_cayley_operator and self.cayley_gate is not None:
+            return self.cayley_gate.transition_matrix
+        if self.use_koopman_matrix and self.K is not None:
+            return self.K
+        return None
 
     def _apply_filters(self, z: torch.Tensor) -> torch.Tensor:
         if self.radial_heat is not None:
@@ -299,7 +321,14 @@ class OperatorEntropyJEPAModel(JEPABase):
             else getattr(config, "beta_lyapunov", self.beta_lyapunov)
         )
 
-        if self.use_koopman_matrix and self.K is not None:
+        if self.use_cayley_operator and self.cayley_gate is not None:
+            # Cayley operator W is contractive (||W||_2 <= 1.0, rho(W) <= 1.0) by construction
+            if effective_alpha > 0:
+                W = self.cayley_gate.transition_matrix
+                reg_K = spectral_operator_entropy_loss(W, gamma_norm=1.0, beta_norm=1.0)
+            else:
+                reg_K = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
+        elif self.use_koopman_matrix and self.K is not None:
             reg_K = spectral_operator_entropy_loss(self.K, gamma_norm=1.0, beta_norm=1.0)
         else:
             reg_K = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)

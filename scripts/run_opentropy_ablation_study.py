@@ -45,6 +45,8 @@ ABLATION_MODELS = [
     "OpEntropy-alpha0.02",
     "OpEntropy-alpha0.005",
     "OpEntropy-Lyapunov",
+    "OpEntropy-Cayley",
+    "OpEntropy-Cayley-Lyapunov",
     "TS-JEPA",
 ]
 
@@ -168,7 +170,32 @@ def train_ablation_model(
             feature_dim=k,
             latent_dim=32,
             use_koopman_matrix=True,
+            use_cayley_operator=False,
             alpha_entropy=0.5,
+            alpha_rep_entropy=0.005,
+            beta_lyapunov=0.02,
+        )
+        is_historical = False
+    elif name == "OpEntropy-Cayley":
+        cfg = CSMConfig(
+            model_type="operator_entropy_jepa",
+            feature_dim=k,
+            latent_dim=32,
+            use_koopman_matrix=False,
+            use_cayley_operator=True,
+            alpha_entropy=0.0,
+            alpha_rep_entropy=0.005,
+            beta_lyapunov=0.0,
+        )
+        is_historical = False
+    elif name == "OpEntropy-Cayley-Lyapunov":
+        cfg = CSMConfig(
+            model_type="operator_entropy_jepa",
+            feature_dim=k,
+            latent_dim=32,
+            use_koopman_matrix=False,
+            use_cayley_operator=True,
+            alpha_entropy=0.0,
             alpha_rep_entropy=0.005,
             beta_lyapunov=0.02,
         )
@@ -233,8 +260,18 @@ def run_ablation(
     epochs: int,
     val_frac: float,
     out_csv: Path,
+    models: Optional[List[str]] = None,
 ):
-    out_rows = []
+    if out_csv.exists():
+        try:
+            existing_df = pd.read_csv(out_csv)
+            out_rows = existing_df.to_dict("records")
+            print(f"Loaded {len(out_rows)} existing records from {out_csv}", flush=True)
+        except Exception:
+            out_rows = []
+    else:
+        out_rows = []
+    active_models = models if models is not None else ABLATION_MODELS
 
     for s_idx, (ds, ch) in enumerate(streams, 1):
         print(f"\n== [{s_idx}/{len(streams)}] Evaluating Stream: {ds}:{ch}", flush=True)
@@ -260,7 +297,7 @@ def run_ablation(
             continue
 
         for seed in seeds:
-            for m_name in ABLATION_MODELS:
+            for m_name in active_models:
                 torch.manual_seed(seed)
                 np.random.seed(seed)
 
@@ -320,8 +357,12 @@ def run_ablation(
 
                 print("Done.", flush=True)
 
-        pd.DataFrame(out_rows).to_csv(out_csv, index=False)
-        print(f"   [Checkpointed {len(out_rows)} results to {out_csv}]", flush=True)
+        df_out = pd.DataFrame(out_rows).drop_duplicates(
+            subset=["dataset", "channel", "seed", "model", "mapping", "calibrator"],
+            keep="last",
+        )
+        df_out.to_csv(out_csv, index=False)
+        print(f"   [Checkpointed {len(df_out)} unique results to {out_csv}]", flush=True)
 
     print(f"\nAll ablation evaluations completed. Output saved to: {out_csv}", flush=True)
 
@@ -331,21 +372,23 @@ def main():
     parser.add_argument("--epochs", type=int, default=5, help="Training epochs per model")
     parser.add_argument("--val-frac", type=float, default=0.35, help="Fraction of training sequence for held-out validation")
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123], help="Random seeds")
+    parser.add_argument("--models", type=str, nargs="+", default=None, help="Subset of ablation models to run")
     parser.add_argument("--out", type=str, default="reports/opentropy_ablation_study.csv", help="Output CSV path")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device (cuda/cpu)")
 
     args = parser.parse_args()
     dev = torch.device(args.device)
     out_path = ROOT / args.out
+    active_models = args.models if args.models is not None else ABLATION_MODELS
 
     print("Starting Operator-Entropy Ablation Study:")
-    print(f"  Models: {ABLATION_MODELS}")
+    print(f"  Models: {active_models}")
     print(f"  Seeds: {args.seeds}")
     print(f"  Streams: {len(DEFAULT_STREAMS)}")
     print(f"  Device: {dev}")
     print(f"  Output CSV: {out_path}")
 
-    run_ablation(DEFAULT_STREAMS, args.seeds, dev, args.epochs, args.val_frac, out_path)
+    run_ablation(DEFAULT_STREAMS, args.seeds, dev, args.epochs, args.val_frac, out_path, models=active_models)
 
 
 if __name__ == "__main__":

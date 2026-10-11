@@ -529,6 +529,7 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             spectral_gap_min=0.1,
             dropout=config.dropout,
             use_koopman_matrix=getattr(config, "use_koopman_matrix", True),
+            use_cayley_operator=getattr(config, "use_cayley_operator", False),
         )
 
     else:

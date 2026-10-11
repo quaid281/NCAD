@@ -329,4 +329,51 @@ def test_discrete_lyapunov_invariance_defect():
     assert model.K.grad.norm().item() > 0.0
 
 
+def test_cayley_operator_forward_and_backward():
+    """Verify forward pass, loss, contractivity, and gradients for Cayley operator mode."""
+    D = 16
+    K_in = 3
+    encoder = HybridTCNEncoder(input_dim=K_in, latent_dim=D, filters=16, tcn_layers=2)
+    model = OperatorEntropyJEPAModel(
+        context_encoder=encoder,
+        latent_dim=D,
+        alpha_entropy=0.5,
+        alpha_rep_entropy=0.005,
+        beta_lyapunov=0.02,
+        use_cayley_operator=True,
+    )
+    assert model.use_cayley_operator
+    assert model.cayley_gate is not None
+    assert model.K is None
+
+    # Check contractivity of initial Cayley matrix
+    W = model.effective_transition_matrix
+    assert W is not None
+    op_norm = torch.linalg.norm(W, ord=2).item()
+    spectral_radius = torch.linalg.eigvals(W).abs().max().item()
+    assert op_norm <= 1.0 + 1e-5
+    assert spectral_radius <= 1.0 + 1e-5
+
+    B = 8
+    x_ctx = torch.randn(B, 32, K_in)
+    x_tgt = torch.randn(B, 16, K_in)
+
+    z_pred, z_tgt, diff = model(x_ctx, x_tgt)
+    assert z_pred.shape == (B, D)
+    assert z_tgt.shape == (B, D)
+
+    loss, metrics = model.compute_objective(x_ctx, x_tgt)
+    assert "loss" in metrics
+    assert "pred_loss" in metrics
+    assert "lyapunov_defect" in metrics
+    assert "spectral_reg" in metrics
+
+    loss.backward()
+    assert model.cayley_gate.A.grad is not None
+    assert model.cayley_gate.A.grad.norm().item() > 0.0
+    assert model.cayley_gate.d.grad is not None
+    assert model.cayley_gate.d.grad.norm().item() > 0.0
+
+
+
 
