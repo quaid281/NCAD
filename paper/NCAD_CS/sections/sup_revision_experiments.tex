@@ -340,3 +340,33 @@ Table~\ref{tab:sota_baselines} evaluates TS-JEPA against published deep anomaly 
 \emph{Contrastive sensitivity under tail calibration}: NCAD \cite{carmona2021neural}, which trains against synthetic point and contextual anomalies, achieves respectable Point-Adjusted F1 ($0.252$ macro, $0.298$ stream-level) but collapses to $0.058$ macro Point-F1 ($0.088$ stream-level). Point adjustment masks rampant false alarms because an isolated trigger within a long anomaly awards full segment credit. When evaluated strictly point-by-point, synthetic anomalies fail to transfer to physical process deviations (yielding near-zero detection on GHL, Genesis, and Metro). Similarly, dual-attention discrepancy contrasting in DCdetector \cite{yang2023dcdetector} and Anomaly Transformer \cite{xu2022anomaly} collapses to $0.070$ and $0.091$ macro Point-F1 due to severe tail-threshold overshoots on non-stationary baselines.
 
 \emph{Forecasting versus latent representation}: Observation-space forecasters (TimesNet \cite{wu2023timesnet}: $0.129$ macro Point-F1; TranAD \cite{tuli2022tranad}: $0.156$) outperform contrastive baselines on point metrics but remain constrained by raw observation noise. TS-JEPA achieves leading macro Point-F1 ($0.160$) and stream-level Point-F1 ($0.186$), alongside leading Point-Adjusted F1 ($0.310$ macro, $0.401$ stream-level), indicating that predicting representations in latent space preserves fault dynamics across disparate physical domains without synthetic anomaly synthesis.
+
+\subsection{Master Headline False-Positive Rate Reconciliation}
+\label{subsec:master_fpr_reconciliation}
+
+To eliminate ambiguity across reported False-Positive Rates in the manuscript and supplementary material, Table~\ref{tab:master_fpr_reconciliation} provides a complete reconciliation mapping every headline FPR statistic to its evaluation cohort, random seed coverage, operational attribution regime, calibrator, aggregation level, and primary manuscript context.
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\caption{Master Headline False-Positive Rate (FPR) Reconciliation Table. Cross-reference mapping all reported FPR values across the manuscript and supplementary material to their evaluation cohorts, random seed coverage, temporal attribution regimes, calibration configurations, aggregation levels, and primary text locations.}\label{tab:master_fpr_reconciliation}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llcccccp{4.8cm}@{}}
+\toprule
+\textbf{Reported FPR} & \textbf{Model / Architecture} & \textbf{Evaluation Cohort} & \textbf{Seeds} & \textbf{Attribution} & \textbf{Calibrator} & \textbf{Aggregation} & \textbf{Primary Manuscript Context} \\
+\midrule
+$0.076$ ($7.6\%$) & TS-JEPA & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Primary held-out benchmark (Sec.~VI-A, Table~I, Table~II-a) \\
+$0.300$ ($30.0\%$) & TimesNet & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Baseline reconstructive benchmark (Sec.~VI-A, Table~I, Table~II-a) \\
+$0.307$ ($30.7\%$) & TranAD & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Baseline attention reconstructive benchmark (Sec.~VI-A, Table~I, Table~II-a) \\
+$0.005$ ($0.5\%$) & Linear AR Forecaster & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Linear dynamical control (Sec.~VI-A, Line 19) \\
+$0.0526$ ($5.26\%$) & TS-JEPA & 33 primary streams & 1--5 & Buffered (smear) & Static SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & 33-stream calibrator comparison (Sec.~IV-D, Sec.~VI-D, Table~III) \\
+$0.2217$ ($22.17\%$) & TimesNet / TranAD & 33 primary streams & 1--5 & Buffered (smear) & Static SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & 33-stream calibrator comparison (Sec.~IV-D, Sec.~VI-D, Table~III) \\
+$0.080$ ($8.0\%$) & TS-JEPA & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Experiment A controlled backbone study (Sec.~V-E, Table~\ref{tab:residual_diagnostics}) \\
+$0.186$ ($18.6\%$) & TCN-ObsPred-LN / PCA-LinPred-LN & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Experiment A bounded score controls (Sec.~V-E, Table~\ref{tab:residual_diagnostics}) \\
+$0.014$ ($1.4\%$) & TS-JEPA & 19 non-GHL streams & 5 & Causal (trailing) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Strictly causal streaming benchmark (Sec.~V-E, Sec.~VI-C, Table~\ref{tab:causal_benchmark}) \\
+$0.118$ ($11.8\%$) & TS-JEPA & 15-stream matched backbone & 1 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Preliminary 15-stream noise robustness ablation (Sec.~V-E, Table~\ref{tab:controlled_backbone}) \\
+$0.33\%$ ($0.0033$) & TS-JEPA & 6-stream pilot diagnostic & 1 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & EVT failure-mechanism decomposition (Sec.~S6, Table~\ref{tab:evt_failure_decomposition}) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

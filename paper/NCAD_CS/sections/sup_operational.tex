@@ -81,6 +81,7 @@ Under strictly causal streaming, TS-JEPA maintains an empirical false-positive r
 
 Two methodological trade-offs govern these results:
 First, the false-alarm reduction under strict causality comes at the expense of early event capture. TS-JEPA detects $10.7\%$ of anomaly events within $\tau \le 64$ steps under causal streaming, compared to $22.9\%$ for TimesNet and $32.9\%$ for TranAD.
+Second, the inherent target-window emission latency of $S - 1 = 63$ steps converts to physical time according to telemetry sampling rates: for wearable gait accelerometry (Daphnet, $64\,\text{Hz}$), 63 steps corresponds to $0.98\,\text{s}$, permitting near-immediate clinical alerting; for spacecraft telemetry (NASA SMAP and MSL at $0.1\,\text{Hz}$) and industrial flow loops (GHL at $0.1\,\text{Hz}$), 63 steps corresponds to $10.5\,\text{min}$; for municipal water quality telemetry (GECCO, $1\,\text{sample/min}$), the latency is $63\,\text{min}$; and for municipal traffic monitoring (Metro, $1\,\text{sample/h}$), 63 steps represents an operational delay of $63\,\text{h}$. When mission constraints demand immediate zero-lookahead alarm emission, strictly causal trailing scoring must be used, accepting the sensitivity trade-off shown in Table~\ref{tab:causal_vs_buffered}.
 
 \subsection{Computational Profile: Complexity, Latency, and Memory Footprint}
 \label{subsec:computational_profile}

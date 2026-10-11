@@ -15,96 +15,86 @@ Let $\mathbf{X} \in \mathbb{R}^{T \times K}$ denote a multivariate stream partit
 
 \subsection{Latent Predictor Architectures and Dynamical Inductive Priors}
 \label{subsec:triad_formulations}
-To examine whether incorporating structured dynamical inductive biases stabilizes representation forecasting, we evaluate an unconstrained latent predictor alongside three candidate formulations inspired by physical dynamical principles:
+To examine whether structured dynamical inductive biases stabilize representation forecasting, we evaluate an unconstrained latent predictor alongside three candidate formulations inspired by physical dynamical principles:
 
 \subsubsection{Operator-Entropy JEPA (Spectral Dynamics \& Modal Dispersion)}
-Motivated by Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral}, in which nonlinear trajectories are analyzed via linear operators on observable functions, we parameterize the predictive latent transition via a learned operator $\mathbf{K} \in \mathbb{R}^{D \times D}$: $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$. To prevent collapse onto a low-rank subspace (dimensional collapse) or to zero (energy collapse), the regularizer decouples spectral uniformity from total operator energy.
+Motivated by Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral}, where nonlinear trajectories are mapped via linear operators on observable functions, we parameterize the predictive latent transition via a learned operator $\mathbf{K} \in \mathbb{R}^{D \times D}$: $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$. To prevent collapse onto a low-rank subspace (dimensional collapse) or to zero (energy collapse), the regularizer decouples spectral uniformity from total operator energy.
 
-Let $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ denote the singular values of $\mathbf{K}$, $\lambda_i = \sigma_i^2$ the eigenvalues of $\mathbf{K}\mathbf{K}^T$, and $\mathcal{E}(\mathbf{K}) = \|\mathbf{K}\|_F^2 = \sum_i \lambda_i$ the total energy. For $\mathcal{E}(\mathbf{K}) > 0$, the scale-free spectral distribution over modes is $p_i = \sigma_i^2 / \|\mathbf{K}\|_F^2$, $\sum_i p_i = 1$. We omit isotropic diagonal loading from the Gram matrix before normalization --- it would give $\mathbf{K} \to \mathbf{0}$ an artificial identity spectrum with maximal entropy, spuriously rewarding collapse. The Von Neumann spectral entropy uses the convention $0 \log 0 = 0$:
+Let $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ denote singular values of $\mathbf{K}$, $\lambda_i = \sigma_i^2$ eigenvalues of $\mathbf{K}\mathbf{K}^\top$, and $\mathcal{E}(\mathbf{K}) = \|\mathbf{K}\|_F^2 = \sum_i \lambda_i$ total energy. For $\mathcal{E}(\mathbf{K}) > 0$, the scale-free modal distribution is $p_i = \sigma_i^2 / \|\mathbf{K}\|_F^2$. The Von Neumann spectral entropy is $\mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i: p_i > 0} p_i \log p_i$ (with $0 \log 0 = 0$). The \textit{Spectral Entropy Deficiency} measures Kullback-Leibler divergence from the uniform equipartition $\mathbf{u} = [1/D, \dots, 1/D]^\top$:
 \begin{equation}
-    \mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i: p_i > 0} p_i \log p_i.
+    \Delta\mathcal{H}(\mathbf{K}) = \log D - \mathcal{H}_{\text{spectral}}(\mathbf{K}) = \mathcal{D}_{\text{KL}}(\mathbf{p} \,\|\, \mathbf{u}) \ge 0,
 \end{equation}
-The \textit{Spectral Entropy Deficiency} quantifies the Kullback-Leibler divergence from the uniform modal equipartition $\mathbf{u} = [1/D, \dots, 1/D]^T$:
-\begin{equation}
-    \Delta\mathcal{H}(\mathbf{K}) = \log D - \mathcal{H}_{\text{spectral}}(\mathbf{K}) = \mathcal{D}_{\text{KL}}(\mathbf{p} \,\|\, \mathbf{u}) \ge 0.
-\end{equation}
-Here, $\Delta\mathcal{H} = 0$ if and only if all modes carry equal energy ($\sigma_1 = \dots = \sigma_D$), while dimensional collapse to rank 1 yields maximal deficiency $\Delta\mathcal{H} = \log D$.
+where $\Delta\mathcal{H} = 0$ if and only if all modes carry equal energy ($\sigma_1 = \dots = \sigma_D$), while dimensional collapse to rank 1 yields $\Delta\mathcal{H} = \log D$.
 
-To penalize energy collapse ($\|\mathbf{K}\|_F \to 0$) and prevent explosive gain, we introduce a non-negative Bregman energy barrier relative to nominal isometric scale $\mathcal{E}_0 = \gamma D$ ($\gamma = 1.0$):
-\begin{align}
-    \Phi_{\text{energy}}(\mathbf{K}) &= r_{\text{safe}}(\mathbf{K}) - 1 - \log r_{\text{safe}}(\mathbf{K}) \ge 0, \\
-    r_{\text{safe}}(\mathbf{K}) &= \max\left(\frac{\|\mathbf{K}\|_F^2}{\gamma D}, \epsilon\right), \nonumber
-\end{align}
-where $\epsilon = 10^{-6}$ provides a numerical floor. For the identity operator $\mathbf{K} = \mathbf{I}$, $\|\mathbf{I}\|_F^2 = D$, yielding $\Phi_{\text{energy}}(\mathbf{I}) = 0$ exactly. We emphasize that the implemented barrier is \emph{floored}: it attains a finite maximum penalty $\epsilon - 1 - \log \epsilon \approx 12.8$ (before $\beta_{\text{norm}}$ weighting) throughout $\|\mathbf{K}\|_F^2 < \epsilon\gamma D$, rather than diverging; divergence to $+\infty$ is a property only of the unfloored idealization $\Phi_{\text{energy}}^{\ast} = r - 1 - \log r$. The operator is initialized near identity ($\mathbf{K} \sim \mathbf{I} + \mathcal{N}(\mathbf{0}, 0.01^2 \mathbf{I})$), so $r_{\text{safe}} \approx 1$ and training starts with a vanishing energy penalty; since LayerNorm gives $\mathbb{E}[\|z\|_2^2] \approx D$, the isometric scale $\mathcal{E}_0 = \gamma D$ matches the natural energy of unitary transitions. In sensitivity checks across $\lambda_{\text{ent}} \in \{0.1, 0.5, 1.0\}$ the model converged stably, with $0.5$ balancing spectral spread against predictive regression. The composite spectral regularizer is:
+To penalize energy collapse ($\|\mathbf{K}\|_F \to 0$) without explosive gain, we impose a non-negative Bregman energy barrier relative to nominal isometric scale $\mathcal{E}_0 = \gamma D$ ($\gamma = 1.0$):
+\begin{equation}
+    \Phi_{\text{energy}}(\mathbf{K}) = r_{\text{safe}}(\mathbf{K}) - 1 - \log r_{\text{safe}}(\mathbf{K}) \ge 0,
+\end{equation}
+where $r_{\text{safe}}(\mathbf{K}) = \max(\|\mathbf{K}\|_F^2 / (\gamma D), \epsilon)$ with numerical floor $\epsilon = 10^{-6}$. The floored barrier caps penalty at $\approx 12.8\,\beta_{\text{norm}}$ rather than diverging. With $\mathbf{K} \sim \mathbf{I} + \mathcal{N}(\mathbf{0}, 0.01^2 \mathbf{I})$, $r_{\text{safe}} \approx 1$ and training begins with vanishing barrier penalty. The composite regularizer and objective are:
 \begin{equation}
     \mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}} \Phi_{\text{energy}}(\mathbf{K}),
 \end{equation}
-with $\beta_{\text{norm}} = 1.0$. The total training objective is:
 \begin{equation}
     \mathcal{L}_{\text{Op-Entropy}} = \| \mathbf{K} z_{\text{ctx}} - z_{\text{tgt}} \|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K}),
 \end{equation}
-with $\lambda_{\text{ent}} = 0.5$ in all experiments. All shared representation components (saliency gating, dyadic frequency shells, LayerNorm) are held fixed across models and controls, isolating the transition-operator loss. We emphasize that $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ acts on the operator matrix, enforcing a non-collapsed operator spectrum; it provides no analytical guarantee against encoder representation collapse, which is mitigated empirically by the EMA target encoder and stop-gradient operations \cite{grill2020bootstrap,assran2023self}.
+with $\beta_{\text{norm}} = 1.0$ and $\lambda_{\text{ent}} = 0.5$. All shared representation components are held fixed across models and controls. $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ acts on the operator matrix; it does not analytically prevent encoder representation collapse, which is mitigated empirically by EMA target dynamics and stop-gradient operations \cite{grill2020bootstrap,assran2023self}.
 
 \begin{proposition}[Operator Non-Triviality and Barrier Behavior]
 \label{prop:anti_collapse}
-Let $\mathcal{L}(\mathbf{K}) = \frac{1}{B}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}} > 0, \beta_{\text{norm}} > 0$, non-trivial target batch $\frac{1}{B}\sum_{b=1}^B \|z_{\text{tgt}}^{(b)}\|_2^2 = E_{\text{tgt}} > 0$, and non-degenerate context--target coupling $\frac{1}{B}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^T \neq \mathbf{0}$. Then: (i) under the implemented floored barrier ($\epsilon = 10^{-6}$), the energy penalty is strictly bounded ($\le 12.8\,\beta_{\text{norm}}$) yet $\mathbf{K} = \mathbf{0}$ is strictly not a local or global minimizer of $\mathcal{L}(\mathbf{K})$; and (ii) under the unfloored theoretical idealization ($\epsilon \to 0^+$, $\Phi_{\text{energy}}^{\ast} = r - 1 - \log r$), $\lim_{\|\mathbf{K}\|_F \to 0} \mathcal{L}(\mathbf{K}) = +\infty$.
+Let $\mathcal{L}(\mathbf{K}) = \frac{1}{B}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}} > 0, \beta_{\text{norm}} > 0$, non-trivial target batch $\frac{1}{B}\sum_{b=1}^B \|z_{\text{tgt}}^{(b)}\|_2^2 = E_{\text{tgt}} > 0$, and non-degenerate context--target coupling $\frac{1}{B}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^\top \neq \mathbf{0}$. Then: (i) under the floored barrier ($\epsilon = 10^{-6}$), the energy penalty is bounded ($\le 12.8\,\beta_{\text{norm}}$) yet $\mathbf{K} = \mathbf{0}$ is strictly not a local or global minimizer; and (ii) under unfloored idealization ($\epsilon \to 0^+$), $\lim_{\|\mathbf{K}\|_F \to 0} \mathcal{L}(\mathbf{K}) = +\infty$.
 \end{proposition}
 \noindent(Proof in Supplementary Section~\ref{sup:proofs}.)
 
-\noindent\textbf{Remark (Operator Non-Degeneracy vs. Representation Collapse):} Proposition~\ref{prop:anti_collapse} applies strictly to the transition operator $\mathbf{K}$ and does \emph{not} analytically prevent encoder representation collapse: if $E_\theta$ collapses all inputs to a constant $z^{(b)} = \mathbf{c}$, the choice $\mathbf{K} = \mathbf{I}$ attains zero prediction error and zero spectral penalty with no informational content. Preventing representation collapse rests empirically on stop-gradient momentum dynamics, not on Proposition~\ref{prop:anti_collapse}.
+\noindent\textbf{Remark (Operator Non-Degeneracy vs. Representation Collapse):} Proposition~\ref{prop:anti_collapse} applies to the transition operator $\mathbf{K}$ and does not analytically prevent encoder collapse: if $E_\theta$ maps all inputs to a constant, $\mathbf{K} = \mathbf{I}$ attains zero loss. Preventing representation collapse rests empirically on stop-gradient momentum dynamics.
 
-\subsubsection{Reynolds-Stress JEPA (Second-Moment Closure Head)}
+\subsubsection{Auxiliary Quadratic Second-Moment Head (Reynolds Closure)}
 \label{subsubsec:reynolds_stress_jepa}
-Reynolds decomposition splits a turbulent velocity field into a mean flow and a fluctuation component, where the Reynolds stress tensor captures the second moment of velocity fluctuations. We adapt this second-moment formulation as a latent-space inductive bias; the latent coordinates are learned embeddings, and $\boldsymbol{\Sigma}$ is not a physical momentum-transport tensor.
+Inspired by Reynolds decomposition in fluid turbulence, which separates mean flow from velocity fluctuations, we evaluate an auxiliary quadratic second-moment head in latent space. Crucially, $\boldsymbol{\Sigma}_{\text{obs}} = (\mathbf{P} z_{\text{tgt}})(\mathbf{P} z_{\text{tgt}})^\top + 10^{-3}\mathbf{I} \in \mathbb{S}_{++}^{d_s \times d_s}$ is an instantaneous rank-1 projected outer product plus ridge penalty, not a physical turbulent fluctuation covariance.
 
-A two-layer MLP predicts the conditional mean target latent $\hat{z}_{\text{tgt}}$ from $z_{\text{ctx}}$, and a learned linear projection $\mathbf{P} \in \mathbb{R}^{d_s \times D}$ ($d_s = 16$) applied to the EMA target representation yields the empirical second-moment matrix:
+A two-layer MLP predicts mean target latent $\hat{z}_{\text{tgt}}$ from $z_{\text{ctx}}$, and linear projection $\mathbf{P} \in \mathbb{R}^{d_s \times D}$ ($d_s = 16$) yields $\boldsymbol{\Sigma}_{\text{obs}}$. The closure head $h_\psi(z_{\text{ctx}})$ outputs lower-triangular $\mathbf{L} \in \mathbb{R}^{d_s \times d_s}$ with positive diagonal $L_{ii} = \operatorname{softplus}(a_{ii}) + \epsilon$, reconstructing predicted covariance:
 \begin{equation}
-    \boldsymbol{\Sigma}_{\text{obs}} = (\mathbf{P} z_{\text{tgt}})(\mathbf{P} z_{\text{tgt}})^T + 10^{-3}\mathbf{I} \in \mathbb{S}_{++}^{d_s \times d_s}.
+    \boldsymbol{\Sigma}_{\text{pred}} = \mathbf{L}\mathbf{L}^\top + 10^{-3}\mathbf{I} \in \mathbb{S}_{++}^{d_s \times d_s}.
 \end{equation}
-Because $\boldsymbol{\Sigma}_{\text{obs}}$ is computed from an instantaneous latent vector rather than averaged over the target horizon $S$, it forms a rank-one outer product with a ridge term enforcing membership in $\mathbb{S}_{++}^{d_s \times d_s}$; statistically it is an auxiliary second-moment projection penalty. The closure head $h_\psi(z_{\text{ctx}})$ outputs a lower-triangular $\mathbf{L} \in \mathbb{R}^{d_s \times d_s}$ with positive diagonal $L_{ii} = \operatorname{softplus}(a_{ii}) + \epsilon$, and the predicted covariance is reconstructed via Cholesky factorization:
-\begin{equation}
-    \boldsymbol{\Sigma}_{\text{pred}} = \mathbf{L}\mathbf{L}^T + 10^{-3}\mathbf{I} \in \mathbb{S}_{++}^{d_s \times d_s},
-\end{equation}
-confining predictions to $\mathbb{S}_{++}^{d_s \times d_s}$. The training objective is:
+The training objective is:
 \begin{equation}
     \mathcal{L}_{\text{Reynolds}} = \operatorname{MSE}(\hat{z}_{\text{tgt}}, z_{\text{tgt}}) + 0.1\, \operatorname{MSE}(\boldsymbol{\Sigma}_{\text{pred}}, \boldsymbol{\Sigma}_{\text{obs}}).
 \end{equation}
-At inference time, the anomaly score combines the mean latent discrepancy and the fluctuation tensor residual via the coordinate-saliency gate (formalized in Section~\ref{subsec:scoring_function}). The stress term enters both the training loss and the test score; its downstream contribution is evaluated in Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a).
+At test time, the anomaly score adds the second-moment error: $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. Downstream performance is evaluated in Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a).
 
-\subsubsection{Potential-Flow JEPA (Conservative Field Theory and Flow-Matching Derivation)}
+\subsubsection{Potential-Flow JEPA (Conservative Field Theory and Flow Matching)}
 \label{subsubsec:potential_flow_jepa}
-Under Helmholtz-Hodge decomposition, a smooth field $v \in C^1(\mathbb{R}^D, \mathbb{R}^D)$ splits into a curl-free potential gradient and a solenoidal field, $v = -\nabla \Phi + \nabla \times A$. As dissipative systems relax toward local minima on potential-energy surfaces, we model latent evolution as the dissipative gradient flow $\dot{z}(\tau) = -\nabla_z \Phi_\psi(z(\tau))$ for a scalar potential network $\Phi_\psi$ with smooth (SiLU) activations.
+Under Helmholtz-Hodge decomposition, a smooth field splits into a curl-free potential gradient and a solenoidal component: $v = -\nabla \Phi + \nabla \times A$. Dissipative gradient flows provide theoretical motivation:
 
-\begin{proposition}[Theoretical Motivation: Absence of Periodic Orbits in Autonomous Gradient Systems]
+\begin{proposition}[Theoretical Motivation: Absence of Periodic Orbits]
 \label{prop:no_limit_cycles}
-Let $\dot{z} = -\nabla\Phi(z)$ be an autonomous gradient flow on $\mathbb{R}^D$ where $\Phi \in C^2(\mathbb{R}^D, \mathbb{R})$. There exist no non-constant periodic orbits.
+Let $\dot{z} = -\nabla\Phi(z)$ be an autonomous gradient flow on $\mathbb{R}^D$ with $\Phi \in C^2(\mathbb{R}^D, \mathbb{R})$. There exist no non-constant periodic orbits.
 \end{proposition}
 \noindent(Proof in Supplementary Section~\ref{sup:proofs}.)
 
-\paragraph{Continuous Velocity Field and Multi-Subspace Regime Routing}
-The velocity field is the negative gradient of a parameterized scalar potential, $\hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) = -\nabla_{z_t} \Phi_\psi(z_t, t, z_{\text{ctx}}, p_{\text{regime}})$, where $\Phi_\psi$ is a three-layer residual MLP (LayerNorm, SiLU) conditioned on state $z_t$, diffusion time $t \in [0,1]$ (sinusoidal embedding), context $z_{\text{ctx}}$, and a discrete regime projection $p_{\text{regime}}$; the raw gradient is tangent-projected via $v_\perp = v - \langle u, v\rangle u$, $u = z_t/\|z_t\|_2$, bounding integration curvature.
+\paragraph{Velocity Field, Multi-Subspace Routing, and Flow Matching}
+The continuous field is $\hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) = -\nabla_{z_t} \Phi_\psi$, where $\Phi_\psi$ is a three-layer residual MLP conditioned on state $z_t$, diffusion time $t \in [0,1]$, context $z_{\text{ctx}}$, and regime projection $p_{\text{regime}}$, with tangent projection $v_\perp = v - \langle u, v\rangle u$ ($u = z_t/\|z_t\|_2$). Operational regimes use $K_r = 4$ orthonormal subspace projections $\mathbf{U}_k \in \mathbb{R}^{D \times d}$ ($d{=}8, D{=}32$), selected by maximal captured context energy $p_{\text{regime}} = \mathbf{U}_{k^*} \mathbf{U}_{k^*}^\top z_{\text{ctx}}$ with separation loss $\mathcal{L}_{\text{subspace}} = \frac{2}{K_r(K_r-1)} \sum_{i < j} \|\mathbf{U}_i^\top \mathbf{U}_j\|_F^2$.
 
-Discrete operational modes use $K_r = 4$ learnable orthonormal subspace projections $\mathbf{U}_k \in \mathbb{R}^{D \times d}$ ($d{=}8, D{=}32$); the active regime is selected by maximal captured context energy, $k^* = \arg\max_k \|\mathbf{U}_k^\top z_{\text{ctx}}\|_2^2$, $p_{\text{regime}} = \mathbf{U}_{k^*} \mathbf{U}_{k^*}^\top z_{\text{ctx}}$, with an orthogonality separation loss $\mathcal{L}_{\text{subspace}} = \frac{2}{K_r(K_r-1)} \sum_{i < j} \|\mathbf{U}_i^\top \mathbf{U}_j\|_F^2$. Section~\ref{subsec:controlled_ablations} includes a single-regime control ($K_r{=}1$) with routing disabled.
-
-\paragraph{Flow-Matching Objective, Midpoint Evaluation, and Phase-Space Distinctions}
-Proposition~\ref{prop:no_limit_cycles} provides theoretical motivation for autonomous gradient systems $\dot{z} = -\nabla\Phi(z)$. However, conditional, time-dependent flow matching evaluated via midpoint queries does not strictly obey autonomous phase-space restrictions. Empirically, the objective trains $\hat{v}$ via conditional flow matching (OT-CFM) along linear paths between noise $z_{\text{noise}} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and $z_{\text{tgt}}$: $z_t = (1-t)z_{\text{noise}} + t z_{\text{tgt}}$, $t \sim \mathcal{U}(0,1)$, with target field $v_t^* = z_{\text{tgt}} - z_{\text{noise}}$ and loss
+Training uses conditional flow matching (OT-CFM) along linear paths between noise $z_{\text{noise}} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and $z_{\text{tgt}}$: $z_t = (1-t)z_{\text{noise}} + t z_{\text{tgt}}$, with loss
 \begin{equation}
     \mathcal{L}_{\text{Pot-Flow}} = \mathbb{E}_{t, z_{\text{noise}}} \left[ \| \hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) - (z_{\text{tgt}} - z_{\text{noise}}) \|_2^2 \right].
 \end{equation}
-Along the deterministic mean trajectory ($z_{\text{noise}} = \mathbf{0}$), $z_t = t\,z_{\text{tgt}}$ and $v_t^* = z_{\text{tgt}}$ is constant.
-
-At inference, rather than integrating an ODE over $t \in [0,1]$, the detector queries the field at the trajectory midpoint:
+At inference, the detector queries the field at the trajectory midpoint:
 \begin{equation}
     \mathbf{e}(t) = \hat{v}\!\left(0.5 z_{\text{tgt}},\, 0.5,\, z_{\text{ctx}},\, p_{\text{regime}}\right) - z_{\text{tgt}}.
 \end{equation}
-Because the detector evaluates discrete midpoint queries on a time-dependent, context-conditioned network rather than integrating an autonomous trajectory, it is not formally constrained by continuous autonomous phase-space theorems. Nevertheless, parameterizing $\hat{v}$ as a spatial gradient $-\nabla_{z_t}\Phi_\psi$ imposes a curl-free spatial bias ($\nabla \times \hat{v} \equiv \mathbf{0}$) with vanishing circulation $\oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = 0$, dynamically penalizing cyclic orbits as anomalous. This explains the detection degradation on cyclic telemetry (e.g., Daphnet kinematics, Section~\ref{subsec:eval_physics_priors}).
+Because midpoint queries on a time-dependent, context-conditioned network do not integrate an autonomous trajectory, Proposition~\ref{prop:no_limit_cycles} does not formally bind test scoring. However, parameterizing $\hat{v}$ as a spatial gradient imposes a curl-free bias ($\nabla \times \hat{v} \equiv \mathbf{0}$) with vanishing circulation $\oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = 0$, dynamically penalizing cyclic orbits as anomalous and degrading detection on periodic kinematics (Section~\ref{subsec:eval_physics_priors}).
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
 During inference, context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed at stride 1. For TS-JEPA, Operator-Entropy, and Potential-Flow, the score gates the latent discrepancy through $g(\cdot)$ (Section~\ref{subsubsec:causal_saliency_gating}): $\mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t))$. For Reynolds-Stress, $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. All shared representation stages are held fixed across variants and ablation controls (Section~\ref{subsec:controlled_ablations}).
 
-\noindent\textbf{Operational Distinction: Zero-Lookahead Causal Filtering vs. Buffered Attribution.}
-Two regimes exist, formalized in Figure~\ref{fig:inference_timeline}: (1) strictly causal streaming (\textit{trailing} attribution), in which the score emitted at $\tau$ is $\mathcal{F}_{\tau}$-measurable --- it uses only observations through window completion; and (2) buffered monitoring (\textit{smear} attribution), in which the identical window score is attributed retrospectively over the suspect region $[t{+}1, t{+}S]$, so an anomaly at $t^*$ can raise discrepancy up to $S{=}64$ steps before onset. Under strict unadjusted point-level evaluation (stride 1), alarms during $[t^*-S, t^*]$ score as false alarms: the buffered regime is detection with a fixed $S$-step buffer, not forecasting. The two regimes are \emph{not} interchangeable evidence; we report them separately throughout (Table~\ref{tab:core_benchmark} and Supplementary Table~\ref{tab:causal_benchmark}). Incident analysis (Supplementary Section~\ref{sup:operational}) also evaluates \textit{Middle} alignment ($t + S/2$); all baselines share identical windowing, horizon, and standardization.
+\noindent\textbf{Three-Part Operational Causality Framework:}
+To resolve the methodological confounding between data availability, decision latency, and evaluation attribution, we formalize detection under three operational criteria (Fig.~\ref{fig:inference_timeline}):
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+    \item \textbf{Data causality ($\mathcal{F}_\tau$-measurability):} At decision time $\tau = t + S - 1$, the model observes only history $\mathbf{X}_{:\tau} = \mathbf{X}[t-C:\tau, :]$. Neither encoder accesses future observations beyond $\tau$.
+    \item \textbf{Score-emission latency ($S-1 = 63$ steps):} Because suspect representation $z_{\text{tgt}}$ encodes the horizon $\mathbf{X}[t:t+S, :]$, window score $s_t$ cannot be computed until timestep $\tau = t + S - 1$. This imposes an inherent emission latency of $S - 1 = 63$ steps: $0.98\,\text{s}$ on Daphnet ($64\,\text{Hz}$), $10.5\,\text{min}$ on SMAP, MSL, and GHL ($0.1\,\text{Hz}$), $63\,\text{min}$ on GECCO ($1\,\text{sample/min}$), and $63\,\text{h}$ on Metro ($1\,\text{sample/h}$).
+    \item \textbf{Alarm attribution convention:} We distinguish two attribution regimes: (1)~\emph{strictly causal trailing attribution}, where score $s_t$ is emitted and evaluated strictly at $\tau$, providing zero-lookahead online monitoring; and (2)~\emph{retrospective buffered smear attribution}, where $s_t$ is attributed across the entire suspect window $[t{+}1, t{+}S]$. Under unadjusted point evaluation, buffered alarms in $[t^*-S, t^*]$ register as false alarms: buffering provides fixed-lag detection, not early warning. The two regimes represent distinct operational realities and are reported separately throughout (Table~\ref{tab:core_benchmark}, Supplementary Table~\ref{tab:causal_benchmark}).
+\end{enumerate}
 
 \begin{figure}[t]
 \centering
