@@ -42,6 +42,7 @@ from src.data.data_loader import DataLoader
 from src.engine.trainer import build_ts_jepa_model
 from src.models.baselines import TimesNet, TranAD
 from src.models.encoders.tcn_encoder import HybridTCNEncoder
+from src.models.geometric_layers import CoordinateSaliencyGate
 from src.scoring.event_fusion import (
     _extract_segments,
     aggregate_window_scores,
@@ -58,7 +59,7 @@ STREAMS = [
 ]
 MODELS = [
     "TS-JEPA", "OpEntropy", "OpEntropy-lambda0", "Reynolds", "Reynolds-meanscore",
-    "Reynolds-alpha0", "PotentialFlow", "TimesNet", "TranAD",
+    "Reynolds-alpha0", "PotentialFlow", "TimesNet", "TranAD", "TCN-ObsPred-LN",
 ]
 
 
@@ -79,6 +80,28 @@ class TCNObsForecaster(nn.Module):
     def forward(self, ctx):
         z = self.encoder(ctx)
         return self.decoder(z).view(-1, self.suspect_len, self.input_dim)
+
+
+class TCNObsForecasterBounded(TCNObsForecaster):
+    """Observation-space forecast matched to the JEPA bottleneck and scoring gate."""
+
+    def __init__(self, input_dim, context_len=C, suspect_len=S, latent_dim=32):
+        super().__init__(input_dim, context_len, suspect_len, latent_dim)
+        flat_dim = suspect_len * input_dim
+        self.decoder[-1] = nn.Linear(64, flat_dim)
+        self.latent_norm = nn.LayerNorm(latent_dim)
+        self.output_norm = nn.LayerNorm(flat_dim)
+        self.saliency_gate = CoordinateSaliencyGate(dim=flat_dim, tau=0.5, alpha=0.5)
+
+    def forward(self, ctx):
+        z = self.latent_norm(self.encoder(ctx))
+        pred = self.output_norm(self.decoder(z))
+        return pred.view(-1, self.suspect_len, self.input_dim)
+
+    def discrepancy(self, ctx, target):
+        pred = self.forward(ctx).flatten(1)
+        truth = self.output_norm(target.flatten(1))
+        return self.saliency_gate(pred - truth)
 
 
 class TCNObsReconstructor(nn.Module):
@@ -231,9 +254,11 @@ def train_model(name, tr_win, k, device, epochs):
         return score
 
 
-    if name in ("TCN-ObsRecon", "TCN-ObsPred"):
+    if name in ("TCN-ObsRecon", "TCN-ObsPred", "TCN-ObsPred-LN"):
         if name == "TCN-ObsRecon":
             m = TCNObsReconstructor(input_dim=k).to(device)
+        elif name == "TCN-ObsPred-LN":
+            m = TCNObsForecasterBounded(input_dim=k).to(device)
         else:
             m = TCNObsForecaster(input_dim=k).to(device)
         opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
@@ -243,6 +268,9 @@ def train_model(name, tr_win, k, device, epochs):
                 b = b.to(device)
                 if name == "TCN-ObsRecon":
                     loss = nn.functional.mse_loss(m(b), b)
+                elif name == "TCN-ObsPred-LN":
+                    target = m.output_norm(b[:, C:].flatten(1)).view_as(b[:, C:])
+                    loss = nn.functional.mse_loss(m(b[:, :C]), target)
                 else:
                     loss = nn.functional.mse_loss(m(b[:, :C]), b[:, C:])
                 opt.zero_grad(set_to_none=True)
@@ -259,7 +287,10 @@ def train_model(name, tr_win, k, device, epochs):
                         rec = m(ch)[:, C:]
                     else:
                         rec = m(ch[:, :C])
-                    out.append(((rec - ch[:, C:]) ** 2).mean(dim=(-2, -1)).cpu().numpy())
+                    if name == "TCN-ObsPred-LN":
+                        out.append(m.discrepancy(ch[:, :C], ch[:, C:]).cpu().numpy())
+                    else:
+                        out.append(((rec - ch[:, C:]) ** 2).mean(dim=(-2, -1)).cpu().numpy())
             return np.concatenate(out)
         return score
 

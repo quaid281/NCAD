@@ -1,13 +1,13 @@
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We investigated empirically whether JEPA-style latent prediction and physics-inspired regularizers resolve the false-alarm vulnerability of multivariate anomaly detection, evaluating 33 telemetry streams from 11 datasets under a strictly held-out calibration protocol. Three conclusions follow.
+We compared score conditioning, detection, and static threshold calibration on 33 telemetry streams from seven datasets under a held-out protocol. Three conclusions follow.
 
-First, the latent-residual effect decomposes into two factors: bounded, low-dimensional scoring conditions residual tails (a dimensionality-matched observation-space control and IsolationForest reproduce it), while the learned embedding supplies detection --- the JEPA family dominates the strictly causal recall--FPR curve ($0.74$--$0.75$ vs.\ $0.59$--$0.63$ partial AUC), a heterogeneous advantage that disappears under buffered attribution. Point-F1 and PR-AUC remain statistically indistinguishable ($p \ge 0.13$).
+First, bounded observation-space controls reproduce much of the apparent latent-score tail conditioning, while the bounded TCN shows that light tails do not guarantee threshold transfer. Causal event-recall areas over nominal budgets favor JEPA on average, but paired comparisons at matched realized FPR have sparse support and do not establish a detector advantage; buffered results remain separate. Point-F1 and PR-AUC differences are imprecise, not evidence of equivalence.
 
-Second, hypothesis testing finds no detection advantage for the physics-inspired regularizers ($p \ge 0.61$). Potential-Flow is F1-weakest under SPOT calibration ($p{=}0.033$ unadjusted) yet strongest on the causal operating curve --- an operating-point artifact, not weak scores; its curl-free explanation for cyclic-telemetry weakness remains conjecture, though the inference-path mismatch alternative is rejected experimentally.
+Second, the tested physics-inspired variants show no reliable aggregate benefit. Neither the unadjusted Potential-Flow F1 contrast nor its favorable nominal-budget curve establishes a mechanism; explanations based on curl-free dynamics or operating points remain conjectural.
 
-Third, static POT thresholds systematically overshoot their design risk on non-stationary telemetry ($5.3\text{--}6.2\%$ for JEPAs, $\approx 22\%$ for baselines at $q{=}10^{-3}$), a failure driven by inter-block drift rather than tail mis-fit.
+Third, static POT thresholds overshoot their design risk under the short chronological calibration protocol ($5.3\text{--}6.2\%$ for JEPAs, $\approx 22\%$ for reconstructive baselines at $q{=}10^{-3}$). Observational drift diagnostics and scarce tail exceedances do not resolve their relative contributions.
 
 \textbf{Scope.} All evaluations are \emph{within-dataset}: models are trained, calibrated, and tested on disjoint chronological partitions of the same stream. We claim nothing about cross-dataset transfer or unseen fault types (cf.\ Section~\ref{subsec:gate_fault_study}). Extensions include solenoidal components via Helmholtz decomposition, memory-bounded online drift adaptation, accelerated streaming inference kernels, and integer quantization for edge deployment.
 

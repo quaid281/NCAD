@@ -24,8 +24,8 @@ N_BOOT = 500
 RNG = np.random.default_rng(7)
 
 PRINCIPAL = ["TS-JEPA", "OpEntropy", "Reynolds", "PotentialFlow",
-             "TimesNet", "TranAD", "TCN-ObsPred", "PCA-LinPred-LN",
-             "IsoForest", "ZScoreMax"]
+             "TimesNet", "TranAD", "TCN-ObsPred", "TCN-ObsPred-LN",
+             "PCA-LinPred-LN", "IsoForest", "ZScoreMax"]
 CI_MODELS = ["TS-JEPA", "TimesNet"]
 
 
@@ -67,9 +67,9 @@ def main():
           [["event_recall", "realized_fpr"]].mean())
 
     fig, axes = plt.subplots(2, 1, figsize=(3.4, 4.6), sharex=True)
-    colors = plt.cm.tab10(np.linspace(0, 1, 10))
+    colors = plt.cm.tab20(np.linspace(0, 1, len(PRINCIPAL)))
     style = {m: c for m, c in zip(PRINCIPAL, colors)}
-    fpr_grid = np.linspace(0.02, 0.45, 60)
+    fpr_grid = np.linspace(0.02, 0.85, 60)
 
     for ax, mapping, title in zip(axes, ["trailing", "smear"],
                                  ["(a) Strictly causal (trailing)",
@@ -86,7 +86,7 @@ def main():
             lo, hi = boot_band(long, model, mapping, fpr_grid)
             ax.fill_between(fpr_grid, lo, hi, color=style[model], alpha=0.15)
         ax.set_xscale("log")
-        ax.set_xlim(0.02, 0.5)
+        ax.set_xlim(0.02, 0.9)
         ax.set_title(title, fontsize=8)
         ax.grid(alpha=0.3)
         ax.set_ylabel("Event recall")

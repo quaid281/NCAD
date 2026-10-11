@@ -17,7 +17,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase, fit_covariance_batched
-from src.models.geometric_layers import ResolventPurification
 
 
 def spectral_operator_entropy_loss(
@@ -45,9 +44,12 @@ def spectral_operator_entropy_loss(
     if K.ndim == 2:
         K = K.unsqueeze(0)
     B, D, _ = K.shape
+    orig_dtype = K.dtype
     
     # 1. Squared singular values via SPSD Gram matrix KK^T
     KKt = torch.bmm(K, K.transpose(-1, -2))
+    if orig_dtype in (torch.float16, torch.bfloat16):
+        KKt = KKt.float()
     s_vals = torch.linalg.eigvalsh(KKt)  # (B, D), sorted ascending, >= 0
     s_vals = torch.clamp(s_vals, min=0.0)
     
@@ -75,7 +77,68 @@ def spectral_operator_entropy_loss(
     energy_barrier = r_clamped - 1.0 - torch.log(r_clamped)
     
     total_reg = entropy_deficiency + beta_norm * energy_barrier
-    return total_reg.mean()
+    return total_reg.mean().to(orig_dtype)
+
+
+def compute_empirical_covariance(z: torch.Tensor) -> torch.Tensor:
+    """Compute empirical covariance matrix of latent embeddings z."""
+    if z.ndim == 1:
+        z = z.unsqueeze(0)
+    elif z.ndim > 2:
+        z = z.reshape(-1, z.size(-1))
+    N = z.size(0)
+    if N <= 1:
+        return torch.zeros(z.size(-1), z.size(-1), device=z.device, dtype=z.dtype)
+    z_c = z - z.mean(dim=0, keepdim=True)
+    return (z_c.T @ z_c) / max(N - 1, 1)
+
+
+def covariance_spectral_entropy(
+    cov: torch.Tensor,
+    eps_log: float = 1e-12,
+    eps_safe: float = 1e-6,
+) -> torch.Tensor:
+    """Compute scale-separated Von Neumann spectral entropy deficiency on representation covariance.
+    
+    Penalizes both dimensional collapse (non-uniform spectrum) and variance collapse (Tr(cov) -> 0).
+    Symmetric projection and eigenvalue clamping ensure numerical stability during eigendecomposition.
+    """
+    if cov.ndim == 2:
+        cov = cov.unsqueeze(0)
+    B, D, _ = cov.shape
+    orig_dtype = cov.dtype
+
+    # 1. Enforce exact symmetry for numerical stability during eigvalsh
+    cov_sym = 0.5 * (cov + cov.transpose(-1, -2))
+    if orig_dtype in (torch.float16, torch.bfloat16):
+        cov_sym = cov_sym.float()
+
+    # 2. Compute eigenvalues of SPSD covariance matrix
+    evals = torch.linalg.eigvalsh(cov_sym)
+    evals = torch.clamp(evals, min=0.0)
+
+    # 3. Total variance Tr(cov)
+    total_var = torch.sum(evals, dim=-1)
+    max_entropy = math.log(float(D))
+
+    # 4. Normalized spectral distribution without isotropic diagonal loading
+    total_var_clamped = torch.clamp(total_var, min=eps_safe)
+    p = evals / total_var_clamped.unsqueeze(-1)
+
+    # 5. Von Neumann Entropy (convention 0 * log 0 = 0)
+    p_safe = torch.clamp(p, min=eps_log)
+    log_p = torch.log(p_safe)
+    p_log_p = torch.where(p > 1e-10, p * log_p, torch.zeros_like(p))
+    vn_entropy = -torch.sum(p_log_p, dim=-1)
+    entropy_deficiency = torch.clamp(max_entropy - vn_entropy, min=0.0)
+
+    # 6. Bregman/Itakura-Saito Anti-Collapse Variance Barrier: d(r, 1) = r - 1 - log(r) >= 0
+    var_ratio = total_var / float(D)
+    vr_clamped = torch.clamp(var_ratio, min=eps_safe)
+    var_barrier = vr_clamped - 1.0 - torch.log(vr_clamped)
+
+    total_reg = entropy_deficiency + var_barrier
+    return total_reg.mean().to(orig_dtype)
 
 
 def von_neumann_entropy(z: torch.Tensor, eps_log: float = 1e-12, eps_safe: float = 1e-6) -> torch.Tensor:
@@ -85,31 +148,11 @@ def von_neumann_entropy(z: torch.Tensor, eps_log: float = 1e-12, eps_safe: float
     """
     if z.ndim == 3:
         z = z.reshape(-1, z.size(-1))
-    D = z.size(-1)
     N = z.size(0)
     if N <= 1:
         return torch.tensor(0.0, device=z.device)
-    z_c = z - z.mean(dim=0, keepdim=True)
-    cov = (z_c.T @ z_c) / max(N - 1, 1)
-    
-    evals = torch.linalg.eigvalsh(cov)
-    evals = torch.clamp(evals, min=0.0)
-    total_var = torch.sum(evals)
-    max_entropy = math.log(float(D))
-    
-    if total_var < eps_safe:
-        return torch.tensor(max_entropy + 10.0, device=z.device)
-    
-    p = evals / total_var
-    p_safe = torch.clamp(p, min=eps_log)
-    p_log_p = torch.where(p > 1e-10, p * torch.log(p_safe), torch.zeros_like(p))
-    vn_entropy = -torch.sum(p_log_p)
-    entropy_deficiency = torch.clamp(max_entropy - vn_entropy, min=0.0)
-    
-    var_ratio = total_var / float(D)
-    vr_clamped = torch.clamp(var_ratio, min=eps_safe)
-    var_barrier = vr_clamped - 1.0 - torch.log(vr_clamped)
-    return entropy_deficiency + var_barrier
+    cov = compute_empirical_covariance(z)
+    return covariance_spectral_entropy(cov, eps_log=eps_log, eps_safe=eps_safe)
 
 
 class OperatorEntropyJEPAModel(JEPABase):
@@ -128,6 +171,7 @@ class OperatorEntropyJEPAModel(JEPABase):
         predictor_layers: int = 2,
         ema_decay: float = 0.996,
         alpha_entropy: float = 0.5,
+        alpha_rep_entropy: float = 0.02,
         spectral_gap_min: float = 0.1,
         dropout: float = 0.05,
         use_radial_heat: bool = True,
@@ -138,6 +182,7 @@ class OperatorEntropyJEPAModel(JEPABase):
         self.latent_dim = latent_dim
         self.ema_decay = ema_decay
         self.alpha_entropy = alpha_entropy
+        self.alpha_rep_entropy = alpha_rep_entropy
         self.spectral_gap_min = spectral_gap_min
         self.use_koopman_matrix = use_koopman_matrix
 
@@ -164,8 +209,8 @@ class OperatorEntropyJEPAModel(JEPABase):
             self.predictor = nn.Sequential(*layers)
             self.K = None
 
-        # Resolvent purification for spectral operator regularization (Chapter 6, §4.2)
-        self.resolvent = ResolventPurification(dim=latent_dim, gamma=0.01)
+        # ResolventPurification instantiation removed (unused in forward/loss)
+        self.resolvent = None
 
         # Radial heat exterior boundary damping (Navier-Stokes Blowup Paper, §2.3 & App. A.6)
         if use_radial_heat:
@@ -199,7 +244,7 @@ class OperatorEntropyJEPAModel(JEPABase):
         target_windows: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         z_ctx = self._apply_filters(self.context_encoder(context_windows))
-        z_pred = self._apply_filters(self._predict(z_ctx))
+        z_pred = self._predict(z_ctx)
 
         if target_windows is None:
             return z_pred, None, None
@@ -218,13 +263,14 @@ class OperatorEntropyJEPAModel(JEPABase):
         config=None,
         var_weight: float = 0.0,
         alpha_entropy: Optional[float] = None,
+        alpha_rep_entropy: Optional[float] = None,
         gap_weight: float = 0.0,
         gamma: float = 1.0,
         eps: float = 1e-4,
         **kwargs,
     ) -> Tuple[torch.Tensor, dict]:
         z_ctx = self._apply_filters(self.context_encoder(ctx))
-        z_pred = self._apply_filters(self._predict(z_ctx))
+        z_pred = self._predict(z_ctx)
 
         self.target_encoder.eval()
         with torch.no_grad():
@@ -233,20 +279,40 @@ class OperatorEntropyJEPAModel(JEPABase):
         # 1. Pure predictive MSE loss
         pred_loss = F.mse_loss(z_pred, z_tgt)
 
-        # 2. Operator Entropy Regularization
-        effective_alpha = alpha_entropy if alpha_entropy is not None else self.alpha_entropy
-        if self.use_koopman_matrix:
-            spectral_reg = spectral_operator_entropy_loss(self.K, gamma_norm=1.0, beta_norm=1.0)
-        else:
-            spectral_reg = 0.5 * (von_neumann_entropy(z_ctx) + von_neumann_entropy(z_pred))
+        # 2. Dual Spectral Entropy Coupling (Operator K + Representation Covariance Sigma_Z)
+        effective_alpha = (
+            alpha_entropy
+            if alpha_entropy is not None
+            else getattr(config, "alpha_entropy", self.alpha_entropy)
+        )
+        effective_alpha_rep = (
+            alpha_rep_entropy
+            if alpha_rep_entropy is not None
+            else getattr(config, "alpha_rep_entropy", self.alpha_rep_entropy)
+        )
 
-        total_loss = pred_loss + effective_alpha * spectral_reg
+        if self.use_koopman_matrix and self.K is not None:
+            reg_K = spectral_operator_entropy_loss(self.K, gamma_norm=1.0, beta_norm=1.0)
+        else:
+            reg_K = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
+
+        num_samples = z_ctx.numel() // z_ctx.size(-1)
+        if num_samples > 1:
+            cov_ctx = compute_empirical_covariance(z_ctx)
+            cov_tgt = compute_empirical_covariance(z_tgt)
+            cov_z = 0.5 * (cov_ctx + cov_tgt)
+            reg_Z = covariance_spectral_entropy(cov_z)
+        else:
+            reg_Z = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
+
+        total_loss = pred_loss + effective_alpha * reg_K + effective_alpha_rep * reg_Z
 
         # Compute diagnostic spectral metrics under no_grad()
         with torch.no_grad():
-            z_cent = z_pred - z_pred.mean(dim=0)
-            cov = (z_cent.T @ z_cent) / max(z_pred.size(0) - 1, 1)
-            evals = torch.linalg.eigvalsh(cov)
+            z_p = z_pred.reshape(-1, z_pred.size(-1)) if z_pred.ndim > 2 else z_pred
+            z_cent = z_p - z_p.mean(dim=0)
+            cov = (z_cent.T @ z_cent) / max(z_p.size(0) - 1, 1)
+            evals = torch.linalg.eigvalsh(cov.float())
             gap = evals[-1] - evals[0]
             gap_loss = F.relu(self.spectral_gap_min - gap)
             std_pred = torch.sqrt(z_pred.var(dim=0, unbiased=False) + eps)
@@ -260,8 +326,10 @@ class OperatorEntropyJEPAModel(JEPABase):
         metrics = {
             "loss": total_loss.item(),
             "pred_loss": pred_loss.item(),
-            "spectral_reg": spectral_reg.item(),
-            "vn_loss": spectral_reg.item(),
+            "reg_K": reg_K.item(),
+            "reg_Z": reg_Z.item(),
+            "spectral_reg": (effective_alpha * reg_K + effective_alpha_rep * reg_Z).item(),
+            "vn_loss": reg_Z.item(),
             "gap_loss": gap_loss.item(),
             "std_loss": std_loss.item(),
         }
@@ -280,7 +348,7 @@ class OperatorEntropyJEPAModel(JEPABase):
     ) -> torch.Tensor:
         self.eval()
         z_ctx = self._apply_filters(self.context_encoder(context_windows))
-        z_pred = self._apply_filters(self._predict(z_ctx))
+        z_pred = self._predict(z_ctx)
         z_tgt = self._apply_filters(self.target_encoder(observed_target_windows))
 
         diff = z_tgt - z_pred
@@ -292,8 +360,10 @@ class OperatorEntropyJEPAModel(JEPABase):
         else:
             disc = self.saliency_gate(diff)
 
-        # Spectral energy leakage component
-        energy_leak = torch.clamp(torch.norm(z_tgt, dim=-1) - torch.norm(z_pred, dim=-1), min=0.0)
+        # Bilateral relative energy discrepancy component
+        e_tgt = torch.linalg.norm(z_tgt, dim=-1)
+        e_pred = torch.linalg.norm(z_pred, dim=-1)
+        energy_leak = torch.abs(e_tgt - e_pred) / (e_pred + 1e-6)
         return disc + 0.2 * energy_leak
 
     def fit_covariance(
@@ -305,9 +375,9 @@ class OperatorEntropyJEPAModel(JEPABase):
         method: str = "resolvent",
     ) -> None:
         def residual_fn(ctx, tgt):
-            z_ctx = self.context_encoder(ctx)
+            z_ctx = self._apply_filters(self.context_encoder(ctx))
             z_pred = self._predict(z_ctx)
-            z_tgt = self.target_encoder(tgt)
+            z_tgt = self._apply_filters(self.target_encoder(tgt))
             return z_tgt - z_pred
 
         fit_covariance_batched(

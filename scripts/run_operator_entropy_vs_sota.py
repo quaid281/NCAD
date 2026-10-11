@@ -64,15 +64,28 @@ DEFAULT_STREAMS = [
 ]
 
 
-def load_stream(dataset: str, channel: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def load_stream(ds: str, ch: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Load train, test, and ground-truth label traces for a telemetry stream."""
-    path = ROOT / "mTSBench_data" / dataset
-    train, test, y = DataLoader.load_data(str(path), channel)
+    d = ROOT / "mTSBench_data" / ds
+    if ch == "default":
+        tr = d / f"{ds}_train.csv"
+        tr = tr if tr.exists() else d / f"{ds}.csv"
+        te = d / f"{ds}_test.csv"
+    else:
+        tr = d / f"{ds}_{ch}_train.csv"
+        tr = tr if tr.exists() else d / f"{ch}_train.csv"
+        te = d / f"{ds}_{ch}_test.csv"
+        te = te if te.exists() else d / f"{ch}_test.csv"
+    a, b = pd.read_csv(tr), pd.read_csv(te)
+    cols = [c for c in a.columns if c not in ["timestamp", "is_anomaly", "label"]]
+    lc = [c for c in b.columns if c in ["is_anomaly", "label", "labels"]]
+    y = b[lc[0]].to_numpy().astype(int) if lc else np.zeros(len(b), dtype=int)
     return (
-        np.nan_to_num(train, nan=0.0).astype(np.float32),
-        np.nan_to_num(test, nan=0.0).astype(np.float32),
-        y.astype(int),
+        np.nan_to_num(a[cols].to_numpy(), nan=0.0).astype(np.float32),
+        np.nan_to_num(b[cols].to_numpy(), nan=0.0).astype(np.float32),
+        y,
     )
+
 
 
 def train_model(name: str, tr_w: np.ndarray, k: int, device: torch.device, epochs: int):
@@ -103,7 +116,7 @@ def train_model(name: str, tr_w: np.ndarray, k: int, device: torch.device, epoch
                 b = torch.from_numpy(tr_w[idx[s : s + bs]]).to(device)
                 ctx, tgt = b[:, :C], b[:, C:]
                 opt.zero_grad()
-                loss, _ = m.compute_objective(ctx, tgt)
+                loss, _ = m.compute_objective(ctx, tgt, cfg)
                 loss.backward()
                 nn.utils.clip_grad_norm_(m.parameters(), 2.0)
                 opt.step()
@@ -126,16 +139,25 @@ def train_model(name: str, tr_w: np.ndarray, k: int, device: torch.device, epoch
 
         return score
 
-    elif name == "TimesNet":
-        m = TimesNet(input_dim=k, seq_len=W, pred_len=0, d_model=32, d_ff=32, e_layers=2).to(device)
+    elif name in ("TimesNet", "TranAD"):
+        if name == "TimesNet":
+            m = TimesNet(c_in=k, d_model=48, d_ff=96, e_layers=2).to(device)
+        else:
+            m = TranAD(c_in=k, d_model=48, n_heads=4, e_layers=2, d_layers=2, d_ff=96).to(device)
         opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
-        for _ in range(epochs):
+
+        for ep in range(epochs):
+            m.train()
             np.random.shuffle(idx)
             for s in range(0, n_win, bs):
                 b = torch.from_numpy(tr_w[idx[s : s + bs]]).to(device)
+                if name == "TimesNet":
+                    loss = nn.functional.mse_loss(m(b), b)
+                else:
+                    r1, r2 = m(b)
+                    l1, l2 = m.adversarial_loss(r1, r2, b, epoch=ep + 1)
+                    loss = l1 + l2
                 opt.zero_grad()
-                rec = m(b)
-                loss = nn.functional.mse_loss(rec, b)
                 loss.backward()
                 opt.step()
         m.eval()
@@ -145,33 +167,13 @@ def train_model(name: str, tr_w: np.ndarray, k: int, device: torch.device, epoch
             with torch.no_grad():
                 for s in range(0, len(wins), 128):
                     ch = torch.from_numpy(wins[s : s + 128]).to(device)
-                    rec = m(ch)
+                    if name == "TimesNet":
+                        rec = m(ch)
+                    else:
+                        r1, _ = m(ch)
+                        rec = r1
                     e = (rec[:, C:, :] - ch[:, C:, :]).pow(2).mean(dim=(1, 2))
                     out.append(e.cpu().numpy())
-            return np.concatenate(out)
-
-        return score
-
-    elif name == "TranAD":
-        m = TranAD(feats=k, window_size=W).to(device)
-        opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
-        for _ in range(epochs):
-            np.random.shuffle(idx)
-            for s in range(0, n_win, bs):
-                b = torch.from_numpy(tr_w[idx[s : s + bs]]).to(device)
-                opt.zero_grad()
-                loss = m.compute_loss(b)
-                loss.backward()
-                opt.step()
-        m.eval()
-
-        def score(wins: np.ndarray) -> np.ndarray:
-            out = []
-            with torch.no_grad():
-                for s in range(0, len(wins), 128):
-                    ch = torch.from_numpy(wins[s : s + 128]).to(device)
-                    sc = m.predict_score(ch)
-                    out.append(sc.cpu().numpy())
             return np.concatenate(out)
 
         return score

@@ -66,6 +66,10 @@ Key requirements:
 ## Key Commands
 
 ```bash
+# Rebuild, compile, and verify manuscript (resolves mutual supplement/standalone .aux,
+# scans for unresolved '??' / '[?]' markers, and enforces <= 12-page budget)
+C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_and_verify_manuscript.py
+
 # Regenerate standalone manuscript from sections/
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_standalone.py
 

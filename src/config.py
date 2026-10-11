@@ -63,6 +63,10 @@ class CSMConfig:
     use_mellin_damping: bool = False  # Two-shell Mellin damping for Flow-JEPA
     use_resolvent_covariance: bool = True  # Resolvent operator precision vs standard pinv
 
+    alpha_entropy: float = 0.5  # Operator entropy regularizer weight for operator_entropy_jepa
+    alpha_rep_entropy: float = 0.02  # Representation entropy regularizer weight for operator_entropy_jepa
+    use_koopman_matrix: bool = True  # Use explicit Koopman transition matrix for operator_entropy_jepa
+
     n_regimes: int = 4  # Number of Grassmannian discrete regime subspaces for potential_flow_jepa
     subspace_dim: int = 8  # Dimension of each regime subspace for potential_flow_jepa
     use_regimes: bool = True  # Whether to use discrete regime projections in potential_flow_jepa
