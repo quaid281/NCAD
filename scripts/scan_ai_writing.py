@@ -68,6 +68,8 @@ P1_TRANSITIONS = {
     "not only X but also Y": r"\bnot\s+only\b.*?\bbut\s+also\b",
     "rapidly evolving world": r"\bin\s+the\s+rapidly\s+evolving\s+world\s+of\b",
     "at the end of the day": r"\bat\s+the\s+end\s+of\s+the\s+day\b",
+    "crucially": r"\bcrucially\b",
+    "key findings emerge": r"\bkey\s+findings?\s+emerge\b",
 }
 
 # P1: Copula Avoidance

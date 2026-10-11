@@ -49,7 +49,7 @@ Let $\mathcal{L}(\mathbf{K}) = \frac{1}{B}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx
 
 \subsubsection{Auxiliary Quadratic Second-Moment Head}
 \label{subsubsec:reynolds_stress_jepa}
-Inspired by Reynolds decomposition in fluid turbulence, which separates mean flow from velocity fluctuations, we evaluate an auxiliary quadratic second-moment head in latent space. Crucially, $\boldsymbol{\Sigma}_{\text{obs}} = (\mathbf{P} z_{\text{tgt}})(\mathbf{P} z_{\text{tgt}})^\top + 10^{-3}\mathbf{I} \in \mathbb{S}_{++}^{d_s \times d_s}$ is an instantaneous rank-1 projected outer product plus ridge penalty, not a physical turbulent fluctuation covariance.
+Inspired by Reynolds decomposition in fluid turbulence, which separates mean flow from velocity fluctuations, we evaluate an auxiliary quadratic second-moment head in latent space. The observed matrix $\boldsymbol{\Sigma}_{\text{obs}} = (\mathbf{P} z_{\text{tgt}})(\mathbf{P} z_{\text{tgt}})^\top + 10^{-3}\mathbf{I} \in \mathbb{S}_{++}^{d_s \times d_s}$ is an instantaneous rank-1 projected outer product plus ridge penalty, not a physical turbulent fluctuation covariance.
 
 A two-layer MLP predicts mean target latent $\hat{z}_{\text{tgt}}$ from $z_{\text{ctx}}$, and linear projection $\mathbf{P} \in \mathbb{R}^{d_s \times D}$ ($d_s = 16$) yields $\boldsymbol{\Sigma}_{\text{obs}}$. The closure head $h_\psi(z_{\text{ctx}})$ outputs lower-triangular $\mathbf{L} \in \mathbb{R}^{d_s \times d_s}$ with positive diagonal $L_{ii} = \operatorname{softplus}(a_{ii}) + \epsilon$, reconstructing predicted covariance:
 \begin{equation}
