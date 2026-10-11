@@ -1,6 +1,6 @@
 \section{Revision Experiments}\label{sup:revision_experiments}
 
-This section collects the four analyses added in response to the review: matched-backbone residual diagnostics, detection quality at matched false-positive-rate budgets, a controlled-drift calibration study, and training-free nonparametric references.
+This section collects the analyses added in response to review: matched-backbone and score-space-matched residual diagnostics, detection quality on the operating-characteristic grid, a controlled-drift calibration study, training-free and distance-based references, detection-delay intersection, trivial-baseline comparison, drift attribution, and the Potential-Flow inference-path test.
 
 \begin{table}[t]
 \centering
@@ -11,18 +11,54 @@ This section collects the four analyses added in response to the review: matched
 \toprule
 Model & $\gamma_2$ & $q_{99.9}/q_{99}$ & $\mathrm{ACF}_1$ & $\theta$ & $N_{\mathrm{eff}}$ & FPR & PR-AUC \\
 \midrule
+IsoForest & -0.34 & 1.383 & 0.996 & 0.164 & 1.4 & 0.056 & 0.222 \\
 JEPA-CtxRecon & 1.01 & 2.300 & 0.991 & 0.188 & 1.7 & 0.108 & 0.277 \\
 JEPA-NoEMA & 1.00 & 2.187 & 0.988 & 0.192 & 1.8 & 0.113 & 0.314 \\
+KNN-Dist & 3.37 & 1.376 & 0.998 & 0.124 & 1.1 & 0.301 & 0.326 \\
+Obs-MAD & 1.12 & 1.428 & 0.998 & 0.127 & 1.1 & 0.316 & 0.290 \\
 OpEntropy & 1.39 & 2.241 & 0.989 & 0.174 & 1.7 & 0.083 & 0.322 \\
+PCA-LinPred-LN & 0.87 & 2.555 & 0.990 & 0.207 & 1.8 & 0.186 & 0.244 \\
 PCA-Recon & 8.59 & 1.231 & 0.998 & 0.119 & 1.0 & 0.312 & 0.331 \\
 PotentialFlow & 1.58 & 2.379 & 0.985 & 0.187 & 1.9 & 0.093 & 0.236 \\
 Reynolds & 1.28 & 2.039 & 0.989 & 0.174 & 1.8 & 0.078 & 0.305 \\
 TCN-ObsPred & 8.24 & 1.209 & 0.998 & 0.121 & 1.0 & 0.310 & 0.310 \\
 TCN-ObsRecon & 8.31 & 1.316 & 0.998 & 0.126 & 1.1 & 0.303 & 0.301 \\
 TS-JEPA & 1.14 & 2.065 & 0.991 & 0.178 & 1.7 & 0.080 & 0.323 \\
+TS-JEPA-NoGate & 1.05 & 1.738 & 0.992 & 0.175 & 1.6 & 0.080 & 0.324 \\
 TimesNet & 8.24 & 1.309 & 0.998 & 0.120 & 1.0 & 0.299 & 0.329 \\
 TranAD & 10.40 & 1.220 & 0.998 & 0.122 & 1.1 & 0.307 & 0.287 \\
 ZScoreMax & 9.97 & 1.617 & 0.997 & 0.131 & 1.2 & 0.339 & 0.374 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{Operating-characteristic summary on 19 non-GHL streams (seeds averaged within streams). Partial AUC = mean event recall over design budgets $\le 0.10$; $q^*{=}0.05$ columns give event recall and \emph{realized} test FPR at that design budget.}\label{tab:operating_characteristic}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Model & pAUC (trail.) & pAUC (smear) & ER$_{0.05}$ (trail.) & FPR$_{0.05}$ (trail.) & ER$_{0.05}$ (smear) & FPR$_{0.05}$ (smear) \\
+\midrule
+PotentialFlow & 0.749 & 0.528 & 0.784 & 0.108 & 0.537 & 0.273 \\
+JEPA-CtxRecon & 0.748 & 0.604 & 0.779 & 0.235 & 0.610 & 0.353 \\
+OpEntropy & 0.746 & 0.612 & 0.771 & 0.193 & 0.627 & 0.315 \\
+TS-JEPA & 0.742 & 0.553 & 0.774 & 0.180 & 0.560 & 0.259 \\
+JEPA-NoEMA & 0.741 & 0.609 & 0.765 & 0.239 & 0.620 & 0.362 \\
+TS-JEPA-NoGate & 0.726 & 0.549 & 0.768 & 0.175 & 0.548 & 0.269 \\
+Reynolds & 0.689 & 0.534 & 0.709 & 0.181 & 0.543 & 0.269 \\
+PCA-LinPred-LN & 0.661 & 0.433 & 0.665 & 0.140 & 0.425 & 0.227 \\
+PCA-Recon & 0.627 & 0.621 & 0.623 & 0.263 & 0.597 & 0.285 \\
+TCN-ObsPred & 0.626 & 0.618 & 0.629 & 0.299 & 0.595 & 0.323 \\
+IsoForest & 0.622 & 0.483 & 0.631 & 0.196 & 0.482 & 0.237 \\
+TimesNet & 0.618 & 0.613 & 0.618 & 0.262 & 0.612 & 0.287 \\
+TCN-ObsRecon & 0.618 & 0.609 & 0.620 & 0.299 & 0.590 & 0.322 \\
+KNN-Dist & 0.616 & 0.596 & 0.611 & 0.265 & 0.590 & 0.317 \\
+Obs-MAD & 0.611 & 0.612 & 0.604 & 0.201 & 0.606 & 0.235 \\
+TranAD & 0.603 & 0.599 & 0.602 & 0.270 & 0.596 & 0.295 \\
+ZScoreMax & 0.594 & 0.621 & 0.595 & 0.258 & 0.609 & 0.320 \\
 \bottomrule
 \end{tabular}%
 }
@@ -165,8 +201,75 @@ var scale 2.0 & 0.082 & 0.186 & 0.195 & 0.016 & 0.047 \\
 \toprule
 Model & Held-out FPR & Point-F1 & PR-AUC & Event Recall & $\Delta t$ \\
 \midrule
+IsoForest & 0.056 & 0.041 & 0.222 & 0.070 & 171.0 \\
+KNN-Dist & 0.301 & 0.161 & 0.326 & 0.546 & 63.5 \\
+Obs-MAD & 0.316 & 0.142 & 0.290 & 0.552 & 117.6 \\
+PCA-LinPred-LN & 0.186 & 0.104 & 0.244 & 0.320 & 137.5 \\
 PCA-Recon & 0.312 & 0.198 & 0.331 & 0.584 & 46.2 \\
+TS-JEPA-NoGate & 0.080 & 0.235 & 0.324 & 0.499 & 112.6 \\
 ZScoreMax & 0.339 & 0.209 & 0.374 & 0.609 & 67.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{(a) Fraction of stream-seed cells where each model's Point-F1 exceeds the trivial all-positive F1 $2\pi/(1{+}\pi)$ at $q^*{=}0.05$; (b) mean detection delay on the intersection of events detected by both the model and TS-JEPA (steps).}\label{tab:trivial_delay}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Model & $P(\mathrm{F1} > \mathrm{trivial})$ & Point-F1 & $\Delta t$ model & $\Delta t$ TS-JEPA \\
+\midrule
+JEPA-CtxRecon & 0.30 & 0.190 & 40.3 & 46.5 \\
+JEPA-NoEMA & 0.33 & 0.200 & 49.4 & 46.9 \\
+OpEntropy & 0.37 & 0.204 & 42.3 & 43.9 \\
+PCA-Recon & 0.50 & 0.213 & 49.6 & 59.0 \\
+PotentialFlow & 0.18 & 0.106 & 27.7 & 45.7 \\
+Reynolds & 0.30 & 0.178 & 58.6 & 45.1 \\
+TCN-ObsPred & 0.39 & 0.158 & 51.3 & 60.3 \\
+TCN-ObsRecon & 0.36 & 0.150 & 50.7 & 60.0 \\
+TS-JEPA & 0.31 & 0.197 & -- & -- \\
+TimesNet & 0.38 & 0.216 & 56.9 & 59.2 \\
+TranAD & 0.24 & 0.148 & 120.9 & 60.3 \\
+ZScoreMax & 0.39 & 0.217 & 90.3 & 59.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{Stream-level drivers of realized SPOT FPR across all dumped cells (Spearman $\rho$): calibration$\to$test KS drift predicts failure; calibration-block kurtosis is mildly protective.}\label{tab:drift_link}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Predictor & $\rho$ vs.\ realized FPR & $p$ \\
+\midrule
+KS drift (cal $\to$ test) & 0.377 & 7.4e-38 \\
+Cal-block excess kurtosis & -0.315 & 2.3e-26 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{Potential-Flow inference-path test: scoring at the $z_{\text{noise}}{=}0$ mean path vs.\ noise-matched querying ($z{=}0.5(z_{\text{noise}}{+}z_{\text{tgt}})$, 16 draws). Noise matching does not rescue performance, rejecting the train/test-mismatch explanation.}\label{tab:pf_noise}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Stream & Mapping & Path & FPR & Event Recall \\
+\midrule
+Daphnet:S01R01E1 & smear & mean ($z_n{=}0$) & 0.055 & 0.071 \\
+Daphnet:S01R01E1 & trailing & mean ($z_n{=}0$) & 0.031 & 0.714 \\
+Daphnet:S01R01E1 & smear & noise-matched & 0.016 & 0.000 \\
+Daphnet:S01R01E1 & trailing & noise-matched & 0.010 & 0.214 \\
+SMAP:P-3 & smear & mean ($z_n{=}0$) & 0.000 & 0.000 \\
+SMAP:P-3 & trailing & mean ($z_n{=}0$) & 0.002 & 1.000 \\
+SMAP:P-3 & smear & noise-matched & 0.000 & 0.000 \\
+SMAP:P-3 & trailing & noise-matched & 0.001 & 1.000 \\
+swan:sf & smear & mean ($z_n{=}0$) & 0.009 & 0.011 \\
+swan:sf & trailing & mean ($z_n{=}0$) & 0.001 & 0.002 \\
+swan:sf & smear & noise-matched & 0.008 & 0.015 \\
+swan:sf & trailing & noise-matched & 0.002 & 0.004 \\
 \bottomrule
 \end{tabular}
 \end{table}

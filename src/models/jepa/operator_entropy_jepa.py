@@ -1,12 +1,9 @@
 """Von Neumann Operator Entropy & Spectral Rigidity JEPA Architecture.
 
-Derived from Connes's Rigidity Conjecture and Quantum Parallel Repetition (OpenAI, 2026):
-Replaces ad-hoc scalar covariance penalties with the Von Neumann Operator Entropy
-S(rho) = -Tr(rho log rho) on the normalized state density operator rho = Cov / Tr(Cov).
-
-Enforces an intrinsic spectral gap in the latent dynamical operator to prevent
-amenable spectrum leakage, detecting anomalies as operator entropy collapses and
-spectral dissipation across the Kazhdan gap.
+Applies Von Neumann spectral entropy and a floored logarithmic Bregman barrier
+to the latent linear transition operator K: \hat{z}_{tgt} = K z_{ctx}.
+Prevents representation rank and energy collapse while detecting dynamical
+anomalies via spectral dispersion and residual prediction errors.
 """
 
 from __future__ import annotations

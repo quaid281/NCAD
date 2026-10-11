@@ -21,6 +21,7 @@ class ModelSpec:
     is_jepa: bool
     requires_patch_division: bool
     description: str
+    category: str = "ablation"
 
 
 # Canonical model registry. The first entry for each canonical name is the
@@ -32,6 +33,7 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         is_jepa=True,
         requires_patch_division=False,
         description="TS-JEPA with VICReg-style self-supervised predictive coding.",
+        category="primary",
     ),
     ModelSpec(
         canonical_name="patch_ts_jepa",
@@ -60,6 +62,7 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         is_jepa=False,
         requires_patch_division=False,
         description="Anomaly Transformer (ICLR 2022) baseline.",
+        category="baseline",
     ),
     ModelSpec(
         canonical_name="timesnet",
@@ -67,6 +70,7 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         is_jepa=False,
         requires_patch_division=False,
         description="TimesNet (ICLR 2023) baseline.",
+        category="baseline",
     ),
     ModelSpec(
         canonical_name="dcdetector",
@@ -74,6 +78,7 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         is_jepa=False,
         requires_patch_division=False,
         description="DCdetector (KDD 2023) baseline.",
+        category="baseline",
     ),
     ModelSpec(
         canonical_name="tranad",
@@ -81,6 +86,7 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         is_jepa=False,
         requires_patch_division=False,
         description="TranAD (VLDB 2022) baseline.",
+        category="baseline",
     ),
     ModelSpec(
         canonical_name="ncad_jepa",
@@ -129,7 +135,8 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         aliases=("pf_jepa", "ts_jepa_potential_flow"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Potential-Flow JEPA with Conservative Potential Field, Grassmannian Regimes, and Laplacian Curvature.",
+        description="Ablation Model: Potential-Flow JEPA with Conservative Potential Field (Table I(a) negative result).",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="harmonic_spring_jepa",
@@ -283,21 +290,24 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         aliases=("harmonic_subspace_jepa", "tangent_jepa_v2", "tangent_harmonic"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Tangent-Harmonic Subspace Projection JEPA (Chapter 2 of Ten Advances) with moving orthogonal projection and Gegenbauer harmonic discrepancy.",
+        description="Tangent-Harmonic Subspace Projection JEPA with moving orthogonal projection and Gegenbauer harmonic discrepancy.",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="reynolds_stress_jepa",
         aliases=("reynolds_jepa", "navier_stokes_jepa", "ns_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Reynolds-Stress Navier-Stokes JEPA with Admissible Cone Constraint S_+.",
+        description="Ablation Model: Reynolds-Stress JEPA with Admissible Cone Constraint S_+ (Table I(a) ablation).",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="operator_entropy_jepa",
         aliases=("operator_jepa", "connes_jepa", "vn_entropy_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Von Neumann Operator Entropy & Spectral Rigidity JEPA (Connes Rigidity & Quantum Repetition).",
+        description="Primary Model: Operator-Entropy JEPA with Von Neumann spectral entropy and floored logarithmic Bregman barrier.",
+        category="primary",
     ),
 )
 
@@ -366,3 +376,19 @@ def requires_patch_division(model_type: str) -> bool:
 def model_spec(model_type: str) -> Optional[ModelSpec]:
     """Return the spec for a model type or alias, or ``None`` if unknown."""
     return _ALIAS_INDEX.get(model_type)
+
+
+def primary_model_choices() -> Tuple[str, ...]:
+    """Return canonical model names designated as primary paper models."""
+    return tuple(spec.canonical_name for spec in _MODEL_SPECS if spec.category == "primary")
+
+
+def sota_baseline_choices() -> Tuple[str, ...]:
+    """Return canonical model names designated as external SOTA baselines."""
+    return tuple(spec.canonical_name for spec in _MODEL_SPECS if spec.category == "baseline")
+
+
+def ablation_model_choices() -> Tuple[str, ...]:
+    """Return canonical model names designated as secondary ablation variants."""
+    return tuple(spec.canonical_name for spec in _MODEL_SPECS if spec.category == "ablation")
+

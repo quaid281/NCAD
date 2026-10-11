@@ -124,20 +124,119 @@ def nonparam_table(df):
     return "\n".join(lines)
 
 
+def oc_table():
+    """Operating-characteristic summary: partial AUC + q*=0.05 realized metrics."""
+    p = pd.read_csv(ROOT / "reports" / "oc_partial_auc.csv")
+    g = (p.groupby(["model", "mapping"])
+          .agg(pauc=("partial_auc", "mean"), er=("event_recall_q05", "mean"))
+          .reset_index())
+    c = pd.read_csv(ROOT / "reports" / "oc_model_curves.csv")
+    rf = (c[np.isclose(c.q, 0.05) & (c.cohort == "all")]
+          .set_index(["model", "mapping"]).realized_fpr)
+    g = g.set_index(["model", "mapping"]).join(rf).reset_index()
+    order = g[(g.mapping == "trailing")].sort_values("pauc", ascending=False).model
+    lines = [r"\begin{table}[t]", r"\centering", r"\scriptsize",
+             r"\caption{Operating-characteristic summary on 19 non-GHL streams "
+             r"(seeds averaged within streams). Partial AUC = mean event recall over "
+             r"design budgets $\le 0.10$; $q^*{=}0.05$ columns give event recall and "
+             r"\emph{realized} test FPR at that design budget.}"
+             r"\label{tab:operating_characteristic}",
+             r"\resizebox{\columnwidth}{!}{%",
+             r"\begin{tabular}{@{}lcccccc@{}}", r"\toprule",
+             r"Model & pAUC (trail.) & pAUC (smear) & ER$_{0.05}$ (trail.) & "
+             r"FPR$_{0.05}$ (trail.) & ER$_{0.05}$ (smear) & FPR$_{0.05}$ (smear) \\",
+             r"\midrule"]
+    for m in order:
+        t = g[(g.model == m) & (g.mapping == "trailing")].iloc[0]
+        s = g[(g.model == m) & (g.mapping == "smear")].iloc[0]
+        lines.append(f"{m} & {fmt(t.pauc)} & {fmt(s.pauc)} & {fmt(t.er)} & "
+                     f"{fmt(t.realized_fpr)} & {fmt(s.er)} & {fmt(s.realized_fpr)} \\\\")
+    lines += [r"\bottomrule", r"\end{tabular}%", "}", r"\end{table}"]
+    return "\n".join(lines)
+
+
+def noise_table():
+    pf = pd.read_csv(ROOT / "reports" / "pf_noise_path_test.csv")
+    lines = [r"\begin{table}[t]", r"\centering", r"\scriptsize",
+             r"\caption{Potential-Flow inference-path test: scoring at the "
+             r"$z_{\text{noise}}{=}0$ mean path vs.\ noise-matched querying "
+             r"($z{=}0.5(z_{\text{noise}}{+}z_{\text{tgt}})$, 16 draws). Noise "
+             r"matching does not rescue performance, rejecting the "
+             r"train/test-mismatch explanation.}\label{tab:pf_noise}",
+             r"\begin{tabular}{@{}llccc@{}}", r"\toprule",
+             r"Stream & Mapping & Path & FPR & Event Recall \\", r"\midrule"]
+    for _, r in pf.iterrows():
+        path = "noise-matched" if r.noise_matched else "mean ($z_n{=}0$)"
+        lines.append(f"{r.dataset}:{r.channel} & {r.mapping} & {path} & "
+                     f"{fmt(r.realized_fpr)} & {fmt(r.event_recall)} \\\\")
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+    return "\n".join(lines)
+
+
+def trivial_delay_table():
+    t = pd.read_csv(ROOT / "reports" / "trivial_f1_comparison.csv")
+    g = t.groupby("model").agg(beat=("beats_trivial", "mean"),
+                               mf1=("model_f1", "mean"),
+                               triv=("trivial_f1", "mean"))
+    d = pd.read_csv(ROOT / "reports" / "delay_intersection.csv")
+    dg = d.groupby("model")[["delay_main", "delay_other"]].mean()
+    lines = [r"\begin{table}[t]", r"\centering", r"\scriptsize",
+             r"\caption{(a) Fraction of stream-seed cells where each model's "
+             r"Point-F1 exceeds the trivial all-positive F1 $2\pi/(1{+}\pi)$ at "
+             r"$q^*{=}0.05$; (b) mean detection delay on the intersection of "
+             r"events detected by both the model and TS-JEPA (steps).}"
+             r"\label{tab:trivial_delay}",
+             r"\begin{tabular}{@{}lcccc@{}}", r"\toprule",
+             r"Model & $P(\mathrm{F1} > \mathrm{trivial})$ & Point-F1 & "
+             r"$\Delta t$ model & $\Delta t$ TS-JEPA \\", r"\midrule"]
+    for m, r in g.iterrows():
+        dl = dg.loc[m] if m in dg.index else None
+        dm = f"{dl.delay_other:.1f}" if dl is not None else "--"
+        dj = f"{dl.delay_main:.1f}" if dl is not None else "--"
+        lines.append(f"{m} & {fmt(r.beat,2)} & {fmt(r.mf1)} & {dm} & {dj} \\\\")
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+    return "\n".join(lines)
+
+
+def drift_link_table():
+    l = pd.read_csv(ROOT / "reports" / "tail_calibration_link.csv")
+    from scipy import stats
+    rho_k = stats.spearmanr(l.cal_kurtosis, l.realized_fpr, nan_policy="omit")
+    rho_d = stats.spearmanr(l.ks_drift, l.realized_fpr, nan_policy="omit")
+    lines = [r"\begin{table}[t]", r"\centering", r"\scriptsize",
+             r"\caption{Stream-level drivers of realized SPOT FPR across all "
+             r"dumped cells (Spearman $\rho$): calibration$\to$test KS drift "
+             r"predicts failure; calibration-block kurtosis is mildly protective.}"
+             r"\label{tab:drift_link}",
+             r"\begin{tabular}{@{}lcc@{}}", r"\toprule",
+             r"Predictor & $\rho$ vs.\ realized FPR & $p$ \\", r"\midrule",
+             f"KS drift (cal $\\to$ test) & {rho_k.statistic if False else rho_d.statistic:.3f} & {rho_d.pvalue:.1e} \\\\",
+             f"Cal-block excess kurtosis & {rho_k.statistic:.3f} & {rho_k.pvalue:.1e} \\\\",
+             r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+    return "\n".join(lines)
+
+
 def main():
     rd = pd.read_csv(ROOT / "reports" / "residual_diagnostics.csv")
     mf = pd.read_csv(ROOT / "reports" / "matched_fpr_evaluation.csv")
     dc = pd.read_csv(ROOT / "reports" / "controlled_drift_calibration.csv")
-    npdf = pd.read_csv(ROOT / "reports" / "heldout_nonparametric.csv")
+    npdf = pd.concat(
+        [pd.read_csv(ROOT / "reports" / "heldout_nonparametric.csv"),
+         pd.read_csv(ROOT / "reports" / "heldout_19stream_r4_arms.csv")],
+        ignore_index=True)
     tex = ["\\section{Revision Experiments}\\label{sup:revision_experiments}",
            "",
-           "This section collects the four analyses added in response to the review: "
-           "matched-backbone residual diagnostics, detection quality at matched "
-           "false-positive-rate budgets, a controlled-drift calibration study, and "
-           "training-free nonparametric references.",
+           "This section collects the analyses added in response to review: "
+           "matched-backbone and score-space-matched residual diagnostics, "
+           "detection quality on the operating-characteristic grid, a "
+           "controlled-drift calibration study, training-free and distance-based "
+           "references, detection-delay intersection, trivial-baseline "
+           "comparison, drift attribution, and the Potential-Flow "
+           "inference-path test.",
            "",
-           residual_table(rd), "", matched_fpr_table(mf), "",
-           drift_table(dc), "", nonparam_table(npdf)]
+           residual_table(rd), "", oc_table(), "", matched_fpr_table(mf), "",
+           drift_table(dc), "", nonparam_table(npdf), "",
+           trivial_delay_table(), "", drift_link_table(), "", noise_table()]
     OUT.write_text("\n".join(tex), encoding="utf-8")
     print(f"wrote {OUT}")
 

@@ -153,6 +153,84 @@ def train_model(name, tr_win, k, device, epochs):
             return z.reshape(len(w), -1).max(axis=1)
         return score
 
+    if name == "PCA-LinPred-LN":
+        # Dimensionality/boundedness-matched observation-space control
+        # (Round-4 reviewer): 32-d PCA embeddings of context and suspect
+        # slices, a ridge linear forecast ctx->tgt, LayerNorm on both sides,
+        # then the same saliency-gated norm (alpha=0.5, tau=0.5) used by the
+        # JEPA scorers. Isolates the learned-encoder contribution from the
+        # "bounded low-dim gated score" confound.
+        d_lat = 32
+        Xc = tr_win[:, :C, :].reshape(len(tr_win), -1)
+        Xt = tr_win[:, C:, :].reshape(len(tr_win), -1)
+        muc, mut = Xc.mean(0), Xt.mean(0)
+        Vc = np.linalg.svd(Xc - muc, full_matrices=False)[2][:d_lat]
+        Vt = np.linalg.svd(Xt - mut, full_matrices=False)[2][:d_lat]
+        Cc = (Xc - muc) @ Vc.T
+        Ct = (Xt - mut) @ Vt.T
+        lam = 1e-3 * np.trace(Cc.T @ Cc) / Cc.shape[0]
+        W = np.linalg.solve(Cc.T @ Cc + lam * np.eye(d_lat), Cc.T @ Ct)
+
+        def _ln(v):
+            return (v - v.mean(-1, keepdims=True)) / (v.std(-1, keepdims=True) + 1e-6)
+
+        def _gate(e):
+            a, tau = 0.5, 0.5
+            w = np.exp(np.abs(e) / tau)
+            w /= w.sum(-1, keepdims=True)
+            return (1 - a) * np.linalg.norm(e, axis=-1) + a * np.sqrt(
+                d_lat * (w * e ** 2).sum(-1))
+
+        def score(w):
+            cw = _ln((w[:, :C, :].reshape(len(w), -1) - muc) @ Vc.T)
+            tw = _ln((w[:, C:, :].reshape(len(w), -1) - mut) @ Vt.T)
+            return _gate(tw - cw @ W)
+        return score
+
+    if name == "Obs-MAD":
+        # Robust median/MAD-normalized observation-space score (Round-4
+        # reviewer): per-channel |x - med| / MAD over the suspect slice,
+        # pooled by L2. Tests whether robust normalization alone reproduces
+        # the latent score's tail conditioning.
+        med = np.median(tr_win[:, C:, :], axis=(0, 1))
+        mad = np.median(np.abs(tr_win[:, C:, :] - med), axis=(0, 1)) + 1e-6
+
+        def score(w):
+            z = np.abs(w[:, C:, :] - med) / mad
+            return np.sqrt((z ** 2).sum(axis=(1, 2)) / z.shape[1])
+        return score
+
+    if name == "IsoForest":
+        # Isolation Forest on flattened suspect windows (Round-4 baseline).
+        from sklearn.ensemble import IsolationForest
+        Xf = tr_win[:, C:, :].reshape(len(tr_win), -1)
+        sub = Xf[np.random.RandomState(0).choice(len(Xf),
+                  min(8192, len(Xf)), replace=False)]
+        iso = IsolationForest(n_estimators=100, max_samples=min(1024, len(sub)),
+                              contamination="auto", random_state=0).fit(sub)
+
+        def score(w):
+            Xw = w[:, C:, :].reshape(len(w), -1)
+            return -iso.decision_function(Xw)
+        return score
+
+    if name == "KNN-Dist":
+        # Distance to the 5th nearest training window (classic kNN-AD).
+        Xf = tr_win[:, C:, :].reshape(len(tr_win), -1)
+        ref = Xf[np.random.RandomState(0).choice(len(Xf),
+                 min(4096, len(Xf)), replace=False)]
+
+        def score(w):
+            Xw = w[:, C:, :].reshape(len(w), -1)
+            out = np.empty(len(Xw))
+            for i in range(0, len(Xw), 512):
+                dd = np.sqrt(((Xw[i:i + 512, None, :] - ref[None]) ** 2)
+                             .sum(-1))
+                out[i:i + 512] = np.sort(dd, axis=1)[:, 4]
+            return out
+        return score
+
+
     if name in ("TCN-ObsRecon", "TCN-ObsPred"):
         if name == "TCN-ObsRecon":
             m = TCNObsReconstructor(input_dim=k).to(device)
@@ -219,7 +297,7 @@ def train_model(name, tr_win, k, device, epochs):
           "OpEntropy-lambda0": "operator_entropy_jepa", "Reynolds": "reynolds_stress_jepa",
           "Reynolds-meanscore": "reynolds_stress_jepa", "Reynolds-alpha0": "reynolds_stress_jepa",
           "Reynolds-tempcov": "reynolds_stress_jepa", "Reynolds-batchcov": "reynolds_stress_jepa",
-          "JEPA-CtxRecon": "ts_jepa", "JEPA-NoEMA": "ts_jepa",
+          "JEPA-CtxRecon": "ts_jepa", "JEPA-NoEMA": "ts_jepa", "TS-JEPA-NoGate": "ts_jepa",
           "PotentialFlow": "potential_flow_jepa", "PotentialFlow-noregime": "potential_flow_jepa"}[name]
     extra = {"use_regimes": False} if name == "PotentialFlow-noregime" else {}
     cfg = CSMConfig(model_type=mt, context_size=C, suspect_size=S, latent_dim=32, **extra)
@@ -251,6 +329,7 @@ def train_model(name, tr_win, k, device, epochs):
             m.update_target_encoder(1.0 if name == "JEPA-NoEMA" else None)
 
     mean_only = name in ("Reynolds-meanscore", "Reynolds-alpha0")
+    nogate = name == "TS-JEPA-NoGate"  # equalized-gating control: plain L2 discrepancy
 
     def score(w):
         m.eval()
@@ -258,7 +337,10 @@ def train_model(name, tr_win, k, device, epochs):
         with torch.no_grad():
             for i in range(0, len(w), 128):
                 ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 128])).float().to(device)
-                if mean_only:
+                if nogate:
+                    d = m.target_encoder(ch[:, C:]) - m.predictor(m.context_encoder(ch[:, :C]))
+                    out.append(d.norm(dim=-1).cpu().numpy())
+                elif mean_only:
                     zc = m._extract_context(ch[:, :C])
                     d = m.target_encoder(ch[:, C:]) - m.predictor(zc)
                     out.append(m.saliency_gate(d).cpu().numpy())

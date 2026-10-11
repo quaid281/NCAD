@@ -72,7 +72,7 @@ main_box = patches.FancyBboxPatch((0.2, 0.2), 15.6, 7.0, boxstyle="round,pad=0.0
 ax.add_patch(main_box)
 
 # Title Banner
-ax.text(0.5, 6.90, "Physics-Informed Joint-Embedding Predictive Architecture (JEPA) Triad",
+ax.text(0.5, 6.90, "Physics-Inspired Joint-Embedding Predictive Architecture (JEPA) Triad",
         fontsize=13.0, fontweight='bold', color=c_dark, ha='left', va='center')
 ax.text(0.5, 6.58, "Representation-space latent predictive dynamics constrained by fundamental physical conservation invariants",
         fontsize=9.0, color=c_muted, ha='left', va='center')

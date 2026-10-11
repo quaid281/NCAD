@@ -14,13 +14,5 @@ To avoid reconstructing noise, contrastive methods learn discriminative represen
 \subsection{Physics-Inspired Inductive Biases}
 PINNs \cite{raissi2019physics} and Hamiltonian/Lagrangian networks \cite{greydanus2019hamiltonian, cranmer2020lagrangian} embed dynamics as hard constraints; their stiff competing gradients \cite{wang2021understanding} and closed-form-PDE requirements fit poorly to uncalibrated multi-sensor telemetry. We instead test whether \emph{inspired} structures---spectral entropy, second-moment closure, conservative potential flow---improve latent residuals.
 
-\subsection{Clarification of Technical Terminology}
-\begin{itemize}
-    \item \textbf{Physics-inspired vs.\ physics-informed:} the latter enforces known governing equations as loss residuals; the former adopts physics-motivated structures as exploratory regularizers, without claiming latent coordinates are physical state variables.
-    \item \textbf{Causal preprocessing vs.\ causal decision-time access:} the former computes features strictly from history ($\partial \mathbf{g}/\partial \mathbf{x}_{\text{tgt}} \equiv \mathbf{0}$); the latter specifies whether alarms are issued with $0$-lookahead or after an $S$-step buffer.
-    \item \textbf{Conservative vs.\ dissipative:} autonomous gradient flows $\dot{z} = -\nabla\Phi$ satisfy $\frac{d}{d\tau}\Phi \le 0$ and preclude periodic orbits.
-    \item \textbf{Operator non-degeneracy vs.\ representation anti-collapse:} the transition operator $\mathbf{K}$ not collapsing to zero is distinct from the encoder not collapsing representations to a constant.
-\end{itemize}
-
-\subsection{Positioning}
-This investigation bridges joint-embedding predictive learning and multivariate anomaly detection: forecasting latent $z_{\text{tgt}}$ rather than reconstructing $\hat{x}$ avoids noise drowning; three candidate physics-inspired regularizers are evaluated empirically against unconstrained latent controls; latent coordinate-saliency gating and dyadic frequency shells preprocess residuals; and EVT/SPOT calibration is evaluated on strictly held-out nominal telemetry to quantify the gap between design risk and empirical false-alarm rates.
+\subsection{Terminology and Positioning}
+We distinguish \emph{physics-inspired} structures (exploratory regularizers; latent coordinates are not claimed to be physical state variables) from \emph{physics-informed} constraints enforcing known governing equations; \emph{causal preprocessing} (features computed strictly from history) from \emph{causal decision-time access} (alarm latency); and transition-operator non-degeneracy from representation anti-collapse. This investigation bridges joint-embedding predictive learning and multivariate anomaly detection: three physics-inspired regularizers are evaluated against unconstrained latent controls, and EVT calibration is evaluated on strictly held-out nominal telemetry to quantify the gap between design risk and realized false-alarm rates.

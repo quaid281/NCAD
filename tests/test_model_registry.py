@@ -95,3 +95,26 @@ def test_build_ts_jepa_model_all_canonical_variants():
         assert model is not None
         assert isinstance(model, torch.nn.Module)
 
+
+def test_model_categories():
+    from src.models.registry import (
+        ablation_model_choices,
+        primary_model_choices,
+        sota_baseline_choices,
+    )
+
+    primaries = primary_model_choices()
+    baselines = sota_baseline_choices()
+    ablations = ablation_model_choices()
+
+    assert "operator_entropy_jepa" in primaries
+    assert "ts_jepa" in primaries
+
+    assert "timesnet" in baselines
+    assert "tranad" in baselines
+    assert "anomaly_transformer" in baselines
+
+    assert "reynolds_stress_jepa" in ablations
+    assert "potential_flow_jepa" in ablations
+
+

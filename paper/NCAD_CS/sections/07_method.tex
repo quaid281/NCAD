@@ -4,7 +4,7 @@
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.58\textwidth]{figures/physics_jepa_triad_architecture.png}
-\caption{JEPA telemetry-monitoring architecture: context and suspect windows are encoded into $z_{\text{ctx}}$, $z_{\text{tgt}}$ and compared in latent space (avoiding observation-space false-alarm flooding), under three candidate physical regularizers (Koopman spectral entropy, covariance closure, potential flow) with held-out SPOT calibration.\label{fig:triad_architecture}}
+\caption{JEPA telemetry-monitoring architecture: context and suspect windows are encoded and compared in latent space under three candidate physical regularizers, with held-out SPOT calibration.\label{fig:triad_architecture}}
 \end{figure*}
 
 This section formalizes the mathematical formulation, latent predictors, and inductive biases of the proposed framework. 
@@ -105,13 +105,13 @@ Since the reference velocity along the mean path is $v_{0.5}^* = z_{\text{tgt}}$
 \label{subsec:scoring_function}
 During inference, context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed at stride 1. For TS-JEPA, Operator-Entropy, and Potential-Flow, the score gates the latent discrepancy through $g(\cdot)$ (Section~\ref{subsubsec:causal_saliency_gating}): $\mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t))$. For Reynolds-Stress, $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. All shared representation stages are held fixed across variants and ablation controls (Section~\ref{subsec:controlled_ablations}).
 
-\noindent\textbf{Operational Distinction: Zero-Lookahead Causal Filtering vs. Buffered Predictive Early Warning.}
-Two regimes exist, formalized in Figure~\ref{fig:inference_timeline}: (1) strictly causal streaming (\textit{trailing} attribution), in which the score emitted at $\tau$ is $\mathcal{F}_{\tau}$-measurable --- it uses only observations through window completion; and (2) buffered prospective monitoring (\textit{smear} attribution), in which the identical window score is attributed retrospectively over the suspect region $[t{+}1, t{+}S]$, so an anomaly at $t^*$ can raise discrepancy up to $S{=}64$ steps before onset. Under strict unadjusted point-level evaluation (stride 1), warnings during $[t^*-S, t^*]$ score as false alarms --- predictive foresight incurs a retrospective metric penalty for early warning. The two regimes are \emph{not} interchangeable evidence; we report them separately throughout (Tables~\ref{tab:core_benchmark}, \ref{tab:causal_benchmark}). Incident analysis (Supplementary Section~\ref{sup:operational}) also evaluates \textit{Middle} alignment ($t + S/2$); all baselines share identical windowing, horizon, and standardization.
+\noindent\textbf{Operational Distinction: Zero-Lookahead Causal Filtering vs. Buffered Attribution.}
+Two regimes exist, formalized in Figure~\ref{fig:inference_timeline}: (1) strictly causal streaming (\textit{trailing} attribution), in which the score emitted at $\tau$ is $\mathcal{F}_{\tau}$-measurable --- it uses only observations through window completion; and (2) buffered monitoring (\textit{smear} attribution), in which the identical window score is attributed retrospectively over the suspect region $[t{+}1, t{+}S]$, so an anomaly at $t^*$ can raise discrepancy up to $S{=}64$ steps before onset. Under strict unadjusted point-level evaluation (stride 1), alarms during $[t^*-S, t^*]$ score as false alarms: the buffered regime is detection with a fixed $S$-step buffer, not forecasting. The two regimes are \emph{not} interchangeable evidence; we report them separately throughout (Table~\ref{tab:core_benchmark} and Supplementary Table~\ref{tab:causal_benchmark}). Incident analysis (Supplementary Section~\ref{sup:operational}) also evaluates \textit{Middle} alignment ($t + S/2$); all baselines share identical windowing, horizon, and standardization.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/timeline_inference_regimes.png}
-\caption{Score-emission and alarm-attribution timeline. Every score $s_i$ is computable only at window completion $\tau = t+S-1$. (a) Buffered attribution assigns $s_i$ retrospectively to $[t{+}1, t{+}S]$; alarms may precede the onset $t^*$ and are penalized as false positives by pointwise scoring. (b) Causal attribution emits $s_i$ at $\tau$ only, using no future information at emission time.\label{fig:inference_timeline}}
+\caption{Score-emission and alarm-attribution timeline. Every score $s_i$ is computable only at window completion $\tau = t+S-1$. (a) Buffered attribution assigns $s_i$ retrospectively to $[t{+}1, t{+}S]$; (b) causal attribution emits $s_i$ at $\tau$ only.\label{fig:inference_timeline}}
 \end{figure}
 
 
