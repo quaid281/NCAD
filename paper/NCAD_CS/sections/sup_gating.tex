@@ -16,7 +16,7 @@ where $\sigma(\cdot)$ is the logistic sigmoid, $\epsilon = 10^{-6}$, $\bar{s} = 
 \label{subsec:gate_fault_study}
 Four gating regimes were trained under an identical TS-JEPA configuration ($C{=}256, S{=}64$, seed 42, SPOT $q{=}10^{-3}$ on held-out nominal telemetry): \emph{context-derived gating} ($\mathbf{g} = g(\mathbf{x}_{\text{ctx}})$ applied symmetrically; strictly causal), a non-causal \emph{target-only leaky control} ($\mathbf{g} = g(\mathbf{x}_{\text{tgt}})$, upper-bounding the benefit of violating causality), \emph{independent} context/target gating (asymmetric; breaks latent metric alignment), and \emph{uniform pooling} (deployed). The effect is stream-dependent in sign and magnitude: the context gate substantially improves MSL ($0.047 \to 0.227$), where anomalies concentrate in few coordinates, but degrades SMAP ($0.280 \to 0.019$), where fault signatures are distributed. Macro Point-F1 ranks uniform ($0.118$) above context gating ($0.077$), with the leaky control at $0.128$ and independent gating weakest ($0.071$). Since the leaky control adds only $+8.6\%$ relative over causal gating, most of the effect reflects quiescent-noise suppression rather than target statistics.
 
-For per-fault-type behavior, six single-channel fault classes (flatline, stuck sensor, dropout, low-amplitude step, spike control, mid-variance flatline) were injected into six multivariate streams under four gating modes. Two findings emerge. First, the context-derived variance gate approximately doubles point recall relative to uniform pooling (macro $0.045$ vs.\ $0.023$) at roughly three times the nominal false-positive rate ($0.069$ vs.\ $0.019$); a robust-MAD variant is marginally stronger ($0.060$ recall). Second, the increase concentrates on transient signatures, while quiet faults (flatline, stuck sensor, dropout) remain weakly detected under \textit{every} gating regime (point recall $0.02\text{--}0.07$). The blind spot therefore reflects the aggregate latent discrepancy signal on wide telemetry rather than a deficiency of gating alone.
+For per-fault-type behavior, six single-channel fault classes (flatline, stuck sensor, dropout, low-amplitude step, spike control, mid-variance flatline) were injected into six multivariate streams under four gating modes. Two findings emerge. First, the context-derived variance gate approximately doubles point recall relative to uniform pooling (macro $0.045$ vs.\ $0.023$) at roughly three times the nominal false-positive rate ($0.069$ vs.\ $0.019$); a median-absolute-deviation (MAD) variant is marginally stronger ($0.060$ recall). Second, the increase concentrates on transient signatures, while quiet faults (flatline, stuck sensor, dropout) remain weakly detected under \textit{every} gating regime (point recall $0.02\text{--}0.07$). The blind spot therefore reflects the aggregate latent discrepancy signal on wide telemetry rather than a deficiency of gating alone.
 
 \begin{table}[h]
 \centering
@@ -45,7 +45,7 @@ Daphnet \texttt{S01R01E1} ($K=9$) & 0.146 & 0.061 & \textbf{0.306} & 0.158 \\
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Injected Fault Type} & \textbf{Uniform} & \textbf{Var. Gate} & \textbf{Robust-MAD} \\
+\textbf{Injected Fault Type} & \textbf{Uniform} & \textbf{Var. Gate} & \textbf{MAD-Gate} \\
 \midrule
 Flatline & 0.021 & 0.043 & \textbf{0.058} \\
 Flatline (mid-var ch.) & 0.024 & 0.048 & \textbf{0.068} \\

@@ -221,15 +221,23 @@ def main():
     # Check page budget
     budget_ok = check_page_budget()
     
+    # 6. Anti-AI writing pattern audit (docs/SKILL.md)
+    step("6. Auditing manuscript prose against anti-AI writing rules (docs/SKILL.md)...")
+    from scan_ai_writing import run_scan
+    ai_audit_ok = run_scan()
+    
     print("\n" + "=" * 70)
-    if not tex_errors and not has_pdf_issues:
-        print(" [SUCCESS] All cross-references and citations resolved cleanly!")
-        if not budget_ok:
-            print(f" [ACTION REQUIRED] Reduce text/figures to satisfy the <= {MAX_PAGE_BUDGET} page ceiling.")
+    if not tex_errors and not has_pdf_issues and budget_ok and ai_audit_ok:
+        print(" [SUCCESS] All cross-references, page budget, and SKILL.md anti-AI rules verified cleanly!")
         print("=" * 70)
         sys.exit(0)
     else:
-        print(" [FAILURE] Unresolved references or citations detected. See above for details.")
+        if not budget_ok:
+            print(f" [ACTION REQUIRED] Reduce text/figures to satisfy the <= {MAX_PAGE_BUDGET} page ceiling.")
+        if not ai_audit_ok:
+            print(" [ACTION REQUIRED] Eliminate identified AI writing patterns per docs/SKILL.md.")
+        if tex_errors or has_pdf_issues:
+            print(" [ACTION REQUIRED] Resolve broken cross-references or citations.")
         print("=" * 70)
         sys.exit(1)
 

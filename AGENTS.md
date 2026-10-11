@@ -22,6 +22,19 @@
   facing diagnostics whitelisted in `.gitignore` (`stream_manifest.csv`,
   `evt_tail_diagnostics.csv`, `lp_filterbank_*.csv`,
   `heldout_reynolds_covmodes.csv`).
+- **Always scan the manuscript with `docs/SKILL.md`:** Before committing any
+  manuscript or documentation changes, always audit all paper sections
+  against `docs/SKILL.md` (`C:/Users/andre/OneDrive/Desktop/NCAD_CS/docs/SKILL.md`)
+  via `C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/scan_ai_writing.py`
+  (also enforced automatically by `scripts/build_and_verify_manuscript.py`).
+  Zero tolerance for P0 credibility killers, P1 word-list violations (`delve`,
+  `leverage`, `harness`, `robust`, `pivotal`, `multifaceted`, `testament`,
+  `beacon`, `tapestry`, `foster`, `elevate`, `underscore`, `nuanced`,
+  `intricate`, `seamlessly`, `poised`, `holistic`, `paramount`, `cutting-edge`,
+  `paradigm`), formulaic transitions (`Moreover`, `Furthermore`, `Additionally`,
+  `In conclusion`), copula avoidance (`serves as`, `boasts`, `features` as verb),
+  and hedge stacking (`could potentially`). Em-dash rate in prose must remain
+  at or below 1.0 per 1,000 words.
 - **Git:** work on `dev`; the user syncs/pushes `main`. Use the standard
   Devin commit trailer (`Generated with [Devin]` / Co-Authored-By).
 
@@ -67,8 +80,11 @@ Key requirements:
 
 ```bash
 # Rebuild, compile, and verify manuscript (resolves mutual supplement/standalone .aux,
-# scans for unresolved '??' / '[?]' markers, and enforces <= 12-page budget)
+# scans for unresolved '??' / '[?]' markers, audits SKILL.md anti-AI rules, and enforces <= 12-page budget)
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_and_verify_manuscript.py
+
+# Audit manuscript prose against anti-AI writing patterns (docs/SKILL.md)
+C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/scan_ai_writing.py
 
 # Regenerate standalone manuscript from sections/
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_standalone.py
