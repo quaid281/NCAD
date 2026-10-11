@@ -31,9 +31,10 @@ The \textit{Spectral Entropy Deficiency} quantifies the Kullback-Leibler diverge
 Here, $\Delta\mathcal{H} = 0$ if and only if all modes carry equal energy ($\sigma_1 = \dots = \sigma_D$), while dimensional collapse to rank 1 yields maximal deficiency $\Delta\mathcal{H} = \log D$.
 
 To penalize energy collapse ($\|\mathbf{K}\|_F \to 0$) and prevent explosive gain, we introduce a non-negative Bregman energy barrier relative to nominal isometric scale $\mathcal{E}_0 = \gamma D$ ($\gamma = 1.0$):
-\begin{equation}
-    \Phi_{\text{energy}}(\mathbf{K}) = r_{\text{safe}}(\mathbf{K}) - 1 - \log r_{\text{safe}}(\mathbf{K}) \ge 0, \quad r_{\text{safe}}(\mathbf{K}) = \max\left(\frac{\|\mathbf{K}\|_F^2}{\gamma D}, \epsilon\right),
-\end{equation}
+\begin{align}
+    \Phi_{\text{energy}}(\mathbf{K}) &= r_{\text{safe}}(\mathbf{K}) - 1 - \log r_{\text{safe}}(\mathbf{K}) \ge 0, \\
+    r_{\text{safe}}(\mathbf{K}) &= \max\left(\frac{\|\mathbf{K}\|_F^2}{\gamma D}, \epsilon\right), \nonumber
+\end{align}
 where $\epsilon = 10^{-6}$ provides a numerical floor. For the identity operator $\mathbf{K} = \mathbf{I}$, $\|\mathbf{I}\|_F^2 = D$, yielding $\Phi_{\text{energy}}(\mathbf{I}) = 0$ exactly. We emphasize that the implemented barrier is \emph{floored}: it attains a finite maximum penalty $\epsilon - 1 - \log \epsilon \approx 12.8$ (before $\beta_{\text{norm}}$ weighting) throughout $\|\mathbf{K}\|_F^2 < \epsilon\gamma D$, rather than diverging; divergence to $+\infty$ is a property only of the unfloored idealization $\Phi_{\text{energy}}^{\ast} = r - 1 - \log r$. The operator is initialized near identity ($\mathbf{K} \sim \mathbf{I} + \mathcal{N}(\mathbf{0}, 0.01^2 \mathbf{I})$), so $r_{\text{safe}} \approx 1$ and training starts with a vanishing energy penalty; since LayerNorm gives $\mathbb{E}[\|z\|_2^2] \approx D$, the isometric scale $\mathcal{E}_0 = \gamma D$ matches the natural energy of unitary transitions. In sensitivity checks across $\lambda_{\text{ent}} \in \{0.1, 0.5, 1.0\}$ the model converged stably, with $0.5$ balancing spectral spread against predictive regression. The composite spectral regularizer is:
 \begin{equation}
     \mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}} \Phi_{\text{energy}}(\mathbf{K}),
@@ -94,7 +95,7 @@ Along the deterministic mean trajectory ($z_{\text{noise}} = \mathbf{0}$), $z_t 
 
 At inference, rather than integrating an ODE over $t \in [0,1]$, the detector queries the field at the trajectory midpoint:
 \begin{equation}
-    \mathbf{e}(t) = \hat{v}(0.5 z_{\text{tgt}}, 0.5, z_{\text{ctx}}, p_{\text{regime}}) - z_{\text{tgt}}.
+    \mathbf{e}(t) = \hat{v}\!\left(0.5 z_{\text{tgt}},\, 0.5,\, z_{\text{ctx}},\, p_{\text{regime}}\right) - z_{\text{tgt}}.
 \end{equation}
 Since the reference velocity along the mean path is $v_{0.5}^* = z_{\text{tgt}}$, this midpoint query directly measures the discrepancy between the learned potential gradient and the nominal target, matching the dimensionality ($D{=}32$) and scale of the unconstrained TS-JEPA residual. The anomaly score applies the saliency gate: $\mathcal{S}(t) = g(\mathbf{e}(t))$.
 
@@ -121,9 +122,10 @@ To stabilize learning across high-dimensional, noisy telemetry, all three archit
 \subsubsection{Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}
 \label{subsubsec:causal_saliency_gating}
 On high-dimensional streams ($K \ge 25$), faults frequently originate in a localized subsystem while the remaining channels exhibit ambient noise, diluting localized anomalies in isotropic representations. The deployed detector mitigates this in latent space via an anti-drowning coordinate saliency gate on error vectors $\mathbf{e} = z_{\text{tgt}} - z_{\text{pred}} \in \mathbb{R}^D$:
-\begin{equation}
-    \mathcal{D}_{\text{sal}}(\mathbf{e}) = (1 - \alpha) \|\mathbf{e}\|_2 + \alpha \sqrt{D \sum_{d=1}^D w_d e_d^2}, \quad w_d = \frac{\exp(|e_d| / \tau)}{\sum_{j=1}^D \exp(|e_j| / \tau)},
-\end{equation}
+\begin{align}
+    \mathcal{D}_{\text{sal}}(\mathbf{e}) &= (1 - \alpha) \|\mathbf{e}\|_2 + \alpha \sqrt{D \sum_{d=1}^D w_d e_d^2}, \\
+    w_d &= \frac{\exp(|e_d| / \tau)}{\sum_{j=1}^D \exp(|e_j| / \tau)}, \nonumber
+\end{align}
 amplifying sparse coordinate deviations by up to $\sqrt{D}$ while remaining exactly $\|\mathbf{e}\|_2$ under isotropic errors. This is the discrepancy gate used in every experiment: input channels are encoded unweighted, and the gate acts only on the $D$-dimensional predictive residual.
 
 \paragraph{Auxiliary Input-Channel Gate (Evaluated Variant)}

@@ -12,4 +12,6 @@ Third, SPOT calibration systematically overshoots its design risk on non-station
 \textbf{Scope.} All evaluations are \emph{within-dataset}: models are trained, calibrated, and tested on disjoint chronological partitions of the same stream. We claim nothing about cross-dataset transfer or unseen fault types (cf.\ Section~\ref{subsec:gate_fault_study}). Extensions include solenoidal components via Helmholtz decomposition, memory-bounded online drift adaptation, accelerated streaming inference kernels, and integer quantization for edge deployment.
 
 \section*{Code and Data Availability}
-All benchmark extraction scripts, preprocessing pipelines, checkpoints, training implementations, evaluation runners (\texttt{scripts/run\_multiseed\_heldout\_benchmark.py}, \texttt{scripts/run\_protocol\_ablation.py}), diagnostic artifacts, and logs are released at \url{https://anonymous.4open.science/r/NCAD_CS-Reproducibility-8F21}; public datasets are accessible via their referenced repositories.
+\begin{sloppypar}
+All benchmark extraction scripts, preprocessing pipelines, checkpoints, training implementations, evaluation runners (\url{scripts/run_multiseed_heldout_benchmark.py}, \url{scripts/run_protocol_ablation.py}), diagnostic artifacts, and logs are released at \url{https://anonymous.4open.science/r/NCAD_CS-Reproducibility-8F21}; public datasets are accessible via their referenced repositories.
+\end{sloppypar}

@@ -42,13 +42,14 @@ def residual_table(df):
              r"(runs declustering); $N_{\mathrm{eff}}$: effective independent exceedances; "
              r"FPR: out-of-sample exceedance rate at the SPOT threshold; PR-AUC: anomaly-vs-nominal "
              r"separation on labeled test data.}\label{tab:residual_diagnostics}",
+             r"\resizebox{\columnwidth}{!}{%",
              r"\begin{tabular}{@{}lccccccc@{}}", r"\toprule",
              r"Model & $\gamma_2$ & $q_{99.9}/q_{99}$ & $\mathrm{ACF}_1$ & $\theta$ & "
              r"$N_{\mathrm{eff}}$ & FPR & PR-AUC \\", r"\midrule"]
     for m, r in g.iterrows():
         lines.append(f"{m} & {fmt(r['kurt'],2)} & {fmt(r.qr)} & {fmt(r.acf1)} & "
                      f"{fmt(r.theta)} & {fmt(r.neff,1)} & {fmt(r.hold)} & {fmt(r.prauc)} \\\\")
-    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+    lines += [r"\bottomrule", r"\end{tabular}%", "}", r"\end{table}"]
     return "\n".join(lines)
 
 
