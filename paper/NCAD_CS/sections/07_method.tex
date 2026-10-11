@@ -45,13 +45,13 @@ with $\beta_{\text{norm}} = 1.0$. The total training objective is:
 \end{equation}
 with $\lambda_{\text{ent}} = 0.5$ in all experiments. All shared representation components (saliency gating, dyadic frequency shells, LayerNorm) are held fixed across models and controls, isolating the transition-operator loss. We emphasize that $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ acts on the operator matrix, enforcing a non-collapsed operator spectrum; it provides no analytical guarantee against encoder representation collapse, which is mitigated empirically by the EMA target encoder and stop-gradient operations \cite{grill2020bootstrap,assran2023self}.
 
-\begin{proposition}[Operator Triviality Invariance]
+\begin{proposition}[Operator Non-Triviality and Barrier Behavior]
 \label{prop:anti_collapse}
-Let $\mathcal{L}(\mathbf{K}) = \frac{1}{B}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}} > 0, \beta_{\text{norm}} > 0$, non-trivial target batch $\frac{1}{B}\sum_{b=1}^B \|z_{\text{tgt}}^{(b)}\|_2^2 = E_{\text{tgt}} > 0$, and non-degenerate context--target coupling $\frac{1}{B}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^T \neq \mathbf{0}$. Then (i) the zero operator $\mathbf{K} = \mathbf{0}$ is strictly not a local or global minimizer of $\mathcal{L}(\mathbf{K})$ under the implemented floored barrier, and (ii) under the unfloored idealization ($\epsilon \to 0^+$, $\Phi_{\text{energy}}^{\ast} = r - 1 - \log r$), additionally $\lim_{\|\mathbf{K}\|_F \to 0} \mathcal{L}(\mathbf{K}) = +\infty$.
+Let $\mathcal{L}(\mathbf{K}) = \frac{1}{B}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}} > 0, \beta_{\text{norm}} > 0$, non-trivial target batch $\frac{1}{B}\sum_{b=1}^B \|z_{\text{tgt}}^{(b)}\|_2^2 = E_{\text{tgt}} > 0$, and non-degenerate context--target coupling $\frac{1}{B}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^T \neq \mathbf{0}$. Then: (i) under the implemented floored barrier ($\epsilon = 10^{-6}$), the energy penalty is strictly bounded ($\le 12.8\,\beta_{\text{norm}}$) yet $\mathbf{K} = \mathbf{0}$ is strictly not a local or global minimizer of $\mathcal{L}(\mathbf{K})$; and (ii) under the unfloored theoretical idealization ($\epsilon \to 0^+$, $\Phi_{\text{energy}}^{\ast} = r - 1 - \log r$), $\lim_{\|\mathbf{K}\|_F \to 0} \mathcal{L}(\mathbf{K}) = +\infty$.
 \end{proposition}
 \noindent(Proof in Supplementary Section~\ref{sup:proofs}.)
 
-\noindent\textbf{Remark (Operator Non-Degeneracy vs. Representation Collapse):} Proposition~\ref{prop:anti_collapse} concerns only the transition operator: it does not prevent encoder collapse. If $E_\theta$ mapped all inputs to a constant $z^{(b)} = \mathbf{c}$, then $\mathbf{K} = \mathbf{I}$ would attain zero prediction error and zero spectral penalty while encoding no information; prevention of that failure mode rests empirically on the stop-gradient momentum dynamics, not on Proposition~\ref{prop:anti_collapse}.
+\noindent\textbf{Remark (Operator Non-Degeneracy vs. Representation Collapse):} Proposition~\ref{prop:anti_collapse} applies strictly to the transition operator $\mathbf{K}$ and does \emph{not} analytically prevent encoder representation collapse: if $E_\theta$ collapses all inputs to a constant $z^{(b)} = \mathbf{c}$, the choice $\mathbf{K} = \mathbf{I}$ attains zero prediction error and zero spectral penalty with no informational content. Preventing representation collapse rests empirically on stop-gradient momentum dynamics, not on Proposition~\ref{prop:anti_collapse}.
 
 \subsubsection{Reynolds-Stress JEPA (Second-Moment Closure Head)}
 \label{subsubsec:reynolds_stress_jepa}
@@ -75,7 +75,7 @@ At inference time, the anomaly score combines the mean latent discrepancy and th
 \label{subsubsec:potential_flow_jepa}
 Under Helmholtz-Hodge decomposition, a smooth field $v \in C^1(\mathbb{R}^D, \mathbb{R}^D)$ splits into a curl-free potential gradient and a solenoidal field, $v = -\nabla \Phi + \nabla \times A$. As dissipative systems relax toward local minima on potential-energy surfaces, we model latent evolution as the dissipative gradient flow $\dot{z}(\tau) = -\nabla_z \Phi_\psi(z(\tau))$ for a scalar potential network $\Phi_\psi$ with smooth (SiLU) activations.
 
-\begin{proposition}[Absence of Periodic Attractors in Gradient Flows]
+\begin{proposition}[Theoretical Motivation: Absence of Periodic Orbits in Autonomous Gradient Systems]
 \label{prop:no_limit_cycles}
 Let $\dot{z} = -\nabla\Phi(z)$ be an autonomous gradient flow on $\mathbb{R}^D$ where $\Phi \in C^2(\mathbb{R}^D, \mathbb{R})$. There exist no non-constant periodic orbits.
 \end{proposition}
@@ -86,8 +86,8 @@ The velocity field is the negative gradient of a parameterized scalar potential,
 
 Discrete operational modes use $K_r = 4$ learnable orthonormal subspace projections $\mathbf{U}_k \in \mathbb{R}^{D \times d}$ ($d{=}8, D{=}32$); the active regime is selected by maximal captured context energy, $k^* = \arg\max_k \|\mathbf{U}_k^\top z_{\text{ctx}}\|_2^2$, $p_{\text{regime}} = \mathbf{U}_{k^*} \mathbf{U}_{k^*}^\top z_{\text{ctx}}$, with an orthogonality separation loss $\mathcal{L}_{\text{subspace}} = \frac{2}{K_r(K_r-1)} \sum_{i < j} \|\mathbf{U}_i^\top \mathbf{U}_j\|_F^2$. Section~\ref{subsec:controlled_ablations} includes a single-regime control ($K_r{=}1$) with routing disabled.
 
-\paragraph{Flow-Matching Objective, Numerical Midpoint Evaluation, and Dynamical Misspecification}
-Proposition~\ref{prop:no_limit_cycles} governs the autonomous continuous flow $\dot{z} = -\nabla\Phi(z)$; the empirical objective instead trains $\hat{v}$ via conditional flow matching (OT-CFM) along linear paths between noise $z_{\text{noise}} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and $z_{\text{tgt}}$: $z_t = (1-t)z_{\text{noise}} + t z_{\text{tgt}}$, $t \sim \mathcal{U}(0,1)$, with target field $v_t^* = z_{\text{tgt}} - z_{\text{noise}}$ and loss
+\paragraph{Flow-Matching Objective, Midpoint Evaluation, and Phase-Space Distinctions}
+Proposition~\ref{prop:no_limit_cycles} provides theoretical motivation for autonomous gradient systems $\dot{z} = -\nabla\Phi(z)$. However, conditional, time-dependent flow matching evaluated via midpoint queries does not strictly obey autonomous phase-space restrictions. Empirically, the objective trains $\hat{v}$ via conditional flow matching (OT-CFM) along linear paths between noise $z_{\text{noise}} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and $z_{\text{tgt}}$: $z_t = (1-t)z_{\text{noise}} + t z_{\text{tgt}}$, $t \sim \mathcal{U}(0,1)$, with target field $v_t^* = z_{\text{tgt}} - z_{\text{noise}}$ and loss
 \begin{equation}
     \mathcal{L}_{\text{Pot-Flow}} = \mathbb{E}_{t, z_{\text{noise}}} \left[ \| \hat{v}(z_t, t, z_{\text{ctx}}, p_{\text{regime}}) - (z_{\text{tgt}} - z_{\text{noise}}) \|_2^2 \right].
 \end{equation}
@@ -97,9 +97,7 @@ At inference, rather than integrating an ODE over $t \in [0,1]$, the detector qu
 \begin{equation}
     \mathbf{e}(t) = \hat{v}\!\left(0.5 z_{\text{tgt}},\, 0.5,\, z_{\text{ctx}},\, p_{\text{regime}}\right) - z_{\text{tgt}}.
 \end{equation}
-Since the reference velocity along the mean path is $v_{0.5}^* = z_{\text{tgt}}$, this midpoint query directly measures the discrepancy between the learned potential gradient and the nominal target, matching the dimensionality ($D{=}32$) and scale of the unconstrained TS-JEPA residual. The anomaly score applies the saliency gate: $\mathcal{S}(t) = g(\mathbf{e}(t))$.
-
-\noindent\textbf{Dynamical Misspecification on Non-Conservative Telemetry:} A curl-free velocity field ($\nabla \times \hat{v} \equiv \mathbf{0}$) forces circulation along any closed path $\mathcal{C}$ to vanish, $\oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = 0$. Valid for purely dissipative equilibria, this is dynamically misspecified for the non-conservative cyclic dynamics common in telemetry (motor revolutions, diurnal GECCO consumption cycles, periodic Daphnet gait kinematics): normal circulating orbits are penalized as anomalous. This predicts degraded detection on cyclic telemetry, tested in Section~\ref{subsec:eval_physics_priors} and Supplementary Section~\ref{sup:math_diagnostics}.
+Because the detector evaluates discrete midpoint queries on a time-dependent, context-conditioned network rather than integrating an autonomous trajectory, it is not formally constrained by continuous autonomous phase-space theorems. Nevertheless, parameterizing $\hat{v}$ as a spatial gradient $-\nabla_{z_t}\Phi_\psi$ imposes a curl-free spatial bias ($\nabla \times \hat{v} \equiv \mathbf{0}$) with vanishing circulation $\oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = 0$, dynamically penalizing cyclic orbits as anomalous. This explains the detection degradation on cyclic telemetry (e.g., Daphnet kinematics, Section~\ref{subsec:eval_physics_priors}).
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.run_multiseed_heldout_benchmark import load_stream
+from scripts.run_multiseed_heldout_benchmark import load_stream, event_stats
 from src.scoring.evt_calibrator import EVTCalibrator
 from src.scoring.event_fusion import compute_metrics
 
@@ -19,9 +19,9 @@ STREAMS = [
     ("SMAP", "P-3"), ("MSL", "M-1"), ("SMAP", "A-1"), ("MSL", "C-1"),
     ("SMAP", "A-2"), ("SMAP", "A-7"), ("SMAP", "D-3"), ("SMAP", "E-1"),
     ("MSL", "D-14"), ("MSL", "D-15"),
-    ("Daphnet", "S01R01E1"), ("Daphnet", "S01R02E0"), ("Daphnet", "S02R01E0"),
+    ("Daphnet", "S01R01E1"), ("Daphnet", "S03R01E1"), ("Daphnet", "S02R01E0"),
     ("Daphnet", "S02R02E0"), ("Daphnet", "S03R01E0"), ("Daphnet", "S03R02E0"),
-    ("Genesis", "default"), ("Metro", "default"), ("SWAN", "sf")
+    ("Genesis", "default"), ("metro", "traffic-volume"), ("SWAN", "sf")
 ]
 
 def main():
@@ -69,16 +69,17 @@ def main():
             y_pred = (res_te > tau).astype(int)
             
             m = compute_metrics(y_aligned, y_pred)
+            er, dl = event_stats(y_aligned, y_pred)
             prauc = float(average_precision_score(y_aligned, res_te))
             
             res_dict = {
                 "dataset": ds, "channel": ch, "hold_fpr": hold_fpr,
                 "point_f1": m["f1"], "precision": m["precision"], "recall": m["recall"],
-                "pr_auc": prauc, "event_recall": m.get("event_recall", 0.0),
-                "mean_delay": m.get("mean_delay", 0.0)
+                "pr_auc": prauc, "event_recall": er,
+                "mean_delay": dl
             }
             results.append(res_dict)
-            print(f"[{ds} {ch}] FPR: {hold_fpr:.4f}, F1: {m['f1']:.4f}, PR-AUC: {prauc:.4f}, Delay: {m.get('mean_delay', 0.0):.1f}")
+            print(f"[{ds} {ch}] FPR: {hold_fpr:.4f}, F1: {m['f1']:.4f}, PR-AUC: {prauc:.4f}, Delay: {dl:.1f}")
         except Exception as e:
             print(f"Error on {ds} {ch}: {e}")
             
