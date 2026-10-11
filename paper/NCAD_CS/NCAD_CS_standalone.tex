@@ -197,7 +197,7 @@ Let $\mathcal{L}(\mathbf{K}) = \frac{1}{B}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx
 
 \noindent\textbf{Remark (Operator Non-Degeneracy vs. Representation Collapse):} Proposition~\ref{prop:anti_collapse} applies to the transition operator $\mathbf{K}$ and does not analytically prevent encoder collapse: if $E_\theta$ maps all inputs to a constant, $\mathbf{K} = \mathbf{I}$ attains zero loss. Preventing representation collapse rests empirically on stop-gradient momentum dynamics.
 
-\subsubsection{Auxiliary Quadratic Second-Moment Head (Reynolds Closure)}
+\subsubsection{Auxiliary Quadratic Second-Moment Head}
 \label{subsubsec:reynolds_stress_jepa}
 Inspired by Reynolds decomposition in fluid turbulence, which separates mean flow from velocity fluctuations, we evaluate an auxiliary quadratic second-moment head in latent space. Crucially, $\boldsymbol{\Sigma}_{\text{obs}} = (\mathbf{P} z_{\text{tgt}})(\mathbf{P} z_{\text{tgt}})^\top + 10^{-3}\mathbf{I} \in \mathbb{S}_{++}^{d_s \times d_s}$ is an instantaneous rank-1 projected outer product plus ridge penalty, not a physical turbulent fluctuation covariance.
 
@@ -236,7 +236,7 @@ Because midpoint queries on a time-dependent, context-conditioned network do not
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
-During inference, context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed at stride 1. For TS-JEPA, Operator-Entropy, and Potential-Flow, the score gates the latent discrepancy through $g(\cdot)$ (Section~\ref{subsubsec:causal_saliency_gating}): $\mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t))$. For Reynolds-Stress, $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. All shared representation stages are held fixed across variants and ablation controls (Section~\ref{subsec:controlled_ablations}).
+During inference, context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed at stride 1. For TS-JEPA, Operator-Entropy, and Potential-Flow, the score gates the latent discrepancy through $g(\cdot)$ (Section~\ref{subsubsec:causal_saliency_gating}): $\mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t))$. For the second-moment head (Reynolds-Stress), $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. All shared representation stages are held fixed across variants and ablation controls (Section~\ref{subsec:controlled_ablations}).
 
 \noindent\textbf{Three-Part Operational Causality Framework:}
 To resolve the methodological confounding between data availability, decision latency, and evaluation attribution, we formalize detection under three operational criteria (Fig.~\ref{fig:inference_timeline}):
