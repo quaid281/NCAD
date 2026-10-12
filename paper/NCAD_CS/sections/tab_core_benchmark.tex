@@ -10,17 +10,17 @@
 \cmidrule(lr){2-6} \cmidrule(lr){7-7} \cmidrule(lr){8-9}
 \textbf{Model Architecture} & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{Event Recall} $\uparrow$ & \textbf{Mean Delay ($\Delta t$)} $\downarrow$ & \textbf{DS-Macro F1} $\uparrow$ & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1} $\uparrow$ \\
 \midrule
-\multicolumn{9}{l}{\textit{\textbf{Latent-Space Predictive Architectures (JEPAs)}}} \\
-\textbf{TS-JEPA (Unconstrained Control)} & \underline{0.076} & \underline{0.234} & \underline{0.323} & 0.481 & \underline{80.3} & \textbf{0.148} & \underline{0.005} & 0.000 \\
+\multicolumn{9}{l}{\textit{Latent-Space Predictive Architectures (JEPAs)}} \\
+TS-JEPA (Unconstrained Control)          & \underline{0.076} & \underline{0.234} & \underline{0.323} & 0.481 & \underline{80.3} & \textbf{0.148} & \underline{0.005} & 0.000 \\
 Operator-Entropy JEPA                    & 0.086 & \textbf{0.237} & \underline{0.323} & \underline{0.506} & 192.3 & \underline{0.130} & 0.012 & 0.001 \\
 Reynolds-Stress JEPA                     & 0.078 & 0.207 & 0.307 & 0.434 & 132.8 & 0.122 & \textbf{0.003} & 0.002 \\
 Potential-Flow JEPA                      & 0.091 & 0.089 & 0.201 & 0.303 & 146.9 & 0.065 & 0.011 & 0.006 \\
 \midrule
-\multicolumn{9}{l}{\textit{\textbf{Observation-Space Reconstructive Baselines}}} \\
+\multicolumn{9}{l}{\textit{Observation-Space Reconstructive Baselines}} \\
 TimesNet (ICLR 2023)                     & 0.300 & 0.197 & \textbf{0.329} & \textbf{0.583} & \textbf{48.5} & 0.100 & 0.061 & \textbf{0.022} \\
 TranAD (VLDB 2022)                       & 0.307 & 0.130 & 0.287 & 0.490 & 234.4 & 0.069 & 0.046 & \underline{0.020} \\
 \midrule
-\multicolumn{9}{l}{\textit{\textbf{Non-Neural Linear Baseline}}} \\
+\multicolumn{9}{l}{\textit{Non-Neural Linear Baseline}} \\
 Linear AR Forecaster                     & \textbf{0.005} & 0.051 & 0.255 & 0.432 & 87.8 & 0.038 & \textbf{0.002} & 0.000 \\
 \bottomrule
 \end{tabular}%
