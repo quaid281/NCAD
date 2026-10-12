@@ -45,6 +45,8 @@ notebooks/**/results/
 pytest-of-*/
 # LaTeX build artifacts
 *.aux
+!paper/NCAD_CS/NCAD_CS_supplement.aux
+!paper/NCAD_CS/NCAD_CS_standalone.aux
 *.bbl
 *.blg
 *.out

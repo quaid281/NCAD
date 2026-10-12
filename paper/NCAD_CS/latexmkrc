@@ -1,0 +1,4 @@
+# latexmkrc for Overleaf: compile both supplement and standalone to resolve xr / xr-hyper references
+$pdf_mode = 1;
+push @default_files, 'NCAD_CS_supplement.tex';
+push @default_files, 'NCAD_CS_standalone.tex';
