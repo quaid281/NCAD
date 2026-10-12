@@ -9,8 +9,19 @@
   extra pages, setting a hard ceiling of 12 pages total. Before committing
   manuscript changes, compile `paper/NCAD_CS/NCAD_CS_standalone.tex` and verify
   page count. If over budget, condense elsewhere — tighten prose, shrink
-  tables, move detailed proofs and ablation analyses to `reports/` or the
-  supplementary document `NCAD_CS_supplement.tex` rather than exceeding 12 pages.
+  tables, or prune secondary discussions. Everything must fit and be addressed
+  directly in the main manuscript.
+- **No supplementary papers (fully self-contained manuscript):** There must be
+  no companion supplement paper (no `NCAD_CS_supplement.tex` or external
+  S-sections). Reviewers evaluate the main paper alone; central claims, causal
+  vs. buffered evaluation tables, drift analyses, baseline comparisons
+  (including NCAD), and core ablations must never depend on an external
+  supplement. All claims, evidence, methodology, and proofs must be addressed
+  directly within the main manuscript (`paper/NCAD_CS/NCAD_CS_standalone.tex`
+  built from `sections/`) while strictly respecting the 12-page ceiling. Never
+  defer reviewer-facing findings to a supplement. Non-manuscript artifacts and
+  raw diagnostic logs belong in repository `reports/`, not in a submitted
+  supplement document.
 - **Never let manuscript claims exceed the measured evidence.** Latent
   predictive residuals reduce false alarms; the physics-inspired
   regularizers show no reliable aggregate benefit — report them as honest
@@ -59,7 +70,8 @@ Key requirements:
      conference presentation (with DOI) or thesis material.
   2. Author affiliations: department, institution, city, state/province,
      country, and corresponding author email address.
-  3. IEEE-provided notice for supplementary materials or color figures.
+  3. IEEE-provided notice for color figures (omit supplementary materials
+     notice; the manuscript is fully self-contained without a supplement).
 - **Section Ordering:** Title $\rightarrow$ Abstract $\rightarrow$ Keywords
   $\rightarrow$ First Footnote $\rightarrow$ Introduction $\rightarrow$
   Methodology $\rightarrow$ Equations (typeset via IEEE guidelines)
@@ -79,7 +91,7 @@ Key requirements:
 ## Key Commands
 
 ```bash
-# Rebuild, compile, and verify manuscript (resolves mutual supplement/standalone .aux,
+# Rebuild, compile, and verify manuscript (builds standalone,
 # scans for unresolved '??' / '[?]' markers, audits SKILL.md anti-AI rules, and enforces <= 12-page budget)
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_and_verify_manuscript.py
 

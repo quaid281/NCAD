@@ -1,36 +1,36 @@
 \begin{table}[t]
 \centering
 \small
-\caption{Calibrator comparison on identical score streams (33 streams, buffered inference, up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$; the CI-exclusion column shows automated calibration systematically overshoots out-of-sample.}
+\caption{Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms.}
 \label{tab:calibrator_comparison}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}llccc@{}}
+\begin{tabular}{@{}llcccc@{}}
 \toprule
-\textbf{Model Architecture} & \textbf{Calibrator Rule} & \textbf{Held-Out Nominal FPR} & \textbf{CI Excludes $q=10^{-3}$} & \textbf{Point-F1} \\
+\textbf{Model Architecture} & \textbf{Calibrator Rule} & \textbf{Causal FPR} & \textbf{Overshoot $>q$} & \textbf{Buffered FPR} & \textbf{Point-F1 (buf)} \\
 \midrule
 \multirow{4}{*}{\textbf{TS-JEPA (Control)}}
- & Standard SPOT ($q=10^{-3}$)      & \textbf{0.0526} & 61\% & 0.1577 \\
- & SPOT + Kurtosis ($\beta=0.167$) & 0.1768          & 82\% & \textbf{0.1694} \\
- & Empirical 99.5th Percentile     & 0.0682          & 55\% & 0.1598 \\
- & Validation Maximum              & 0.0553          & 65\% & 0.1591 \\
+ & Standard SPOT ($q=10^{-3}$)      & \textbf{0.0101} (0.0092) & \textbf{7\%}  & \textbf{0.0526} (0.0457) & 0.1577 \\
+ & SPOT + Kurtosis ($\beta=0.167$) & 0.0108 (0.0094)          & \textbf{7\%}  & 0.1768 (0.1515)          & \textbf{0.1694} \\
+ & Empirical 99.5th Percentile     & 0.0169 (0.0157)          & 21\%          & 0.0682 (0.0595)          & 0.1598 \\
+ & Validation Maximum              & 0.0090 (0.0080)          & \textbf{6\%}  & 0.0553 (0.0478)          & 0.1591 \\
 \midrule
 \multirow{4}{*}{\textbf{Operator-Entropy}}
- & Standard SPOT ($q=10^{-3}$)      & \textbf{0.0617} & 65\% & 0.1599 \\
- & SPOT + Kurtosis ($\beta=0.167$) & 0.1229          & 76\% & 0.1441 \\
- & Empirical 99.5th Percentile     & 0.0758          & 62\% & \textbf{0.1658} \\
- & Validation Maximum              & 0.0656          & 64\% & 0.1627 \\
+ & Standard SPOT ($q=10^{-3}$)      & 0.0152 (0.0144)          & 11\%          & \textbf{0.0617} (0.0546) & 0.1599 \\
+ & SPOT + Kurtosis ($\beta=0.167$) & \textbf{0.0136} (0.0125) & 9\%           & 0.1229 (0.1064)          & 0.1441 \\
+ & Empirical 99.5th Percentile     & 0.0238 (0.0229)          & 25\%          & 0.0758 (0.0677)          & \textbf{0.1658} \\
+ & Validation Maximum              & 0.0148 (0.0136)          & \textbf{7\%}  & 0.0656 (0.0576)          & 0.1627 \\
 \midrule
 \multirow{4}{*}{\textbf{TimesNet}}
- & Standard SPOT ($q=10^{-3}$)      & \textbf{0.2217} & 86\% & 0.1395 \\
- & SPOT + Kurtosis ($\beta=0.167$) & 0.2281          & 82\% & 0.1352 \\
- & Empirical 99.5th Percentile     & 0.2338          & 87\% & \textbf{0.1413} \\
- & Validation Maximum              & 0.2263          & 86\% & 0.1410 \\
+ & Standard SPOT ($q=10^{-3}$)      & 0.1795 (0.1611)          & 49\%          & \textbf{0.2217} (0.1985) & 0.1395 \\
+ & SPOT + Kurtosis ($\beta=0.167$) & 0.1843 (0.1623)          & 46\%          & 0.2281 (0.2011)          & 0.1352 \\
+ & Empirical 99.5th Percentile     & 0.1914 (0.1752)          & 51\%          & 0.2338 (0.2125)          & \textbf{0.1413} \\
+ & Validation Maximum              & \textbf{0.1791} (0.1599) & 48\%          & 0.2263 (0.2032)          & 0.1410 \\
 \midrule
 \multirow{4}{*}{\textbf{TranAD}}
- & Standard SPOT ($q=10^{-3}$)      & \textbf{0.2217} & 82\% & 0.0936 \\
- & SPOT + Kurtosis ($\beta=0.167$) & 0.2453          & 84\% & 0.0940 \\
- & Empirical 99.5th Percentile     & 0.2343          & 84\% & \textbf{0.0962} \\
- & Validation Maximum              & 0.2270          & 84\% & 0.0952 \\
+ & Standard SPOT ($q=10^{-3}$)      & 0.1601 (0.1423)          & 46\%          & \textbf{0.2217} (0.1963) & 0.0936 \\
+ & SPOT + Kurtosis ($\beta=0.167$) & 0.1722 (0.1513)          & \textbf{43\%} & 0.2453 (0.2151)          & 0.0940 \\
+ & Empirical 99.5th Percentile     & 0.1712 (0.1544)          & 51\%          & 0.2343 (0.2093)          & \textbf{0.0962} \\
+ & Validation Maximum              & \textbf{0.1580} (0.1392) & 44\%          & 0.2270 (0.2009)          & 0.0952 \\
 \bottomrule
 \end{tabular}%
 }

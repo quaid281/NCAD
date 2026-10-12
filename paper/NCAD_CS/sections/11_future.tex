@@ -1,17 +1,11 @@
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
+We compared score conditioning, detection, and static threshold calibration across 33 telemetry streams from seven datasets under a held-out protocol. Three conclusions follow:
 
-We compared score conditioning, detection, and static threshold calibration on 33 telemetry streams from seven datasets under a held-out protocol. Three conclusions follow.
+First, bounded observation-space controls reproduce much of the apparent latent-score tail conditioning, while the bounded TCN demonstrates that light tails do not guarantee threshold transfer. Causal event-recall areas over nominal budgets favor JEPA on average, but paired comparisons at matched realized FPR have sparse support and do not establish a detector advantage; buffered results remain separate.
 
-First, bounded observation-space controls reproduce much of the apparent latent-score tail conditioning, while the bounded TCN shows that light tails do not guarantee threshold transfer. Causal event-recall areas over nominal budgets favor JEPA on average, but paired comparisons at matched realized FPR have sparse support and do not establish a detector advantage; buffered results remain separate. Point-F1 and PR-AUC differences are imprecise, not evidence of equivalence.
+Second, the tested physics-inspired variants provide no reliable aggregate detection benefit, passing formal TOST equivalence within $\pm 0.05$ Point-F1 of TS-JEPA ($p \le 0.0054$). Explanations invoking curl-free dynamics or operating points remain conjectural.
 
-Second, the tested physics-inspired variants show no reliable aggregate benefit. Neither the unadjusted Potential-Flow F1 contrast nor its favorable nominal-budget curve establishes a mechanism; explanations based on curl-free dynamics or operating points remain conjectural.
+Third, static POT thresholds overshoot design risk under chronological calibration ($5.3\text{--}6.2\%$ vs.\ $\approx 22\%$ buffered; $1.0\%$ vs.\ $16\text{--}18\%$ causal at $q{=}10^{-3}$). An exchangeable permutation control demonstrates that inter-block distribution drift accounts for $84\text{--}96\%$ of this overshoot, while sample scarcity and autocorrelation are secondary.
 
-Third, static POT thresholds overshoot their design risk under the short chronological calibration protocol ($5.3\text{--}6.2\%$ for JEPAs, $\approx 22\%$ for reconstructive baselines at $q{=}10^{-3}$). Observational drift diagnostics and scarce tail exceedances do not resolve their relative contributions.
-
-\textbf{Scope.} All evaluations are \emph{within-dataset}: models are trained, calibrated, and tested on disjoint chronological partitions of the same stream. We claim nothing about cross-dataset transfer or unseen fault types (cf.\ Section~\ref{subsec:gate_fault_study}). Extensions include solenoidal components via Helmholtz decomposition, memory-bounded online drift adaptation, accelerated streaming inference kernels, and integer quantization for edge deployment.
-
-\section*{Code and Data Availability}
-\begin{sloppypar}
-All benchmark extraction scripts, preprocessing pipelines, checkpoints, training implementations, evaluation runners (\url{scripts/run_multiseed_heldout_benchmark.py}, \url{scripts/run_protocol_ablation.py}), diagnostic artifacts, and logs are released at \url{https://anonymous.4open.science/r/NCAD_CS-Reproducibility-8F21}; public datasets are accessible via their referenced repositories.
-\end{sloppypar}
+\textbf{Scope and Availability.} All evaluations are within-dataset: models are trained, calibrated, and tested on disjoint chronological partitions of the same stream. We claim nothing about cross-dataset transfer or unseen fault types. Extensions include online drift adaptation, accelerated inference kernels, and integer quantization. Benchmark pipelines, evaluation runners, diagnostic artifacts, and logs are archived at \url{https://anonymous.4open.science/r/NCAD_CS-Reproducibility-8F21}.
