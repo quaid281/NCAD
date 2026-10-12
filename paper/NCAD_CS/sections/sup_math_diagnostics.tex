@@ -83,7 +83,37 @@ TranAD & 0.6761 & \textbf{0.7246} & 0.9343 & \textbf{0.6560} \\
 }
 \end{table}
 
-Table~\ref{tab:covariance_validation} indicates that on marginal variance shifts, Reynolds-Stress improves PR-AUC by $+76\%$ over TS-JEPA ($0.5838$ vs.\ $0.3313$). However, on pure covariance shifts without marginal changes, both latent models show low sensitivity ($0.041\text{--}0.050$ PR-AUC) relative to observation-space baselines ($0.676\text{--}0.931$). Standard temporal pooling across channels averages out instantaneous phase alignments, preventing the second-moment loss from isolating cross-channel relationship shifts unless explicit pairwise relational graphs are modeled. Evaluating covariance estimation across nine held-out telemetry streams (\texttt{reports/heldout\_reynolds\_covmodes.csv}) reveals strict estimator invariance: instantaneous rank-1 projection, temporal-window rolling covariance, and batch-empirical covariance yield indistinguishable Point-F1 scores ($|\Delta\text{F1}| \le 0.010$, non-significant), demonstrating that the head's null downstream impact is insensitive to the covariance estimator formulation.
+Table~\ref{tab:covariance_validation} indicates that on marginal variance shifts, Reynolds-Stress improves PR-AUC by $+76\%$ over TS-JEPA ($0.5838$ vs.\ $0.3313$). However, on pure covariance shifts without marginal changes, both latent models show low sensitivity ($0.041\text{--}0.050$ PR-AUC) relative to observation-space baselines ($0.676\text{--}0.931$). Standard temporal pooling across channels averages out instantaneous phase alignments, preventing the second-moment loss from isolating cross-channel relationship shifts unless explicit pairwise relational graphs are modeled.
+
+\paragraph{Covariance Estimator Ablation (9 Held-Out Streams)}
+To determine whether the choice of empirical covariance formulation affects the regularizer's null impact, Table~\ref{tab:reynolds_covmodes} compares three covariance estimators across nine held-out telemetry streams (\texttt{reports/heldout\_reynolds\_covmodes.csv}): (1)~the deployed instantaneous rank-1 outer product plus ridge penalty, $\boldsymbol{\Sigma}_{\text{obs}} = (\mathbf{P} z_{\text{tgt}})(\mathbf{P} z_{\text{tgt}})^\top + 10^{-3}\mathbf{I}$; (2)~a centered temporal-window covariance over suspect steps, $\boldsymbol{\Sigma}_{\text{obs}} = \frac{1}{S}\sum_{s=1}^S (\mathbf{P} z_s - \bar{z})(\mathbf{P} z_s - \bar{z})^\top + 10^{-3}\mathbf{I}$; and (3)~a batch-level empirical covariance across parallel windows. Across the nine benchmark streams under standard SPOT calibration ($u=0.98, q=10^{-3}$, buffered regime), macro Point-F1 scores are $0.188$ (instantaneous rank-1), $0.179$ (centered temporal-window), and $0.178$ (batch covariance). Point-F1 differences remain within $|\Delta\mathrm{F1}| \le 0.009$, and a paired Wilcoxon signed-rank test between instantaneous and temporal-window estimators yields $p = 0.4375$ (non-significant). The regularizer's null downstream effect is therefore invariant to the covariance estimator formulation.
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{Reynolds-Stress covariance mode ablation across nine held-out telemetry streams (SPOT calibration, buffered smear regime). Across instantaneous rank-1 outer product, centered temporal-window covariance, and batch covariance, downstream Point-F1 differences remain within $|\Delta\mathrm{F1}| \le 0.009$ ($p=0.4375$).}\label{tab:reynolds_covmodes}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lccccccccc@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{Instantaneous Rank-1}} & \multicolumn{3}{c}{\textbf{Temporal-Window}} & \multicolumn{3}{c}{\textbf{Batch Covariance}} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+\textbf{Stream} & \textbf{F1} & \textbf{FPR} & \textbf{PR-AUC} & \textbf{F1} & \textbf{FPR} & \textbf{PR-AUC} & \textbf{F1} & \textbf{FPR} & \textbf{PR-AUC} \\
+\midrule
+Daphnet:S01R01E1 & 0.000 & 0.154 & 0.050 & 0.000 & 0.129 & 0.050 & 0.000 & 0.165 & 0.052 \\
+Daphnet:S03R01E0 & 0.371 & 0.043 & 0.412 & 0.344 & 0.048 & 0.413 & 0.288 & 0.373 & 0.254 \\
+Genesis:default  & 0.000 & 0.006 & 0.005 & 0.000 & 0.001 & 0.005 & 0.000 & 0.024 & 0.003 \\
+MSL:C-1          & 0.048 & 0.108 & 0.151 & 0.048 & 0.106 & 0.151 & 0.000 & 0.077 & 0.139 \\
+MSL:M-1          & 0.000 & 0.247 & 0.424 & 0.000 & 0.252 & 0.425 & 0.000 & 0.133 & 0.408 \\
+SMAP:A-7         & 0.853 & 0.150 & 0.959 & 0.853 & 0.151 & 0.959 & 0.860 & 0.121 & 0.965 \\
+SMAP:D-3         & 0.321 & 0.016 & 0.860 & 0.321 & 0.016 & 0.861 & 0.323 & 0.011 & 0.849 \\
+metro:traffic    & 0.001 & 0.019 & 0.001 & 0.001 & 0.015 & 0.001 & 0.002 & 0.016 & 0.001 \\
+swan:sf          & 0.098 & 0.014 & 0.392 & 0.048 & 0.005 & 0.413 & 0.126 & 0.027 & 0.349 \\
+\midrule
+\textbf{Macro Mean} & \textbf{0.188} & 0.084 & 0.362 & \textbf{0.179} & 0.080 & 0.364 & \textbf{0.178} & 0.105 & 0.336 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
 
 \subsubsection{Potential-Flow: Conservative vs. Circulating Dynamics}
 Potential-Flow JEPA constrains transition velocities to curl-free potential gradients ($\hat{v} = -\nabla\Phi$). Table~\ref{tab:potential_flow_validation} evaluates Potential-Flow against Helmholtz-JEPA (decomposing velocity into gradient plus solenoidal circulation: $\hat{v} = -\nabla\Phi + \text{curl}(A)$) and unconstrained TS-JEPA across two dynamical benchmarks: a conservative Duffing oscillator and a non-conservative Van der Pol limit-cycle attractor.

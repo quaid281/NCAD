@@ -187,13 +187,18 @@ Causal 0.050 & ZScoreMax & 0.595 & 0.296 & 61.4 & 258.0 & -- \\
 \end{tabular}
 \end{table}
 
+\subsection{Controlled-Drift Calibration Stress Test}
+\label{subsec:controlled_drift_stress_test}
+Table~\ref{tab:drift_calibration} evaluates calibrator reliability under nine controlled distribution-shift conditions injected into held-out nominal score sequences. The experiment is strictly risk-matched at design risk $q=10^{-3}$ ($p_{99.9}$), not $0.5\%$: the static and rolling empirical quantiles evaluate the empirical $1-q = 0.999$ calibration quantile to match SPOT's nominal budget. While rolling calibrators control nominal FPR to $1.1\%\text{--}7.0\%$ under discrete step changes, variance inflations, and autocorrelation shifts, both static and rolling methods fail under continuous ramps ($0.326\text{--}0.385$ FPR), confirming that temporal score drift within blocks dominates tail calibration failure.
+
 \begin{table}[t]
 \centering
 \scriptsize
 \caption{Controlled-drift calibration study: achieved held-out FPR (design $q=10^{-3}$) under injected shifts in real residual streams (stream-averaged over 16 streams with $\ge 200$ calibration/evaluation windows; the three short MSL streams are excluded). Rolling variants recalibrate per evaluation block.}\label{tab:drift_calibration}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-Condition & SPOT & SPOT+decl. & p99.5 & Roll.\ p99.5 & Roll.\ SPOT \\
+Condition & SPOT & SPOT+decl. & Empirical ($q=10^{-3}$) & Roll.\ Emp.\ ($q=10^{-3}$) & Roll.\ SPOT \\
 \midrule
 acf 0.6 & 0.079 & 0.182 & 0.188 & 0.018 & 0.051 \\
 acf 0.9 & 0.113 & 0.218 & 0.232 & 0.024 & 0.055 \\
@@ -205,7 +210,8 @@ stationary & 0.061 & 0.159 & 0.162 & 0.016 & 0.047 \\
 var scale 1.5 & 0.072 & 0.172 & 0.178 & 0.016 & 0.047 \\
 var scale 2.0 & 0.082 & 0.186 & 0.195 & 0.016 & 0.047 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \begin{table}[t]
@@ -249,6 +255,37 @@ TranAD & 0.24 & 0.148 & 120.9 & 60.3 \\
 ZScoreMax & 0.39 & 0.217 & 90.3 & 59.8 \\
 \bottomrule
 \end{tabular}
+\end{table}
+
+\subsection{Shared Intersecting Event Detection Delay Analysis}
+\label{subsec:delay_intersection_analysis}
+Apparent detection delay differences in unconditioned benchmarks often stem from differing event detection subsets rather than intrinsic response speed: detectors with higher false-positive rates trigger on earlier margins of diffuse events, or capture distinct anomaly subsets. To separate detector latency from event-selection bias, Table~\ref{tab:delay_intersection} evaluates detection delay on the intersection of anomaly events detected by both TS-JEPA and each evaluated model across paired stream--seed runs at $q^*{=}0.05$ (\texttt{reports/delay\_intersection.csv}).
+
+Across the 244 shared anomaly events detected by both models across 65 evaluation runs, TS-JEPA achieves a mean detection delay of $59.21$ steps, matching TimesNet ($56.91$ steps) within $2.3$ steps ($2.30$ steps difference). This contrasts with the 31.8-step gap observed under unconditioned event sets (Table~\ref{tab:core_benchmark}). Against TCN-ObsPred ($249$ intersecting events across 65 runs), the delay gap is $9.01$ steps ($60.35$ vs.\ $51.33$ steps). When conditioned on identical detected anomalies, the latency disparity between reconstructive observation models and latent representation forecasters largely disappears.
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{Shared Intersecting Event Detection Delay ($q^*{=}0.05$). Paired runs: stream--seed cells where both models detected at least one common event; Shared Events: total intersecting events; $\Delta t_{\mathrm{TS\text{-}JEPA}}$ and $\Delta t_{\mathrm{Model}}$: mean detection delay over shared events (steps); Difference: $\Delta t_{\mathrm{TS\text{-}JEPA}} - \Delta t_{\mathrm{Model}}$.}\label{tab:delay_intersection}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Model Contrast} & \textbf{Paired Runs} & \textbf{Shared Events} & $\mathbf{\Delta t_{\mathrm{TS\text{-}JEPA}}}$ & $\mathbf{\Delta t_{\mathrm{Model}}}$ & \textbf{Difference} \\
+\midrule
+JEPA-CtxRecon & 78 & 404 & 46.52 & 40.30 & +6.22 \\
+JEPA-NoEMA    & 79 & 578 & 46.87 & 49.38 & -2.51 \\
+OpEntropy     & 85 & 697 & 43.86 & 42.27 & +1.59 \\
+PCA-Recon     & 65 & 243 & 59.01 & 49.58 & +9.43 \\
+PotentialFlow & 77 & 513 & 45.70 & 27.68 & +18.02 \\
+Reynolds      & 77 & 827 & 45.11 & 58.60 & -13.49 \\
+TCN-ObsPred   & 65 & 249 & 60.35 & 51.33 & +9.01 \\
+TCN-ObsRecon  & 65 & 242 & 60.04 & 50.66 & +9.38 \\
+TimesNet      & 65 & 244 & 59.21 & 56.91 & +2.30 \\
+TranAD        & 63 & 230 & 60.27 & 120.92 & -60.65 \\
+ZScoreMax     & 69 & 252 & 59.79 & 90.32 & -30.53 \\
+\bottomrule
+\end{tabular}%
+}
 \end{table}
 
 \begin{table}[t]
@@ -369,4 +406,39 @@ $0.33\%$ ($0.0033$) & TS-JEPA & 6-stream pilot diagnostic & 1 & Buffered (smear)
 \bottomrule
 \end{tabular}%
 }
+\end{table*}
+
+\subsection{Complete 17-Model Common Support Matrix on Realized FPR}
+\label{subsec:common_support_17models}
+To examine detection quality without reliance on nominal calibration transfer, Table~\ref{tab:common_support_17models} provides the complete 17-model common support matrix on realized test false-positive rates $[0.10, 0.50]$ under the strictly causal trailing regime (\texttt{reports/oc\_realized\_fpr\_pairs.csv}). For each model contrasted against TS-JEPA, common support requires observed test false-positive rates to cover $[0.10, 0.50]$ without extrapolation. Out of 19 non-GHL benchmark streams, models with conservative or aggressive threshold transfer support between 4 and 14 streams, discarding 5 to 15 streams.
+
+Across all 17 paired comparisons, TS-JEPA demonstrates no statistically significant advantage over alternative models on common support: stream-level paired Wilcoxon signed-rank test $p$-values range from $0.219$ to $1.000$, and every single contrast yields a Benjamini--Hochberg adjusted $p_{\mathrm{BH}} = 1.0$. For PCA-LinPred-LN ($+0.121$ mean $\Delta\mathrm{pAUC}$), the stream-level paired Wilcoxon signed-rank test yields $p = 0.312$ with a 95\% bootstrap CI spanning zero ($[-0.010, +0.271]$ across 11 supported streams). Reconstructive TimesNet yields a $+0.061$ difference across 4 supported streams ($p = 0.625$, CI $[-0.153, +0.329]$), while bounded TCN-ObsPred-LN matches TS-JEPA closely ($-0.018$, $p = 0.219$, CI $[-0.044, +0.002]$ across 9 supported streams). Common-support interpolation confirms that nominal-budget advantages do not translate into statistically significant detection gains at matched realized false-positive rates.
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\caption{Complete 17-Model Common Support Matrix on Realized FPR $[0.10, 0.50]$ (Strictly Causal Trailing Regime). For each model contrasted against TS-JEPA, common support requires observed test false-positive rates to span $[0.10, 0.50]$ without extrapolation. Supported and discarded streams are out of 19 total non-GHL benchmark streams. Seed cells indicate paired stream--seed runs. $\Delta\mathrm{pAUC}$: mean paired partial-AUC difference (TS-JEPA minus model) across supported streams; 95\% CI: stream-level bootstrap confidence interval (2,000 resamples); Wilcoxon $p$: two-sided stream-level paired Wilcoxon signed-rank test; FDR $p_{\mathrm{BH}}$: Benjamini--Hochberg adjusted $p$-value across the 17-model family.}\label{tab:common_support_17models}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+\textbf{Model Contrast (vs.\ TS-JEPA)} & \textbf{Supported Streams} & \textbf{Discarded Streams} & \textbf{Seed Cells} & \textbf{Datasets} & $\mathbf{\Delta\mathrm{pAUC}}$ & \textbf{95\% Bootstrap CI} & \textbf{Wilcoxon} $p$ & \textbf{FDR} $p_{\mathrm{BH}}$ \\
+\midrule
+IsoForest & 11 & 8 & 54 & 6 & +0.025 & [-0.077, +0.143] & 0.844 & 1.0 \\
+JEPA-CtxRecon & 13 & 6 & 53 & 6 & -0.007 & [-0.018, +0.005] & 0.312 & 1.0 \\
+JEPA-NoEMA & 14 & 5 & 56 & 6 & +0.011 & [-0.020, +0.050] & 1.000 & 1.0 \\
+KNN-Dist & 5 & 14 & 22 & 4 & +0.094 & [-0.036, +0.270] & 0.438 & 1.0 \\
+Obs-MAD & 5 & 14 & 22 & 4 & +0.028 & [-0.055, +0.146] & 1.000 & 1.0 \\
+OpEntropy & 13 & 6 & 56 & 6 & -0.012 & [-0.037, +0.005] & 0.312 & 1.0 \\
+PCA-LinPred-LN & 11 & 8 & 54 & 5 & +0.121 & [-0.010, +0.271] & 0.312 & 1.0 \\
+PCA-Recon & 5 & 14 & 22 & 4 & +0.126 & [-0.028, +0.307] & 0.438 & 1.0 \\
+PotentialFlow & 14 & 5 & 62 & 6 & -0.017 & [-0.059, +0.009] & 0.499 & 1.0 \\
+Reynolds & 13 & 6 & 55 & 6 & +0.002 & [-0.047, +0.037] & 0.297 & 1.0 \\
+TCN-ObsPred & 4 & 15 & 20 & 4 & +0.106 & [-0.057, +0.326] & 0.625 & 1.0 \\
+TCN-ObsPred-LN & 9 & 10 & 42 & 6 & -0.018 & [-0.044, +0.002] & 0.219 & 1.0 \\
+TCN-ObsRecon & 4 & 15 & 20 & 4 & +0.130 & [-0.040, +0.349] & 0.375 & 1.0 \\
+TS-JEPA-NoGate & 14 & 5 & 61 & 6 & +0.005 & [-0.012, +0.023] & 0.674 & 1.0 \\
+TimesNet & 4 & 15 & 20 & 4 & +0.061 & [-0.153, +0.329] & 0.625 & 1.0 \\
+TranAD & 5 & 14 & 21 & 4 & +0.085 & [-0.058, +0.289] & 0.812 & 1.0 \\
+ZScoreMax & 5 & 14 & 25 & 4 & +0.032 & [-0.049, +0.159] & 0.875 & 1.0 \\
+\bottomrule
+\end{tabular}
 \end{table*}

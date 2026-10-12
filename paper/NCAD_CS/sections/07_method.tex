@@ -65,7 +65,7 @@ At test time, the anomaly score adds the second-moment error: $\mathcal{S}(t) = 
 \label{subsubsec:potential_flow_jepa}
 Under Helmholtz-Hodge decomposition, a smooth field splits into a curl-free potential gradient and a solenoidal component: $v = -\nabla \Phi + \nabla \times A$. Dissipative gradient flows provide theoretical motivation:
 
-\begin{proposition}[Theoretical Motivation: Absence of Periodic Orbits]
+\begin{proposition}[Idealized Continuous Gradient Flow Motivation (Non-Binding)]
 \label{prop:no_limit_cycles}
 Let $\dot{z} = -\nabla\Phi(z)$ be an autonomous gradient flow on $\mathbb{R}^D$ with $\Phi \in C^2(\mathbb{R}^D, \mathbb{R})$. There exist no non-constant periodic orbits.
 \end{proposition}
@@ -82,7 +82,7 @@ At inference, the detector queries the field at the trajectory midpoint:
 \begin{equation}
     \mathbf{e}(t) = \hat{v}\!\left(0.5 z_{\text{tgt}},\, 0.5,\, z_{\text{ctx}},\, p_{\text{regime}}\right) - z_{\text{tgt}}.
 \end{equation}
-Because midpoint queries on a time-dependent, context-conditioned network do not integrate an autonomous trajectory, Proposition~\ref{prop:no_limit_cycles} does not formally bind test scoring. However, parameterizing $\hat{v}$ as a spatial gradient imposes a curl-free bias ($\nabla \times \hat{v} \equiv \mathbf{0}$) with vanishing circulation $\oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = 0$, dynamically penalizing cyclic orbits as anomalous and degrading detection on periodic kinematics (Section~\ref{subsec:eval_physics_priors}).
+Discrete midpoint queries on conditional velocity fields do not integrate an autonomous continuous trajectory and do not inherit autonomous non-periodic guarantees; Proposition~\ref{prop:no_limit_cycles} provides idealized continuous motivation and does not bind discrete scoring. Parameterizing $\hat{v}$ as a spatial gradient imposes a curl-free bias ($\nabla \times \hat{v} \equiv \mathbf{0}$) with vanishing circulation $\oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = 0$, dynamically penalizing cyclic orbits as anomalous and degrading detection on periodic kinematics (Section~\ref{subsec:eval_physics_priors}).
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}

@@ -86,8 +86,8 @@ def drift_table(df):
     g = df.groupby(["condition", "calibrator"]).achieved_fpr.mean().unstack()
     cols = ["spot", "spot_decluster", "empirical", "rolling_emp", "rolling_spot"]
     cols = [c for c in cols if c in g.columns]
-    labels = {"spot": "SPOT", "spot_decluster": "SPOT+decl.", "empirical": "p99.5",
-              "rolling_emp": "Roll.\ p99.5", "rolling_spot": "Roll.\ SPOT"}
+    labels = {"spot": "SPOT", "spot_decluster": "SPOT+decl.", "empirical": r"Empirical ($q=10^{-3}$)",
+              "rolling_emp": r"Roll.\ Emp.\ ($q=10^{-3}$)", "rolling_spot": r"Roll.\ SPOT"}
     n_str = df.groupby(["dataset", "channel"]).ngroups
     lines = [r"\begin{table}[t]", r"\centering", r"\scriptsize",
              r"\caption{Controlled-drift calibration study: achieved held-out FPR (design "
