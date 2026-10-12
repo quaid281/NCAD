@@ -3,8 +3,8 @@
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.58\textwidth]{figures/physics_jepa_triad_architecture.png}
-\caption{JEPA telemetry-monitoring architecture: context and suspect windows are encoded and compared in latent space under three candidate physical regularizers, with held-out SPOT calibration.\label{fig:triad_architecture}}
+\includegraphics[width=0.54\textwidth]{figures/opentropy_jepa_architecture.png}
+\caption{Operator-Entropy JEPA architecture: multiscale context ($\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{256 \times K}$) and suspect ($\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{64 \times K}$) windows are mapped into latent space via online ($E_\theta$) and EMA momentum ($E_\phi$) encoders with a stop-gradient barrier ($\perp$). A linear Koopman transition operator ($\mathbf{K} \in \mathbb{R}^{32 \times 32}$) forecasts the target representation $\hat{\mathbf{z}}_{\text{tgt}} = \mathbf{K}\mathbf{z}_{\text{ctx}}$, regularized by dual Von Neumann spectral entropy and a logarithmic Bregman energy barrier against collapse. Residual discrepancies pass through a coordinate saliency gate to yield anomaly score $S_t$ calibrated via streaming SPOT.\label{fig:triad_architecture}}
 \end{figure*}
 
 This section formalizes the mathematical formulation, latent predictors, and inductive biases of the proposed framework. 
