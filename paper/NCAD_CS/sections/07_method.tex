@@ -57,7 +57,7 @@ The training objective is:
 \begin{equation}
     \mathcal{L}_{\text{Reynolds}} = \operatorname{MSE}(\hat{z}_{\text{tgt}}, z_{\text{tgt}}) + 0.1\, \operatorname{MSE}(\boldsymbol{\Sigma}_{\text{pred}}, \boldsymbol{\Sigma}_{\text{obs}}).
 \end{equation}
-At test time, the anomaly score adds the second-moment error: $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. Downstream performance is evaluated in Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a).
+At test time, the anomaly score adds the second-moment error: $\mathcal{S}(t) = g(\hat{z}_{\text{tgt}} - z_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. Downstream performance is evaluated in Section~\ref{subsec:eval_physics_priors} and Table~\ref{tab:ablations}(a).
 
 \subsubsection{Potential-Flow JEPA (Conservative Field Theory and Flow Matching)}
 \label{subsubsec:potential_flow_jepa}
@@ -80,11 +80,11 @@ At inference, the detector queries the field at the trajectory midpoint:
 \begin{equation}
     \mathbf{e}(t) = \hat{v}\!\left(0.5 z_{\text{tgt}},\, 0.5,\, z_{\text{ctx}},\, p_{\text{regime}}\right) - z_{\text{tgt}}.
 \end{equation}
-Discrete midpoint queries on conditional velocity fields do not integrate an autonomous continuous trajectory and do not inherit autonomous non-periodic guarantees; Proposition~\ref{prop:no_limit_cycles} provides idealized continuous motivation and does not bind discrete scoring. Parameterizing $\hat{v}$ as a spatial gradient imposes a curl-free bias ($\nabla \times \hat{v} \equiv \mathbf{0}$) with vanishing circulation $\oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = 0$, hypothesized to penalize cyclic nominal orbits and degrade detection on periodic kinematics (evaluated empirically in Section~\ref{subsec:eval_physics_priors}).
+Discrete midpoint queries on conditional velocity fields do not integrate an autonomous continuous trajectory and do not inherit autonomous non-periodic guarantees; Proposition~\ref{prop:no_limit_cycles} provides idealized continuous motivation and does not bind discrete scoring. Parameterizing $\hat{v}$ as a spatial gradient imposes a curl-free bias ($\nabla \times \hat{v} \equiv \mathbf{0}$) with vanishing circulation $\oint_{\mathcal{C}} \hat{v} \cdot d\mathbf{r} = 0$. This constraint is hypothesized to penalize cyclic nominal orbits and degrade detection on periodic kinematics (evaluated empirically in Section~\ref{subsec:eval_physics_priors}).
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
-During inference, context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed at stride 1. For TS-JEPA, Operator-Entropy, and Potential-Flow, the score gates the latent discrepancy through $g(\cdot)$ (Section~\ref{subsubsec:causal_saliency_gating}): $\mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t))$. For the second-moment head (Reynolds-Stress), $\mathcal{S}(t) = g(z_{\text{tgt}} - \hat{z}_{\text{tgt}}) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. All shared representation stages are held fixed across variants and ablation controls (Section~\ref{subsec:controlled_ablations}).
+During inference, context windows $x_{\text{ctx}} = \mathbf{X}[t - C : t, :]$ and suspect windows $x_{\text{tgt}} = \mathbf{X}[t : t + S, :]$ are processed at stride 1. For TS-JEPA, Operator-Entropy, and Potential-Flow, the score gates the latent discrepancy through $g(\cdot)$ (Section~\ref{subsubsec:causal_saliency_gating}): $\mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t))$. For the second-moment head (Reynolds-Stress), $\mathcal{S}(t) = g(\hat{z}_{\text{tgt}}(t) - z_{\text{tgt}}(t)) + 0.5\, g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$. All shared representation stages are held fixed across variants and ablation controls (Section~\ref{subsec:controlled_ablations}).
 
 \noindent\textbf{Three-Part Operational Causality Framework:}
 To resolve the methodological confounding between data availability, decision latency, and evaluation attribution, we formalize detection under three operational criteria (Fig.~\ref{fig:inference_timeline}):
@@ -107,7 +107,7 @@ To stabilize learning across high-dimensional, noisy telemetry, the latent JEPA 
 
 \subsubsection{Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}
 \label{subsubsec:causal_saliency_gating}
-On high-dimensional streams ($K \ge 25$), faults frequently originate in a localized subsystem while the remaining channels exhibit ambient noise, diluting localized anomalies in isotropic representations. The deployed detector mitigates this in latent space via an anti-drowning coordinate saliency gate on error vectors $\mathbf{e} = z_{\text{tgt}} - z_{\text{pred}} \in \mathbb{R}^D$:
+On high-dimensional streams ($K \ge 25$), faults frequently originate in a localized subsystem while the remaining channels exhibit ambient noise, diluting localized anomalies in isotropic representations. The deployed detector mitigates this in latent space via an anti-drowning coordinate saliency gate $g(\mathbf{e}) \equiv \mathcal{D}_{\text{sal}}(\mathbf{e})$ on error vectors $\mathbf{e} = \hat{z}_{\text{tgt}} - z_{\text{tgt}} \in \mathbb{R}^D$:
 \begin{align}
     \mathcal{D}_{\text{sal}}(\mathbf{e}) &= (1 - \alpha) \|\mathbf{e}\|_2 + \alpha \sqrt{D \sum_{d=1}^D w_d e_d^2}, \\
     w_d &= \frac{\exp(|e_d| / \tau)}{\sum_{j=1}^D \exp(|e_j| / \tau)}, \nonumber
