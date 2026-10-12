@@ -4,8 +4,6 @@ We compared score conditioning, detection, and static threshold calibration acro
 
 First, bounded observation-space controls reproduce much of the apparent latent-score tail conditioning, while the bounded TCN demonstrates that light tails do not guarantee threshold transfer. Causal event-recall areas over nominal budgets favor JEPA on average, but paired comparisons at matched realized FPR have sparse support and do not establish a detector advantage; buffered results remain separate.
 
-Second, the tested physics-inspired variants provide no reliable aggregate detection benefit, passing formal TOST equivalence within $\pm 0.05$ Point-F1 of TS-JEPA ($p \le 0.0054$). Explanations invoking curl-free dynamics or operating points remain conjectural.
+Second, the tested physics-inspired variants provide no reliable aggregate detection benefit, failing to meet formal TOST equivalence within $\pm 0.05$ Point-F1 of TS-JEPA ($p \le 0.0054$). Explanations invoking curl-free dynamics or operating points remain conjectural.
 
 Third, static POT thresholds overshoot design risk under chronological calibration ($5.3\text{--}6.2\%$ vs.\ $\approx 22\%$ buffered; $1.0\%$ vs.\ $16\text{--}18\%$ causal at $q{=}10^{-3}$). An exchangeable permutation control demonstrates that inter-block distribution drift accounts for $84\text{--}96\%$ of this overshoot, while sample scarcity and autocorrelation are secondary.
-
-\textbf{Scope and Availability.} All evaluations are within-dataset: models are trained, calibrated, and tested on disjoint chronological partitions of the same stream. We claim nothing about cross-dataset transfer or unseen fault types. Extensions include online drift adaptation, accelerated inference kernels, and integer quantization. Benchmark pipelines, evaluation runners, diagnostic artifacts, and logs are archived at \url{https://anonymous.4open.science/r/NCAD_CS-Reproducibility-8F21}.
