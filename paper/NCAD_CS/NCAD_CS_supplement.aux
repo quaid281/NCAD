@@ -91,6 +91,8 @@
 \@writefile{toc}{\contentsline {section}{\numberline {S-8}Revision Experiments}{7}{section.8}\protected@file@percent }
 \newlabel{sup:revision_experiments}{{S-8}{7}{Revision Experiments}{section.8}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {S-8.1}Controlled Score-Conditioning Study (Experiment A Full Contrast)}{7}{subsection.8.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {S-8.2}Controlled-Drift Calibration Stress Test}{7}{subsection.8.2}\protected@file@percent }
+\newlabel{subsec:controlled_drift_stress_test}{{S-8.2}{7}{Controlled-Drift Calibration Stress Test}{subsection.8.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {S15}{\ignorespaces Benchmark suite specifications: 45 matched telemetry streams across 11 datasets ($>$5.06M observations).}}{8}{table.15}\protected@file@percent }
 \newlabel{tab:dataset_specs}{{S15}{8}{Benchmark suite specifications: 45 matched telemetry streams across 11 datasets ($>$5.06M observations)}{table.15}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {S16}{\ignorespaces Per-Dataset Precision-Recall Area Under the Curve (PR-AUC / Average Precision) Across All 7 Evaluated Telemetry Benchmarks (33 Matched Channels). The best result for each dataset is in \textbf  {bold}, and the second best is \underline  {underlined}. Continuous ranking evaluates the unthresholded predictive scores.}}{8}{table.16}\protected@file@percent }
@@ -99,8 +101,6 @@
 \newlabel{tab:all_datasets}{{S17}{8}{Per-Dataset Unadjusted Point-F1 Across All 7 Evaluated Telemetry Benchmarks (33 Matched Streams) under Held-Out Calibration (SPOT, $q=10^{-3}$; up to five seeds on non-GHL streams). Best result for each dataset is in \textbf {bold}, and second best is \underline {underlined}. The bottom row reports unweighted Dataset-Macro averages matching Table~\ref {tab:core_benchmark}}{table.17}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {S18}{\ignorespaces Native-window baseline evaluation across five diverse benchmark streams (NASA SMAP: \texttt  {P-3}, SMD: \texttt  {machine-1-2}, NASA MSL: \texttt  {M-1}, Daphnet: \texttt  {S01R01E1}, GECCO: \texttt  {water\_quality}). Shortening the context window to native sizes ($W=10$ for TranAD, $W=96$ for TimesNet) exacerbates residual tail heaviness ($\gamma _2 = 448.25$ and $98.14$) rather than curing it.}}{8}{table.18}\protected@file@percent }
 \newlabel{tab:native_window_baselines}{{S18}{8}{Native-window baseline evaluation across five diverse benchmark streams (NASA SMAP: \texttt {P-3}, SMD: \texttt {machine-1-2}, NASA MSL: \texttt {M-1}, Daphnet: \texttt {S01R01E1}, GECCO: \texttt {water\_quality}). Shortening the context window to native sizes ($W=10$ for TranAD, $W=96$ for TimesNet) exacerbates residual tail heaviness ($\gamma _2 = 448.25$ and $98.14$) rather than curing it}{table.18}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {S-8.2}Controlled-Drift Calibration Stress Test}{8}{subsection.8.2}\protected@file@percent }
-\newlabel{subsec:controlled_drift_stress_test}{{S-8.2}{8}{Controlled-Drift Calibration Stress Test}{subsection.8.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {S-8.3}Shared Intersecting Event Detection Delay Analysis}{8}{subsection.8.3}\protected@file@percent }
 \newlabel{subsec:delay_intersection_analysis}{{S-8.3}{8}{Shared Intersecting Event Detection Delay Analysis}{subsection.8.3}{}}
 \citation{carmona2021neural}
@@ -115,8 +115,8 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {S-8.4}Multi-Dataset Baseline Benchmark Analysis}{9}{subsection.8.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {S-8.5}Master Headline False-Positive Rate Reconciliation}{9}{subsection.8.5}\protected@file@percent }
 \newlabel{subsec:master_fpr_reconciliation}{{S-8.5}{9}{Master Headline False-Positive Rate Reconciliation}{subsection.8.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {S-8.6}Complete 17-Model Common Support Matrix on Realized FPR}{10}{subsection.8.6}\protected@file@percent }
-\newlabel{subsec:common_support_17models}{{S-8.6}{10}{Complete 17-Model Common Support Matrix on Realized FPR}{subsection.8.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {S-8.6}Complete 17-Model Common Support Matrix on Realized FPR}{9}{subsection.8.6}\protected@file@percent }
+\newlabel{subsec:common_support_17models}{{S-8.6}{9}{Complete 17-Model Common Support Matrix on Realized FPR}{subsection.8.6}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {S21}{\ignorespaces Detection quality at matched held-out false-positive-rate budgets (stream-averaged, $q^*$ = empirical calibration quantile). ER: event recall; P: point precision; $\Delta t$: mean detection delay; FA/1k: false alarms per 1{,}000 nominal points; ER$_{\mathrm  {pre}}$: recall crediting pre-onset alarms.}}{10}{table.21}\protected@file@percent }
 \newlabel{tab:matched_fpr}{{S21}{10}{Detection quality at matched held-out false-positive-rate budgets (stream-averaged, $q^*$ = empirical calibration quantile). ER: event recall; P: point precision; $\Delta t$: mean detection delay; FA/1k: false alarms per 1{,}000 nominal points; ER$_{\mathrm {pre}}$: recall crediting pre-onset alarms}{table.21}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {S22}{\ignorespaces Controlled-drift calibration study: achieved held-out FPR (design $q=10^{-3}$) under injected shifts in real residual streams (stream-averaged over 16 streams with $\ge 200$ calibration/evaluation windows; the three short MSL streams are excluded). Rolling variants recalibrate per evaluation block.}}{11}{table.22}\protected@file@percent }
