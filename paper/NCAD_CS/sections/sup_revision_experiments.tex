@@ -412,7 +412,7 @@ $0.33\%$ ($0.0033$) & TS-JEPA & 6-stream pilot diagnostic & 1 & Buffered (smear)
 \label{subsec:common_support_17models}
 To examine detection quality without reliance on nominal calibration transfer, Table~\ref{tab:common_support_17models} provides the complete 17-model common support matrix on realized test false-positive rates $[0.10, 0.50]$ under the strictly causal trailing regime (\texttt{reports/oc\_realized\_fpr\_pairs.csv}). For each model contrasted against TS-JEPA, common support requires observed test false-positive rates to cover $[0.10, 0.50]$ without extrapolation. Out of 19 non-GHL benchmark streams, models with conservative or aggressive threshold transfer support between 4 and 14 streams, discarding 5 to 15 streams.
 
-Across all 17 paired comparisons, TS-JEPA demonstrates no statistically significant advantage over alternative models on common support: stream-level paired Wilcoxon signed-rank test $p$-values range from $0.219$ to $1.000$, and every single contrast yields a Benjamini--Hochberg adjusted $p_{\mathrm{BH}} = 1.0$. For PCA-LinPred-LN ($+0.121$ mean $\Delta\mathrm{pAUC}$), the stream-level paired Wilcoxon signed-rank test yields $p = 0.312$ with a 95\% bootstrap CI spanning zero ($[-0.010, +0.271]$ across 11 supported streams). Reconstructive TimesNet yields a $+0.061$ difference across 4 supported streams ($p = 0.625$, CI $[-0.153, +0.329]$), while bounded TCN-ObsPred-LN matches TS-JEPA closely ($-0.018$, $p = 0.219$, CI $[-0.044, +0.002]$ across 9 supported streams). Common-support interpolation confirms that nominal-budget advantages do not translate into statistically significant detection gains at matched realized false-positive rates.
+Across all 17 paired comparisons, TS-JEPA demonstrates no statistically significant advantage over alternative models on common support: stream-level paired Wilcoxon signed-rank test $p$-values range from $0.219$ to $1.000$, and every single contrast yields a Benjamini--Hochberg adjusted $p_{\mathrm{BH}} = 1.0$. For PCA-LinPred-LN ($+0.121$ mean $\Delta\mathrm{pAUC}$), the stream-level paired Wilcoxon signed-rank test yields $p = 0.312$ with a 95\% bootstrap CI spanning zero ($[-0.008, +0.271]$ across 11 supported streams). Reconstructive TimesNet yields a $+0.061$ difference across 4 supported streams ($p = 0.625$, CI $[-0.153, +0.329]$), while bounded TCN-ObsPred-LN matches TS-JEPA closely ($-0.018$, $p = 0.219$, CI $[-0.044, +0.002]$ across 9 supported streams). Common-support interpolation confirms that nominal-budget advantages do not translate into statistically significant detection gains at matched realized false-positive rates.
 
 \begin{table*}[t]
 \centering
@@ -428,7 +428,7 @@ JEPA-NoEMA & 14 & 5 & 56 & 6 & +0.011 & [-0.020, +0.050] & 1.000 & 1.0 \\
 KNN-Dist & 5 & 14 & 22 & 4 & +0.094 & [-0.036, +0.270] & 0.438 & 1.0 \\
 Obs-MAD & 5 & 14 & 22 & 4 & +0.028 & [-0.055, +0.146] & 1.000 & 1.0 \\
 OpEntropy & 13 & 6 & 56 & 6 & -0.012 & [-0.037, +0.005] & 0.312 & 1.0 \\
-PCA-LinPred-LN & 11 & 8 & 54 & 5 & +0.121 & [-0.010, +0.271] & 0.312 & 1.0 \\
+PCA-LinPred-LN & 11 & 8 & 54 & 5 & +0.121 & [-0.008, +0.271] & 0.312 & 1.0 \\
 PCA-Recon & 5 & 14 & 22 & 4 & +0.126 & [-0.028, +0.307] & 0.438 & 1.0 \\
 PotentialFlow & 14 & 5 & 62 & 6 & -0.017 & [-0.059, +0.009] & 0.499 & 1.0 \\
 Reynolds & 13 & 6 & 55 & 6 & +0.002 & [-0.047, +0.037] & 0.297 & 1.0 \\
