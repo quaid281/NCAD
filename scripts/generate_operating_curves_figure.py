@@ -67,8 +67,20 @@ def main():
           [["event_recall", "realized_fpr"]].mean())
 
     fig, axes = plt.subplots(2, 1, figsize=(3.4, 4.6), sharex=True)
-    colors = plt.cm.tab20(np.linspace(0, 1, len(PRINCIPAL)))
-    style = {m: c for m, c in zip(PRINCIPAL, colors)}
+    custom_colors = [
+        "#1f77b4",  # TS-JEPA (distinct primary blue)
+        "#ff7f0e",  # OpEntropy (orange)
+        "#2ca02c",  # Reynolds (green)
+        "#d62728",  # PotentialFlow (red)
+        "#9467bd",  # TimesNet (purple)
+        "#8c564b",  # TranAD (brown)
+        "#e377c2",  # TCN-ObsPred (pink)
+        "#7f7f7f",  # TCN-ObsPred-LN (gray)
+        "#bcbd22",  # PCA-LinPred-LN (olive)
+        "#17becf",  # IsoForest (cyan)
+        "#2b2b2b",  # ZScoreMax (dark charcoal, avoiding collision with TS-JEPA blue)
+    ]
+    style = {m: c for m, c in zip(PRINCIPAL, custom_colors)}
     fpr_grid = np.linspace(0.02, 0.85, 60)
 
     for ax, mapping, title in zip(axes, ["trailing", "smear"],
@@ -87,12 +99,34 @@ def main():
             ax.fill_between(fpr_grid, lo, hi, color=style[model], alpha=0.15)
         ax.set_xscale("log")
         ax.set_xlim(0.02, 0.9)
-        ax.set_title(title, fontsize=8)
-        ax.grid(alpha=0.3)
-        ax.set_ylabel("Event recall")
-    axes[1].set_xlabel("Realized test FPR")
-    axes[1].legend(fontsize=5.4, loc="lower right", ncol=2)
-    fig.tight_layout()
+        ax.set_ylim(0.28, 1.02)
+        ax.set_title(title, fontsize=8.5, pad=3)
+        ax.grid(True, linestyle=":", alpha=0.5)
+        ax.set_ylabel("Event recall", fontsize=8.5)
+        ax.tick_params(labelsize=7.5)
+
+    # Set explicit, intuitive x-ticks and formatting on log scale
+    xticks = [0.02, 0.05, 0.1, 0.2, 0.5]
+    axes[1].set_xticks(xticks)
+    axes[1].get_xaxis().set_major_formatter(
+        matplotlib.ticker.FuncFormatter(lambda x, _: f"{x:g}")
+    )
+    axes[1].set_xlabel("Realized test FPR", fontsize=8.5)
+
+    # Build legend handles including a 12th entry for the 95% bootstrap CI band
+    handles, labels = axes[0].get_legend_handles_labels()
+    ci_patch = matplotlib.patches.Patch(
+        facecolor="#888888", edgecolor="none", alpha=0.35, label="95% Boot. CI"
+    )
+    handles.append(ci_patch)
+    labels.append("95% Boot. CI")
+
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.995),
+               ncol=3, fontsize=6.2, columnspacing=0.7, handlelength=1.6,
+               handletextpad=0.35, labelspacing=0.22, frameon=True,
+               edgecolor='#cccccc', framealpha=0.95)
+
+    fig.tight_layout(rect=[0, 0, 1, 0.865])
     FIGDIR.mkdir(parents=True, exist_ok=True)
     for ext in ("pdf", "png"):
         fig.savefig(FIGDIR / f"operating_curves.{ext}", dpi=200)
@@ -101,3 +135,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
