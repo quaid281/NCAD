@@ -10,12 +10,12 @@ Multi-sensor telemetry reflects a physical state trajectory $\dot{x}(t) = \mathb
 Reconstructive models score observation-space errors, whereas latent predictors and low-dimensional controls use differently scaled, often bounded scores \cite{Hundman2018b, xu2022anomaly, wu2023timesnet}. Comparing their alarm rates at a common nominal threshold risk does not separate scoring geometry from discriminative quality. Nor does a static threshold fitted on one nominal block guarantee the same false-positive rate on a later block. Whether high-frequency noise specifically consumes reconstruction capacity, or synthetic perturbations in contrastive methods such as NCAD \cite{carmona2021neural} distort decisions, remains untested here.
 
 \subsection{Investigating Latent Prediction and Inductive Priors}
-We compare score conditioning, detection, and threshold transfer separately. A JEPA predicts target representations from context \cite{lecun2022path, assran2023self}; observation-space models, a matched-backbone control, a LayerNorm-bounded observation-space TCN, and a 32-dimensional PCA forecast with normalized gated scoring test alternative explanations. We also evaluate spectral-entropy, latent second-moment, and potential-flow variants as exploratory physics-inspired controls. These experiments do not by themselves isolate a noise-removal mechanism.
+We compare score conditioning, detection, and threshold transfer separately. A JEPA predicts target representations from context \cite{lecun2022path, assran2023self}; observation-space models, a matched-backbone control, a LayerNorm-bounded observation-space TCN, and a 32-dimensional PCA forecast with normalized gated scoring test alternative explanations. We also evaluate spectral entropy, latent second moment, and potential-flow variants as exploratory physics-inspired controls. These experiments do not by themselves isolate a noise-removal mechanism.
 
 \subsection{Contributions}
 This work makes four principal contributions:
 
-\noindent\textbf{1) Disentangling Alarm Rates and Score Quality:} On 19 non-GHL streams the nominal held-out false-positive rate is $7.6\%$ for TS-JEPA versus $30\%$ for TimesNet, but bounded PCA and bounded observation-space TCN controls also produce light residual tails, and the TCN control does not preserve low calibration FPR. The larger JEPA event-recall area over \emph{nominal design budgets} under causal attribution does not establish dominance at matched realized FPR: few streams span the same realized-FPR range, and paired comparisons are inconclusive. Buffered and causal results are reported separately.
+\noindent\textbf{1) Disentangling Alarm Rates and Score Quality:} On 19 non-GHL streams, the nominal held-out false-positive rate is $7.6\%$ for TS-JEPA versus $30\%$ for TimesNet, but bounded PCA and bounded observation-space TCN controls also produce light residual tails, and the TCN control does not preserve low calibration FPR. The larger JEPA event-recall area over \emph{nominal design budgets} under causal attribution does not establish dominance at matched realized FPR: few streams span the same realized-FPR range, and paired comparisons are inconclusive. Buffered and causal results are reported separately.
 
 \noindent\textbf{2) Null Results for Physics-Inspired Variants:} Across the 33-stream SPOT cohort, the tested regularizers provide no reliable aggregate detection gain. A Potential-Flow Point-F1 difference has an unadjusted $p{=}0.033$ but does not justify a multiplicity-adjusted superiority or inferiority claim.
 
@@ -23,5 +23,5 @@ This work makes four principal contributions:
 
 \noindent\textbf{4) Reproducible Multi-Seed Benchmark:} The SPOT benchmark spans 33 streams from seven datasets (19 non-GHL streams with five seeds; 14 GHL streams with fewer seeds). The score-dump operating-curve cohort is narrower: 19 buffered and 18 causal non-GHL streams. We report paired seed coverage and dataset-level uncertainty for the matched-realized-FPR analysis.
 
-Supplementary material contains proofs, extended diagnostics, and case-study detail.
+Supplementary material contains proofs, extended diagnostics, and case-study details.
 
