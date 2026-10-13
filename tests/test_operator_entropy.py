@@ -375,5 +375,58 @@ def test_cayley_operator_forward_and_backward():
     assert model.cayley_gate.d.grad.norm().item() > 0.0
 
 
+def test_boosted_opentropy_defaults_and_layer_pruning():
+    """Verify that OperatorEntropyJEPAModel defaults decouple alpha_rep_entropy, activate Lyapunov, and prune inert layers."""
+    D = 16
+    K_in = 3
+    encoder = HybridTCNEncoder(input_dim=K_in, latent_dim=D, filters=16, tcn_layers=2)
+    model = OperatorEntropyJEPAModel(context_encoder=encoder, latent_dim=D)
+
+    # 1. Verify decoupled rep entropy and active Lyapunov defect
+    assert model.alpha_rep_entropy == 0.0
+    assert model.beta_lyapunov == 0.02
+
+    # 2. Verify pruned inert math layers
+    assert model.radial_heat is None
+    assert model.cohn_elkies is None
+
+    # 3. Verify _apply_filters is identity pass-through
+    z = torch.randn(4, D)
+    assert torch.all(model._apply_filters(z) == z)
+
+    # 4. Optional re-enablement check
+    model_with_layers = OperatorEntropyJEPAModel(
+        context_encoder=encoder,
+        latent_dim=D,
+        use_radial_heat=True,
+        use_cohn_elkies=True,
+    )
+    assert model_with_layers.radial_heat is not None
+    assert model_with_layers.cohn_elkies is not None
+
+
+def test_decoupled_rep_entropy_and_lyapunov_defect_gradients():
+    """Verify loss calculation and gradients under default alpha_rep_entropy=0.0 and beta_lyapunov=0.02."""
+    D = 16
+    K_in = 3
+    encoder = HybridTCNEncoder(input_dim=K_in, latent_dim=D, filters=16, tcn_layers=2)
+    model = OperatorEntropyJEPAModel(context_encoder=encoder, latent_dim=D, use_koopman_matrix=True)
+
+    B = 8
+    x_ctx = torch.randn(B, 32, K_in)
+    x_tgt = torch.randn(B, 16, K_in)
+
+    loss, metrics = model.compute_objective(x_ctx, x_tgt)
+
+    # reg_Z should be exactly 0.0 when alpha_rep_entropy=0.0
+    assert metrics["reg_Z"] == 0.0
+    assert metrics["lyapunov_defect"] >= 0.0
+
+    loss.backward()
+    assert model.K.grad is not None
+    assert model.K.grad.norm().item() > 0.0
+
+
+
 
 

@@ -171,11 +171,12 @@ class OperatorEntropyJEPAModel(JEPABase):
         predictor_layers: int = 2,
         ema_decay: float = 0.996,
         alpha_entropy: float = 0.5,
-        alpha_rep_entropy: float = 0.005,
-        beta_lyapunov: float = 0.0,
+        alpha_rep_entropy: float = 0.0,
+        beta_lyapunov: float = 0.02,
         spectral_gap_min: float = 0.1,
         dropout: float = 0.05,
-        use_radial_heat: bool = True,
+        use_radial_heat: bool = False,
+        use_cohn_elkies: bool = False,
         use_koopman_matrix: bool = True,
         use_cayley_operator: bool = False,
     ):
@@ -187,6 +188,8 @@ class OperatorEntropyJEPAModel(JEPABase):
         self.alpha_rep_entropy = alpha_rep_entropy
         self.beta_lyapunov = beta_lyapunov
         self.spectral_gap_min = spectral_gap_min
+        self.use_radial_heat = use_radial_heat
+        self.use_cohn_elkies = use_cohn_elkies
         self.use_koopman_matrix = use_koopman_matrix
         self.use_cayley_operator = use_cayley_operator
 
@@ -225,16 +228,21 @@ class OperatorEntropyJEPAModel(JEPABase):
         # ResolventPurification instantiation removed (unused in forward/loss)
         self.resolvent = None
 
-        # Radial heat exterior boundary damping (Navier-Stokes Blowup Paper, §2.3 & App. A.6)
+        # Radial heat exterior boundary damping (excised by default; inert math layer)
         if use_radial_heat:
             from src.models.geometric_layers import RadialHeatExteriorBoundary
             self.radial_heat = RadialHeatExteriorBoundary(latent_dim=latent_dim)
         else:
             self.radial_heat = None
 
-        # Cohn-Elkies Fourier sign-uncertainty modulation layer (Ten Proofs, Ch. 1, §4.2)
-        from src.models.geometric_layers import CohnElkiesFilter, CoordinateSaliencyGate
-        self.cohn_elkies = CohnElkiesFilter(latent_dim=latent_dim, n_shells=8)
+        # Cohn-Elkies Fourier modulation layer (excised by default; inert math layer)
+        if use_cohn_elkies:
+            from src.models.geometric_layers import CohnElkiesFilter
+            self.cohn_elkies = CohnElkiesFilter(latent_dim=latent_dim, n_shells=8)
+        else:
+            self.cohn_elkies = None
+
+        from src.models.geometric_layers import CoordinateSaliencyGate
         self.saliency_gate = CoordinateSaliencyGate(dim=latent_dim, tau=0.5, alpha=0.5)
 
         self.register_mahalanobis_buffers(latent_dim)
@@ -259,7 +267,8 @@ class OperatorEntropyJEPAModel(JEPABase):
     def _apply_filters(self, z: torch.Tensor) -> torch.Tensor:
         if self.radial_heat is not None:
             z = self.radial_heat(z)
-        z = self.cohn_elkies(z)
+        if self.cohn_elkies is not None:
+            z = self.cohn_elkies(z)
         return z
 
     def forward(
@@ -334,18 +343,19 @@ class OperatorEntropyJEPAModel(JEPABase):
             reg_K = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
 
         num_samples = z_ctx.numel() // z_ctx.size(-1)
-        if num_samples > 1:
+        cov_tgt = None
+        if effective_alpha_rep > 0 and num_samples > 1:
             cov_ctx = compute_empirical_covariance(z_ctx)
             cov_tgt = compute_empirical_covariance(z_tgt)
             cov_z = 0.5 * (cov_ctx + cov_tgt)
             reg_Z = covariance_spectral_entropy(cov_z)
         else:
-            cov_ctx = None
-            cov_tgt = None
             reg_Z = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
 
         # 3. Discrete Lyapunov Invariance Defect: ||Cov(z_pred) - Cov(z_tgt)||_F^2 / D
-        if effective_beta_lyap > 0 and num_samples > 1 and cov_tgt is not None:
+        if effective_beta_lyap > 0 and num_samples > 1:
+            if cov_tgt is None:
+                cov_tgt = compute_empirical_covariance(z_tgt)
             cov_pred = compute_empirical_covariance(z_pred)
             lyapunov_defect = torch.norm(cov_pred - cov_tgt, p="fro") ** 2 / float(self.latent_dim)
         else:

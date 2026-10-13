@@ -27,6 +27,12 @@ from src.scoring.event_fusion import (
     successor_manifold_uncertainty_scores,
 )
 from src.scoring.evt_calibrator import EVTCalibrator, EVTThresholdResult
+from src.scoring.streaming_calibrator import (
+    RollingSPOTCalibrator,
+    StreamingQuantileCalibrator,
+    compute_rolling_spot_thresholds,
+    compute_streaming_quantile_thresholds,
+)
 
 __all__ = [
     "AdaptiveScoreFloor",
@@ -35,6 +41,10 @@ __all__ = [
     "SplitConformalCalibrator",
     "EVTCalibrator",
     "EVTThresholdResult",
+    "RollingSPOTCalibrator",
+    "StreamingQuantileCalibrator",
+    "compute_rolling_spot_thresholds",
+    "compute_streaming_quantile_thresholds",
     "adaptive_elbow_score_floor",
     "aggregate_window_scores",
     "calibrate_evt_threshold",
