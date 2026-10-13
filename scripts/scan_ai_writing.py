@@ -2,9 +2,11 @@
 scan_ai_writing.py - Automated anti-AI writing pattern scanner based on docs/SKILL.md.
 
 Enforces zero-tolerance for P0 credibility killers, P1 word-list violations,
-formulaic transitions, copula avoidance, and hedge stacking across manuscript prose.
+formulaic transitions, copula avoidance, hedge stacking, and stylistic cadence
+across manuscript prose.
 """
 
+import math
 import os
 import re
 import sys
@@ -17,11 +19,24 @@ SKILL_MD_PATH = WORKSPACE_ROOT / "docs" / "SKILL.md"
 # P0: Credibility Killers (Zero tolerance)
 P0_PATTERNS = {
     "Cutoff disclaimer": r"\b(?:as\s+of\s+(?:my|the)\s+(?:knowledge\s+cutoff|last\s+update)|knowledge\s+cutoff)\b",
-    "Chatbot artifact": r"\b(?:i\s+hope\s+this\s+helps|great\s+question|as\s+an\s+ai|language\s+model)\b",
-    "Vague unsourced attribution": r"\b(?:experts\s+believe|researchers\s+have\s+shown|studies\s+suggest|widely\s+considered\s+to\s+be)\b",
+    "Chatbot artifact": r"\b(?:i\s+hope\s+this\s+helps|great\s+question|as\s+an\s+ai|language\s+model|feel\s+free\s+to)\b",
+    "Vague unsourced attribution": r"\b(?:experts\s+believe|researchers\s+have\s+shown|studies\s+suggest|widely\s+considered\s+to\s+be|experts\s+agree|it\s+is\s+believed\s+that)\b",
     "Codebase relative path": r"\b(?:reports|scripts|src|mTSBench_data|data|benchmarks|tests)[\/\\][a-zA-Z0-9_\-\.\/\\]+",
     "Raw artifact filename": r"\b[a-zA-Z0-9_\-]+\.(?:csv|tsv|py|sh|json|pt|pth)\b",
+    "Significance inflation": r"\b(?:game[- ]changer|groundbreaking|revolutionary|unprecedented|paradigm\s+shift|transformative)\b",
 }
+
+# P0: Unanchored comparative assertions (comparatives without numerical evidence on the line)
+UNANCHORED_COMPARATIVE_PATTERNS = [
+    r"\b(?:significantly|drastically|substantially)\s+(?:outperforms?|improves?|reduces?|increases?|superior|better|higher|lower)\b",
+    r"\b(?:vastly\s+superior|marginal\s+degradation)\b",
+]
+
+# Allowed statistical/mathematical compounds for "robust"
+ROBUST_TECHNICAL_COMPOUND_REGEX = re.compile(
+    r"\brobust\s+(?:covariance|estimation|estimators?|statistics|loss(?:es)?|scales?|dispersions?|regressions?|m-estimators?)\b",
+    re.IGNORECASE
+)
 
 # P1: Obvious AI Smell & Blacklisted Vocabulary (GEMINI.md & docs/SKILL.md)
 P1_WORD_LIST = {
@@ -56,6 +71,12 @@ P1_WORD_LIST = {
     "realm": r"\brealms?\b",
     "embark": r"\bembarks?\b",
     "meticulous": r"\bmeticulous(?:ly)?\b",
+    "plethora": r"\bplethora\b",
+    "myriad": r"\bmyriad\b",
+    "symphony": r"\bsymphony\b",
+    "treasure trove": r"\btreasure\s+trove\b",
+    "linchpin": r"\blinchpin\b",
+    "cornerstone": r"\bcornerstone\b",
 }
 
 # P1: Formulaic Openings & Transitions
@@ -72,6 +93,10 @@ P1_TRANSITIONS = {
     "at the end of the day": r"\bat\s+the\s+end\s+of\s+the\s+day\b",
     "crucially": r"\bcrucially\b",
     "key findings emerge": r"\bkey\s+findings?\s+emerge\b",
+    "let us opener": r"\blet\'?s\b|\blet\s+us\b",
+    "performative concession": r"\bwhile\s+promising,?\s+challenges\s+remain\b",
+    "call to adventure": r"\b(?:paving\s+the\s+way|opens?\s+up\s+exciting\s+avenues|promising\s+avenues\s+for\s+future|a\s+promising\s+step\s+forward)\b",
+    "dual mechanism reflex": r"\bdue\s+to\s+both\b.*?\band\b",
 }
 
 # P1: Copula Avoidance
@@ -86,10 +111,65 @@ P1_HEDGES = {
     "could potentially": r"\bcould\s+potentially\b",
     "may eventually": r"\bmay\s+eventually\b",
     "might ultimately": r"\bmight\s+ultimately\b",
+    "may potentially": r"\bmay\s+potentially\b",
+    "could possibly": r"\bcould\s+possibly\b",
 }
 
 # P2: Stylistic Polish
 EM_DASH_PATTERN = r"---|[\u2014]"
+
+def extract_clean_sentences(text: str):
+    """Segment prose into sentences, handling standard academic abbreviations."""
+    # Remove LaTeX comments
+    text = re.sub(r"%.*$", "", text, flags=re.MULTILINE)
+    # Remove LaTeX display environments (tables, figures, equations, algorithms)
+    text = re.sub(r"\\begin\{(?:table|figure|equation|align|gather|tabular|algorithm)\*?\}.*?\\end\{(?:table|figure|equation|align|gather|tabular|algorithm)\*?\}", " ", text, flags=re.DOTALL)
+    # Remove math display and inline blocks
+    text = re.sub(r"\$\$.*?\$\$", " ", text, flags=re.DOTALL)
+    text = re.sub(r"\$.*?\$", " ", text)
+    # Remove section/caption/label macros
+    text = re.sub(r"\\(?:section|subsection|subsubsection|paragraph|caption|label)\*?\{.*?\}", " ", text)
+    # Remove citation and cross-reference macros
+    text = re.sub(r"\\[a-zA-Z]+\{.*?\}", " ", text)
+    # Remove standalone LaTeX commands
+    text = re.sub(r"\\[a-zA-Z]+", " ", text)
+    # Protect common academic abbreviations
+    abbreviations = [
+        (r"\be\.g\.", "eg_placeholder"),
+        (r"\bi\.e\.", "ie_placeholder"),
+        (r"\bet\s+al\.", "etal_placeholder"),
+        (r"\bFig\.", "fig_placeholder"),
+        (r"\bTab\.", "tab_placeholder"),
+        (r"\bEq\.", "eq_placeholder"),
+        (r"\bSec\.", "sec_placeholder"),
+        (r"\bvs\.", "vs_placeholder"),
+        (r"\bref\.", "ref_placeholder"),
+        (r"\bno\.", "no_placeholder"),
+    ]
+    for pattern, placeholder in abbreviations:
+        text = re.sub(pattern, placeholder, text, flags=re.IGNORECASE)
+
+    # Split on sentence boundaries
+    raw_sentences = re.split(r"[.!?]+(?:\s+|\n+|$)", text)
+    sentences = []
+    for s in raw_sentences:
+        s_clean = s.strip()
+        words = re.findall(r"\b[A-Za-z0-9_-]+\b", s_clean)
+        # Consider complete sentences between 4 and 100 words
+        if 4 <= len(words) <= 120:
+            sentences.append((s_clean, len(words)))
+    return sentences
+
+def compute_cadence_cv(sentence_lengths):
+    """Compute coefficient of variation (sigma / mu) for sentence lengths."""
+    if not sentence_lengths or len(sentence_lengths) < 5:
+        return None, 0.0, 0.0
+    n = len(sentence_lengths)
+    mu = sum(sentence_lengths) / n
+    variance = sum((x - mu) ** 2 for x in sentence_lengths) / n
+    sigma = math.sqrt(variance)
+    cv = sigma / mu if mu > 0 else 0.0
+    return cv, mu, sigma
 
 def scan_file(file_path: Path):
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -112,22 +192,25 @@ def scan_file(file_path: Path):
         if not line.strip():
             continue
 
-        # Skip raw table definitions when checking word list if they contain pure numbers/labels
-        # but check table captions and notes
+        # Skip raw table data rows containing numbers/delimiters
         is_tabular_data = bool(re.search(r"^\s*[\w\.-]+\s*&", line))
 
         def check_category(category_name, patterns_dict):
             for label, pattern in patterns_dict.items():
                 for m in re.finditer(pattern, line, re.IGNORECASE):
-                    # Exclude bibtex citation keys or commands like \cite{...}
                     matched_span = m.group(0)
                     start, end = m.span()
                     prefix = line[max(0, start-15):start]
-                    if "cite" in prefix or "label" in prefix or "ref" in prefix:
+                    # Exclude citation keys, labels, or cross refs
+                    if any(cmd in prefix for cmd in ["cite", "label", "ref", "eqref"]):
                         continue
-                    # Ignore pure table data lines for generic words unless it's a headline
-                    if is_tabular_data and label in ["robust"]:
-                        continue
+                    # Carve out technical compound terms for "robust"
+                    if label == "robust":
+                        context_snippet = line[start:min(len(line), start+35)]
+                        if ROBUST_TECHNICAL_COMPOUND_REGEX.search(context_snippet):
+                            continue
+                        if is_tabular_data:
+                            continue
                     issues.append({
                         "file": file_path.name,
                         "line": line_idx,
@@ -143,7 +226,36 @@ def scan_file(file_path: Path):
         check_category("P1 Copula Avoidance", P1_COPULA)
         check_category("P1 Hedge Stacking", P1_HEDGES)
 
-    return issues, word_count, em_dash_count
+        # Check P0 Unanchored Comparative Claims
+        for pat in UNANCHORED_COMPARATIVE_PATTERNS:
+            for m in re.finditer(pat, line, re.IGNORECASE):
+                # Check whether there is an immediate numerical anchor in the line
+                has_num = bool(re.search(r"(?:\d+|%|\$p\s*[<>=]|p\s*[<>=]|\\pm|\\times|\bCI\b|\bAUROC\b|\bF1\b)", line))
+                if not has_num:
+                    issues.append({
+                        "file": file_path.name,
+                        "line": line_idx,
+                        "category": "P0 Credibility Killer",
+                        "label": "Unanchored quantitative claim",
+                        "match": m.group(0),
+                        "context": line.strip()[:120]
+                    })
+
+    # Sentence cadence analysis
+    sentences = extract_clean_sentences(prose)
+    sentence_lengths = [length for _, length in sentences]
+    cv, mu, sigma = compute_cadence_cv(sentence_lengths)
+    if cv is not None and cv < 0.35 and len(sentence_lengths) >= 8:
+        issues.append({
+            "file": file_path.name,
+            "line": 1,
+            "category": "P2 Stylistic Polish",
+            "label": "Low sentence length variance",
+            "match": f"CV={cv:.2f} (< 0.35)",
+            "context": f"Monotonous sentence lengths (mean: {mu:.1f} words, std: {sigma:.1f}, N={len(sentence_lengths)})"
+        })
+
+    return issues, word_count, em_dash_count, sentence_lengths
 
 def run_scan():
     print("=" * 70)
@@ -158,25 +270,32 @@ def run_scan():
     total_words = 0
     total_em_dashes = 0
     all_issues = []
+    all_sentence_lengths = []
 
     for fpath in target_files:
-        issues, words, em_dashes = scan_file(fpath)
+        issues, words, em_dashes, s_lengths = scan_file(fpath)
         total_words += words
         total_em_dashes += em_dashes
         all_issues.extend(issues)
+        all_sentence_lengths.extend(s_lengths)
 
     em_dash_rate = total_em_dashes / (total_words / 1000) if total_words > 0 else 0
+    global_cv, global_mu, global_sigma = compute_cadence_cv(all_sentence_lengths)
 
     print(f"\n[+] Scanned {len(target_files)} section files.")
     print(f"    Total prose words: {total_words}")
     print(f"    Total em-dashes: {total_em_dashes} ({em_dash_rate:.2f} per 1,000 words; guideline <= 1.0/1,000)")
+    if global_cv is not None:
+        print(f"    Sentence Cadence (Burstiness): CV = {global_cv:.2f} (mean: {global_mu:.1f} words, std: {global_sigma:.1f}, N={len(all_sentence_lengths)})")
 
     p0_issues = [i for i in all_issues if i["category"].startswith("P0")]
     p1_issues = [i for i in all_issues if i["category"].startswith("P1")]
+    p2_issues = [i for i in all_issues if i["category"].startswith("P2")]
 
     print(f"\n[+] Total AI Writing Violations Found: {len(all_issues)}")
     print(f"    - P0 Credibility Killers: {len(p0_issues)}")
     print(f"    - P1 Obvious AI Smells / Banned Words: {len(p1_issues)}")
+    print(f"    - P2 Stylistic Polish Warnings: {len(p2_issues)}")
 
     if all_issues:
         print("\n" + "-" * 70)

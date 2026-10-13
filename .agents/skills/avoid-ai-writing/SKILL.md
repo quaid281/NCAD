@@ -85,14 +85,18 @@ Not all AI-isms are equal. When doing a quick pass or triaging a large document,
 - Significance inflation on routine events
 - Hashtag stuffing on `linkedin` and `investor-email` posts (severity varies by profile — same rule, lower priority on `blog`/`technical-blog` where a launch post may legitimately stack tags; see the context-profile table below)
 - Codebase relative paths in research paper prose (reports/, scripts/, src/, data/, .csv, .py, .txt) — readers will not have access to the local development repository; use formal LaTeX table/figure citations or descriptive academic phrasing instead
+- Unanchored quantitative claims — comparative assertions ("significantly outperforms", "drastically reduces", "substantially higher", "marginal degradation") without immediate numerical evidence (exact metric, percentage, confidence interval, or p-value) in the same sentence
 
 ### P1 — Obvious AI smell (fix before publishing)
-- Word-list violations (delve, leverage, harness, robust, etc.)
+- Word-list violations (delve, leverage, harness, robust, etc. Note: legitimate mathematical/statistical compound terms like "robust covariance" or "robust estimation" are carved out in technical prose; ungrounded rhetorical usage like "robust architecture" is banned)
 - Template phrases and slot-fill constructions
 - "Let's" transition openers
 - Synonym cycling within a paragraph
 - Formulaic openings ("In the rapidly evolving world of...")
 - Bold overuse
+- Performative concession and call-to-adventure closers ("while promising, challenges remain...", "paving the way for a more principled understanding...", "opens up exciting avenues for future research...")
+- Symmetrical bipartite contrast structures ("While X..., Y...", "Not only X, but also Y")
+- Dual-mechanism reflex ("due to both X and Y" without distinct ablation evidence)
 - Generic future-narrative closers ("may become one of the most important narratives…")
 - Social endorsement closers ("This one is worth your time:", "thank me later")
 - Lingering-attention claims ("the line I keep coming back to," "I can't stop thinking about this")
@@ -105,6 +109,7 @@ Not all AI-isms are equal. When doing a quick pass or triaging a large document,
 - Tier 3 phrase clustering (≥3 distinct boilerplate phrases in one piece)
 
 ### P2 — Stylistic polish (fix when time allows)
+- Sentence cadence and burstiness (CV < 0.35 — avoid monotonous uniform sentence lengths; mix punchy short statements with compound explanatory clauses)
 - Em dash frequency (above 1 per 1,000 words). This is writing-quality guidance, not evidence of machine authorship: usage has varied by model generation and vendor, so do not score or invert it as an authorship signal.
 - Generic conclusions ("The future looks bright")
 - Repeated setup/reversal punchlines when they replace concrete claims (isolated or supported reversals pass)
