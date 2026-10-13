@@ -330,15 +330,15 @@ class OperatorEntropyJEPAModel(JEPABase):
             else getattr(config, "beta_lyapunov", self.beta_lyapunov)
         )
 
-        if self.use_cayley_operator and self.cayley_gate is not None:
-            # Cayley operator W is contractive (||W||_2 <= 1.0, rho(W) <= 1.0) by construction
-            if effective_alpha > 0:
+        if effective_alpha > 0:
+            if self.use_cayley_operator and self.cayley_gate is not None:
+                # Cayley operator W is contractive (||W||_2 <= 1.0, rho(W) <= 1.0) by construction
                 W = self.cayley_gate.transition_matrix
                 reg_K = spectral_operator_entropy_loss(W, gamma_norm=1.0, beta_norm=1.0)
+            elif self.use_koopman_matrix and self.K is not None:
+                reg_K = spectral_operator_entropy_loss(self.K, gamma_norm=1.0, beta_norm=1.0)
             else:
                 reg_K = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
-        elif self.use_koopman_matrix and self.K is not None:
-            reg_K = spectral_operator_entropy_loss(self.K, gamma_norm=1.0, beta_norm=1.0)
         else:
             reg_K = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
 
@@ -390,7 +390,11 @@ class OperatorEntropyJEPAModel(JEPABase):
             "reg_K": reg_K.item(),
             "reg_Z": reg_Z.item(),
             "lyapunov_defect": lyapunov_defect.item(),
-            "spectral_reg": (effective_alpha * reg_K + effective_alpha_rep * reg_Z).item(),
+            "spectral_reg": (
+                effective_alpha * reg_K
+                + effective_alpha_rep * reg_Z
+                + effective_beta_lyap * lyapunov_defect
+            ).item(),
             "vn_loss": reg_Z.item(),
             "gap_loss": gap_loss.item(),
             "std_loss": std_loss.item(),

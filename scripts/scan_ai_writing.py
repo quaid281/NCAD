@@ -19,6 +19,8 @@ P0_PATTERNS = {
     "Cutoff disclaimer": r"\b(?:as\s+of\s+(?:my|the)\s+(?:knowledge\s+cutoff|last\s+update)|knowledge\s+cutoff)\b",
     "Chatbot artifact": r"\b(?:i\s+hope\s+this\s+helps|great\s+question|as\s+an\s+ai|language\s+model)\b",
     "Vague unsourced attribution": r"\b(?:experts\s+believe|researchers\s+have\s+shown|studies\s+suggest|widely\s+considered\s+to\s+be)\b",
+    "Codebase relative path": r"\b(?:reports|scripts|src|mTSBench_data|data|benchmarks|tests)[\/\\][a-zA-Z0-9_\-\.\/\\]+",
+    "Raw artifact filename": r"\b[a-zA-Z0-9_\-]+\.(?:csv|tsv|py|sh|json|pt|pth)\b",
 }
 
 # P1: Obvious AI Smell & Blacklisted Vocabulary (GEMINI.md & docs/SKILL.md)

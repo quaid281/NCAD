@@ -84,6 +84,7 @@ Not all AI-isms are equal. When doing a quick pass or triaging a large document,
 - Vague attributions without sources ("Experts believe")
 - Significance inflation on routine events
 - Hashtag stuffing on `linkedin` and `investor-email` posts (severity varies by profile — same rule, lower priority on `blog`/`technical-blog` where a launch post may legitimately stack tags; see the context-profile table below)
+- Codebase relative paths in research paper prose (reports/, scripts/, src/, data/, .csv, .py, .txt) — readers will not have access to the local development repository; use formal LaTeX table/figure citations or descriptive academic phrasing instead
 
 ### P1 — Obvious AI smell (fix before publishing)
 - Word-list violations (delve, leverage, harness, robust, etc.)

@@ -38,7 +38,9 @@
   against `docs/SKILL.md` (`C:/Users/andre/OneDrive/Desktop/NCAD_CS/docs/SKILL.md`)
   via `C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/scan_ai_writing.py`
   (also enforced automatically by `scripts/build_and_verify_manuscript.py`).
-  Zero tolerance for P0 credibility killers, P1 word-list violations (`delve`,
+  Zero tolerance for P0 credibility killers (including codebase relative paths in
+  manuscript prose: `reports/`, `scripts/`, `src/`, `.csv`, `.py`, `.txt`; readers
+  lack repository access), P1 word-list violations (`delve`,
   `leverage`, `harness`, `robust`, `pivotal`, `multifaceted`, `testament`,
   `beacon`, `tapestry`, `foster`, `elevate`, `underscore`, `nuanced`,
   `intricate`, `seamlessly`, `poised`, `holistic`, `paramount`, `cutting-edge`,

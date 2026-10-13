@@ -223,3 +223,80 @@ def test_edge_cases_and_validation():
         StreamingQuantileCalibrator(q=1.5)
     with pytest.raises(ValueError):
         StreamingQuantileCalibrator(method="invalid_method")
+    with pytest.raises(ValueError):
+        RollingSPOTCalibrator(gate_multiplier=-1.0)
+    with pytest.raises(ValueError):
+        StreamingQuantileCalibrator(max_consecutive_gated=0)
+
+
+def test_regime_shift_rapid_adaptation():
+    """Verify that sustained excursions beyond max_consecutive_gated immediately adapt without lockout."""
+    np.random.seed(42)
+    # Regime 1: mean 1.0 (300 points)
+    # Regime 2: mean 10.0 (300 points)
+    r1 = np.random.normal(1.0, 0.1, 300)
+    r2 = np.random.normal(10.0, 0.1, 300)
+    stream = np.concatenate([r1, r2])
+
+    max_consec = 50
+    cal = RollingSPOTCalibrator(
+        window_size=200,
+        step=10,
+        min_periods=30,
+        gated=True,
+        max_consecutive_gated=max_consec,
+    )
+    thrs = cal.process_stream(stream)
+
+    # Before shift (index 290), threshold reflects Regime 1
+    assert thrs[290] < 2.0
+
+    # Shortly after shift adaptation (index 360), threshold must have adapted to Regime 2
+    thr_adapted = thrs[360]
+    assert thr_adapted > 8.0, f"Expected threshold to adapt above 8.0, got {thr_adapted}"
+
+    # Verify no persistent lockout occurred in Regime 2:
+    # Buffer successfully ingested the new regime points
+    regime2_points_in_buffer = sum(1 for x in cal.buffer_ if x > 5.0)
+    assert regime2_points_in_buffer > 100, "Buffer must absorb new regime without deadlocking"
+    assert cal.consecutive_gated_ < max_consec
+
+
+def test_zero_and_constant_score_degeneracy_protection():
+    """Verify that fitting on constant or zero scores does not collapse threshold to 0.0."""
+    cal_spot = RollingSPOTCalibrator(fallback_threshold=1.0)
+    cal_spot.fit(np.zeros(100))
+    assert cal_spot.current_threshold_ >= 1.0
+
+    # Normal tiny scores should not trigger false alarms
+    assert cal_spot.update(0.01) == cal_spot.current_threshold_
+    assert cal_spot.gated_points_ == 0
+
+    cal_q = StreamingQuantileCalibrator(fallback_threshold=0.5)
+    cal_q.fit(np.zeros(100))
+    assert cal_q.current_threshold_ >= 0.5
+    assert cal_q.update(0.01) == cal_q.current_threshold_
+    assert cal_q.gated_points_ == 0
+
+
+def test_gate_mode_and_gated_reconciliation():
+    """Verify that gate_mode and gated flags reconcile without silent failure."""
+    # gate_mode='none' disables gating
+    cal_none = RollingSPOTCalibrator(gate_mode="none")
+    assert cal_none.gated is False
+    assert cal_none.gate_mode == "none"
+
+    # gate_mode='filter' without explicit gated enables gating
+    cal_filter = RollingSPOTCalibrator(gate_mode="filter")
+    assert cal_filter.gated is True
+    assert cal_filter.gate_mode == "filter"
+
+    # explicit gated=False overrides gate_mode
+    cal_override = RollingSPOTCalibrator(gated=False, gate_mode="filter")
+    assert cal_override.gated is False
+    assert cal_override.gate_mode == "none"
+
+    # window_size < min_periods is safely clamped
+    cal_clamp = RollingSPOTCalibrator(window_size=25, min_periods=50)
+    assert cal_clamp.min_periods == 25
+

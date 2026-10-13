@@ -40,7 +40,7 @@ which penalizes rotational drift between predicted and target representation cov
 \begin{table}[t]
 \centering
 \small
-\caption{Controlled ablation study resolving operator-representation decoupling across eight benchmark telemetry streams under strictly causal trailing evaluation (SPOT $u=0.98, q=10^{-3}$). Dual coupling and discrete Lyapunov invariance expand representation rank, increasing event recall by $+29.7\%$ and cutting alarm delay by $73\%$. The Cayley parameterization achieves the highest overall AUROC.}
+\caption{Controlled ablation study resolving operator-representation decoupling across eight benchmark telemetry streams under strictly causal trailing evaluation (SPOT $u=0.98, q=10^{-3}$). Enforcing discrete Lyapunov invariance expands representation rank, cutting alarm delay by up to $73\%$ (OpEntropy-Lyapunov), while decoupling representation entropy ($\alpha_Z=0$, OpEntropy-Boosted) achieves the highest event recall ($0.4449$, $+33.3\%$). The Cayley parameterization achieves the highest overall AUROC.}
 \label{tab:opentropy_ablation}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lccccc@{}}
@@ -50,14 +50,15 @@ which penalizes rotational drift between predicted and target representation cov
 Historical OpEntropy (Single $\mathbf{A}$-Entropy) & 0.3338 & 112.0 & 0.0241 & 0.5085 & 0.0595 \\
 Vanilla TS-JEPA (Unconstrained) & 0.3763 & 85.1 & \textbf{0.0184} & 0.5039 & \textbf{0.0617} \\
 OpEntropy ($\alpha_Z=0.005$, Dual Coupling) & 0.4326 & 55.8 & 0.0328 & 0.4828 & 0.0390 \\
-OpEntropy-Lyapunov ($\alpha_Z=0.005, \beta_{\text{Lyap}}=0.02$) & \textbf{0.4328} & \textbf{30.1} & 0.0212 & 0.5185 & 0.0501 \\
+OpEntropy-Lyapunov ($\alpha_Z=0.005, \beta_{\text{Lyap}}=0.02$) & 0.4328 & \textbf{30.1} & 0.0212 & 0.5185 & 0.0501 \\
 OpEntropy-Cayley-Lyapunov (Cayley $W$ + Lyap) & 0.3935 & 103.8 & 0.0336 & \textbf{0.5242} & 0.0371 \\
+OpEntropy-Boosted ($\alpha_Z=0, \beta_{\text{Lyap}}=0.02$) & \textbf{0.4449} & 48.4 & 0.0206 & 0.4937 & 0.0498 \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-As documented in Table~\ref{tab:opentropy_ablation}, expanding representation rank via unconstrained dual spectral entropy ($\alpha_Z=0.005$) increases nominal false alarms to $0.0328$. Coupling the Discrete Lyapunov Invariance Defect aligns operator rotation with representation covariance, reducing nominal FPR by $35\%$ ($0.0212$) and cutting mean event detection latency from $112.0$ to $30.1$ steps. On wearable kinematics (\texttt{Daphnet:S01R01E1}), event recall reaches $0.9643$ (vs.\ $0.5000$ for TS-JEPA and $0.4643$ for Historical OpEntropy). Parameterizing the transition via the Cayley transform yields the highest overall discriminative ranking (AUROC $0.5242$ trailing, $0.5651$ smear) and achieves complete detection ($1.0000$ recall) on spacecraft telemetry (\texttt{MSL:M-1}) and $0.5000$ on server telemetry (\texttt{SMD:machine-1-2}) where unconstrained TS-JEPA collapses to $0.0000$.
+As documented in Table~\ref{tab:opentropy_ablation}, expanding representation rank via unconstrained dual spectral entropy ($\alpha_Z=0.005$) increases nominal false alarms to $0.0328$. Coupling the Discrete Lyapunov Invariance Defect aligns operator rotation with representation covariance, reducing nominal FPR by $35\%$ ($0.0212$) and cutting mean event detection latency from $112.0$ to $30.1$ steps. Decoupling representation covariance entropy ($\alpha_Z=0$) while maintaining the Lyapunov defect ($\beta_{\text{Lyap}}=0.02$) and excising inert math layers (OpEntropy-Boosted) yields the highest event recall ($0.4449$, a $+33.3\%$ relative gain over Historical OpEntropy) at reduced nominal FPR ($0.0206$ vs.\ $0.0241$), though Point-F1 ($0.0498$ vs.\ $0.0617$) remains lower than unconstrained TS-JEPA. On wearable kinematics (\texttt{Daphnet:S01R01E1}), event recall reaches $0.9643$ (vs.\ $0.5000$ for TS-JEPA and $0.4643$ for Historical OpEntropy). Parameterizing the transition via the Cayley transform yields the highest overall discriminative ranking (AUROC $0.5242$ trailing, $0.5651$ smear) and achieves complete detection ($1.0000$ recall) on spacecraft telemetry (\texttt{MSL:M-1}) and $0.5000$ on server telemetry (\texttt{SMD:machine-1-2}) where unconstrained TS-JEPA collapses to $0.0000$.
 
 \subsubsection{Reynolds-Stress: Covariance Alignment vs. Marginal Perturbations}
 Reynolds-Stress JEPA aligns second-order latent fluctuation statistics ($\Sigma_{z'} = \frac{1}{B} \sum z' (z')^T$) between predicted and target horizons. Table~\ref{tab:covariance_validation} compares models on synthetic telemetry isolating pure cross-channel correlation flips ($\rho: +0.85 \to -0.85$) from pure marginal variance scaling ($3.0\times$).

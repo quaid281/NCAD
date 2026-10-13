@@ -4,14 +4,17 @@ Addresses inter-block temporal drift (baseline shifts, variance dilation, and
 autocorrelation) via online streaming calibration:
 1. ``RollingSPOTCalibrator``: Sliding-window Peaks-Over-Threshold (SPOT / EVT)
    fitting Generalized Pareto Distribution (GPD) parameters periodically over a
-   trailing buffer with anomaly-contamination gating.
+   trailing buffer with anomaly-contamination gating and fast regime-shift recovery.
 2. ``StreamingQuantileCalibrator``: Online streaming quantile tracking via
    sliding empirical windows or adaptive Robbins-Monro stochastic approximation.
 
-Contamination Gating:
+Contamination Gating & Regime-Shift Recovery:
 Unconstrained ("naive") rolling calibration buffers get contaminated by sustained
 anomalies, causing threshold inflation and subsequent false-negative surges. Both
 calibrators implement anomaly gating to preserve clean nominal baseline tracking.
+When a sustained excursion exceeds ``max_consecutive_gated``, the calibrator confirms
+an operational regime shift, seamlessly transitions the excursion history into the active
+buffer, and immediately refits the dynamic threshold.
 """
 
 from __future__ import annotations
@@ -19,7 +22,7 @@ from __future__ import annotations
 import collections
 import logging
 import math
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -43,6 +46,7 @@ class StreamingQuantileCalibrator:
         min_periods: Minimum samples required before activating empirical quantile.
         gated: Whether to exclude detected anomalies from contaminating the nominal buffer.
         gate_multiplier: Safety factor on threshold for contamination gating.
+        max_consecutive_gated: Maximum consecutive points to gate before declaring a regime shift.
         learning_rate: Initial step size for stochastic approximation mode.
         fallback_threshold: Initial default threshold during warmup.
     """
@@ -66,40 +70,49 @@ class StreamingQuantileCalibrator:
             raise ValueError(f"window_size must be >= 10, got {window_size}")
         if method not in ("trailing_window", "stochastic_approximation"):
             raise ValueError(f"Unknown method {method!r}")
+        if gate_multiplier <= 0:
+            raise ValueError(f"gate_multiplier must be > 0, got {gate_multiplier}")
+        if max_consecutive_gated is not None and max_consecutive_gated <= 0:
+            raise ValueError(f"max_consecutive_gated must be > 0 or None, got {max_consecutive_gated}")
 
         self.q = float(q)
         self.target_percentile = (1.0 - self.q) * 100.0
         self.window_size = int(window_size)
         self.method = method
         self.step = max(1, int(step))
-        self.min_periods = max(5, int(min_periods))
+        self.min_periods = min(max(5, int(min_periods)), self.window_size)
         self.gated = bool(gated)
         self.gate_multiplier = float(gate_multiplier)
         self.max_consecutive_gated = max_consecutive_gated
         self.learning_rate = float(learning_rate)
         self.fallback_threshold = float(fallback_threshold)
+        self.min_threshold_: float = max(self.fallback_threshold, 1e-6)
 
         # Internal state
         self.buffer_: collections.deque = collections.deque(maxlen=self.window_size)
-        self.current_threshold_: float = self.fallback_threshold
+        self.excursion_buffer_: collections.deque = collections.deque(
+            maxlen=self.max_consecutive_gated if self.max_consecutive_gated is not None else 1000
+        )
+        self.current_threshold_: float = self.min_threshold_
         self.total_points_: int = 0
         self.gated_points_: int = 0
         self.consecutive_gated_: int = 0
         self.last_update_idx_: int = 0
 
         # Stochastic approximation tracking state
-        self.sa_estimate_: float = self.fallback_threshold
+        self.sa_estimate_: float = self.min_threshold_
         self.sa_scale_: float = 1.0
 
     def reset(self) -> None:
         """Reset online tracking state."""
         self.buffer_.clear()
-        self.current_threshold_ = self.fallback_threshold
+        self.excursion_buffer_.clear()
+        self.current_threshold_ = self.min_threshold_
         self.total_points_ = 0
         self.gated_points_ = 0
         self.consecutive_gated_ = 0
         self.last_update_idx_ = 0
-        self.sa_estimate_ = self.fallback_threshold
+        self.sa_estimate_ = self.min_threshold_
         self.sa_scale_ = 1.0
 
     def fit(self, initial_scores: np.ndarray) -> "StreamingQuantileCalibrator":
@@ -112,9 +125,11 @@ class StreamingQuantileCalibrator:
             self.buffer_.extend(seed_slice.tolist())
             self.total_points_ = len(seed_slice)
             if len(self.buffer_) >= self.min_periods:
-                self.current_threshold_ = float(np.percentile(self.buffer_, self.target_percentile))
+                raw_pct = float(np.percentile(self.buffer_, self.target_percentile))
+                self.current_threshold_ = max(raw_pct, self.min_threshold_)
             else:
-                self.current_threshold_ = float(np.max(self.buffer_)) if len(self.buffer_) else self.fallback_threshold
+                max_val = float(np.max(self.buffer_)) if len(self.buffer_) else self.min_threshold_
+                self.current_threshold_ = max(max_val, self.min_threshold_)
             self.sa_estimate_ = self.current_threshold_
             std = float(np.std(self.buffer_)) if len(self.buffer_) > 1 else 1.0
             self.sa_scale_ = max(std, 1e-4)
@@ -126,6 +141,7 @@ class StreamingQuantileCalibrator:
             return self.current_threshold_
 
         self.total_points_ += 1
+        is_regime_shift = False
 
         # Contamination gating check with regime-shift recovery
         is_anomaly = score > (self.current_threshold_ * self.gate_multiplier)
@@ -134,34 +150,41 @@ class StreamingQuantileCalibrator:
                 self.consecutive_gated_ += 1
                 if self.max_consecutive_gated is None or self.consecutive_gated_ <= self.max_consecutive_gated:
                     self.gated_points_ += 1
+                    self.excursion_buffer_.append(float(score))
                     return self.current_threshold_
                 else:
+                    # Persistent excursion indicates inter-block regime shift rather than transient anomaly.
+                    # Transfer excursion history into main buffer so threshold immediately adapts.
+                    self.buffer_.extend(self.excursion_buffer_)
+                    self.excursion_buffer_.clear()
                     self.consecutive_gated_ = 0
+                    is_regime_shift = True
             else:
                 self.consecutive_gated_ = 0
+                self.excursion_buffer_.clear()
 
-        # Ingest into buffer
+        # Ingest nominal or regime-shift point into buffer
         self.buffer_.append(float(score))
 
         if self.method == "trailing_window":
-            # Recalculate trailing empirical quantile periodically
-            if (self.total_points_ - self.last_update_idx_ >= self.step) or (len(self.buffer_) == self.min_periods):
+            # Recalculate trailing empirical quantile periodically or immediately on regime shift
+            if is_regime_shift or (self.total_points_ - self.last_update_idx_ >= self.step) or (len(self.buffer_) == self.min_periods):
                 if len(self.buffer_) >= self.min_periods:
-                    self.current_threshold_ = float(np.percentile(self.buffer_, self.target_percentile))
+                    raw_pct = float(np.percentile(self.buffer_, self.target_percentile))
+                    self.current_threshold_ = max(raw_pct, self.min_threshold_)
                 else:
-                    self.current_threshold_ = float(np.max(self.buffer_))
+                    self.current_threshold_ = max(float(np.max(self.buffer_)), self.min_threshold_)
                 self.last_update_idx_ = self.total_points_
 
         elif self.method == "stochastic_approximation":
             # Robbins-Monro online quantile tracking:
             # theta_{t+1} = theta_t + eta_t * (1_{s_t > theta_t} - q)
-            # Scaled by running scale estimate
             t = max(self.total_points_, 1)
             eta = self.learning_rate / math.sqrt(1.0 + 0.005 * t)
             indicator = 1.0 if score > self.sa_estimate_ else 0.0
             step_size = eta * (indicator - self.q) * self.sa_scale_
             self.sa_estimate_ += step_size
-            self.current_threshold_ = max(self.sa_estimate_, 1e-6)
+            self.current_threshold_ = max(self.sa_estimate_, self.min_threshold_)
 
         return self.current_threshold_
 
@@ -209,11 +232,12 @@ class RollingSPOTCalibrator:
         step: Frequency of GPD refitting (refits every `step` observations for efficiency).
         min_excesses: Minimum tail exceedances required for GPD estimation (default: 10).
         min_periods: Minimum observations before activating GPD; uses empirical quantile prior.
-        gated: Whether to activate anomaly contamination gating.
+        gated: Whether to activate anomaly contamination gating. If None, inferred from gate_mode.
         gate_mode: 'filter' (discards anomalous observations from nominal buffer),
                    'freeze' (pauses buffer ingestion during an alarm episode), or
                    'none' (unconstrained buffer ingestion).
         gate_multiplier: Multiplier on threshold for anomaly classification.
+        max_consecutive_gated: Maximum consecutive points to gate before declaring a regime shift.
         adaptive_kurtosis: Whether to adapt init_percentile dynamically based on buffer kurtosis.
         fallback_threshold: Initial threshold value before warmup completes.
     """
@@ -226,8 +250,8 @@ class RollingSPOTCalibrator:
         step: int = 100,
         min_excesses: int = 10,
         min_periods: int = 50,
-        gated: bool = False,
-        gate_mode: str = "filter",
+        gated: Optional[bool] = None,
+        gate_mode: Optional[str] = None,
         gate_multiplier: float = 1.0,
         max_consecutive_gated: Optional[int] = 100,
         adaptive_kurtosis: bool = False,
@@ -237,25 +261,51 @@ class RollingSPOTCalibrator:
             raise ValueError(f"risk_level must be in (0, 1), got {risk_level}")
         if not (50.0 <= init_percentile < 100.0):
             raise ValueError(f"init_percentile must be in [50, 100), got {init_percentile}")
-        if gate_mode not in ("filter", "freeze", "none"):
+        if gate_mode is not None and gate_mode not in ("filter", "freeze", "none"):
             raise ValueError(f"Unknown gate_mode {gate_mode!r}")
+        if gate_multiplier <= 0:
+            raise ValueError(f"gate_multiplier must be > 0, got {gate_multiplier}")
+        if max_consecutive_gated is not None and max_consecutive_gated <= 0:
+            raise ValueError(f"max_consecutive_gated must be > 0 or None, got {max_consecutive_gated}")
+        if window_size < 10:
+            raise ValueError(f"window_size must be >= 10, got {window_size}")
 
         self.risk_level = float(risk_level)
         self.init_percentile = float(init_percentile)
         self.window_size = int(window_size)
         self.step = max(1, int(step))
         self.min_excesses = max(3, int(min_excesses))
-        self.min_periods = max(20, int(min_periods))
-        self.gated = bool(gated)
-        self.gate_mode = gate_mode
+        self.min_periods = min(max(10, int(min_periods)), self.window_size)
+
+        # Reconcile gated flag and gate_mode cleanly
+        if gated is None and gate_mode is None:
+            self.gated = False
+            self.gate_mode = "none"
+        elif gated is False:
+            self.gated = False
+            self.gate_mode = "none"
+        elif gated is True:
+            self.gated = True
+            self.gate_mode = gate_mode if gate_mode in ("filter", "freeze") else "filter"
+        elif gate_mode in ("filter", "freeze"):
+            self.gated = True
+            self.gate_mode = gate_mode
+        else:
+            self.gated = False
+            self.gate_mode = "none"
+
         self.gate_multiplier = float(gate_multiplier)
         self.max_consecutive_gated = max_consecutive_gated
         self.adaptive_kurtosis = bool(adaptive_kurtosis)
         self.fallback_threshold = float(fallback_threshold)
+        self.min_threshold_: float = max(self.fallback_threshold, 1e-6)
 
         # Internal state
         self.buffer_: collections.deque = collections.deque(maxlen=self.window_size)
-        self.current_threshold_: float = self.fallback_threshold
+        self.excursion_buffer_: collections.deque = collections.deque(
+            maxlen=self.max_consecutive_gated if self.max_consecutive_gated is not None else 1000
+        )
+        self.current_threshold_: float = self.min_threshold_
         self.last_gpd_fit_: Optional[GPDFitResult] = None
         self.total_points_: int = 0
         self.gated_points_: int = 0
@@ -266,7 +316,8 @@ class RollingSPOTCalibrator:
     def reset(self) -> None:
         """Reset internal streaming state."""
         self.buffer_.clear()
-        self.current_threshold_ = self.fallback_threshold
+        self.excursion_buffer_.clear()
+        self.current_threshold_ = self.min_threshold_
         self.last_gpd_fit_ = None
         self.total_points_ = 0
         self.gated_points_ = 0
@@ -293,9 +344,10 @@ class RollingSPOTCalibrator:
         if n < self.min_periods:
             if n > 0:
                 p_val = (1.0 - self.risk_level) * 100.0
-                self.current_threshold_ = float(np.percentile(self.buffer_, p_val))
+                raw_pct = float(np.percentile(self.buffer_, p_val))
+                self.current_threshold_ = max(raw_pct, self.min_threshold_)
             else:
-                self.current_threshold_ = self.fallback_threshold
+                self.current_threshold_ = self.min_threshold_
             return
 
         buf_arr = np.array(self.buffer_, dtype=np.float64)
@@ -325,7 +377,8 @@ class RollingSPOTCalibrator:
         if not fit.fit_converged or n_excess < 3:
             # Fallback to empirical high percentile
             p_val = (1.0 - self.risk_level) * 100.0
-            self.current_threshold_ = float(np.percentile(buf_arr, p_val))
+            raw_pct = float(np.percentile(buf_arr, p_val))
+            self.current_threshold_ = max(raw_pct, self.min_threshold_)
             return
 
         # GPD Extreme Quantile Formula:
@@ -349,7 +402,7 @@ class RollingSPOTCalibrator:
         if thr < t or not math.isfinite(thr):
             thr = float(t + sigma * math.log(max(float(n_excess) / (self.risk_level * n_total), 1.1)))
 
-        self.current_threshold_ = max(thr, 1e-6)
+        self.current_threshold_ = max(thr, self.min_threshold_)
 
     def update(self, score: float) -> float:
         """Ingest a single telemetry score and return the updated dynamic threshold."""
@@ -357,6 +410,7 @@ class RollingSPOTCalibrator:
             return self.current_threshold_
 
         self.total_points_ += 1
+        is_regime_shift = False
         is_anomaly = score > (self.current_threshold_ * self.gate_multiplier)
 
         # Handle contamination gating
@@ -365,22 +419,28 @@ class RollingSPOTCalibrator:
                 self.consecutive_gated_ += 1
                 if self.max_consecutive_gated is None or self.consecutive_gated_ <= self.max_consecutive_gated:
                     self.gated_points_ += 1
+                    self.excursion_buffer_.append(float(score))
                     if self.gate_mode == "freeze":
                         self.in_alarm_ = True
                     return self.current_threshold_
                 else:
-                    # Persistent excursion indicates inter-block regime shift rather than transient anomaly
+                    # Persistent excursion indicates inter-block regime shift rather than transient anomaly.
+                    # Flush excursion history into buffer and immediately refit.
+                    self.buffer_.extend(self.excursion_buffer_)
+                    self.excursion_buffer_.clear()
                     self.consecutive_gated_ = 0
                     self.in_alarm_ = False
+                    is_regime_shift = True
             else:
                 self.consecutive_gated_ = 0
+                self.excursion_buffer_.clear()
                 self.in_alarm_ = False
 
-        # Nominal point: add to buffer
+        # Nominal point (or newly accepted regime shift observation): add to buffer
         self.buffer_.append(float(score))
 
-        # Check if periodic refit is due
-        if (self.total_points_ - self.last_refit_idx_ >= self.step) or (len(self.buffer_) == self.min_periods):
+        # Check if refit is due (periodic or immediate upon regime shift)
+        if is_regime_shift or (self.total_points_ - self.last_refit_idx_ >= self.step) or (len(self.buffer_) == self.min_periods):
             self._refit_threshold()
             self.last_refit_idx_ = self.total_points_
 
@@ -431,9 +491,15 @@ def compute_rolling_spot_thresholds(
     init_percentile: float = 98.0,
     window_size: int = 1000,
     step: int = 100,
-    gated: bool = False,
+    min_excesses: int = 10,
+    min_periods: int = 50,
+    gated: Optional[bool] = None,
     gate_mode: str = "filter",
+    gate_multiplier: float = 1.0,
     max_consecutive_gated: Optional[int] = 100,
+    adaptive_kurtosis: bool = False,
+    fallback_threshold: float = 1.0,
+    **kwargs: Any,
 ) -> np.ndarray:
     """Convenience function to compute dynamic rolling SPOT thresholds on a score stream."""
     calibrator = RollingSPOTCalibrator(
@@ -441,9 +507,14 @@ def compute_rolling_spot_thresholds(
         init_percentile=init_percentile,
         window_size=window_size,
         step=step,
+        min_excesses=min_excesses,
+        min_periods=min_periods,
         gated=gated,
         gate_mode=gate_mode,
+        gate_multiplier=gate_multiplier,
         max_consecutive_gated=max_consecutive_gated,
+        adaptive_kurtosis=adaptive_kurtosis,
+        fallback_threshold=fallback_threshold,
     )
     if train_scores is not None and len(train_scores) > 0:
         calibrator.fit(train_scores)
@@ -455,15 +526,28 @@ def compute_streaming_quantile_thresholds(
     train_scores: Optional[np.ndarray] = None,
     q: float = 1e-3,
     window_size: int = 1000,
+    method: str = "trailing_window",
     step: int = 1,
+    min_periods: int = 30,
     gated: bool = False,
+    gate_multiplier: float = 1.0,
+    max_consecutive_gated: Optional[int] = 100,
+    learning_rate: float = 0.05,
+    fallback_threshold: float = 1.0,
+    **kwargs: Any,
 ) -> np.ndarray:
     """Convenience function to compute streaming quantile thresholds on a score stream."""
     calibrator = StreamingQuantileCalibrator(
         q=q,
         window_size=window_size,
+        method=method,
         step=step,
+        min_periods=min_periods,
         gated=gated,
+        gate_multiplier=gate_multiplier,
+        max_consecutive_gated=max_consecutive_gated,
+        learning_rate=learning_rate,
+        fallback_threshold=fallback_threshold,
     )
     if train_scores is not None and len(train_scores) > 0:
         calibrator.fit(train_scores)

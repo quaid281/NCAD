@@ -46,6 +46,7 @@ Whenever writing, editing, reviewing, or generating any prose, paper sections, d
   - No cutoff disclaimers ("As of my knowledge cutoff...").
   - No vague, unsourced attributions ("Researchers have shown", "Experts believe").
   - No significance inflation of routine engineering or empirical findings.
+  - No codebase relative paths in research paper prose (e.g. `reports/`, `scripts/`, `src/`, `.csv`, `.py`, `.txt`); academic readers do not have access to the local development repository. Use formal LaTeX table/figure citations or descriptive academic phrasing instead.
 - **P1 Word & Phrase Blacklist (Never Use in Drafts or Edits)**:
   - Banned words: *delve, leverage, harness, robust, pivotal, multifaceted, testament, beacon, tapestry, foster, elevate, underscore, nuanced, intricate, seamlessly, poised, holistic, paramount*.
   - Banned formulaic openers & transitions: *"In the rapidly evolving world of..."*, *"Not only X, but also Y"*, *"Moreover"*, *"Furthermore"*, *"Additionally"*, *"In conclusion"*, *"It is worth noting that"*.

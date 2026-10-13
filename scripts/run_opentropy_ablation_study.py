@@ -45,6 +45,7 @@ ABLATION_MODELS = [
     "OpEntropy-alpha0.02",
     "OpEntropy-alpha0.005",
     "OpEntropy-Lyapunov",
+    "OpEntropy-Boosted",
     "OpEntropy-Cayley",
     "OpEntropy-Cayley-Lyapunov",
     "TS-JEPA",
@@ -174,6 +175,20 @@ def train_ablation_model(
             alpha_entropy=0.5,
             alpha_rep_entropy=0.005,
             beta_lyapunov=0.02,
+        )
+        is_historical = False
+    elif name == "OpEntropy-Boosted":
+        cfg = CSMConfig(
+            model_type="operator_entropy_jepa",
+            feature_dim=k,
+            latent_dim=32,
+            use_koopman_matrix=True,
+            use_cayley_operator=False,
+            alpha_entropy=0.5,
+            alpha_rep_entropy=0.0,
+            beta_lyapunov=0.02,
+            use_radial_heat=False,
+            use_cohn_elkies=False,
         )
         is_historical = False
     elif name == "OpEntropy-Cayley":
