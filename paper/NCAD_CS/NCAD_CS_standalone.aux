@@ -20,10 +20,7 @@
 \HyPL@Entry{0<</S/D>>}
 \@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:intro}{{I}{1}{Introduction}{section.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-A}}Challenges in Telemetry Threshold Calibration}{1}{subsection.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-B}}Limitations of Deep Anomaly Detection Benchmarks}{1}{subsection.1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-C}}Investigating Latent Prediction and Score Conditioning}{1}{subsection.1.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-D}}Contributions}{1}{subsection.1.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-A}}Contributions}{1}{subsection.1.1}\protected@file@percent }
 \citation{brunton2016discovering}
 \citation{chen2018neural}
 \citation{brunton2016koopman,lusch2018deep,liu2023koopa}
@@ -52,9 +49,6 @@
 \citation{Hundman2018b,schmidl2022anomaly}
 \@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
 \newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Dynamical Systems, Reconstruction, and Forecasting Detectors}{2}{subsection.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Threshold Calibration, Contrastive, and Self-Supervised Detection}{2}{subsection.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Physics-Inspired Priors and Conceptual Positioning}{2}{subsection.2.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {III}Multi-Sensor IoT and Remote Sensing Benchmark Suite}{2}{section.3}\protected@file@percent }
 \newlabel{sec:dataset}{{III}{2}{Multi-Sensor IoT and Remote Sensing Benchmark Suite}{section.3}{}}
 \citation{wu2023flawed}
@@ -76,17 +70,15 @@
 \newlabel{fig:triad_architecture}{{1}{4}{Operator-Entropy JEPA architecture: multiscale context ($\mathbf {x}_{\text {ctx}} \in \mathbb {R}^{256 \times K}$) and suspect ($\mathbf {x}_{\text {tgt}} \in \mathbb {R}^{64 \times K}$) windows are mapped into latent space via online ($E_\theta $) and EMA momentum ($E_\phi $) encoders with a stop-gradient barrier ($\perp $). A linear Koopman transition operator ($\mathbf {K} \in \mathbb {R}^{32 \times 32}$) forecasts the target representation $\hat {\mathbf {z}}_{\text {tgt}} = \mathbf {K}\mathbf {z}_{\text {ctx}}$, regularized by dual Von Neumann spectral entropy and a logarithmic Bregman energy barrier against collapse. Residual discrepancies pass through a coordinate saliency gate to yield anomaly score $S_t$ calibrated via streaming SPOT}{figure.1}{}}
 \newlabel{subsubsec:potential_flow_jepa}{{\mbox  {IV-B}3}{4}{Potential-Flow JEPA (Conservative Field Theory and Flow Matching)}{subsubsection.4.2.3}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-B}3}Potential-Flow JEPA (Conservative Field Theory and Flow Matching)}{4}{subsubsection.4.2.3}\protected@file@percent }
-\newlabel{prop:no_limit_cycles}{{2}{4}{Idealized Continuous Gradient Flow Motivation (Non-Binding)}{proposition.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-B}3a}Velocity Field, Multi-Subspace Routing, and Flow Matching}{4}{paragraph.4.2.3.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Anomaly Scoring and Operational Detection Latency}{4}{subsection.4.3}\protected@file@percent }
 \newlabel{subsec:scoring_function}{{\mbox  {IV-C}}{4}{Anomaly Scoring and Operational Detection Latency}{subsection.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Shared Internal Inductive Biases}{4}{subsection.4.4}\protected@file@percent }
+\newlabel{subsec:shared_inductive_biases}{{\mbox  {IV-D}}{4}{Shared Internal Inductive Biases}{subsection.4.4}{}}
+\newlabel{subsubsec:causal_saliency_gating}{{\mbox  {IV-D}1}{4}{Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}{subsubsection.4.4.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}1}Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}{4}{subsubsection.4.4.1}\protected@file@percent }
 \citation{siffer2017anomaly}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Score-emission and alarm-attribution timeline. Every score $s_i$ is computable only at window completion $\tau = t+S-1$. (a) Buffered attribution assigns $s_i$ retrospectively to $[t{+}1, t{+}S]$; (b) causal attribution emits $s_i$ at $\tau $ only.}}{5}{figure.2}\protected@file@percent }
 \newlabel{fig:inference_timeline}{{2}{5}{Score-emission and alarm-attribution timeline. Every score $s_i$ is computable only at window completion $\tau = t+S-1$. (a) Buffered attribution assigns $s_i$ retrospectively to $[t{+}1, t{+}S]$; (b) causal attribution emits $s_i$ at $\tau $ only}{figure.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Shared Internal Inductive Biases}{5}{subsection.4.4}\protected@file@percent }
-\newlabel{subsec:shared_inductive_biases}{{\mbox  {IV-D}}{5}{Shared Internal Inductive Biases}{subsection.4.4}{}}
-\newlabel{subsubsec:causal_saliency_gating}{{\mbox  {IV-D}1}{5}{Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}{subsubsection.4.4.1}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}1}Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}{5}{subsubsection.4.4.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-D}1a}Auxiliary Input-Channel Gate (Evaluated Variant)}{5}{paragraph.4.4.1.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-D}1b}Zero-Leakage Data Provenance and Temporal Isolation}{5}{paragraph.4.4.1.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}2}Multiscale Frequency Front-End}{5}{subsubsection.4.4.2}\protected@file@percent }
@@ -124,27 +116,26 @@
 \newlabel{tab:ablations}{{I}{9}{Ablation studies. (a) Matched-capacity regularizer controls on fixed backbones, 19 non-GHL streams (Point-F1 = stream-macro mean $\pm $ seed SD; held-out FPR on unseen nominal data). (b) Dyadic-shell front-end on/off under identical TS-JEPA configuration across five multivariate exploratory streams (including diagnostic streams SMD and GECCO). Auxiliary input-channel gating and fault-type recall panels are in Supplementary Section~\ref {sup:gating}}{table.1}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Held-out calibration benchmark, 33 telemetry streams (7 domains). Thresholds: SPOT ($q{=}10^{-3}$) on held-out nominal splits. Metrics: held-out nominal FPR (on data the threshold never saw), unadjusted Point-F1, PR-AUC, Event Recall, mean detection delay $\Delta t$ (averaged strictly over detected anomaly events with $\text  {Event Recall} > 0$; scores emitted upon target window completion $\tau = t + S - 1$, $S=64$). ``Non-GHL'': stream-macro over 19 streams at five seeds; ``GHL'': 14 streams at three-to-five seeds; ``Dataset-Macro'': unweighted mean of the 7 dataset means. Best in \textbf  {bold}, second \underline  {underlined}.}}{9}{table.2}\protected@file@percent }
 \newlabel{tab:core_benchmark}{{II}{9}{Held-out calibration benchmark, 33 telemetry streams (7 domains). Thresholds: SPOT ($q{=}10^{-3}$) on held-out nominal splits. Metrics: held-out nominal FPR (on data the threshold never saw), unadjusted Point-F1, PR-AUC, Event Recall, mean detection delay $\Delta t$ (averaged strictly over detected anomaly events with $\text {Event Recall} > 0$; scores emitted upon target window completion $\tau = t + S - 1$, $S=64$). ``Non-GHL'': stream-macro over 19 streams at five seeds; ``GHL'': 14 streams at three-to-five seeds; ``Dataset-Macro'': unweighted mean of the 7 dataset means. Best in \textbf {bold}, second \underline {underlined}}{table.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}{9}{subsection.7.2}\protected@file@percent }
-\newlabel{subsec:eval_physics_priors}{{\mbox  {VII-B}}{9}{Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}{subsection.7.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}{10}{subsection.7.2}\protected@file@percent }
+\newlabel{subsec:eval_physics_priors}{{\mbox  {VII-B}}{10}{Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}{subsection.7.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{10}{subsection.7.3}\protected@file@percent }
 \newlabel{subsec:causal_vs_buffered}{{\mbox  {VII-C}}{10}{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{subsection.7.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-C}0a}Pre-Onset Alarm Attribution}{10}{paragraph.7.3.0.1}\protected@file@percent }
-\newlabel{par:operating_curves}{{\mbox  {VII-C}0b}{10}{Detection Quality at Matched Operating Points}{paragraph.7.3.0.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-C}0b}Detection Quality at Matched Operating Points}{10}{paragraph.7.3.0.2}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Pooled event recall versus realized test FPR at common nominal calibration budgets: (a) causal trailing; (b) buffered smear. Bands resample datasets; pooled curves are descriptive, not paired estimates at matched FPR.}}{10}{figure.3}\protected@file@percent }
 \newlabel{fig:operating_curves}{{3}{10}{Pooled event recall versus realized test FPR at common nominal calibration budgets: (a) causal trailing; (b) buffered smear. Bands resample datasets; pooled curves are descriptive, not paired estimates at matched FPR}{figure.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Automated Threshold Calibration Realities on Non-Stationary Telemetry}{10}{subsection.7.4}\protected@file@percent }
-\newlabel{subsec:calibration_realities}{{\mbox  {VII-D}}{10}{Automated Threshold Calibration Realities on Non-Stationary Telemetry}{subsection.7.4}{}}
+\newlabel{par:operating_curves}{{\mbox  {VII-C}0b}{10}{Detection Quality at Matched Operating Points}{paragraph.7.3.0.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-C}0b}Detection Quality at Matched Operating Points}{10}{paragraph.7.3.0.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms.}}{11}{table.3}\protected@file@percent }
+\newlabel{tab:calibrator_comparison}{{III}{11}{Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Automated Threshold Calibration Realities on Non-Stationary Telemetry}{11}{subsection.7.4}\protected@file@percent }
+\newlabel{subsec:calibration_realities}{{\mbox  {VII-D}}{11}{Automated Threshold Calibration Realities on Non-Stationary Telemetry}{subsection.7.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{11}{section.8}\protected@file@percent }
+\newlabel{sec:conclusion}{{VIII}{11}{Conclusion and Future Work}{section.8}{}}
 \bibstyle{IEEEtran}
 \bibdata{export}
 \bibcite{meng2019spacecraft}{1}
 \bibcite{chalapathy2019deep}{2}
 \bibcite{Hundman2018b}{3}
-\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms.}}{11}{table.3}\protected@file@percent }
-\newlabel{tab:calibrator_comparison}{{III}{11}{Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms}{table.3}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{11}{section.8}\protected@file@percent }
-\newlabel{sec:conclusion}{{VIII}{11}{Conclusion and Future Work}{section.8}{}}
-\@writefile{toc}{\contentsline {section}{References}{11}{section*.1}\protected@file@percent }
 \bibcite{brunton2016discovering}{4}
 \bibcite{chen2018neural}{5}
 \bibcite{brunton2016koopman}{6}
@@ -178,4 +169,5 @@
 \bibcite{mezic2005spectral}{34}
 \bibcite{grill2020bootstrap}{35}
 \bibcite{kim2022towards}{36}
+\@writefile{toc}{\contentsline {section}{References}{12}{section*.1}\protected@file@percent }
 \gdef \@abspage@last{12}
