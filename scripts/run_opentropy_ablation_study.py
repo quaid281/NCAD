@@ -300,6 +300,14 @@ def run_ablation(
         n_val = int(n_tot * val_frac)
         tr, va = train[: n_tot - n_val], train[n_tot - n_val :]
 
+        # Z-score standardize using strictly the training split statistics
+        mu = tr.mean(axis=0, keepdims=True)
+        sigma = tr.std(axis=0, keepdims=True)
+        sigma = np.where(sigma < 1e-6, 1.0, sigma)
+        tr = (tr - mu) / sigma
+        va = (va - mu) / sigma
+        test = (test - mu) / sigma
+
         k = train.shape[-1]
         print(f"   dim={k}, train={len(tr)}, val={len(va)}, test={len(test)}, anom_rate={y.mean():.4f}", flush=True)
 

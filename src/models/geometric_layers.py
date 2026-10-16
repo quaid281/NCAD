@@ -1477,15 +1477,28 @@ class LittlewoodPaleyDyadicBlock(nn.Module):
         self.out_proj = nn.Conv1d(channels, channels, kernel_size=1)
         self.norm = nn.LayerNorm(channels)
         self.gamma = nn.Parameter(torch.tensor(0.1))  # Small positive initialization for immediate multi-scale gradient flow
+        self._filter_cache: dict[Tuple[int, torch.device, torch.dtype], torch.Tensor] = {}
+        self._fbins_cache: dict[Tuple[int, torch.device, torch.dtype], torch.Tensor] = {}
 
-    def compute_dyadic_filters(self, F_bins: int, device: torch.device) -> torch.Tensor:
+    def compute_dyadic_filters(
+        self,
+        F_bins: int,
+        device: torch.device,
+        dtype: torch.dtype = torch.float32,
+    ) -> torch.Tensor:
         """Construct smooth partition of unity frequency filters Psi_j on [0, 1].
 
         Returns:
             Tensor of shape (J, 1, F_bins) satisfying sum_{j=0}^{J-1} Psi_j == 1.
         """
+        dev = torch.device(device)
+        fbins_key = (int(F_bins), dev, dtype)
+        cached = self._fbins_cache.get(fbins_key)
+        if cached is not None:
+            return cached
+
         # Normalized frequency grid omega in [0, 1]
-        omega = torch.linspace(0.0, 1.0, F_bins, device=device)
+        omega = torch.linspace(0.0, 1.0, F_bins, device=dev, dtype=torch.float32)
         J = self.num_shells
 
         # Centers spaced geometrically in log2 frequency
@@ -1519,7 +1532,9 @@ class LittlewoodPaleyDyadicBlock(nn.Module):
         raw_stack = torch.stack(filters, dim=0)  # (J, F_bins)
         # Enforce exact partition of unity: sum_j Psi_j(omega) == 1.0
         partition_unity = raw_stack / raw_stack.sum(dim=0, keepdim=True)
-        return partition_unity.unsqueeze(1)  # (J, 1, F_bins)
+        out = partition_unity.unsqueeze(1).to(dtype=dtype)  # (J, 1, F_bins)
+        self._fbins_cache[fbins_key] = out
+        return out
 
     def forward(self, x: torch.Tensor, time_last: bool = True) -> torch.Tensor:
         """Decompose x into dyadic shells, process each scale, and fuse.
@@ -1543,8 +1558,12 @@ class LittlewoodPaleyDyadicBlock(nn.Module):
         X_fft = torch.fft.rfft(x, dim=-1)
         F_bins = X_fft.shape[-1]
 
-        # 2. Partition of unity filters: (J, 1, F_bins)
-        filters = self.compute_dyadic_filters(F_bins, device=x.device).to(dtype=x.dtype)
+        # 2. Cached partition of unity filters keyed by (T, device, dtype): (J, 1, F_bins)
+        cache_key = (int(T), x.device, x.dtype)
+        filters = self._filter_cache.get(cache_key)
+        if filters is None:
+            filters = self.compute_dyadic_filters(F_bins, device=x.device, dtype=x.dtype)
+            self._filter_cache[cache_key] = filters
 
         # 3. Frequency shell separation via Parseval isometry
         # X_fft: (1, B, C, F_bins), filters: (J, 1, 1, F_bins)

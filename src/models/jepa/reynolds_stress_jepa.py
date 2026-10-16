@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models._jepa_utils import JEPABase, fit_covariance_batched
+from src.models._jepa_utils import JEPABase, fit_covariance_batched, whiten_residuals
 from src.models.geometric_layers import ResolventPurification
 
 
@@ -256,10 +256,14 @@ class ReynoldsStressJEPAModel(JEPABase):
         z_tgt = self.target_encoder(observed_target_windows)
 
         diff = z_tgt - z_pred
-        if use_mahalanobis and bool(self.precision_fitted.item()):
+        if use_mahalanobis:
+            if not bool(self.precision_fitted.item()):
+                raise RuntimeError(
+                    "Mahalanobis precision matrix has not been fitted. "
+                    "Call fit_covariance() before compute_predictive_discrepancy(use_mahalanobis=True)."
+                )
             diff_cent = diff - self.residual_mean
-            mahal_coord = (diff_cent @ self.precision_matrix) * diff_cent
-            e_white = torch.sign(diff_cent) * torch.sqrt(torch.clamp(mahal_coord, min=0.0))
+            e_white = whiten_residuals(diff_cent, self.precision_matrix)
             base_disc = self.saliency_gate(e_white)
         else:
             base_disc = self.saliency_gate(diff)
@@ -273,6 +277,7 @@ class ReynoldsStressJEPAModel(JEPABase):
         # Combined hydro-kinetic anomaly score
         return base_disc + 0.5 * stress_disc
 
+    @torch.no_grad()
     def fit_covariance(
         self,
         context_windows: Union[np.ndarray, torch.Tensor],

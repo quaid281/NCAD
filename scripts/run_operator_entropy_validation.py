@@ -196,21 +196,26 @@ def run_operator_entropy_comparison(
                 tgt = batch[:, context_size:]
 
                 if variant == "Representation-Entropy_JEPA":
-                    # Custom loss: MSE pred + spectral entropy on representation Gram matrix
+                    # Custom loss: MSE pred + spectral entropy on representation covariance
                     z_ctx = model.context_encoder(ctx)
                     z_pred = model.predictor(z_ctx)
-                    z_tgt = model.target_encoder(tgt)
+                    with torch.no_grad():
+                        z_tgt = model.target_encoder(tgt)
                     mse_loss = F.mse_loss(z_pred, z_tgt)
                     
-                    # Spectral entropy on Z_ctx
+                    # Spectral entropy on Z_ctx (using smoothed probabilities & straight-through clamp)
                     Z = z_ctx - torch.mean(z_ctx, dim=0, keepdim=True)
                     cov_Z = (Z.T @ Z) / max(Z.shape[0] - 1, 1)
-                    S_sq = torch.linalg.eigvalsh(cov_Z)
-                    S_sq = torch.clamp(S_sq, min=1e-8)
-                    p = S_sq / torch.sum(S_sq)
+                    cov_sym = 0.5 * (cov_Z + cov_Z.T)
+                    S_sq = torch.linalg.eigvalsh(cov_sym)
+                    S_sq = S_sq + (torch.clamp(S_sq, min=0.0) - S_sq).detach()
+                    s_smooth = S_sq + 1e-12
+                    p = s_smooth / torch.sum(s_smooth)
                     entropy_Z = -torch.sum(p * torch.log(p))
                     # Maximize entropy -> minimize negative entropy
                     loss = mse_loss - 0.1 * entropy_Z
+                elif variant in ("Vanilla_TS-JEPA", "VICReg_TS-JEPA"):
+                    loss, _ = model.compute_objective(ctx, tgt, cfg, use_log_det=False)
                 else:
                     loss, _ = model.compute_objective(ctx, tgt, cfg)
 
@@ -230,6 +235,8 @@ def run_operator_entropy_comparison(
             if hasattr(model, "koopman_operator"):
                 K_mat = model.koopman_operator.get_operator()
                 eff_rank_op = compute_effective_rank(K_mat)
+            elif hasattr(model, "effective_transition_matrix") and model.effective_transition_matrix is not None:
+                eff_rank_op = compute_effective_rank(model.effective_transition_matrix)
             elif hasattr(model, "K") and model.K is not None:
                 eff_rank_op = compute_effective_rank(model.K)
             elif hasattr(model, "transition_matrix") and model.transition_matrix is not None:
@@ -240,9 +247,9 @@ def run_operator_entropy_comparison(
                     w = model.predictor.net[0].weight
                 elif isinstance(model.predictor, nn.Sequential):
                     w = model.predictor[0].weight
-                eff_rank_op = compute_effective_rank(w) if w is not None else float(config.latent_dim)
+                eff_rank_op = compute_effective_rank(w) if w is not None else float(cfg.latent_dim)
             else:
-                eff_rank_op = float(config.latent_dim)
+                eff_rank_op = float(cfg.latent_dim)
 
         # Anomaly scoring and EVT evaluation
         def get_scores(w_arr):

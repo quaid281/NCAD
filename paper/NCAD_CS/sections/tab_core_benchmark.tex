@@ -1,27 +1,47 @@
 \begin{table*}[t]
 \centering
-\caption{Held-out calibration benchmark, 33 telemetry streams (7 domains). Thresholds: SPOT ($q{=}10^{-3}$) on held-out nominal splits. Metrics: held-out nominal FPR (on data the threshold never saw), unadjusted Point-F1, PR-AUC, Event Recall, mean detection delay $\Delta t$ (averaged strictly over detected anomaly events with $\text{Event Recall} > 0$; scores emitted upon target window completion $\tau = t + S - 1$, $S=64$). ``Non-GHL'': stream-macro over 19 streams at five seeds; ``GHL'': 14 streams at three-to-five seeds; ``Dataset-Macro'': unweighted mean of the 7 dataset means. Best in \textbf{bold}, second \underline{underlined}.}
-\label{tab:core_benchmark}
+\caption{Held-out calibration benchmark (SPOT, $q{=}10^{-3}$, held-out nominal FPR on data the threshold never saw). (a)~Retrospective buffered attribution ($S{=}64$) and (b)~strictly causal trailing attribution (zero lookahead), reported separately: non-GHL = stream-macro over 19 streams at five seeds; GHL = 14 streams at three to five seeds; DS-Macro F1 = unweighted mean of the 7 dataset means; $\Delta t$ = mean delay over detected events only. Best in \textbf{bold}, second \underline{underlined}. (c)~Per-dataset buffered results: $n$ streams, $K$ channels, anomaly prevalence $\pi$, constant-alarm reference $\text{F1}_{\text{all-pos}}{=}2\pi/(1{+}\pi)$; F1 is mean $\pm$ between-stream SD ($\pm$ seed SD for single-stream datasets). Leave-one-dataset-out ranges are given in the text. (d)~Published baselines in the 11-dataset, 130-stream single-seed panel under the same calibration protocol (Point-F1, dataset-macro / stream mean).\label{tab:core_benchmark}}
 \small
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{l ccccc c cc}
+\begin{tabular}{l ccccc ccc cc c}
 \toprule
-& \multicolumn{5}{c}{\textbf{Non-GHL Streams (19 Streams, 5 Seeds)}} & \textbf{Summary} & \multicolumn{2}{c}{\textbf{Gasoil Heating Loop (14 Streams)}} \\
-\cmidrule(lr){2-6} \cmidrule(lr){7-7} \cmidrule(lr){8-9}
-\textbf{Model Architecture} & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1} $\uparrow$ & \textbf{PR-AUC} $\uparrow$ & \textbf{Event Recall} $\uparrow$ & \textbf{Mean Delay ($\Delta t$)} $\downarrow$ & \textbf{DS-Macro F1} $\uparrow$ & \textbf{Held-Out FPR} $\downarrow$ & \textbf{Point-F1} $\uparrow$ \\
+& \multicolumn{5}{c}{\textbf{(a) Buffered, non-GHL (19 streams)}} & \multicolumn{3}{c}{\textbf{(b) Causal, non-GHL}} & \multicolumn{2}{c}{\textbf{GHL buffered (14)}} & \textbf{Summary} \\
+\cmidrule(lr){2-6} \cmidrule(lr){7-9} \cmidrule(lr){10-11} \cmidrule(lr){12-12}
+\textbf{Model} & FPR $\downarrow$ & F1 $\uparrow$ & PR-AUC $\uparrow$ & ER $\uparrow$ & $\Delta t$ $\downarrow$ & FPR $\downarrow$ & F1 $\uparrow$ & ER $\uparrow$ & FPR $\downarrow$ & F1 $\uparrow$ & DS-Macro F1 $\uparrow$ \\
 \midrule
-\multicolumn{9}{l}{\textit{Latent-Space Predictive Architectures (JEPAs)}} \\
-TS-JEPA (Unconstrained Control)          & \underline{0.076} & \underline{0.234} & \underline{0.323} & 0.481 & \underline{80.3} & \textbf{0.148} & \underline{0.005} & 0.000 \\
-Operator-Entropy JEPA                    & 0.086 & \textbf{0.237} & \underline{0.323} & \underline{0.506} & 192.3 & \underline{0.130} & 0.012 & 0.001 \\
-Reynolds-Stress JEPA                     & 0.078 & 0.207 & 0.307 & 0.434 & 132.8 & 0.122 & \textbf{0.003} & 0.002 \\
-Potential-Flow JEPA                      & 0.091 & 0.089 & 0.201 & 0.303 & 146.9 & 0.065 & 0.011 & 0.006 \\
+\multicolumn{12}{l}{\textit{Latent-space predictive architectures (JEPAs)}} \\
+TS-JEPA (unconstrained)   & \underline{0.076} & \underline{0.234} & \underline{0.323} & 0.481 & \underline{80.3} & 0.014 & 0.112 & 0.466 & \underline{0.005} & 0.000 & \textbf{0.148} \\
+Operator-Entropy JEPA     & 0.086 & \textbf{0.237} & \underline{0.323} & \underline{0.506} & 192.3 & 0.019 & 0.109 & 0.469 & 0.012 & 0.001 & \underline{0.130} \\
+Reynolds-Stress JEPA      & 0.078 & 0.207 & 0.307 & 0.434 & 132.8 & \underline{0.011} & 0.088 & 0.456 & \textbf{0.003} & 0.002 & 0.122 \\
+Potential-Flow JEPA       & 0.091 & 0.089 & 0.201 & 0.303 & 146.9 & \textbf{0.010} & 0.023 & 0.343 & 0.011 & 0.006 & 0.065 \\
 \midrule
-\multicolumn{9}{l}{\textit{Observation-Space Reconstructive Baselines}} \\
-TimesNet (ICLR 2023)                     & 0.300 & 0.197 & \textbf{0.329} & \textbf{0.583} & \textbf{48.5} & 0.100 & 0.061 & \textbf{0.022} \\
-TranAD (VLDB 2022)                       & 0.307 & 0.130 & 0.287 & 0.490 & 234.4 & 0.069 & 0.046 & \underline{0.020} \\
+\multicolumn{12}{l}{\textit{Observation-space reconstructive baselines}} \\
+TimesNet                  & 0.300 & 0.197 & \textbf{0.329} & \textbf{0.583} & \textbf{48.5} & 0.243 & \textbf{0.209} & \textbf{0.588} & 0.061 & \textbf{0.022} & 0.100 \\
+TranAD                    & 0.307 & 0.130 & 0.287 & 0.490 & 234.4 & 0.222 & \underline{0.141} & \underline{0.533} & 0.046 & \underline{0.020} & 0.069 \\
 \midrule
-\multicolumn{9}{l}{\textit{Non-Neural Linear Baseline}} \\
-Linear AR Forecaster                     & \textbf{0.005} & 0.051 & 0.255 & 0.432 & 87.8 & 0.038 & \textbf{0.002} & 0.000 \\
+\multicolumn{12}{l}{\textit{Non-neural linear baseline}} \\
+Linear AR Forecaster      & \textbf{0.005} & 0.051 & 0.255 & 0.432 & 87.8 & -- & -- & -- & \textbf{0.002} & 0.000 & 0.038 \\
+\bottomrule
+\end{tabular}%
+}
+
+\vspace{4pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{l cccc cccc cccc}
+\toprule
+& \multicolumn{4}{c}{\textbf{(c) Dataset descriptors}} & \multicolumn{4}{c}{\textbf{Buffered Point-F1 (mean $\pm$ SD)}} & \multicolumn{4}{c}{\textbf{Buffered held-out FPR}} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+\textbf{Dataset} & $n$ & $K$ & $\pi$ & $\text{F1}_{\text{all-pos}}$ & TS-JEPA & OpEnt & TimesNet & TranAD & TS-JEPA & OpEnt & TimesNet & TranAD \\
+\midrule
+Daphnet & 6  & 9  & .148 & .256 & $0.125{\pm}0.076$ & $0.136{\pm}0.143$ & $0.229{\pm}0.232$ & $0.144{\pm}0.119$ & 0.066 & 0.023 & 0.313 & 0.298 \\
+GHL     & 14 & 16 & .013 & .026 & $0.000{\pm}0.000$ & $0.001{\pm}0.003$ & $0.022{\pm}0.030$ & $0.020{\pm}0.025$ & 0.004 & 0.012 & 0.061 & 0.046 \\
+Genesis & 1  & 18 & .003 & .006 & $0.017{\pm}0.023$ & $0.007{\pm}0.017$ & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & 0.069 & 0.065 & 0.000 & 0.000 \\
+MSL     & 4  & 55 & .255 & .381 & $0.237{\pm}0.259$ & $0.303{\pm}0.189$ & $0.158{\pm}0.146$ & $0.151{\pm}0.149$ & 0.147 & 0.191 & 0.133 & 0.241 \\
+SMAP    & 6  & 25 & .150 & .236 & $0.415{\pm}0.389$ & $0.401{\pm}0.343$ & $0.289{\pm}0.334$ & $0.167{\pm}0.341$ & 0.062 & 0.108 & 0.549 & 0.513 \\
+Metro   & 1  & 5  & .001 & .003 & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & $0.001{\pm}0.001$ & $0.000{\pm}0.000$ & 0.017 & 0.020 & 0.000 & 0.000 \\
+SWAN    & 1  & 38 & .279 & .437 & $0.241{\pm}0.150$ & $0.060{\pm}0.069$ & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & 0.009 & 0.000 & 0.000 & 0.000 \\
+\midrule
+\multicolumn{13}{l}{\textbf{(d) 130-stream cross-check (Point-F1, dataset-macro / stream mean):} NCAD $0.058/0.088$; DCdetector $0.070/0.097$; Anomaly Transformer $0.091/0.082$; TimesNet $0.129/0.151$; TranAD $0.156/0.152$; TS-JEPA $0.160/0.186$.} \\
 \bottomrule
 \end{tabular}%
 }

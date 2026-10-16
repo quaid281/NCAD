@@ -79,6 +79,7 @@ class SelectiveSSMContextEncoder(nn.Module):
         if inputs.ndim != 3:
             raise ValueError("Expected tensor with shape (batch, sequence, features).")
 
+        raw_rms = torch.sqrt(torch.mean(inputs.pow(2), dim=(1, 2)))
         x = self.input_projection(inputs)
         for block in self.blocks:
             x = block(x)
@@ -86,5 +87,13 @@ class SelectiveSSMContextEncoder(nn.Module):
         last_features = x[:, -1]
         mean_features = torch.mean(x, dim=1)
         max_features = torch.max(x, dim=1).values
-        latent = self.pool_head(torch.cat([last_features, mean_features, max_features], dim=1))
+        pooled = torch.cat([last_features, mean_features, max_features], dim=1)
+        if isinstance(self.pool_head, nn.Sequential) and len(self.pool_head) >= 2:
+            pre_ln = self.pool_head[:-1](pooled)
+            latent = self.pool_head[-1](pre_ln)
+        else:
+            pre_ln = self.pool_head(pooled)
+            latent = pre_ln
+        self.last_pre_ln = pre_ln.detach()
+        self.last_radial_energy = torch.linalg.norm(pre_ln.detach(), dim=-1) * raw_rms.detach()
         return latent

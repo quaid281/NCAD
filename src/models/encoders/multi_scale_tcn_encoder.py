@@ -160,6 +160,7 @@ class MultiScaleTCNEncoder(nn.Module):
         if inputs.ndim != 3:
             raise ValueError("Expected tensor with shape (batch, sequence, features).")
 
+        raw_rms = torch.sqrt(torch.mean(inputs.pow(2), dim=(1, 2)))
         x = inputs.transpose(1, 2)
         x = self.input_projection(x)
         x = torch.cat([branch(x) for branch in self.branches], dim=1)
@@ -171,7 +172,15 @@ class MultiScaleTCNEncoder(nn.Module):
         temporal_features = self.temporal_dense(torch.cat([last_features, max_features, avg_features], dim=1))
 
         stat_features = self.stat_dense(self._statistical_spectral_features(x))
-        latent = self.bottleneck(torch.cat([temporal_features, stat_features], dim=1))
+        fused = torch.cat([temporal_features, stat_features], dim=1)
+        if isinstance(self.bottleneck, nn.Sequential) and len(self.bottleneck) == 2:
+            pre_ln = self.bottleneck[0](fused)
+            latent = self.bottleneck[1](pre_ln)
+        else:
+            pre_ln = self.bottleneck(fused)
+            latent = pre_ln
+        self.last_pre_ln = pre_ln.detach()
+        self.last_radial_energy = (torch.linalg.norm(pre_ln.detach(), dim=-1) * raw_rms.detach())
         return torch.nan_to_num(latent)
 
     @staticmethod

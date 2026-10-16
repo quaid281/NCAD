@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models._jepa_utils import JEPABase
+from src.models._jepa_utils import JEPABase, whiten_residuals
 
 
 class LatentPredictor(nn.Module):
@@ -125,6 +125,10 @@ class TSJEPAModel(JEPABase):
         sim_w = getattr(config, "vicreg_sim_weight", 1.0) if config is not None else 1.0
         var_w = getattr(config, "vicreg_var_weight", 1.0) if config is not None else 1.0
         cov_w = getattr(config, "vicreg_cov_weight", 0.5) if config is not None else 0.5
+        use_log_det = kwargs.get(
+            "use_log_det",
+            getattr(config, "use_log_det", True) if config is not None else True,
+        )
         loss = jepa_vicreg_loss(
             z_target_pred=z_tgt_pred,
             z_target_true=z_tgt_true,
@@ -132,6 +136,7 @@ class TSJEPAModel(JEPABase):
             sim_weight=sim_w,
             var_weight=var_w,
             cov_weight=cov_w,
+            use_log_det=use_log_det,
         )
         return loss, {"loss": float(loss.item())}
 
@@ -169,6 +174,8 @@ class TSJEPAModel(JEPABase):
             fitted_buffer=self.precision_fitted,
         )
 
+    fit_covariance = fit_mahalanobis_covariance
+
     def compute_predictive_discrepancy(
         self,
         context_windows: torch.Tensor,
@@ -193,8 +200,7 @@ class TSJEPAModel(JEPABase):
                         "Call fit_mahalanobis_covariance() before inference."
                     )
                 diff_centered = diff - self.residual_mean
-                mahal_coord = (diff_centered @ self.precision_matrix) * diff_centered
-                e_white = torch.sign(diff_centered) * torch.sqrt(torch.clamp(mahal_coord, min=0.0))
+                e_white = whiten_residuals(diff_centered, self.precision_matrix)
                 return self.saliency_gate(e_white)
             else:
                 return self.saliency_gate(diff)

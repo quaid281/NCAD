@@ -128,6 +128,34 @@ def resolvent_precision(cov: torch.Tensor, u: float = 1e-3) -> torch.Tensor:
     return evecs @ torch.diag_embed(filtered_evals) @ evecs.transpose(-1, -2)
 
 
+def symmetric_sqrt_precision(precision: torch.Tensor) -> torch.Tensor:
+    """Compute the unique SPSD square-root matrix Omega^{1/2} of a precision matrix Omega."""
+    orig_dtype = precision.dtype
+    work_dtype = torch.float32 if orig_dtype in (torch.float16, torch.bfloat16) else orig_dtype
+    sym = 0.5 * (precision.to(work_dtype) + precision.to(work_dtype).transpose(-1, -2))
+    evals, evecs = torch.linalg.eigh(sym)
+    sqrt_evals = torch.sqrt(torch.clamp(evals, min=0.0))
+    sqrt_mat = evecs @ torch.diag_embed(sqrt_evals) @ evecs.transpose(-1, -2)
+    return sqrt_mat.to(orig_dtype)
+
+
+def whiten_residuals(diff_centered: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
+    """Apply exact symmetric square-root Mahalanobis whitening: e_white = diff_centered @ Omega^{1/2}.
+
+    Guarantees ||e_white||_2^2 == diff_centered^T Omega diff_centered without clamping negative
+    elementwise products to zero, and safely handles mixed-precision (fp16/bf16/fp32/fp64) inputs.
+    """
+    orig_dtype = diff_centered.dtype
+    work_dtype = (
+        torch.float64
+        if (orig_dtype == torch.float64 or precision.dtype == torch.float64)
+        else torch.float32
+    )
+    omega_sqrt = symmetric_sqrt_precision(precision.to(work_dtype))
+    return (diff_centered.to(work_dtype) @ omega_sqrt).to(orig_dtype)
+
+
+@torch.no_grad()
 def fit_covariance_batched(
     model: nn.Module,
     context_windows: ArrayLike,

@@ -48,23 +48,9 @@ def run_tectonic(target_file):
     return True
 
 def compile_documents():
-    step("2. Compiling supplement and standalone via Tectonic (--keep-intermediates)...")
-    
-    # Pass 1: Supplement to create NCAD_CS_supplement.aux
-    print("  -> Compiling supplement (Pass 1)...")
-    if not run_tectonic(SUPPLEMENT_TEX.name):
-        return False
-        
-    # Pass 2: Standalone to create NCAD_CS_standalone.aux and consume supplement.aux
-    print("  -> Compiling standalone (Pass 2)...")
+    step("2. Compiling the self-contained standalone manuscript via Tectonic (--keep-intermediates)...")
     if not run_tectonic(STANDALONE_TEX.name):
         return False
-        
-    # Pass 3: Re-compile supplement to resolve any standalone references
-    print("  -> Re-compiling supplement to close mutual xr links (Pass 3)...")
-    if not run_tectonic(SUPPLEMENT_TEX.name):
-        return False
-
     return True
 
 def scan_pdf_for_markers(pdf_path):
@@ -95,12 +81,21 @@ def scan_bib_keys():
         keys.add(match.group(1).strip())
     return keys
 
+def _is_manuscript_section(path):
+    """True for section files that belong to the self-contained manuscript (not legacy sup_*/unused tab_* files)."""
+    if path.name.startswith("sup_"):
+        return False
+    if path.name.startswith("tab_"):
+        used = "".join(p.read_text(encoding="utf-8") for p in SECTIONS_DIR.glob("[0-9]*.tex"))
+        return f"sections/{path.name}" in used
+    return True
+
 def scan_tex_crossrefs():
     step("3. Scanning .tex files for unresolved labels, citations, and placeholders...")
     
     # 1. Collect all labels
     labels = set()
-    tex_files = list(SECTIONS_DIR.glob("*.tex")) + [STANDALONE_TEX, SUPPLEMENT_TEX]
+    tex_files = [f for f in SECTIONS_DIR.glob("*.tex") if _is_manuscript_section(f)] + [STANDALONE_TEX]
     
     label_def_pattern = re.compile(r"\\label\{([^}]+)\}")
     ref_pattern = re.compile(r"\\(ref|eqref|cref|autoref)\{([^}]+)\}")
@@ -199,7 +194,6 @@ def main():
     # Post-compilation PDF scan
     step("5. Scanning generated PDFs for rendered '??' and '[?]' markers...")
     standalone_issues = scan_pdf_for_markers(STANDALONE_PDF)
-    supplement_issues = scan_pdf_for_markers(SUPPLEMENT_PDF)
     
     has_pdf_issues = False
     if standalone_issues:
@@ -209,14 +203,6 @@ def main():
             print(f"    {issue}")
     else:
         print(f"  [OK] {STANDALONE_PDF.name}: 0 rendered '??' or '[?]' issues.")
-        
-    if supplement_issues:
-        has_pdf_issues = True
-        err(f"Found {len(supplement_issues)} rendered reference issues in {SUPPLEMENT_PDF.name}:")
-        for issue in supplement_issues:
-            print(f"    {issue}")
-    else:
-        print(f"  [OK] {SUPPLEMENT_PDF.name}: 0 rendered '??' or '[?]' issues.")
         
     # Check page budget
     budget_ok = check_page_budget()

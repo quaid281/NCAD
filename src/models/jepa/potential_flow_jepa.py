@@ -24,7 +24,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.models._jepa_utils import JEPABase, fit_covariance_batched
+from src.models._jepa_utils import JEPABase, fit_covariance_batched, whiten_residuals
 from src.models.geometric_layers import MovingTangentProjection
 from src.models.jepa.flow_ts_jepa import TimestepEmbedding, flow_matching_vicreg_loss, von_neumann_operator_entropy_loss
 
@@ -517,8 +517,7 @@ class PotentialFlowJEPAModel(JEPABase):
 
         if use_mahalanobis and bool(self.precision_fitted.item()):
             diff_c = diff - self.residual_mean
-            mahal_coord = (diff_c @ self.precision_matrix) * diff_c
-            e_white = torch.sign(diff_c) * torch.sqrt(torch.clamp(mahal_coord, min=0.0))
+            e_white = whiten_residuals(diff_c, self.precision_matrix)
             base_score = self.saliency_gate(e_white)
         else:
             base_score = self.saliency_gate(diff)
@@ -581,6 +580,8 @@ class PotentialFlowJEPAModel(JEPABase):
             residual_mean_buffer=self.residual_mean,
             fitted_buffer=self.precision_fitted,
         )
+
+    fit_covariance = fit_mahalanobis_covariance
 
 
 PotentialFlowJEPA = PotentialFlowJEPAModel

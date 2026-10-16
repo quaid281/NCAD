@@ -1,7 +1,7 @@
 \begin{table}[t]
 \centering
 \small
-\caption{Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms.}
+\caption{(a) Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms. (b) Controlled-drift stress test: achieved held-out FPR (design $q=10^{-3}$) of real held-out residual streams under injected shifts, averaged over 16 streams with $\ge 200$ calibration and evaluation windows. Rolling variants recalibrate per evaluation block.}
 \label{tab:calibrator_comparison}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}llcccc@{}}
@@ -31,6 +31,22 @@
  & SPOT + Kurtosis ($\beta=0.167$) & 0.1722 (0.1513) & 43\% & 0.2453 (0.2151) & 0.0940 \\
  & Empirical 99.5th Percentile     & 0.1712 (0.1544) & 51\% & 0.2343 (0.2093) & 0.0962 \\
  & Validation Maximum              & 0.1580 (0.1392) & 44\% & 0.2270 (0.2009) & 0.0952 \\
+\bottomrule
+\end{tabular}%
+}
+
+\vspace{3pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{(b) Injected condition} & \textbf{Static SPOT} & \textbf{Static empirical} & \textbf{Rolling empirical} & \textbf{Rolling SPOT} \\
+\midrule
+Stationary (no injection) & 0.061 & 0.162 & 0.016 & 0.047 \\
+Mean shift $+1.0\sigma$ & 0.087 & 0.216 & 0.011 & 0.043 \\
+Regime change $+1\sigma$ & 0.073 & 0.187 & 0.015 & 0.070 \\
+Variance scale $2.0$ & 0.082 & 0.195 & 0.016 & 0.047 \\
+Autocorrelation $0.9$ & 0.113 & 0.232 & 0.024 & 0.055 \\
+Continuous mean ramp & 0.075 & 0.186 & 0.326 & 0.385 \\
 \bottomrule
 \end{tabular}%
 }

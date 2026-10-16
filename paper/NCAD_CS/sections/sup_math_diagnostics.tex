@@ -31,11 +31,11 @@ As shown in Table~\ref{tab:operator_entropy_validation}, unconstrained Vanilla T
 \subsubsection{Resolution of Operator-Representation Decoupling via Dual Spectral Entropy and Lyapunov Invariance}
 \label{sup:opentropy_ablation}
 
-To resolve this decoupling, we evaluate two structural modifications: (1) dual spectral entropy coupling ($\alpha_Z$), which simultaneously penalizes non-uniformity in the representation covariance eigenspectrum $\mathbf{\Sigma}_Z$, and (2) a Discrete Lyapunov Invariance Defect ($\beta_{\text{Lyap}}$):
+To resolve this decoupling, we evaluate two structural modifications: (1) dual spectral entropy coupling ($\alpha_Z$), which averages separate spectral entropy penalties on $\mathrm{Cov}(z_{\text{ctx}})$ and $\mathrm{Cov}(z_{\text{tgt}})$ over the $D-1$ non-null eigenvalues on the LayerNorm zero-sum hyperplane, and (2) a scale-invariant Discrete Lyapunov Invariance Defect ($\beta_{\text{Lyap}}$):
 \begin{equation}
-    \mathcal{L}_{\text{Lyapunov}} = \frac{1}{D} \left\| \mathrm{Cov}(z_{\text{pred}}) - \mathrm{Cov}(z_{\text{tgt}}) \right\|_F^2,
+    \mathcal{L}_{\text{Lyapunov}} = \frac{\left\| \mathrm{Cov}(z_{\text{pred}}) - \mathrm{Cov}(z_{\text{tgt}}) \right\|_F^2}{D \left(\mathrm{Tr}(\mathrm{Cov}(z_{\text{tgt}}))/D + \epsilon\right)^2},
 \end{equation}
-which penalizes rotational drift between predicted and target representation covariance structures. In addition, we evaluate the Cayley orthogonal-dissipative parameterization $W = (I + S + D)^{-1}(I - S - D)$ ($S = -S^T, D \succeq 0$), enforcing contractivity ($\|W\|_2 \le 1.0$) by construction without soft energy penalties.
+which penalizes rotational and structural drift between predicted and target representation covariances without rewarding global representation contraction. In addition, we evaluate the Cayley orthogonal-dissipative parameterization $W = (I + S + D)^{-1}(I - S - D)$ ($S = -S^T, D \succeq 0$), which enforces contractivity ($\|W\|_2 \le 1.0$) by construction and disables the Frobenius energy barrier ($\beta_{\text{norm}} = 0$) so dissipative damping is not penalized.
 
 \begin{table}[t]
 \centering

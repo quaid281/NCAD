@@ -75,6 +75,13 @@ def load_telemetry_stream(
     te_data = np.nan_to_num(df_te[feat_cols].to_numpy(), nan=0.0).astype(np.float32)
     labels = df_te[lbl_cols[0]].to_numpy().astype(int) if lbl_cols else np.zeros(len(df_te), dtype=int)
 
+    # Z-score standardize using strictly the training split statistics
+    mu = tr_data.mean(axis=0, keepdims=True)
+    sigma = tr_data.std(axis=0, keepdims=True)
+    sigma = np.where(sigma < 1e-6, 1.0, sigma)
+    tr_data = (tr_data - mu) / sigma
+    te_data = (te_data - mu) / sigma
+
     W = context_len + target_len
 
     # Build windows from test set
@@ -302,11 +309,11 @@ def main():
             for i in range(0, len(wins), 128):
                 b = torch.from_numpy(wins[i : i + 128]).to(device)
                 ctx_b, tgt_b = b[:, :C], b[:, C:]
-                z_pred, z_tgt, _ = model(ctx_b, tgt_b)
-                if hasattr(model, "_apply_filters"):
+                if isinstance(model, OperatorEntropyJEPAModel):
+                    z_pred, z_tgt, _ = model(ctx_b, tgt_b)
                     z_ctx = model._apply_filters(model.context_encoder(ctx_b))
                 else:
-                    z_ctx = model.context_encoder(ctx_b)
+                    z_ctx, z_tgt, z_pred = model(ctx_b, tgt_b)
                 res = z_tgt - z_pred
                 disc = model.compute_predictive_discrepancy(ctx_b, tgt_b)
 

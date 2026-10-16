@@ -17,7 +17,7 @@
 \providecommand*\HyPL@Entry[1]{}
 \citation{meng2019spacecraft,chalapathy2019deep}
 \citation{Hundman2018b}
-\citation{xu2022anomaly,wu2023timesnet}
+\citation{xu2022anomaly,wu2023timesnet,tuli2022tranad}
 \citation{siffer2017anomaly}
 \citation{carmona2021neural}
 \citation{lecun2022path}
@@ -67,72 +67,70 @@
 \newlabel{subsec:triad_formulations}{{\mbox  {IV-B}}{3}{Latent Predictor Architectures and Dynamical Inductive Priors}{subsection.4.2}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-B}1}Operator-Entropy JEPA (Spectral Dynamics \& Modal Dispersion)}{3}{subsubsection.4.2.1}\protected@file@percent }
 \newlabel{prop:anti_collapse}{{1}{3}{Operator Non-Triviality and Barrier Behavior}{proposition.1}{}}
-\newlabel{subsubsec:reynolds_stress_jepa}{{\mbox  {IV-B}2}{3}{Auxiliary Quadratic Second-Moment Head}{subsubsection.4.2.2}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-B}2}Auxiliary Quadratic Second-Moment Head}{3}{subsubsection.4.2.2}\protected@file@percent }
 \citation{Hundman2018b,zhou2026mtsbench}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Operator-Entropy JEPA architecture: multiscale context ($\mathbf  {x}_{\text  {ctx}} \in \mathbb  {R}^{256 \times K}$) and suspect ($\mathbf  {x}_{\text  {tgt}} \in \mathbb  {R}^{64 \times K}$) windows are mapped into latent space via online ($E_\theta $) and EMA momentum ($E_\phi $) encoders with a stop-gradient barrier ($\perp $). A linear Koopman transition operator ($\mathbf  {K} \in \mathbb  {R}^{32 \times 32}$) forecasts the target representation $\hat  {\mathbf  {z}}_{\text  {tgt}} = \mathbf  {K}\mathbf  {z}_{\text  {ctx}}$, regularized by dual Von Neumann spectral entropy and a logarithmic Bregman energy barrier against collapse. Residual discrepancies pass through a coordinate saliency gate to yield anomaly score $S_t$ calibrated via streaming SPOT.}}{4}{figure.1}\protected@file@percent }
 \newlabel{fig:triad_architecture}{{1}{4}{Operator-Entropy JEPA architecture: multiscale context ($\mathbf {x}_{\text {ctx}} \in \mathbb {R}^{256 \times K}$) and suspect ($\mathbf {x}_{\text {tgt}} \in \mathbb {R}^{64 \times K}$) windows are mapped into latent space via online ($E_\theta $) and EMA momentum ($E_\phi $) encoders with a stop-gradient barrier ($\perp $). A linear Koopman transition operator ($\mathbf {K} \in \mathbb {R}^{32 \times 32}$) forecasts the target representation $\hat {\mathbf {z}}_{\text {tgt}} = \mathbf {K}\mathbf {z}_{\text {ctx}}$, regularized by dual Von Neumann spectral entropy and a logarithmic Bregman energy barrier against collapse. Residual discrepancies pass through a coordinate saliency gate to yield anomaly score $S_t$ calibrated via streaming SPOT}{figure.1}{}}
+\newlabel{subsubsec:reynolds_stress_jepa}{{\mbox  {IV-B}2}{4}{Auxiliary Quadratic Second-Moment Head}{subsubsection.4.2.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-B}2}Auxiliary Quadratic Second-Moment Head}{4}{subsubsection.4.2.2}\protected@file@percent }
 \newlabel{subsubsec:potential_flow_jepa}{{\mbox  {IV-B}3}{4}{Potential-Flow JEPA (Conservative Field Theory and Flow Matching)}{subsubsection.4.2.3}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-B}3}Potential-Flow JEPA (Conservative Field Theory and Flow Matching)}{4}{subsubsection.4.2.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Anomaly Scoring and Operational Detection Latency}{4}{subsection.4.3}\protected@file@percent }
 \newlabel{subsec:scoring_function}{{\mbox  {IV-C}}{4}{Anomaly Scoring and Operational Detection Latency}{subsection.4.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Shared Internal Inductive Biases}{4}{subsection.4.4}\protected@file@percent }
-\newlabel{subsec:shared_inductive_biases}{{\mbox  {IV-D}}{4}{Shared Internal Inductive Biases}{subsection.4.4}{}}
-\newlabel{subsubsec:causal_saliency_gating}{{\mbox  {IV-D}1}{4}{Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}{subsubsection.4.4.1}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}1}Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}{4}{subsubsection.4.4.1}\protected@file@percent }
 \citation{siffer2017anomaly}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Score-emission and alarm-attribution timeline. Every score $s_i$ is computable only at window completion $\tau = t+S-1$. (a) Buffered attribution assigns $s_i$ retrospectively to $[t{+}1, t{+}S]$; (b) causal attribution emits $s_i$ at $\tau $ only.}}{5}{figure.2}\protected@file@percent }
-\newlabel{fig:inference_timeline}{{2}{5}{Score-emission and alarm-attribution timeline. Every score $s_i$ is computable only at window completion $\tau = t+S-1$. (a) Buffered attribution assigns $s_i$ retrospectively to $[t{+}1, t{+}S]$; (b) causal attribution emits $s_i$ at $\tau $ only}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Shared Internal Inductive Biases}{5}{subsection.4.4}\protected@file@percent }
+\newlabel{subsec:shared_inductive_biases}{{\mbox  {IV-D}}{5}{Shared Internal Inductive Biases}{subsection.4.4}{}}
+\newlabel{subsubsec:causal_saliency_gating}{{\mbox  {IV-D}1}{5}{Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}{subsubsection.4.4.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}1}Coordinate Saliency Gating and the Auxiliary Channel-Gate Variant}{5}{subsubsection.4.4.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-D}1a}Auxiliary Input-Channel Gate (Evaluated Variant)}{5}{paragraph.4.4.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-D}1b}Zero-Leakage Data Provenance and Temporal Isolation}{5}{paragraph.4.4.1.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}2}Multiscale Frequency Front-End}{5}{subsubsection.4.4.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}3}Kurtosis-Adaptive Extreme Value Theory (EVT) and Calibration Realities}{5}{subsubsection.4.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Protocol and Evaluation Metrics}{6}{section.5}\protected@file@percent }
-\newlabel{sec:exp}{{V}{6}{Experimental Protocol and Evaluation Metrics}{section.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Experimental Setup and Hyperparameters}{6}{subsection.5.1}\protected@file@percent }
-\newlabel{subsec:exp_setup}{{\mbox  {V-A}}{6}{Experimental Setup and Hyperparameters}{subsection.5.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0a}Held-Out Calibration Protocol}{6}{paragraph.5.1.0.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0b}Calibrator Assignment Across Experiments}{6}{paragraph.5.1.0.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0c}Multi-Seed Replication, Primary Endpoints, and Multiplicity Controls}{6}{paragraph.5.1.0.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Baseline Architectures and Parameter Capacities}{6}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Protocol and Evaluation Metrics}{5}{section.5}\protected@file@percent }
+\newlabel{sec:exp}{{V}{5}{Experimental Protocol and Evaluation Metrics}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Experimental Setup and Hyperparameters}{5}{subsection.5.1}\protected@file@percent }
+\newlabel{subsec:exp_setup}{{\mbox  {V-A}}{5}{Experimental Setup and Hyperparameters}{subsection.5.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0a}Held-Out Calibration Protocol}{5}{paragraph.5.1.0.1}\protected@file@percent }
 \citation{wu2023timesnet}
 \citation{tuli2022tranad}
 \citation{schmidl2022anomaly,kim2022towards}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Multi-Tier Statistical Evaluation Metrics}{7}{subsection.5.3}\protected@file@percent }
-\newlabel{subsec:eval_metrics}{{\mbox  {V-C}}{7}{Multi-Tier Statistical Evaluation Metrics}{subsection.5.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Evaluation Regimes: Zero-Lookahead Causal vs. Buffered Inference}{7}{subsection.5.4}\protected@file@percent }
-\newlabel{subsec:causal_vs_buffered_protocol}{{\mbox  {V-D}}{7}{Evaluation Regimes: Zero-Lookahead Causal vs. Buffered Inference}{subsection.5.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VI}Ablation Studies and Analysis}{7}{section.6}\protected@file@percent }
-\newlabel{sec:ablations}{{VI}{7}{Ablation Studies and Analysis}{section.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Ablation 1: Physical Regularizer Controls on Fixed Architectures}{7}{subsection.6.1}\protected@file@percent }
-\newlabel{subsec:controlled_ablations}{{\mbox  {VI-A}}{7}{Ablation 1: Physical Regularizer Controls on Fixed Architectures}{subsection.6.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Ablation 2: Auxiliary Input-Channel Gating Variant}{7}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Ablation 3: Multiscale Dyadic-Shell Front-End}{8}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}Ablation 4: Threshold Calibration Rules on Nominal Splits}{8}{subsection.6.4}\protected@file@percent }
-\newlabel{subsec:ablation_calibration}{{\mbox  {VI-D}}{8}{Ablation 4: Threshold Calibration Rules on Nominal Splits}{subsection.6.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Mechanism-Discrimination Study: Latent Space vs. Observation Space}{8}{subsection.6.5}\protected@file@percent }
-\newlabel{subsec:controlled_backbone}{{\mbox  {VI-E}}{8}{Mechanism-Discrimination Study: Latent Space vs. Observation Space}{subsection.6.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0b}Calibrator Assignment}{6}{paragraph.5.1.0.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0c}Multi-Seed Replication, Primary Endpoints, and Multiplicity Controls}{6}{paragraph.5.1.0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Baseline Architectures and Parameter Capacities}{6}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Multi-Tier Statistical Evaluation Metrics}{6}{subsection.5.3}\protected@file@percent }
+\newlabel{subsec:eval_metrics}{{\mbox  {V-C}}{6}{Multi-Tier Statistical Evaluation Metrics}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Ablation Studies and Analysis}{6}{section.6}\protected@file@percent }
+\newlabel{sec:ablations}{{VI}{6}{Ablation Studies and Analysis}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Ablation 1: Physical Regularizer Controls on Fixed Architectures}{6}{subsection.6.1}\protected@file@percent }
+\newlabel{subsec:controlled_ablations}{{\mbox  {VI-A}}{6}{Ablation 1: Physical Regularizer Controls on Fixed Architectures}{subsection.6.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Ablation 2: Factorial Isolation of the Entropy Term and Energy Barrier}{7}{subsection.6.2}\protected@file@percent }
+\newlabel{subsec:factorial}{{\mbox  {VI-B}}{7}{Ablation 2: Factorial Isolation of the Entropy Term and Energy Barrier}{subsection.6.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Ablation 3: Auxiliary Input-Channel Gating and Quiet-Fault Reference Monitors}{7}{subsection.6.3}\protected@file@percent }
+\newlabel{subsec:gating_ablation}{{\mbox  {VI-C}}{7}{Ablation 3: Auxiliary Input-Channel Gating and Quiet-Fault Reference Monitors}{subsection.6.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}Ablation 4: Multiscale Dyadic-Shell Front-End}{7}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Mechanism-Discrimination Study: Latent Space vs. Observation Space}{7}{subsection.6.5}\protected@file@percent }
+\newlabel{subsec:controlled_backbone}{{\mbox  {VI-E}}{7}{Mechanism-Discrimination Study: Latent Space vs. Observation Space}{subsection.6.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Ablation studies. (a) Matched-capacity regularizer controls on fixed backbones, 19 non-GHL streams (Point-F1 = stream-macro mean $\pm $ seed SD; held-out FPR on unseen nominal data). (b) Dyadic-shell front-end on/off under identical TS-JEPA configuration across five multivariate exploratory streams (including diagnostic streams SMD and GECCO). (c) Factorial and strength sweep of the entropy term ($\lambda _{\text  {ent}}$) and energy barrier ($\beta _{\text  {norm}}$) on six streams at three seeds: operator rank, operator condition number, context/target representation rank, loss coefficient of variation, and held-out outcomes (buffered and causal). (d) Point recall under injected single-channel faults on six streams: latent gating regimes (Uniform, variance gate, MAD gate) and observation-space reference monitors (\texttt  {lowvar}, \texttt  {dev\_maxz}); last row is mean nominal FPR.}}{8}{table.1}\protected@file@percent }
+\newlabel{tab:ablations}{{I}{8}{Ablation studies. (a) Matched-capacity regularizer controls on fixed backbones, 19 non-GHL streams (Point-F1 = stream-macro mean $\pm $ seed SD; held-out FPR on unseen nominal data). (b) Dyadic-shell front-end on/off under identical TS-JEPA configuration across five multivariate exploratory streams (including diagnostic streams SMD and GECCO). (c) Factorial and strength sweep of the entropy term ($\lambda _{\text {ent}}$) and energy barrier ($\beta _{\text {norm}}$) on six streams at three seeds: operator rank, operator condition number, context/target representation rank, loss coefficient of variation, and held-out outcomes (buffered and causal). (d) Point recall under injected single-channel faults on six streams: latent gating regimes (Uniform, variance gate, MAD gate) and observation-space reference monitors (\texttt {lowvar}, \texttt {dev\_maxz}); last row is mean nominal FPR}{table.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VII}Results and Discussion}{8}{section.7}\protected@file@percent }
 \newlabel{sec:results}{{VII}{8}{Results and Discussion}{section.7}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Benchmark Performance on Continuous Telemetry}{8}{subsection.7.1}\protected@file@percent }
 \newlabel{subsec:core_benchmark}{{\mbox  {VII-A}}{8}{Benchmark Performance on Continuous Telemetry}{subsection.7.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Ablation studies. (a) Matched-capacity regularizer controls on fixed backbones, 19 non-GHL streams (Point-F1 = stream-macro mean $\pm $ seed SD; held-out FPR on unseen nominal data). (b) Dyadic-shell front-end on/off under identical TS-JEPA configuration across five multivariate exploratory streams (including diagnostic streams SMD and GECCO). Auxiliary input-channel gating and fault-type recall panels are in Supplementary Section\nobreakspace  {}\ref  {sup:gating}.}}{9}{table.1}\protected@file@percent }
-\newlabel{tab:ablations}{{I}{9}{Ablation studies. (a) Matched-capacity regularizer controls on fixed backbones, 19 non-GHL streams (Point-F1 = stream-macro mean $\pm $ seed SD; held-out FPR on unseen nominal data). (b) Dyadic-shell front-end on/off under identical TS-JEPA configuration across five multivariate exploratory streams (including diagnostic streams SMD and GECCO). Auxiliary input-channel gating and fault-type recall panels are in Supplementary Section~\ref {sup:gating}}{table.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Held-out calibration benchmark, 33 telemetry streams (7 domains). Thresholds: SPOT ($q{=}10^{-3}$) on held-out nominal splits. Metrics: held-out nominal FPR (on data the threshold never saw), unadjusted Point-F1, PR-AUC, Event Recall, mean detection delay $\Delta t$ (averaged strictly over detected anomaly events with $\text  {Event Recall} > 0$; scores emitted upon target window completion $\tau = t + S - 1$, $S=64$). ``Non-GHL'': stream-macro over 19 streams at five seeds; ``GHL'': 14 streams at three-to-five seeds; ``Dataset-Macro'': unweighted mean of the 7 dataset means. Best in \textbf  {bold}, second \underline  {underlined}.}}{9}{table.2}\protected@file@percent }
-\newlabel{tab:core_benchmark}{{II}{9}{Held-out calibration benchmark, 33 telemetry streams (7 domains). Thresholds: SPOT ($q{=}10^{-3}$) on held-out nominal splits. Metrics: held-out nominal FPR (on data the threshold never saw), unadjusted Point-F1, PR-AUC, Event Recall, mean detection delay $\Delta t$ (averaged strictly over detected anomaly events with $\text {Event Recall} > 0$; scores emitted upon target window completion $\tau = t + S - 1$, $S=64$). ``Non-GHL'': stream-macro over 19 streams at five seeds; ``GHL'': 14 streams at three-to-five seeds; ``Dataset-Macro'': unweighted mean of the 7 dataset means. Best in \textbf {bold}, second \underline {underlined}}{table.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}{10}{subsection.7.2}\protected@file@percent }
-\newlabel{subsec:eval_physics_priors}{{\mbox  {VII-B}}{10}{Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}{subsection.7.2}{}}
+\citation{wu2023flawed}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Held-out calibration benchmark (SPOT, $q{=}10^{-3}$, held-out nominal FPR on data the threshold never saw). (a)\nobreakspace  {}Retrospective buffered attribution ($S{=}64$) and (b)\nobreakspace  {}strictly causal trailing attribution (zero lookahead), reported separately: non-GHL = stream-macro over 19 streams at five seeds; GHL = 14 streams at three to five seeds; DS-Macro F1 = unweighted mean of the 7 dataset means; $\Delta t$ = mean delay over detected events only. Best in \textbf  {bold}, second \underline  {underlined}. (c)\nobreakspace  {}Per-dataset buffered results: $n$ streams, $K$ channels, anomaly prevalence $\pi $, constant-alarm reference $\text  {F1}_{\text  {all-pos}}{=}2\pi /(1{+}\pi )$; F1 is mean $\pm $ between-stream SD ($\pm $ seed SD for single-stream datasets). Leave-one-dataset-out ranges are given in the text. (d)\nobreakspace  {}Published baselines in the 11-dataset, 130-stream single-seed panel under the same calibration protocol (Point-F1, dataset-macro / stream mean).}}{9}{table.2}\protected@file@percent }
+\newlabel{tab:core_benchmark}{{II}{9}{Held-out calibration benchmark (SPOT, $q{=}10^{-3}$, held-out nominal FPR on data the threshold never saw). (a)~Retrospective buffered attribution ($S{=}64$) and (b)~strictly causal trailing attribution (zero lookahead), reported separately: non-GHL = stream-macro over 19 streams at five seeds; GHL = 14 streams at three to five seeds; DS-Macro F1 = unweighted mean of the 7 dataset means; $\Delta t$ = mean delay over detected events only. Best in \textbf {bold}, second \underline {underlined}. (c)~Per-dataset buffered results: $n$ streams, $K$ channels, anomaly prevalence $\pi $, constant-alarm reference $\text {F1}_{\text {all-pos}}{=}2\pi /(1{+}\pi )$; F1 is mean $\pm $ between-stream SD ($\pm $ seed SD for single-stream datasets). Leave-one-dataset-out ranges are given in the text. (d)~Published baselines in the 11-dataset, 130-stream single-seed panel under the same calibration protocol (Point-F1, dataset-macro / stream mean)}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}{9}{subsection.7.2}\protected@file@percent }
+\newlabel{subsec:eval_physics_priors}{{\mbox  {VII-B}}{9}{Evaluating Physical Inductive Priors: Hypothesis Testing and Null Results}{subsection.7.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{10}{subsection.7.3}\protected@file@percent }
 \newlabel{subsec:causal_vs_buffered}{{\mbox  {VII-C}}{10}{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{subsection.7.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-C}0a}Pre-Onset Alarm Attribution}{10}{paragraph.7.3.0.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Pooled event recall versus realized test FPR at common nominal calibration budgets: (a) causal trailing; (b) buffered smear. Bands resample datasets; pooled curves are descriptive, not paired estimates at matched FPR.}}{10}{figure.3}\protected@file@percent }
-\newlabel{fig:operating_curves}{{3}{10}{Pooled event recall versus realized test FPR at common nominal calibration budgets: (a) causal trailing; (b) buffered smear. Bands resample datasets; pooled curves are descriptive, not paired estimates at matched FPR}{figure.3}{}}
-\newlabel{par:operating_curves}{{\mbox  {VII-C}0b}{10}{Detection Quality at Matched Operating Points}{paragraph.7.3.0.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {VII-C}0b}Detection Quality at Matched Operating Points}{10}{paragraph.7.3.0.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms.}}{11}{table.3}\protected@file@percent }
-\newlabel{tab:calibrator_comparison}{{III}{11}{Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms}{table.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Automated Threshold Calibration Realities on Non-Stationary Telemetry}{11}{subsection.7.4}\protected@file@percent }
-\newlabel{subsec:calibration_realities}{{\mbox  {VII-D}}{11}{Automated Threshold Calibration Realities on Non-Stationary Telemetry}{subsection.7.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Horizon Length, Score-Emission Latency, and False-Alarm Control}{10}{subsection.7.4}\protected@file@percent }
+\newlabel{subsec:horizon_latency}{{\mbox  {VII-D}}{10}{Horizon Length, Score-Emission Latency, and False-Alarm Control}{subsection.7.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Detection Quality at Matched Operating Points}{10}{subsection.7.5}\protected@file@percent }
+\newlabel{subsec:matched_operating}{{\mbox  {VII-E}}{10}{Detection Quality at Matched Operating Points}{subsection.7.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-F}}Automated Threshold Calibration Realities on Non-Stationary Telemetry}{10}{subsection.7.6}\protected@file@percent }
+\newlabel{subsec:calibration_realities}{{\mbox  {VII-F}}{10}{Automated Threshold Calibration Realities on Non-Stationary Telemetry}{subsection.7.6}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces (a) Target-horizon and score-emission sweep on five streams at three seeds ($S$ = target horizon; lag $= S{-}1$ steps before a score can be emitted; held-out FPR and event recall (ER) under strictly causal trailing attribution, with buffered OpEntropy FPR/ER for contrast; $\Delta t$ = mean delay over detected events). (b) Detection quality at matched nominal calibration budgets $q^*$ on 19 non-GHL streams (stream-averaged; ER = event recall; P = point precision; FA = false alarms per 1{,}000 nominal steps). Budgets match calibration quantiles, not realized test FPR.}}{11}{table.3}\protected@file@percent }
+\newlabel{tab:operating_and_horizon}{{III}{11}{(a) Target-horizon and score-emission sweep on five streams at three seeds ($S$ = target horizon; lag $= S{-}1$ steps before a score can be emitted; held-out FPR and event recall (ER) under strictly causal trailing attribution, with buffered OpEntropy FPR/ER for contrast; $\Delta t$ = mean delay over detected events). (b) Detection quality at matched nominal calibration budgets $q^*$ on 19 non-GHL streams (stream-averaged; ER = event recall; P = point precision; FA = false alarms per 1{,}000 nominal steps). Budgets match calibration quantiles, not realized test FPR}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces (a) Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms. (b) Controlled-drift stress test: achieved held-out FPR (design $q=10^{-3}$) of real held-out residual streams under injected shifts, averaged over 16 streams with $\ge 200$ calibration and evaluation windows. Rolling variants recalibrate per evaluation block.}}{11}{table.4}\protected@file@percent }
+\newlabel{tab:calibrator_comparison}{{IV}{11}{(a) Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. Buffered smear inflates FPR by painting alarms over $S=64$ steps; causal trailing reflects strict step-level alarms. (b) Controlled-drift stress test: achieved held-out FPR (design $q=10^{-3}$) of real held-out residual streams under injected shifts, averaged over 16 streams with $\ge 200$ calibration and evaluation windows. Rolling variants recalibrate per evaluation block}{table.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{11}{section.8}\protected@file@percent }
 \newlabel{sec:conclusion}{{VIII}{11}{Conclusion and Future Work}{section.8}{}}
 \bibstyle{IEEEtran}
@@ -142,15 +140,15 @@
 \bibcite{Hundman2018b}{3}
 \bibcite{xu2022anomaly}{4}
 \bibcite{wu2023timesnet}{5}
-\bibcite{siffer2017anomaly}{6}
-\bibcite{carmona2021neural}{7}
-\bibcite{lecun2022path}{8}
-\bibcite{brunton2016discovering}{9}
-\bibcite{chen2018neural}{10}
-\bibcite{brunton2016koopman}{11}
-\bibcite{lusch2018deep}{12}
-\bibcite{liu2023koopa}{13}
-\bibcite{tuli2022tranad}{14}
+\bibcite{tuli2022tranad}{6}
+\bibcite{siffer2017anomaly}{7}
+\bibcite{carmona2021neural}{8}
+\bibcite{lecun2022path}{9}
+\bibcite{brunton2016discovering}{10}
+\bibcite{chen2018neural}{11}
+\bibcite{brunton2016koopman}{12}
+\bibcite{lusch2018deep}{13}
+\bibcite{liu2023koopa}{14}
 \bibcite{yang2023dcdetector}{15}
 \bibcite{assran2023self}{16}
 \bibcite{bardes2024vjepa}{17}

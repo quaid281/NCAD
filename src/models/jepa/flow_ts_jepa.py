@@ -199,46 +199,46 @@ def von_neumann_operator_entropy_loss(z: torch.Tensor, eps: float = 1e-5) -> tor
     """Von Neumann / Operator Bregman Divergence loss for covariance decorrelation.
 
     Computes D_Breg(rho || (1/D) * I) = Tr(rho log rho) + log(D) where rho is the normalized
-    batch covariance matrix (density operator).
-
-    Rooted in Quantum Information Theory and Operator Convexity (Petz, 2007):
-    forces all covariance eigenvalues to be identical (maximal entropy / isotropic dispersion),
-    with logarithmic gradient steepness near zero singular values preventing dimensional collapse.
+    batch covariance matrix (density operator), coupled with a smooth shifted logarithmic
+    variance barrier so gradients remain active and strictly anti-collapse even as variance approaches zero.
 
     Args:
         z: Latent embeddings of shape (B, D) or (B, N, D).
         eps: Small eigenvalue regularizer for log stability.
 
     Returns:
-        Scalar loss >= 0, achieving 0 iff all covariance eigenvalues are equal.
+        Scalar loss >= 0, achieving 0 iff all covariance eigenvalues are equal to 1.
     """
     if z.ndim == 3:
         z = z.reshape(-1, z.size(-1))
     D = z.size(-1)
     N = z.size(0)
     if N <= 1:
-        return torch.tensor(0.0, device=z.device)
+        return z.sum() * 0.0
 
-    z_c = z - z.mean(dim=0, keepdim=True)
+    orig_dtype = z.dtype
+    z_work = z.float() if orig_dtype in (torch.float16, torch.bfloat16) else z
+    z_c = z_work - z_work.mean(dim=0, keepdim=True)
     cov = (z_c.T @ z_c) / max(N - 1, 1)
-    evals = torch.linalg.eigvalsh(cov)
-    evals = torch.clamp(evals, min=0.0)
+    cov_sym = 0.5 * (cov + cov.T)
+    evals = torch.linalg.eigvalsh(cov_sym)
+    evals = evals + (torch.clamp(evals, min=0.0) - evals).detach()
     total_var = torch.sum(evals)
     max_entropy = math.log(float(D))
 
-    if total_var < 1e-6:
-        return torch.tensor(max_entropy + 10.0, device=z.device)
-
-    p = evals / total_var
-    p_safe = torch.clamp(p, min=1e-12)
-    p_log_p = torch.where(p > 1e-10, p * torch.log(p_safe), torch.zeros_like(p))
-    vn_entropy = -torch.sum(p_log_p)
+    eps_log = 1e-12
+    eps_safe = 1e-6
+    evals_smooth = evals + eps_log
+    p = evals_smooth / torch.sum(evals_smooth)
+    vn_entropy = -torch.sum(p * torch.log(p))
     entropy_deficiency = torch.clamp(max_entropy - vn_entropy, min=0.0)
 
     var_ratio = total_var / float(D)
-    vr_clamped = torch.clamp(var_ratio, min=1e-6)
-    var_barrier = vr_clamped - 1.0 - torch.log(vr_clamped)
-    return entropy_deficiency + var_barrier
+    var_barrier = torch.clamp(
+        var_ratio - 1.0 - torch.log(var_ratio + eps_safe) + math.log(1.0 + eps_safe),
+        min=0.0,
+    )
+    return (entropy_deficiency + var_barrier).to(orig_dtype)
 
 
 def flow_matching_vicreg_loss(

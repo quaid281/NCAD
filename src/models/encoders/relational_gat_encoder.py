@@ -304,8 +304,16 @@ class RelationalGATEncoder(nn.Module):
         relational_emb = self.relational_dense(graph_nodes.mean(dim=1))
 
         # 5. Bottleneck fusion: Temporal + Statistical + Relational
+        raw_rms = torch.sqrt(torch.mean(inputs.pow(2), dim=(1, 2)))
         fused = torch.cat([temporal_emb, stat_emb, relational_emb], dim=1)
-        latent = self.bottleneck(fused)
+        if isinstance(self.bottleneck, nn.Sequential) and len(self.bottleneck) >= 2:
+            pre_ln = self.bottleneck[:-1](fused)
+            latent = self.bottleneck[-1](pre_ln)
+        else:
+            pre_ln = self.bottleneck(fused)
+            latent = pre_ln
+        self.last_pre_ln = pre_ln.detach()
+        self.last_radial_energy = (torch.linalg.norm(pre_ln.detach(), dim=-1) * raw_rms.detach())
         latent = torch.nan_to_num(latent)
 
         if return_attention:

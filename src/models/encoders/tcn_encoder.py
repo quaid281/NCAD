@@ -19,10 +19,12 @@ class TimeFirstLayerNorm(nn.Module):
 
 
 class CausalTCNBlock(nn.Module):
-    """Two-layer causal TCN block with residual connection and layer norm."""
+    """Two-layer causal TCN block with residual connection, layer norm, and horizon-adaptive dilation."""
 
     def __init__(self, channels: int, kernel_size: int, dilation: int, dropout: float):
         super().__init__()
+        self.kernel_size = kernel_size
+        self.dilation = dilation
         self.padding = (kernel_size - 1) * dilation
         self.conv1 = nn.Conv1d(channels, channels, kernel_size, dilation=dilation)
         self.conv2 = nn.Conv1d(channels, channels, kernel_size, dilation=dilation)
@@ -30,16 +32,45 @@ class CausalTCNBlock(nn.Module):
         self.norm2 = TimeFirstLayerNorm(channels)
         self.dropout = nn.Dropout(dropout)
 
+    def effective_dilation_and_padding(self, seq_len: int) -> tuple[int, int]:
+        """Compute horizon-aligned causal dilation and left-padding for sequence length T.
+
+        Caps the two-layer block receptive span 2 * (k - 1) * d_eff at the input horizon T
+        so short target windows (e.g. S=64) do not read 60%-80% hard-coded left zeros on
+        deep TCN blocks (dilation 16, 32), while preserving full dilation on C=256 and
+        keeping conv weight shapes identical between context_encoder and target_encoder.
+        """
+        if self.kernel_size <= 1 or seq_len <= 1:
+            return 1, 0
+        max_dilation = max(1, seq_len // (2 * (self.kernel_size - 1)))
+        eff_dilation = min(self.dilation, max_dilation)
+        eff_padding = (self.kernel_size - 1) * eff_dilation
+        return eff_dilation, eff_padding
+
+    @staticmethod
+    def _run_conv(conv: nn.Conv1d, x: torch.Tensor, eff_dilation: int) -> torch.Tensor:
+        orig_dilation = conv.dilation
+        if orig_dilation == (eff_dilation,):
+            return conv(x)
+        try:
+            conv.dilation = (eff_dilation,)
+            return conv(x)
+        finally:
+            conv.dilation = orig_dilation
+
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         residual = inputs
-        x = F.pad(inputs, (self.padding, 0))
-        x = self.conv1(x)
+        seq_len = inputs.shape[-1]
+        eff_dilation, eff_padding = self.effective_dilation_and_padding(seq_len)
+
+        x = F.pad(inputs, (eff_padding, 0))
+        x = self._run_conv(self.conv1, x, eff_dilation)
         x = F.gelu(x)
         x = self.norm1(x)
         x = self.dropout(x)
 
-        x = F.pad(x, (self.padding, 0))
-        x = self.conv2(x)
+        x = F.pad(x, (eff_padding, 0))
+        x = self._run_conv(self.conv2, x, eff_dilation)
         x = F.gelu(x)
         x = self.norm2(x)
         x = self.dropout(x)
@@ -121,6 +152,7 @@ class HybridTCNEncoder(nn.Module):
         if inputs.ndim != 3:
             raise ValueError("Expected tensor with shape (batch, sequence, features).")
 
+        raw_rms = torch.sqrt(torch.mean(inputs.pow(2), dim=(1, 2)))
         x = inputs.transpose(1, 2)
         x = self.input_projection(x)
 
@@ -139,7 +171,15 @@ class HybridTCNEncoder(nn.Module):
         temporal_features = self.temporal_dense(torch.cat([last_features, max_features, avg_features], dim=1))
 
         stat_features = self.stat_dense(self._statistical_spectral_features(x))
-        latent = self.bottleneck(torch.cat([temporal_features, stat_features], dim=1))
+        fused = torch.cat([temporal_features, stat_features], dim=1)
+        if isinstance(self.bottleneck, nn.Sequential) and len(self.bottleneck) == 2:
+            pre_ln = self.bottleneck[0](fused)
+            latent = self.bottleneck[1](pre_ln)
+        else:
+            pre_ln = self.bottleneck(fused)
+            latent = pre_ln
+        self.last_pre_ln = pre_ln.detach()
+        self.last_radial_energy = (torch.linalg.norm(pre_ln.detach(), dim=-1) * raw_rms.detach())
 
         if self.resolvent_bottleneck is not None:
             latent = self.resolvent_bottleneck(latent)
