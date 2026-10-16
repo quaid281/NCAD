@@ -1,0 +1,41 @@
+\begin{table*}[t]
+\centering
+\caption{(a) Target-horizon and score-emission sweep on five streams at three seeds ($S$ = target horizon; lag $= S{-}1$ steps; held-out FPR, event recall (ER), and mean delay $\Delta t$ in steps under strictly causal trailing attribution, with buffered OpEntropy FPR/ER for contrast). (b) Detection quality at matched nominal calibration budgets $q^*$ on 19 non-GHL streams (stream-averaged; ER = event recall; P = point precision; FA = false alarms per 1{,}000 nominal steps). Budgets match calibration quantiles, not realized test FPR.\label{tab:operating_and_horizon}}
+\small
+\begin{tabular}{@{}p{0.48\textwidth}@{\hspace{0.03\textwidth}}p{0.49\textwidth}@{}}
+\toprule
+\multicolumn{1}{c}{\textbf{(a) Target-Horizon and Score-Emission Sweep}} & \multicolumn{1}{c}{\textbf{(b) Detection at Matched Nominal Budgets $q^*$}} \\
+\cmidrule(r){1-1} \cmidrule(l){2-2}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}c c ccc cc cc cc@{}}
+\toprule
+& & \multicolumn{3}{c}{\textbf{OpEntropy, causal}} & \multicolumn{2}{c}{\textbf{TS-JEPA, causal}} & \multicolumn{2}{c}{\textbf{TimesNet, causal}} & \multicolumn{2}{c}{\textbf{OpEntropy, buf}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-11}
+$S$ & Lag & FPR & ER & $\Delta t$ & FPR & ER & FPR & ER & FPR & ER \\
+\midrule
+1  & 0  & 0.005 & 0.729 & 76.3  & 0.004 & 0.524 & 0.025 & 0.895 & 0.005 & 0.729 \\
+4  & 3  & 0.007 & 0.624 & 179.3 & 0.006 & 0.395 & 0.031 & 0.910 & 0.020 & 0.481 \\
+16 & 15 & 0.003 & 0.257 & 200.3 & 0.003 & 0.257 & 0.061 & 0.700 & 0.043 & 0.391 \\
+32 & 31 & 0.011 & 0.219 & 397.9 & 0.003 & 0.276 & 0.098 & 0.657 & 0.057 & 0.376 \\
+64 & 63 & 0.020 & 0.410 & 209.8 & 0.004 & 0.200 & 0.213 & 0.614 & 0.099 & 0.367 \\
+\bottomrule
+\end{tabular}%
+}
+&
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}l c ccc ccc ccc ccc@{}}
+\toprule
+& & \multicolumn{3}{c}{\textbf{TS-JEPA}} & \multicolumn{3}{c}{\textbf{OpEntropy}} & \multicolumn{3}{c}{\textbf{TimesNet}} & \multicolumn{3}{c}{\textbf{TranAD}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11} \cmidrule(lr){12-14}
+Regime & $q^*$ & ER & P & FA & ER & P & FA & ER & P & FA & ER & P & FA \\
+\midrule
+Causal   & 0.001 & 0.499 & 0.261 & 70.0  & 0.557 & 0.232 & 103.1 & 0.590 & 0.219 & 222.4 & 0.533 & 0.156 & 209.6 \\
+Causal   & 0.050 & 0.774 & 0.257 & 179.8 & 0.771 & 0.234 & 193.3 & 0.618 & 0.221 & 262.3 & 0.602 & 0.159 & 269.5 \\
+Buffered & 0.001 & 0.486 & 0.277 & 207.9 & 0.523 & 0.264 & 247.9 & 0.583 & 0.194 & 259.2 & 0.516 & 0.130 & 262.6 \\
+Buffered & 0.050 & 0.560 & 0.246 & 258.6 & 0.627 & 0.248 & 314.9 & 0.612 & 0.196 & 287.3 & 0.596 & 0.145 & 295.3 \\
+\bottomrule
+\end{tabular}%
+}
+\\ \bottomrule
+\end{tabular}
+\end{table*}
