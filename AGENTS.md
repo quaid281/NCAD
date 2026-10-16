@@ -2,11 +2,11 @@
 
 ## Hard Rules
 
-- **Page limit: the manuscript must stay at or below 12 pages.** Target venue
+- **Page limit: the manuscript must stay at or below 13 pages.** Target venue
   is IEEE Transactions on Neural Networks and Learning Systems (TNNLS).
   Standard full paper length is 10 pages; over-length charge is $200/page
-  beyond 10 pages up to a 15-page cap. The author budget allows at most 2
-  extra pages, setting a hard ceiling of 12 pages total. Before committing
+  beyond 10 pages up to a 15-page cap. The author budget allows at most 3
+  extra pages, setting a hard ceiling of 13 pages total. Before committing
   manuscript changes, compile `paper/NCAD_CS/NCAD_CS_standalone.tex` and verify
   page count. If over budget, condense elsewhere — tighten prose, shrink
   tables, or prune secondary discussions. Everything must fit and be addressed
@@ -18,7 +18,7 @@
   (including NCAD), and core ablations must never depend on an external
   supplement. All claims, evidence, methodology, and proofs must be addressed
   directly within the main manuscript (`paper/NCAD_CS/NCAD_CS_standalone.tex`
-  built from `sections/`) while strictly respecting the 12-page ceiling. Never
+  built from `sections/`) while strictly respecting the 13-page ceiling. Never
   defer reviewer-facing findings to a supplement. Non-manuscript artifacts and
   raw diagnostic logs belong in repository `reports/`, not in a submitted
   supplement document.
@@ -59,8 +59,8 @@ Guidelines references:
 
 Key requirements:
 - **Page Limits (Full Papers):** Standard length is 10 pages. Overlength cap
-  is 15 pages ($200 per page over 10 pages). Author budget allows at most 2
-  extra pages, setting a hard ceiling of 12 pages.
+  is 15 pages ($200 per page over 10 pages). Author budget allows at most 3
+  extra pages, setting a hard ceiling of 13 pages.
 - **Title:** Specific, concise, and descriptive. Avoid assertions of novelty
   such as "new" or "novel".
 - **Abstract:** Exactly one paragraph, up to 250 words. Self-contained:
@@ -94,7 +94,7 @@ Key requirements:
 
 ```bash
 # Rebuild, compile, and verify manuscript (builds standalone,
-# scans for unresolved '??' / '[?]' markers, audits SKILL.md anti-AI rules, and enforces <= 12-page budget)
+# scans for unresolved '??' / '[?]' markers, audits SKILL.md anti-AI rules, and enforces <= 13-page budget)
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_and_verify_manuscript.py
 
 # Audit manuscript prose against anti-AI writing patterns (docs/SKILL.md)

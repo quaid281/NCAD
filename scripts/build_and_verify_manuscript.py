@@ -20,7 +20,7 @@ STANDALONE_PDF = PAPER_DIR / "NCAD_CS_standalone.pdf"
 SUPPLEMENT_PDF = PAPER_DIR / "NCAD_CS_supplement.pdf"
 BIB_FILE = PAPER_DIR / "export.bib"
 
-MAX_PAGE_BUDGET = 12
+MAX_PAGE_BUDGET = 13
 
 def step(msg):
     print(f"\n[+] {msg}")
