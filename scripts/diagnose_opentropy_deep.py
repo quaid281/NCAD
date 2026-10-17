@@ -147,8 +147,13 @@ def train_model(
     device: torch.device,
     epochs: int = 5,
     alpha_rep_entropy: float = 0.02,
+    seed: int = 42,
 ) -> nn.Module:
-    """Train a JEPA model on nominal telemetry windows."""
+    """Train a JEPA model on nominal telemetry windows with locked RNG seed."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
     cfg = CSMConfig(
         model_type=model_type,
         feature_dim=channels,
@@ -181,6 +186,9 @@ def train_model(
                 model.update_target_encoder()
 
     model.eval()
+    if hasattr(model, "fit_mahalanobis_covariance"):
+        tr_t = torch.from_numpy(tr_wins)
+        model.fit_mahalanobis_covariance(tr_t[:, :C], tr_t[:, C:], batch_size=256)
     return model
 
 
@@ -204,7 +212,7 @@ def main():
 
     # 2. Train models:
     #   (a) Upgraded OpEntropy (alpha_rep_entropy = 0.02)
-    #   (b) Historical OpEntropy (alpha_rep_entropy = 0.0, representation collapse baseline)
+    #   (b) Historical OpEntropy (alpha_rep_entropy = 0.0, single-operator entropy)
     #   (c) TS-JEPA (unconstrained MLP predictor baseline)
     print("\n--- Training Models for Diagnostic Comparison ---")
     print("1. Training Upgraded OpEntropy (with dual spectral entropy coupling)...")
@@ -268,7 +276,7 @@ def main():
             "stable_rank": r.stable_rank,
             "batch_variance": r.batch_variance,
             "health_flag": r.health_flag,
-            "sequential_cosine_sim": autopsy.sequential_drift.get(r.name, None),
+            "sequential_cosine_sim": autopsy.get_sequential_cosine_sim(r.name),
             "anomaly_divergence": autopsy.anomaly_divergence.get(r.name, None),
         }
         trace_records_data.append(rec_dict)

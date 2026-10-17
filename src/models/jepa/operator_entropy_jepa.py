@@ -230,6 +230,13 @@ def von_neumann_entropy(
     )
 
 
+class KoopmanLinearTransition(nn.Module):
+    """Stateless hookable module applying the explicit Koopman transition z @ K^T."""
+
+    def forward(self, z: torch.Tensor, K: torch.Tensor) -> torch.Tensor:
+        return z @ K.T
+
+
 class OperatorEntropyJEPAModel(JEPABase):
     """Operator Entropy & Spectral Rigidity JEPA.
     
@@ -278,11 +285,13 @@ class OperatorEntropyJEPAModel(JEPABase):
             from src.models.geometric_layers import CayleyOrthogonalGate
             self.cayley_gate = CayleyOrthogonalGate(dim=latent_dim, bias=False)
             self.K = None
+            self.koopman_op = None
             self.predictor = None
         elif use_koopman_matrix:
             # Explicit Koopman transition matrix K in R^{D x D} (1,024 parameters for D=32)
             # Initialized near identity with small random perturbations
             self.K = nn.Parameter(torch.eye(latent_dim) + 0.01 * torch.randn(latent_dim, latent_dim))
+            self.koopman_op = KoopmanLinearTransition()
             self.cayley_gate = None
             self.predictor = None
         else:
@@ -300,6 +309,7 @@ class OperatorEntropyJEPAModel(JEPABase):
             layers.append(nn.LayerNorm(latent_dim))
             self.predictor = nn.Sequential(*layers)
             self.K = None
+            self.koopman_op = None
             self.cayley_gate = None
 
         # ResolventPurification instantiation removed (unused in forward/loss)
@@ -329,6 +339,8 @@ class OperatorEntropyJEPAModel(JEPABase):
         if self.use_cayley_operator and self.cayley_gate is not None:
             return self.cayley_gate(z)
         if self.use_koopman_matrix and self.K is not None:
+            if self.koopman_op is not None:
+                return self.koopman_op(z, self.K)
             return z @ self.K.T
         return self.predictor(z)
 
@@ -439,6 +451,7 @@ class OperatorEntropyJEPAModel(JEPABase):
             reg_K = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
 
         num_samples = z_ctx.numel() // z_ctx.size(-1)
+        cov_ctx = None
         cov_tgt = None
         if effective_alpha_rep > 0 and num_samples > 1:
             cov_ctx = compute_empirical_covariance(z_ctx)
@@ -451,16 +464,29 @@ class OperatorEntropyJEPAModel(JEPABase):
         else:
             reg_Z = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
 
-        # 3. Scale-Invariant Discrete Lyapunov Invariance Defect:
-        # ||Cov(z_pred) - Cov(z_tgt)||_F^2 / (D * (Tr(Cov(z_tgt)) / D + eps_safe)^2)
+        # 3. Scale-Invariant Discrete Lyapunov Invariance Defect on the transition operator:
+        # Evaluates operator covariance alignment on detached z_ctx with horizon-trace normalization
+        # so difference in window length (C=256 vs S=64) does not collapse context_encoder onto top PC.
         if effective_beta_lyap > 0 and num_samples > 1:
+            if cov_ctx is None:
+                cov_ctx = compute_empirical_covariance(z_ctx.detach())
             if cov_tgt is None:
                 cov_tgt = compute_empirical_covariance(z_tgt)
-            cov_pred = compute_empirical_covariance(z_pred)
-            tgt_scale = torch.diagonal(cov_tgt, dim1=-2, dim2=-1).sum(dim=-1) / float(self.latent_dim) + 1e-6
+            z_pred_lyap = self._predict(z_ctx.detach())
+            cov_pred = compute_empirical_covariance(z_pred_lyap)
+            ctx_scale = (
+                torch.diagonal(cov_ctx.detach(), dim1=-2, dim2=-1).sum(dim=-1)
+                / float(self.latent_dim)
+                + 1e-6
+            )
+            tgt_scale = (
+                torch.diagonal(cov_tgt, dim1=-2, dim2=-1).sum(dim=-1)
+                / float(self.latent_dim)
+                + 1e-6
+            )
             lyapunov_defect = (
-                torch.norm(cov_pred - cov_tgt, p="fro") ** 2
-                / (float(self.latent_dim) * (tgt_scale ** 2))
+                torch.norm(cov_pred / ctx_scale - cov_tgt / tgt_scale, p="fro") ** 2
+                / float(self.latent_dim)
             )
         else:
             lyapunov_defect = torch.tensor(0.0, device=pred_loss.device, dtype=pred_loss.dtype)
@@ -573,7 +599,7 @@ class OperatorEntropyJEPAModel(JEPABase):
         # Bilateral relative energy discrepancy using pre-LayerNorm radial energy
         pred_gain = torch.linalg.norm(z_pred, dim=-1) / (torch.linalg.norm(z_ctx, dim=-1) + 1e-6)
         e_pred = e_ctx * pred_gain
-        energy_leak = torch.abs(e_tgt - e_pred) / (e_pred + 1e-6)
+        energy_leak = torch.abs(e_tgt - e_pred) / (e_tgt + e_pred + 1e-6)
         return disc + 0.2 * energy_leak
 
     @torch.no_grad()

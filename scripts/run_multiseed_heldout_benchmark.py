@@ -424,7 +424,7 @@ def thresholds(cal):
     }, kurt
 
 
-def run(ds, ch, seeds, device, epochs, val_frac, out_rows, dump_dir=None):
+def run(ds, ch, seeds, device, epochs, val_frac, out_rows, dump_dir=None, overwrite_dumps=False):
     train, test, y = load_stream(ds, ch)
     n_val = int(len(train) * val_frac)
     tr, va = train[:-n_val], train[-n_val:]
@@ -447,7 +447,7 @@ def run(ds, ch, seeds, device, epochs, val_frac, out_rows, dump_dir=None):
                     mp: dump_dir / f"{ds}__{ch}__{seed}__{name}__{mp}.npz"
                     for mp in ("smear", "trailing")
                 }
-                if all(p.exists() for p in dump_paths.values()):
+                if not overwrite_dumps and all(p.exists() for p in dump_paths.values()):
                     print(f"   seed={seed} {name} cached, skipping", flush=True)
                     continue
             torch.manual_seed(seed)
@@ -500,6 +500,8 @@ def main():
     ap.add_argument("--out", default=str(ROOT / "reports" / "multiseed_heldout_benchmark.csv"))
     ap.add_argument("--dump-scores", default=None,
                     help="Directory for raw per-timestep score arrays (npz per stream/seed/model/mapping)")
+    ap.add_argument("--overwrite-dumps", action="store_true",
+                    help="Overwrite existing score dump .npz files instead of skipping")
     a = ap.parse_args()
     global MODELS
     if a.models:
@@ -518,7 +520,8 @@ def main():
     rows = []
     for ds, ch in streams:
         try:
-            run(ds, ch, a.seeds, device, a.epochs, a.val_frac, rows, dump_dir=dump_dir)
+            run(ds, ch, a.seeds, device, a.epochs, a.val_frac, rows,
+                dump_dir=dump_dir, overwrite_dumps=a.overwrite_dumps)
         except Exception as e:  # keep going; log the failure in the output
             print(f"   FAILED {ds}:{ch}: {type(e).__name__}: {e}", flush=True)
         pd.DataFrame(rows).to_csv(a.out, index=False)

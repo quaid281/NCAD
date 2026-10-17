@@ -170,8 +170,12 @@ def trace_operator_entropy(
     tracer.register("context_encoder", model.context_encoder)
     if model.radial_heat is not None:
         tracer.register("radial_heat_exterior", model.radial_heat)
-    tracer.register("cohn_elkies_filter", model.cohn_elkies)
-    tracer.register("predictor_mlp", model.predictor)
+    if model.cohn_elkies is not None:
+        tracer.register("cohn_elkies_filter", model.cohn_elkies)
+    if getattr(model, "koopman_op", None) is not None:
+        tracer.register("koopman_transition", model.koopman_op)
+    if model.predictor is not None:
+        tracer.register("predictor_mlp", model.predictor)
     tracer.register("target_encoder", model.target_encoder)
     tracer.register("saliency_gate", model.saliency_gate)
 

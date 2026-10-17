@@ -791,3 +791,65 @@ def test_short_horizon_tcn_receptive_field_alignment():
     assert torch.allclose(h_a[:, :, :32], h_b[:, :, :32], atol=1e-6)
     assert not torch.allclose(h_a[:, :, 32:], h_b[:, :, 32:], atol=1e-4)
 
+
+def test_lyapunov_encoder_detachment_nyquist_shell_and_koopman_tracer():
+    """Verify:
+    1. Discrete Lyapunov Invariance Defect computes gradients strictly w.r.t. the transition
+       operator (K or cayley_gate) and does NOT inject variance-inflation gradients into context_encoder.
+    2. LittlewoodPaleyDyadicBlock assigns non-degenerate energy (> 5% of total spectral energy)
+       to the highest-frequency Nyquist shell (j = J - 1).
+    3. KoopmanLinearTransition (koopman_op) is captured as a leaf module by LayerActivationTracer.
+    """
+    from src.engine.activation_tracer import LayerActivationTracer
+    from src.models.geometric_layers import LittlewoodPaleyDyadicBlock
+
+    torch.manual_seed(42)
+    K_in, D = 4, 16
+    x_ctx = torch.randn(16, 64, K_in)
+    x_tgt = torch.randn(16, 32, K_in)
+
+    # 1. Verify Lyapunov defect alone produces zero gradient on context_encoder parameters
+    # while producing non-zero gradient on K
+    enc = HybridTCNEncoder(input_dim=K_in, latent_dim=D, filters=16, tcn_layers=2, use_dyadic_shells=True)
+    model = OperatorEntropyJEPAModel(
+        context_encoder=enc,
+        latent_dim=D,
+        alpha_entropy=0.0,
+        alpha_rep_entropy=0.0,
+        beta_lyapunov=1.0,
+        use_koopman_matrix=True,
+    )
+    model.eval()
+    loss_no_lyap, _ = model.compute_objective(x_ctx, x_tgt, beta_lyapunov=0.0)
+    model.zero_grad()
+    loss_no_lyap.backward()
+    grads_no_lyap = [p.grad.detach().clone() for p in model.context_encoder.parameters() if p.grad is not None]
+    k_grad_no_lyap = model.K.grad.detach().clone()
+
+    loss_with_lyap, metrics = model.compute_objective(x_ctx, x_tgt, beta_lyapunov=10.0)
+    assert metrics["lyapunov_defect"] > 0.0
+    model.zero_grad()
+    loss_with_lyap.backward()
+    grads_with_lyap = [p.grad.detach().clone() for p in model.context_encoder.parameters() if p.grad is not None]
+    k_grad_with_lyap = model.K.grad.detach().clone()
+
+    assert not torch.allclose(k_grad_no_lyap, k_grad_with_lyap, atol=1e-5)
+    for g0, g1 in zip(grads_no_lyap, grads_with_lyap):
+        assert torch.allclose(g0, g1, atol=1e-7), "Lyapunov defect leaked gradients into context_encoder"
+
+    # 2. Verify Nyquist shell (j = J - 1) receives non-trivial spectral weight
+    filters = enc.dyadic_block.compute_dyadic_filters(129, torch.device("cpu")).squeeze(1)
+    shell_energy_shares = (filters ** 2).mean(dim=1)
+    assert shell_energy_shares[-1].item() > 0.10, (
+        f"Nyquist shell (j=J-1) spectral energy share collapsed: {shell_energy_shares.tolist()}"
+    )
+
+    # 3. Verify LayerActivationTracer captures koopman_op leaf module
+    model.eval()
+    with LayerActivationTracer(model, leaf_only=True) as tracer:
+        with torch.no_grad():
+            model(x_ctx[:4], x_tgt[:4])
+    assert "koopman_op" in tracer.records, f"koopman_op missing from leaf activation trace: {list(tracer.records.keys())}"
+    assert tracer.records["koopman_op"].output_shape == (4, D)
+
+

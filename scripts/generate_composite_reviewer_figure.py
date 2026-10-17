@@ -263,7 +263,7 @@ def main():
     ax.axhspan(0.108, 0.258, xmin=0.0, xmax=0.55, color="#1f77b4", alpha=0.08, zorder=1)
     ax.text(
         0.40, 0.112,
-        "Latent / Bounded Pred.\n($D_{\\mathrm{KS}}\\approx 0.20$, FPR $1.2\\text{\u2013}2.1\\%$)",
+        "Latent / Bounded Pred.\n($D_{\\mathrm{KS}}\\approx 0.17\\text{\u2013}0.23$, FPR $0.9\\text{\u2013}2.8\\%$)",
         fontsize=4.9, color="#0b4f8a", weight="bold"
     )
 
@@ -276,27 +276,27 @@ def main():
     )
     ax.text(
         3.20, 0.445,
-        "(1) LayerNorm\n($\\gamma_2: 6.08\\!\\to\\!1.14$)",
+        "(1) LayerNorm\n($\\gamma_2: 6.10\\!\\to\\!0.91$)",
         fontsize=5.0, color="#333333", ha="center", va="top",
         bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="#cccccc", alpha=0.88)
     )
 
-    x3, y3 = df_a.loc["TS-JEPA", ["cal_kurtosis", "ks_drift"]]
+    x3, y3 = df_a.loc["OpEntropy", ["cal_kurtosis", "ks_drift"]]
     ax.annotate(
         "", xy=(x3, y3 + 0.015), xytext=(x2, y2 - 0.015),
         arrowprops=dict(arrowstyle="->", color="#1f77b4", lw=1.25), zorder=3
     )
     ax.text(
         2.35, 0.300,
-        "(2) Latent proj.\n($D_{\\mathrm{KS}}: 0.386\\!\\to\\!0.198$)",
+        "(2) Latent proj.\n($D_{\\mathrm{KS}}: 0.376\\!\\to\\!0.209$)",
         fontsize=5.0, color="#0b4f8a", ha="center",
         bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="#99c2ff", alpha=0.9)
     )
 
     leader_kw = dict(arrowstyle="-", lw=0.6, color="0.4", shrinkA=1, shrinkB=3)
     ax.annotate(
-        "TCN-ObsPred (24.6%)\nTCN-ObsRecon (24.5%)",
-        xy=(6.08, 0.460), xytext=(6.78, 0.476),
+        "TCN-ObsPred (24.7%)\nTCN-ObsRecon (24.5%)",
+        xy=(6.10, 0.463), xytext=(6.78, 0.476),
         fontsize=4.8, ha="right", va="bottom", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
@@ -308,7 +308,7 @@ def main():
     )
     ax.annotate(
         "TCN-ObsPred-LN (11.7%)",
-        xy=(1.14, 0.386), xytext=(1.58, 0.362),
+        xy=(0.91, 0.376), xytext=(1.58, 0.362),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
@@ -320,25 +320,25 @@ def main():
     )
     ax.annotate(
         "PCA-LinPred-LN (2.1%)",
-        xy=(0.95, 0.233), xytext=(1.48, 0.246),
+        xy=(0.95, 0.233), xytext=(1.55, 0.256),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
     ax.annotate(
-        "TS-JEPA / OpEntropy (1.5\u20132.1%)",
-        xy=(1.18, 0.198), xytext=(1.48, 0.221),
+        "TS-JEPA / OpEntropy (2.4\u20132.8%)",
+        xy=(1.33, 0.214), xytext=(3.35, 0.228),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
     ax.annotate(
-        "NoEMA / NoGate (1.2\u20131.4%)",
-        xy=(0.91, 0.194), xytext=(1.48, 0.175),
+        "NoEMA / NoGate (0.9\u20131.8%)",
+        xy=(1.16, 0.167), xytext=(1.55, 0.165),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
     ax.annotate(
-        "JEPA-CtxRecon (1.5%)",
-        xy=(2.49, 0.199), xytext=(3.15, 0.196),
+        "JEPA-CtxRecon (1.7%)",
+        xy=(2.59, 0.203), xytext=(3.15, 0.196),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
@@ -390,8 +390,8 @@ def main():
         arrowprops=dict(arrowstyle="<->", color="#1f77b4", lw=1.15), zorder=5
     )
     ax.annotate(
-        "$+0.223$ ER\n($p{=}0.050$)",
-        xy=(0.0103, 0.328), xytext=(0.0105, 0.770),
+        "$+0.178\\text{\u2013}0.214$ ER\n($f^*{=}0.01$)",
+        xy=(0.0103, 0.305), xytext=(0.0105, 0.770),
         fontsize=5.0, color="#0b4f8a", weight="bold",
         bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="#99c2ff", alpha=0.90),
         arrowprops=dict(arrowstyle="->", color="#1f77b4", lw=0.75, shrinkA=1, shrinkB=2),

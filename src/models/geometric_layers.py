@@ -415,8 +415,8 @@ class CayleyOrthogonalGate(nn.Module):
 
         # Learnable skew-symmetric generator matrix A
         self.A = nn.Parameter(0.01 * torch.randn(dim, dim))
-        # Learnable damping parameter d (initialized to -3.0 for near-conservative unitary limit cycles)
-        self.d = nn.Parameter(torch.full((dim,), -3.0))
+        # Learnable damping parameter d (initialized to -6.0 for near-conservative unitary limit cycles)
+        self.d = nn.Parameter(torch.full((dim,), -6.0))
 
         if bias:
             self.bias = nn.Parameter(torch.zeros(dim))
@@ -1518,8 +1518,9 @@ class LittlewoodPaleyDyadicBlock(nn.Module):
                 dist = (omega / (centers[1] + eps)).pow(2)
                 resp = torch.exp(-0.5 * dist)
             elif j == J - 1:
-                # High frequency plateau approaching Nyquist
-                dist = ((1.0 - omega) / (1.0 - c_j + eps)).pow(2)
+                # High frequency plateau approaching Nyquist across the top dyadic octave [c_{J-2}, 1.0]
+                prev_c = centers[J - 2] if J >= 2 else 0.5
+                dist = ((1.0 - omega) / (1.0 - prev_c + eps)).pow(2)
                 resp = torch.exp(-0.5 * dist)
             else:
                 # Octave bell

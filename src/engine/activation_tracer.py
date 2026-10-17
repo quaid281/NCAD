@@ -65,6 +65,16 @@ class AutopsyReport:
             lines.append(f"Peak Anomaly Divergence: {max_div_layer[0]} (gain: {max_div_layer[1]:.4f})")
         return "\n".join(lines)
 
+    def get_sequential_cosine_sim(self, layer_name: str) -> Optional[float]:
+        """Return sequential cosine similarity from layer_name to its successor if available."""
+        if layer_name in self.sequential_drift:
+            return self.sequential_drift[layer_name]
+        prefix = f"{layer_name} -> "
+        for k, v in self.sequential_drift.items():
+            if k.startswith(prefix):
+                return v
+        return None
+
     def to_dataframe(self) -> pd.DataFrame:
         """Convert layer trace records into a pandas DataFrame."""
         data = []
@@ -81,8 +91,9 @@ class AutopsyReport:
                 "batch_variance": r.batch_variance,
                 "health_flag": r.health_flag,
             }
-            if r.name in self.sequential_drift:
-                row["sequential_cosine_sim"] = self.sequential_drift[r.name]
+            seq_sim = self.get_sequential_cosine_sim(r.name)
+            if seq_sim is not None:
+                row["sequential_cosine_sim"] = seq_sim
             if r.name in self.anomaly_divergence:
                 row["anomaly_divergence"] = self.anomaly_divergence[r.name]
             data.append(row)
