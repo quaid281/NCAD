@@ -149,7 +149,7 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/mechanism_operating_calibration.pdf}
-\caption{Residual conditioning, operating curves, and calibration reliability across 19 non-GHL streams (five seeds, strictly causal trailing inference). \textbf{(a)}~Calibration excess kurtosis ($\gamma_2$) vs.\ calibration-to-holdout KS drift ($D_{\text{KS}}$), colored by held-out causal FPR at SPOT $q{=}10^{-3}$. \textbf{(b)}~Causal event recall across matched realized test-FPR budgets $f^* \in [0.01, 0.50]$ ($95\%$ stream-bootstrap CI bands). \textbf{(c)}~Realized causal FPR (median lines, IQR bands, and hollow macro means) across design risks $q \in [10^{-4}, 10^{-1}]$ with an exchangeable point-shuffle control.\label{fig:mechanism_operating_calibration}}
+\caption{Residual conditioning and operating curves across 19 non-GHL streams (five seeds, strictly causal trailing inference). \textbf{(a)}~Calibration excess kurtosis ($\gamma_2$) vs.\ calibration-to-holdout KS drift ($D_{\text{KS}}$), colored by held-out causal FPR at SPOT $q{=}10^{-3}$, illustrating LayerNorm score compression and learned latent projection. \textbf{(b)}~Causal event recall across matched realized test-FPR budgets $f^* \in [0.01, 0.50]$ with $95\%$ stream-bootstrap confidence bands.\label{fig:mechanism_operating_calibration}}
 \end{figure*}
 
 \subsection{Mechanism-Discrimination Study: Latent Space vs. Observation Space}
