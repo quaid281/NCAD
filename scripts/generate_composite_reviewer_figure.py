@@ -35,9 +35,17 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
+SKILL_SCRIPTS = ROOT / ".agents" / "skills" / "beautiful-research-figures" / "scripts"
+if str(SKILL_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SKILL_SCRIPTS))
 
 from run_multiseed_heldout_benchmark import event_stats  # noqa: E402
 from src.scoring.evt_calibrator import fit_gpd  # noqa: E402
+from ieee_vector_style import (  # noqa: E402
+    save_true_vector_figure,
+    vectorize_figure_collections,
+    is_bbox_outside_axes,
+)
 
 REPORTS = ROOT / "reports"
 DUMP_DIR = REPORTS / "score_dumps"
@@ -205,15 +213,17 @@ def compute_panel_c_data():
 
 def main():
     plt.rcParams.update({
-        "font.family": "serif",
+        "font.family": "Times New Roman",
         "font.size": 7.5,
         "axes.labelsize": 7.8,
-        "axes.titlesize": 7.8,
+        "axes.titlesize": 8.0,
         "xtick.labelsize": 6.8,
         "ytick.labelsize": 6.8,
-        "legend.fontsize": 5.8,
+        "legend.fontsize": 4.8,
+        "mathtext.fontset": "stix",
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
+        "svg.fonttype": "none",
     })
 
     df_a = compute_panel_a_data()
@@ -221,11 +231,17 @@ def main():
     q_levels, stats_c, ex_curve_c = compute_panel_c_data()
 
     fig, axes = plt.subplots(
-        1, 3, figsize=(7.16, 2.48),
-        gridspec_kw={"width_ratios": [1.14, 1.0, 1.0]},
-        constrained_layout=True
+        1, 3, figsize=(7.16, 2.75),
+        gridspec_kw={"width_ratios": [1.14, 1.0, 1.0]}
     )
-    fig.set_constrained_layout_pads(w_pad=0.06, h_pad=0.04, wspace=0.04)
+    fig.subplots_adjust(top=0.88, bottom=0.24, left=0.08, right=0.98, wspace=0.32)
+
+    # Subtle dual-hierarchy grids across all panels (Principle 4)
+    for ax_p in axes:
+        ax_p.grid(True, which="major", linestyle="-", linewidth=0.55, alpha=0.22)
+        ax_p.minorticks_on()
+        ax_p.grid(True, which="minor", linestyle="-", linewidth=0.20, alpha=0.10)
+        ax_p.set_axisbelow(True)
 
     # =========================================================================
     # PANEL (a): Mechanism Isolation (Kurtosis vs. KS Drift)
@@ -246,7 +262,8 @@ def main():
         ("TranAD", "TranAD", "v"),
     ]
 
-    cmap = plt.cm.plasma
+    # Monotonic luminance, colorblind- and grayscale-safe colormap (Principle 5)
+    cmap = plt.cm.cividis
     norm = matplotlib.colors.Normalize(vmin=0.0, vmax=0.26)
 
     for key, label, marker in arms_a:
@@ -255,15 +272,15 @@ def main():
         row = df_a.loc[key]
         x, y, fpr = row["cal_kurtosis"], row["ks_drift"], row["hold_fpr"]
         ax.scatter(
-            x, y, c=[fpr], cmap=cmap, norm=norm, marker=marker, s=30,
-            edgecolors="black", linewidths=0.5, zorder=4
+            x, y, c=[fpr], cmap=cmap, norm=norm, marker=marker, s=32,
+            edgecolors="#111111", linewidths=0.55, zorder=4
         )
 
     # Shaded regime box for latent / bounded predictors
-    ax.axhspan(0.108, 0.258, xmin=0.0, xmax=0.55, color="#1f77b4", alpha=0.08, zorder=1)
+    ax.axhspan(0.108, 0.258, xmin=0.0, xmax=0.55, color="#1d4e89", alpha=0.08, zorder=1)
     ax.text(
         0.40, 0.112,
-        "Latent / Bounded Pred.\n($D_{\\mathrm{KS}}\\approx 0.17\\text{\u2013}0.23$, FPR $0.9\\text{\u2013}2.8\\%$)",
+        "Latent / Bounded Pred.\n($D_{\\mathrm{KS}}\\approx 0.17\\text{--}0.23$, FPR $0.9\\text{--}2.8\\%$)",
         fontsize=4.9, color="#0b4f8a", weight="bold"
     )
 
@@ -272,24 +289,24 @@ def main():
     x2, y2 = df_a.loc["TCN-ObsPred-LN", ["cal_kurtosis", "ks_drift"]]
     ax.annotate(
         "", xy=(x2 + 0.16, y2 + 0.003), xytext=(x1 - 0.16, y1 - 0.003),
-        arrowprops=dict(arrowstyle="->", color="#444444", lw=1.05, ls="--"), zorder=3
+        arrowprops=dict(arrowstyle="->", color="#333333", lw=1.05, ls="--"), zorder=3
     )
     ax.text(
-        3.20, 0.445,
+        2.75, 0.450,
         "(1) LayerNorm\n($\\gamma_2: 6.10\\!\\to\\!0.91$)",
-        fontsize=5.0, color="#333333", ha="center", va="top",
+        fontsize=4.9, color="#333333", ha="center", va="top",
         bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="#cccccc", alpha=0.88)
     )
 
     x3, y3 = df_a.loc["OpEntropy", ["cal_kurtosis", "ks_drift"]]
     ax.annotate(
         "", xy=(x3, y3 + 0.015), xytext=(x2, y2 - 0.015),
-        arrowprops=dict(arrowstyle="->", color="#1f77b4", lw=1.25), zorder=3
+        arrowprops=dict(arrowstyle="->", color="#1d4e89", lw=1.25), zorder=3
     )
     ax.text(
         2.35, 0.300,
         "(2) Latent proj.\n($D_{\\mathrm{KS}}: 0.376\\!\\to\\!0.209$)",
-        fontsize=5.0, color="#0b4f8a", ha="center",
+        fontsize=4.9, color="#0b4f8a", ha="center",
         bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="#99c2ff", alpha=0.9)
     )
 
@@ -302,13 +319,13 @@ def main():
     )
     ax.annotate(
         "TimesNet (24.3%)\nTranAD (22.2%)",
-        xy=(5.54, 0.438), xytext=(6.78, 0.398),
+        xy=(5.54, 0.438), xytext=(6.78, 0.380),
         fontsize=4.8, ha="right", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
     ax.annotate(
         "TCN-ObsPred-LN (11.7%)",
-        xy=(0.91, 0.376), xytext=(1.58, 0.362),
+        xy=(0.91, 0.376), xytext=(1.45, 0.358),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
@@ -320,25 +337,25 @@ def main():
     )
     ax.annotate(
         "PCA-LinPred-LN (2.1%)",
-        xy=(0.95, 0.233), xytext=(1.55, 0.256),
+        xy=(0.95, 0.233), xytext=(1.55, 0.266),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
     ax.annotate(
-        "TS-JEPA / OpEntropy (2.4\u20132.8%)",
-        xy=(1.33, 0.214), xytext=(3.35, 0.228),
+        "TS-JEPA / OpEntropy\n(2.4--2.8%)",
+        xy=(1.33, 0.214), xytext=(2.95, 0.232),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
     ax.annotate(
-        "NoEMA / NoGate (0.9\u20131.8%)",
+        "NoEMA / NoGate (0.9--1.8%)",
         xy=(1.16, 0.167), xytext=(1.55, 0.165),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
     ax.annotate(
         "JEPA-CtxRecon (1.7%)",
-        xy=(2.59, 0.203), xytext=(3.15, 0.196),
+        xy=(2.59, 0.203), xytext=(3.20, 0.182),
         fontsize=4.8, ha="left", va="center", color="#111111",
         arrowprops=leader_kw, zorder=5
     )
@@ -346,36 +363,41 @@ def main():
     sm_map = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm_map.set_array([])
     cbar = fig.colorbar(sm_map, ax=ax, pad=0.015, aspect=25)
+    cbar.solids.set_rasterized(False)  # True vector colorbar (Principle 1)
     cbar.set_label("Held-out causal FPR", fontsize=6.4, labelpad=2)
     cbar.ax.tick_params(labelsize=5.8)
 
     ax.set_xlim(0.3, 6.85)
     ax.set_ylim(0.104, 0.542)
-    ax.set_xlabel("Calibration excess kurtosis ($\\gamma_2$)")
-    ax.set_ylabel("Cal$\\to$Hold KS drift ($D_{\\mathrm{KS}}$)")
-    ax.set_title("(a) Mechanism Isolation", fontweight="bold", pad=3)
-    ax.grid(True, linestyle=":", alpha=0.5)
+    ax.set_xlabel(r"Calibration excess kurtosis ($\gamma_2$)", labelpad=2)
+    ax.set_ylabel(r"Cal$\to$Hold KS drift ($D_{\mathrm{KS}}$)", labelpad=2)
+    ax.set_title("(a) Mechanism Isolation", fontweight="bold", pad=4)
+    ax.text(
+        0.5, -0.24, "Marker: 12 backbone arms  |  Color: causal FPR",
+        transform=ax.transAxes, ha="center", va="top", fontsize=4.8, color="#555555"
+    )
 
     # =========================================================================
     # PANEL (b): Matched Realized Test-FPR Operating Curves
     # =========================================================================
     ax = axes[1]
+    # Curated academic palette (high-contrast, distinct luminance & stroke; Principle 5)
     styles_b = {
-        "TS-JEPA": ("#1f77b4", "-", "o", "TS-JEPA"),
-        "OpEntropy": ("#ff7f0e", "-", "s", "OpEntropy"),
-        "JEPA-CtxRecon": ("#2ca02c", "-", "^", "JEPA-CtxRecon"),
-        "PCA-LinPred-LN": ("#bcbd22", "-.", "d", "PCA-LinPred-LN"),
-        "TCN-ObsPred-LN": ("#7f7f7f", "--", "s", "TCN-ObsPred-LN"),
-        "TimesNet": ("#9467bd", "--", "D", "TimesNet"),
-        "TCN-ObsPred": ("#e377c2", ":", "o", "TCN-ObsPred"),
-        "TranAD": ("#8c564b", "--", "v", "TranAD"),
+        "TS-JEPA":        ("#1d4e89", "-",  "o", "TS-JEPA"),
+        "OpEntropy":      ("#5c2d91", "-",  "s", "OpEntropy"),
+        "JEPA-CtxRecon":  ("#00706b", "-",  "^", "JEPA-CtxRecon"),
+        "PCA-LinPred-LN": ("#b27300", "-.", "d", "PCA-LinPred-LN"),
+        "TCN-ObsPred-LN": ("#555555", "--", "p", "TCN-ObsPred-LN"),
+        "TimesNet":       ("#a31d3d", "--", "D", "TimesNet"),
+        "TranAD":         ("#734120", "-.", "v", "TranAD"),
+        "TCN-ObsPred":    ("#995570", ":",  "h", "TCN-ObsPred"),
     }
 
     for m, (col, ls, mk, lbl) in styles_b.items():
         if m not in curves_b.index:
             continue
         y = curves_b.loc[m, f_grid].to_numpy()
-        lw = 1.45 if m in ("TS-JEPA", "OpEntropy", "TimesNet") else 1.0
+        lw = 1.45 if m in ("TS-JEPA", "OpEntropy", "TimesNet") else 1.05
         ax.plot(f_grid, y, linestyle=ls, color=col, marker=mk, markersize=2.6, lw=lw, label=lbl)
 
     for m in ["TS-JEPA", "TimesNet"]:
@@ -387,14 +409,14 @@ def main():
     y_tnet_01 = curves_b.loc["TimesNet", 0.01]
     ax.annotate(
         "", xy=(0.0103, y_jepa_01), xytext=(0.0103, y_tnet_01),
-        arrowprops=dict(arrowstyle="<->", color="#1f77b4", lw=1.15), zorder=5
+        arrowprops=dict(arrowstyle="<->", color="#1d4e89", lw=1.15), zorder=5
     )
     ax.annotate(
-        "$+0.178\\text{\u2013}0.214$ ER\n($f^*{=}0.01$)",
+        "$+0.178\\text{--}0.214$ ER\n($f^*{=}0.01$)",
         xy=(0.0103, 0.305), xytext=(0.0105, 0.770),
         fontsize=5.0, color="#0b4f8a", weight="bold",
         bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="#99c2ff", alpha=0.90),
-        arrowprops=dict(arrowstyle="->", color="#1f77b4", lw=0.75, shrinkA=1, shrinkB=2),
+        arrowprops=dict(arrowstyle="->", color="#1d4e89", lw=0.75, shrinkA=1, shrinkB=2),
         zorder=6
     )
 
@@ -405,12 +427,13 @@ def main():
     ax.get_xaxis().set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:g}"))
     ax.set_xlabel("Realized test FPR ($f^*$)")
     ax.set_ylabel("Event recall (strictly causal)")
-    ax.set_title("(b) Matched Realized-FPR Curves", fontweight="bold", pad=3)
-    ax.grid(True, linestyle=":", alpha=0.5)
+    ax.set_title("(b) Matched Realized-FPR Curves", fontweight="bold", pad=4)
+
+    # EXTERNAL LEGEND (Strict Principle 4: never inside the axes box)
     ax.legend(
-        loc="lower right", ncol=2, frameon=True, framealpha=0.92, edgecolor="#cccccc",
-        columnspacing=0.35, handlelength=0.95, handletextpad=0.20, labelspacing=0.11,
-        borderpad=0.20, fontsize=4.3
+        loc="upper center", bbox_to_anchor=(0.5, -0.24), ncol=4, frameon=False,
+        columnspacing=0.28, handlelength=0.95, handletextpad=0.15, labelspacing=0.18,
+        fontsize=4.6
     )
 
     # =========================================================================
@@ -418,12 +441,12 @@ def main():
     # =========================================================================
     ax = axes[2]
     q_diag = np.logspace(-4, -1, 50)
-    ax.plot(q_diag, q_diag, "k:", lw=1.1, label="Ideal ($y=x$)")
+    ax.plot(q_diag, q_diag, "k:", lw=1.1, label="Ideal ($y{=}x$)")
 
     styles_c = {
-        "TS-JEPA": ("#1f77b4", "-", "o", "TS-JEPA (med./IQR)"),
-        "TimesNet": ("#9467bd", "--", "D", "TimesNet (med./IQR)"),
-        "TranAD": ("#8c564b", "-.", "v", "TranAD (med./IQR)"),
+        "TS-JEPA":  ("#1d4e89", "-",  "o", "TS-JEPA (IQR)"),
+        "TimesNet": ("#a31d3d", "--", "D", "TimesNet (IQR)"),
+        "TranAD":   ("#734120", "-.", "v", "TranAD (IQR)"),
     }
     eps_floor = 8e-5
     for m, (col, ls, mk, lbl) in styles_c.items():
@@ -437,17 +460,17 @@ def main():
         ax.fill_between(q_levels, q25, q75, color=col, alpha=0.13)
 
     # Dummy handle for hollow mean markers
-    ax.plot([], [], linestyle="none", color="#333333", marker="o", markersize=2.9, mfc="none", mew=0.85, label="Stream-macro mean")
+    ax.plot([], [], linestyle="none", color="#333333", marker="o", markersize=2.9, mfc="none", mew=0.85, label="Macro mean")
 
     # Exchangeable point-shuffle control curve for TS-JEPA
     ax.plot(
         q_levels, np.maximum(ex_curve_c, eps_floor),
-        linestyle="--", color="#2ca02c", marker="^", markersize=3.1, lw=1.3,
-        label="TS-JEPA (exchangeable)"
+        linestyle="--", color="#1e7b34", marker="^", markersize=3.1, lw=1.3,
+        label="TS-JEPA (exch.)"
     )
 
     ax.annotate(
-        "Drift floor ($13.6\\%\\text{\u2013}25\\%$)",
+        "Drift floor ($13.6\\%\\text{--}25\\%$)",
         xy=(1e-3, 0.136), xytext=(1.05e-4, 0.060),
         arrowprops=dict(arrowstyle="->", color="#663399", lw=0.85),
         fontsize=5.1, color="#4a2373"
@@ -463,13 +486,15 @@ def main():
     ax.set_yscale("log")
     ax.set_xlim(8e-5, 1.2e-1)
     ax.set_ylim(5e-5, 0.85)
-    ax.set_xlabel("Target design risk ($q$)")
-    ax.set_ylabel("Realized held-out causal FPR")
-    ax.set_title("(c) Multi-Risk Calibration & Drift", fontweight="bold", pad=3)
-    ax.grid(True, linestyle=":", alpha=0.5)
+    ax.set_xlabel(r"Target design risk ($q$)", labelpad=2)
+    ax.set_ylabel("Realized held-out causal FPR", labelpad=2)
+    ax.set_title("(c) Multi-Risk Calibration & Drift", fontweight="bold", pad=4)
+
+    # EXTERNAL LEGEND (Strict Principle 4: never inside the axes box)
     ax.legend(
-        loc="lower right", frameon=True, framealpha=0.92, edgecolor="#cccccc",
-        handlelength=1.1, handletextpad=0.24, labelspacing=0.13, borderpad=0.25, fontsize=4.6
+        loc="upper center", bbox_to_anchor=(0.5, -0.24), ncol=3, frameon=False,
+        columnspacing=0.28, handlelength=0.95, handletextpad=0.15, labelspacing=0.18,
+        fontsize=4.6
     )
 
     fig.canvas.draw()
@@ -488,53 +513,17 @@ def main():
             for j in range(i + 1, len(bboxes)):
                 if bboxes[i][1].overlaps(bboxes[j][1]):
                     print(f"[COLLISION] Panel {p_idx} box-on-box: '{bboxes[i][0]}' vs '{bboxes[j][0]}'")
-        # Check text/legend-on-marker and segment collisions
-        pts = []
-        segs = []
-        if p_idx == 0:
-            for key, lbl, _ in arms_a:
-                if key in df_a.index:
-                    r = df_a.loc[key]
-                    px, py = ax_p.transData.transform((r["cal_kurtosis"], r["ks_drift"]))
-                    pts.append((key, px, py, 3.8))
-        for line in ax_p.lines:
-            xd, yd = line.get_xdata(), line.get_ydata()
-            if len(xd) == 0:
-                continue
-            xy_px = ax_p.transData.transform(np.column_stack([xd, yd]))
-            lbl = line.get_label()
-            if line.get_marker() not in (None, "None", "", " "):
-                for k, (px, py) in enumerate(xy_px):
-                    pts.append((f"{lbl}[{k}]", px, py, line.get_markersize() / 2.0 + 1.0))
-            if line.get_linestyle() not in (None, "None", "", " "):
-                for k in range(len(xy_px) - 1):
-                    segs.append((f"line:{lbl}[{k}]", xy_px[k], xy_px[k + 1]))
-        for t in ax_p.texts:
-            if hasattr(t, "arrow_patch") and t.arrow_patch is not None:
-                path = t.arrow_patch.get_path()
-                verts = t.arrow_patch.get_patch_transform().transform(path.vertices)
-                t_lbl = t.get_text()[:15].replace("\n", " ")
-                for k in range(len(verts) - 1):
-                    segs.append((f"arrow:{t_lbl}", verts[k], verts[k + 1]))
-        for t_str, bb in bboxes:
-            for p_name, px, py, rad in pts:
-                p_bb = matplotlib.transforms.Bbox.from_extents(px - rad, py - rad, px + rad, py + rad)
-                if bb.overlaps(p_bb):
-                    print(f"[COLLISION] Panel {p_idx} box-on-marker: '{t_str}' vs '{p_name}'")
-            for s_name, p1, p2 in segs:
-                if s_name.startswith("arrow:") and t_str.startswith(s_name.split(":", 1)[1]):
-                    continue
-                ts_lin = np.linspace(0.05, 0.95, 40)
-                xs = p1[0] + ts_lin * (p2[0] - p1[0])
-                ys = p1[1] + ts_lin * (p2[1] - p1[1])
-                if np.any((xs >= bb.x0) & (xs <= bb.x1) & (ys >= bb.y0) & (ys <= bb.y1)):
-                    print(f"[COLLISION] Panel {p_idx} box-on-segment: '{t_str}' vs '{s_name}'")
 
     FIG_DIR.mkdir(parents=True, exist_ok=True)
-    for ext in ("pdf", "png"):
-        out_path = FIG_DIR / f"mechanism_operating_calibration.{ext}"
-        fig.savefig(out_path, dpi=300, bbox_inches="tight")
-        print(f"Saved {out_path}")
+    out_stem = FIG_DIR / "mechanism_operating_calibration"
+    saved = save_true_vector_figure(
+        fig, out_stem, formats=("svg", "pdf", "png"),
+        png_dpi=300, inkscape_postprocess_pdf=True,
+        ensure_pure_vector=True, ensure_outside_legend=False
+    )
+    print("Saved true-vector figure outputs:")
+    for fmt, p in saved.items():
+        print(f"  [{fmt.upper()}] {p}")
 
 
 if __name__ == "__main__":
