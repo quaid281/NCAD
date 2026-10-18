@@ -1,7 +1,7 @@
 \begin{table}[t]
 \centering
 \small
-\caption{(a) Calibrator comparison on identical score streams (33 streams, cell-weighted means with stream-macro in parentheses; up to five seeds). Design risk $q{=}10^{-3}{=}0.1\%$. Overshoot $>q$ is the share of cells whose 95\% CI lower bound exceeds $q=10^{-3}$. SPOT + Kurtosis scales total $\tau_{\text{eff}} = \tau[1+\frac{1}{6}\tanh(\gamma_2)]$, which pulls thresholds below $u{=}p_{98}$ on platykurtic buffered streams ($\gamma_2 < 0$); scaling only the tail excess $\tau_{\text{exc}} = u + (\tau - u)[1+\frac{1}{6}\tanh(\gamma_2)]$ holds 19-stream buffered FPR to $0.0919$ (TS-JEPA) and $0.1008$ (OpEntropy). (b) Controlled-drift stress test: achieved held-out FPR (design $q=10^{-3}$) under injected shifts across 16 streams ($\ge 200$ windows).}
+\caption{Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)~Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses) and (b)~Controlled-Drift Stress Test Across 16 Streams.}
 \label{tab:calibrator_comparison}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}llcccc@{}}
