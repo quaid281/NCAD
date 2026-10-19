@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Generate Figure 3: Protocol Timeline and Three-Stage Permutation Decomposition.
+"""Generate Figure 2: Chronological Split, Window Isolation, and Online Causality Protocol.
 
-Single-column (3.5 in) 2-panel true-vector figure addressing Reviewer Concerns 2, 3, and 4:
-  Panel (a): Chronological Split & Window Isolation Protocol schematic showing exact
-             observation and window indices across Training (65%), Held-out Validation
-             (35%), Warm-up (W-1=319), Calibration (v[0:H]), Isolation Gap (S=64 vs W=320),
-             and Evaluation (v[H+S:]), alongside Score-Emission Latency (S-1=63) vs
-             Fault-Detection Delay (Delta t).
-  Panel (b): Three-Stage Exchangeable Permutation Decomposition & Calibration Reliability
-             across chronological, block-64 permuted, and pointwise i.i.d. refitted
-             partitions (with SPOT refitted on each permuted calibration split).
+Single-column (3.5 in) true-vector schematic figure illustrating:
+  1. Raw Nominal Telemetry Partition (Training 65% vs. Held-Out Nominal 35%)
+  2. Held-Out Causal Score Indexing (Warm-up W-1=319, Calibration v[0:H),
+     Isolation Gap S=64 vs. W=320, and Evaluation v[H+S:M_val))
+  3. Online Window Causality: Structural Score-Emission Latency (S-1=63) vs.
+     Empirical Fault-Detection Delay (Delta t = t_alm - t*).
 
 Outputs:
   paper/NCAD_CS/figures/protocol_and_permutation_decomposition.pdf
@@ -26,7 +23,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -40,195 +36,100 @@ from ieee_vector_style import save_true_vector_figure  # noqa: E402
 FIG_DIR = ROOT / "paper" / "NCAD_CS" / "figures"
 
 
-def draw_panel_a(ax: plt.Axes) -> None:
+def draw_protocol_schematic(ax: plt.Axes) -> None:
     """Draw exact chronological index schematic & latency vs. detection delay."""
     ax.set_xlim(0.0, 100.0)
-    ax.set_ylim(-5.0, 102.0)
+    ax.set_ylim(-6.0, 96.0)
     ax.axis("off")
 
-    # Title
-    ax.text(
-        0.0, 99.0,
-        "(a) Chronological Split, Window Isolation & Latency Protocol",
-        fontsize=7.6, fontweight="bold", color="#111111", va="center"
-    )
-
     # --- Row 1: Raw Nominal Telemetry Partition ---
-    ax.text(0.0, 88.5, "1. Raw Nominal Sequence ($T_{\\mathrm{nom}}$):", fontsize=6.2, fontweight="bold", color="#222222")
-    y1, h1 = 74.0, 10.5
+    ax.text(0.0, 91.5, "1. Raw Nominal Sequence ($T_{\\mathrm{nom}}$):", fontsize=6.6, fontweight="bold", color="#222222")
+    y1, h1 = 75.5, 11.5
     # Training block [0 : N_tr)
-    ax.add_patch(Rectangle((0.0, y1), 54.0, h1, fc="#d0e1f2", ec="#1d4e89", lw=0.75))
+    ax.add_patch(Rectangle((0.0, y1), 54.0, h1, fc="#d0e1f2", ec="#1d4e89", lw=0.8))
     ax.text(27.0, y1 + h1 / 2, "Training Block ($65\\%$)\n$\\mathbf{X}[0 : N_{\\mathrm{tr}})$ (fit $E_\\theta, E_\\phi, \\mathbf{K}$)",
-            ha="center", va="center", fontsize=5.5, color="#0b3c68")
+            ha="center", va="center", fontsize=5.8, color="#0b3c68")
     # Disjoint boundary line
     ax.plot([54.5, 54.5], [y1 - 1.5, y1 + h1 + 1.5], color="#a31d3d", lw=1.0, ls="--")
-    ax.text(54.5, y1 + h1 + 2.2, "Disjoint ($N_{\\mathrm{tr}}$)", ha="center", va="bottom", fontsize=5.0, color="#a31d3d", fontweight="bold")
+    ax.text(54.5, y1 + h1 + 2.2, "Disjoint ($N_{\\mathrm{tr}}$)", ha="center", va="bottom", fontsize=5.4, color="#a31d3d", fontweight="bold")
     # Validation block [N_tr : T_nom)
-    ax.add_patch(Rectangle((55.0, y1), 45.0, h1, fc="#f2e6d8", ec="#8a4a22", lw=0.75))
+    ax.add_patch(Rectangle((55.0, y1), 45.0, h1, fc="#f2e6d8", ec="#8a4a22", lw=0.8))
     ax.text(77.5, y1 + h1 / 2, "Held-Out Nominal ($35\\%$)\n$\\mathbf{X}[N_{\\mathrm{tr}} : T_{\\mathrm{nom}})$ (0 window overlap)",
-            ha="center", va="center", fontsize=5.5, color="#5c2e12")
+            ha="center", va="center", fontsize=5.8, color="#5c2e12")
 
     # --- Row 2: Causal Score Sequence v[0 : M_val) inside Held-Out Block ---
-    ax.text(0.0, 64.5, "2. Held-Out Causal Score Indexing ($W{=}C{+}S{=}320$, $\\tau{=}t{+}S{-}1$):",
-            fontsize=6.2, fontweight="bold", color="#222222")
-    y2, h2 = 49.0, 11.5
+    ax.text(0.0, 65.5, "2. Held-Out Causal Score Indexing ($W{=}C{+}S{=}320$, $\\tau{=}t{+}S{-}1$):",
+            fontsize=6.6, fontweight="bold", color="#222222")
+    y2, h2 = 49.0, 12.0
     # Context warm-up (first W-1=319 raw steps)
-    ax.add_patch(Rectangle((0.0, y2), 18.0, h2, fc="#f4f4f4", ec="#666666", lw=0.65, ls="--"))
-    ax.text(9.0, y2 + h2 / 2, "Warm-up\n$W{-}1{=}319$", ha="center", va="center", fontsize=5.2, color="#333333")
+    ax.add_patch(Rectangle((0.0, y2), 18.0, h2, fc="#f4f4f4", ec="#666666", lw=0.7, ls="--"))
+    ax.text(9.0, y2 + h2 / 2, "Warm-up\n$W{-}1{=}319$", ha="center", va="center", fontsize=5.5, color="#333333")
     # Calibration scores v[0 : H)
-    ax.add_patch(Rectangle((18.5, y2), 31.0, h2, fc="#ccece6", ec="#00706b", lw=0.75))
-    ax.text(34.0, y2 + h2 / 2, "Calibration Scores\n$v[0 : H)$ (fit SPOT $\\tau$)", ha="center", va="center", fontsize=5.4, color="#004d49", fontweight="bold")
+    ax.add_patch(Rectangle((18.5, y2), 31.0, h2, fc="#ccece6", ec="#00706b", lw=0.8))
+    ax.text(34.0, y2 + h2 / 2, "Calibration Scores\n$v[0 : H)$ (fit SPOT $\\tau$)", ha="center", va="center", fontsize=5.7, color="#004d49", fontweight="bold")
     # Isolation Gap v[H : H+S)
-    ax.add_patch(Rectangle((50.0, y2), 16.5, h2, fc="#fbe3e8", ec="#a31d3d", lw=0.75))
-    ax.text(58.25, y2 + h2 / 2, "Gap $S{=}64$\n(or $W{=}320$)", ha="center", va="center", fontsize=5.2, color="#80112a", fontweight="bold")
+    ax.add_patch(Rectangle((50.0, y2), 16.5, h2, fc="#fbe3e8", ec="#a31d3d", lw=0.8))
+    ax.text(58.25, y2 + h2 / 2, "Gap $S{=}64$\n(or $W{=}320$)", ha="center", va="center", fontsize=5.5, color="#80112a", fontweight="bold")
     # Evaluation scores v[H+S : M_val)
-    ax.add_patch(Rectangle((67.0, y2), 33.0, h2, fc="#e2d9f3", ec="#5c2d91", lw=0.75))
-    ax.text(83.5, y2 + h2 / 2, "Held-Out Eval Scores\n$v[H{+}S : M_{\\mathrm{val}})$ (test FPR)", ha="center", va="center", fontsize=5.4, color="#3b1b61", fontweight="bold")
+    ax.add_patch(Rectangle((67.0, y2), 33.0, h2, fc="#e2d9f3", ec="#5c2d91", lw=0.8))
+    ax.text(83.5, y2 + h2 / 2, "Held-Out Eval Scores\n$v[H{+}S : M_{\\mathrm{val}})$ (test FPR)", ha="center", va="center", fontsize=5.7, color="#3b1b61", fontweight="bold")
 
     ax.text(
-        50.0, 44.2,
+        50.0, 44.0,
         "At gap $S{=}64$: suspect targets $\\mathbf{x}_{\\mathrm{tgt}}$ are $100\\%$ disjoint ($W{=}320$ check: $\\Delta\\mathrm{FPR} \\leq 0.002$).",
-        ha="center", va="center", fontsize=5.1, color="#333333"
+        ha="center", va="center", fontsize=5.5, color="#333333"
     )
 
     # --- Row 3: Score-Emission Latency vs. Fault-Detection Delay ---
-    ax.text(0.0, 35.5, "3. Online Window Causality ($\\mathcal{F}_\\tau$): Emission Lag vs. Detection Delay:",
-            fontsize=6.2, fontweight="bold", color="#222222")
-    y3, h3 = 14.5, 10.0
+    ax.text(0.0, 35.0, "3. Online Window Causality ($\\mathcal{F}_\\tau$): Emission Lag vs. Detection Delay:",
+            fontsize=6.6, fontweight="bold", color="#222222")
+    y3, h3 = 14.0, 10.5
     # Context C=256
-    ax.add_patch(Rectangle((0.0, y3), 40.0, h3, fc="#d0e1f2", ec="#1d4e89", lw=0.7))
-    ax.text(20.0, y3 + h3 / 2, "Past Context $\\mathbf{x}_{\\mathrm{ctx}}$ ($C{=}256$)", ha="center", va="center", fontsize=5.4, color="#0b3c68")
+    ax.add_patch(Rectangle((0.0, y3), 40.0, h3, fc="#d0e1f2", ec="#1d4e89", lw=0.75))
+    ax.text(20.0, y3 + h3 / 2, "Past Context $\\mathbf{x}_{\\mathrm{ctx}}$ ($C{=}256$)", ha="center", va="center", fontsize=5.7, color="#0b3c68")
     # Target S=64
-    ax.add_patch(Rectangle((40.0, y3), 28.0, h3, fc="#f9d5b5", ec="#b25900", lw=0.7))
-    ax.text(54.0, y3 + h3 / 2, "Target $\\mathbf{x}_{\\mathrm{tgt}}$ ($S{=}64$)", ha="center", va="center", fontsize=5.4, color="#663300")
+    ax.add_patch(Rectangle((40.0, y3), 28.0, h3, fc="#f9d5b5", ec="#b25900", lw=0.75))
+    ax.text(54.0, y3 + h3 / 2, "Target $\\mathbf{x}_{\\mathrm{tgt}}$ ($S{=}64$)", ha="center", va="center", fontsize=5.7, color="#663300")
 
-    # Fault onset t* and first alarm t_alarm (well-spaced above y3+h3=24.5, below 35.5)
-    ax.plot([40.0, 40.0], [y3 - 4.0, y3 + h3 + 2.2], color="#333333", lw=0.7, ls=":")
-    ax.text(39.2, y3 + h3 + 2.6, "$t$", ha="right", va="bottom", fontsize=5.3, color="#222222")
+    # Fault onset t* and first alarm t_alarm
+    ax.plot([40.0, 40.0], [y3 - 4.0, y3 + h3 + 2.2], color="#333333", lw=0.75, ls=":")
+    ax.text(39.2, y3 + h3 + 2.6, "$t$", ha="right", va="bottom", fontsize=5.6, color="#222222")
 
-    ax.plot([51.0, 51.0], [y3 - 10.5, y3 + h3 + 2.2], color="#a31d3d", lw=0.9, ls="--")
-    ax.text(51.0, y3 + h3 + 2.6, "Onset $t^*$", ha="center", va="bottom", fontsize=5.2, color="#a31d3d", fontweight="bold")
+    ax.plot([51.0, 51.0], [y3 - 10.5, y3 + h3 + 2.2], color="#a31d3d", lw=0.95, ls="--")
+    ax.text(51.0, y3 + h3 + 2.6, "Onset $t^*$", ha="center", va="bottom", fontsize=5.5, color="#a31d3d", fontweight="bold")
 
-    ax.plot([68.0, 68.0], [y3 - 4.0, y3 + h3 + 2.2], color="#00706b", lw=0.9, ls="-")
-    ax.text(68.0, y3 + h3 + 2.6, "Emit $\\tau{=}t{+}63$", ha="center", va="bottom", fontsize=5.2, color="#00706b", fontweight="bold")
+    ax.plot([68.0, 68.0], [y3 - 4.0, y3 + h3 + 2.2], color="#00706b", lw=0.95, ls="-")
+    ax.text(68.0, y3 + h3 + 2.6, "Emit $\\tau{=}t{+}63$", ha="center", va="bottom", fontsize=5.5, color="#00706b", fontweight="bold")
 
-    ax.plot([90.0, 90.0], [y3 - 10.5, y3 + h3 + 2.2], color="#5c2d91", lw=0.9, ls="-.")
-    ax.scatter([90.0], [y3 + h3 / 2], marker="^", s=26, color="#5c2d91", zorder=5)
-    ax.text(90.0, y3 + h3 + 2.6, "1st Alarm $t_{\\mathrm{alm}}$", ha="center", va="bottom", fontsize=5.2, color="#5c2d91", fontweight="bold")
+    ax.plot([90.0, 90.0], [y3 - 10.5, y3 + h3 + 2.2], color="#5c2d91", lw=0.95, ls="-.")
+    ax.scatter([90.0], [y3 + h3 / 2], marker="^", s=28, color="#5c2d91", zorder=5)
+    ax.text(90.0, y3 + h3 + 2.6, "1st Alarm $t_{\\mathrm{alm}}$", ha="center", va="bottom", fontsize=5.5, color="#5c2d91", fontweight="bold")
 
     # Latency bracket [t, tau]
     ax.annotate("", xy=(68.0, y3 - 2.6), xytext=(40.0, y3 - 2.6),
-                arrowprops=dict(arrowstyle="<->", color="#00706b", lw=0.85))
-    ax.text(54.0, y3 - 5.8, "Emission lag $S{-}1{=}63$", ha="center", va="center", fontsize=5.1, color="#00706b", fontweight="bold")
+                arrowprops=dict(arrowstyle="<->", color="#00706b", lw=0.9))
+    ax.text(54.0, y3 - 6.0, "Emission lag $S{-}1{=}63$", ha="center", va="center", fontsize=5.5, color="#00706b", fontweight="bold")
 
     # Detection delay bracket [t*, t_alarm]
     ax.annotate("", xy=(90.0, y3 - 10.2), xytext=(51.0, y3 - 10.2),
-                arrowprops=dict(arrowstyle="<->", color="#5c2d91", lw=0.85))
-    ax.text(70.5, y3 - 13.6, "Detection delay $\\Delta t = t_{\\mathrm{alm}} - t^*$", ha="center", va="center", fontsize=5.1, color="#5c2d91", fontweight="bold")
-
-
-def draw_panel_b(ax: plt.Axes) -> None:
-    """Draw 3-stage permutation decomposition (refitted SPOT on permuted cal/hold)."""
-    models = ["TS-JEPA", "OpEntropy", "TimesNet", "TranAD"]
-    q_nom = 0.10  # 0.1% nominal target (q=10^-3)
-    fpr_chrono = np.array([1.21, 1.85, 8.72, 7.41])
-    fpr_block = np.array([0.58, 0.73, 2.04, 0.67])
-    fpr_point = np.array([0.19, 0.22, 0.37, 0.32])
-
-    x = np.arange(len(models))
-    width = 0.23
-
-    ax.grid(True, which="major", axis="y", linestyle="-", linewidth=0.5, alpha=0.22)
-    ax.set_axisbelow(True)
-
-    # Plot grouped bars for the 3 refitted stages:
-    ax.bar(
-        x - width, fpr_chrono, width,
-        color="#1d4e89", edgecolor="#0b2e59", linewidth=0.65, zorder=3,
-        label="Stage 1: Chronological ($\\mathrm{FPR}_{\\mathrm{chrono}}$)"
-    )
-    ax.bar(
-        x, fpr_block, width,
-        color="#77b5b6", edgecolor="#005a56", linewidth=0.65, zorder=3,
-        label="Stage 2: Block-$64$ Shuf. + Refit ($\\mathrm{FPR}_{\\mathrm{block}}$)"
-    )
-    ax.bar(
-        x + width, fpr_point, width,
-        color="#9671bd", edgecolor="#4a2373", linewidth=0.65, zorder=3,
-        label="Stage 3: Point i.i.d. Shuf. + Refit ($\\mathrm{FPR}_{\\mathrm{point}}$)"
-    )
-
-    # Nominal target line q = 0.1%
-    ax.axhline(q_nom, color="#a31d3d", linestyle="--", linewidth=0.95, zorder=4)
-    ax.text(
-        1.5, q_nom * 0.84, "Design target $q{=}0.1\\%$",
-        fontsize=5.2, color="#a31d3d", fontweight="bold", ha="center", va="top",
-        bbox=dict(boxstyle="round,pad=0.08", fc="white", ec="none", alpha=0.85)
-    )
-
-    # Annotate Stage 1 -> Stage 2 -> Stage 3 percentages on top of bars
-    drift_shares = [56.6, 64.1, 77.5, 92.3]
-    serial_shares = [35.3, 29.1, 19.4, 4.7]
-    for i in range(len(models)):
-        ax.text(
-            x[i] - width, fpr_chrono[i] * 1.07,
-            f"{fpr_chrono[i]:.2f}%", ha="center", va="bottom", fontsize=5.0, fontweight="bold", color="#1d4e89"
-        )
-        ax.text(
-            x[i], fpr_block[i] * 1.07,
-            f"{fpr_block[i]:.2f}%", ha="center", va="bottom", fontsize=4.9, color="#005a56"
-        )
-        ax.text(
-            x[i] + width, fpr_point[i] * 1.07,
-            f"{fpr_point[i]:.2f}%", ha="center", va="bottom", fontsize=4.9, color="#4a2373"
-        )
-        y_box = 3.1 if i < 2 else 15.0
-        ax.text(
-            x[i], y_box,
-            f"Drift: {drift_shares[i]:.0f}%\nSerial: {serial_shares[i]:.0f}%",
-            ha="center", va="bottom", fontsize=4.9, color="#222222",
-            bbox=dict(boxstyle="round,pad=0.14", fc="#fafafa", ec="#cccccc", lw=0.5, alpha=0.92)
-        )
-
-    ax.set_yscale("log")
-    ax.set_ylim(0.048, 39.0)
-    ax.set_xlim(-0.52, 3.52)
-    ax.set_xticks(x)
-    ax.set_xticklabels(models, fontsize=6.5, fontweight="bold")
-    ax.set_ylabel("Realized Held-Out Causal FPR (\\%, log)", fontsize=6.5)
-    ax.set_title("(b) Three-Stage Refitted Permutation Decomposition ($q{=}0.1\\%$)",
-                 fontsize=7.4, fontweight="bold", loc="left", pad=4)
-
-    # Strictly external legend below axes (Principle 4)
-    ax.legend(
-        loc="upper center", bbox_to_anchor=(0.5, -0.19),
-        ncol=1, frameon=False, fontsize=5.4, handlelength=1.2, labelspacing=0.22
-    )
+                arrowprops=dict(arrowstyle="<->", color="#5c2d91", lw=0.9))
+    ax.text(70.5, y3 - 13.8, "Detection delay $\\Delta t = t_{\\mathrm{alm}} - t^*$", ha="center", va="center", fontsize=5.5, color="#5c2d91", fontweight="bold")
 
 
 def main() -> None:
     plt.rcParams.update({
         "font.family": "Times New Roman",
         "font.size": 6.8,
-        "axes.labelsize": 6.8,
-        "axes.titlesize": 7.4,
-        "xtick.labelsize": 6.2,
-        "ytick.labelsize": 6.0,
-        "legend.fontsize": 5.4,
         "mathtext.fontset": "stix",
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
         "svg.fonttype": "none",
     })
 
-    fig, axes = plt.subplots(
-        2, 1, figsize=(3.5, 3.40),
-        gridspec_kw={"height_ratios": [1.14, 1.0]}
-    )
-    fig.subplots_adjust(top=0.96, bottom=0.17, left=0.13, right=0.98, hspace=0.24)
+    fig, ax = plt.subplots(1, 1, figsize=(3.5, 1.85))
+    fig.subplots_adjust(top=0.98, bottom=0.02, left=0.02, right=0.98)
 
-    draw_panel_a(axes[0])
-    draw_panel_b(axes[1])
+    draw_protocol_schematic(ax)
 
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     out_stem = FIG_DIR / "protocol_and_permutation_decomposition"
@@ -237,7 +138,7 @@ def main() -> None:
         png_dpi=300, inkscape_postprocess_pdf=True,
         ensure_pure_vector=True, ensure_outside_legend=True
     )
-    print("Saved protocol & permutation figure:")
+    print("Saved protocol schematic figure:")
     for fmt, p in saved.items():
         print(f"  [{fmt.upper()}] {p}")
 

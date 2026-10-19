@@ -265,22 +265,79 @@ def main():
     cmap = plt.cm.cividis
     norm = matplotlib.colors.Normalize(vmin=0.0, vmax=0.26)
 
+    # Fit monotone bilinear iso-FPR response surface across the 12 arms:
+    # FPR_hat(gamma_2, D_KS) = b0 + b1*gamma_2 + b2*D_KS + b3*(gamma_2 * D_KS)
+    from scipy.optimize import lsq_linear
+    arm_keys = [k for k, _, _ in arms_a if k in df_a.index]
+    xa = df_a.loc[arm_keys, "cal_kurtosis"].to_numpy()
+    ya = df_a.loc[arm_keys, "ks_drift"].to_numpy()
+    za = df_a.loc[arm_keys, "hold_fpr"].to_numpy()
+    X_des = np.column_stack([np.ones_like(xa), xa, ya, xa * ya])
+    res_fit = lsq_linear(X_des, za, bounds=([-np.inf, 0.001, 0.01, 0.0], [np.inf, np.inf, np.inf, np.inf]))
+    b0, b1, b2, b3 = res_fit.x
+    r2_surf = 1.0 - np.sum((za - X_des @ res_fit.x) ** 2) / np.sum((za - za.mean()) ** 2)
+    print(f"Panel (a) Iso-FPR surface R^2 = {r2_surf:.4f} (b0={b0:.4f}, b1={b1:.4f}, b2={b2:.4f}, b3={b3:.4f})")
+
+    gx = np.linspace(0.30, 6.95, 90)
+    gy = np.linspace(0.104, 0.550, 90)
+    GX, GY = np.meshgrid(gx, gy)
+    GZ = np.clip(b0 + b1 * GX + b2 * GY + b3 * (GX * GY), 0.0, 0.28)
+
+    # Subtle pure-vector topographic contour fill + crisp iso-FPR contour isolines
+    cf_levels = np.linspace(0.0, 0.26, 14)
+    cf = ax.contourf(GX, GY, GZ, levels=cf_levels, cmap=cmap, norm=norm, alpha=0.14, zorder=1)
+    if hasattr(cf, "collections"):
+        for coll in cf.collections:
+            coll.set_rasterized(False)
+    else:
+        cf.set_rasterized(False)
+
+    iso_levels = [0.02, 0.05, 0.10, 0.15, 0.20]
+    cs = ax.contour(
+        GX, GY, GZ, levels=iso_levels,
+        colors=["#1d4e89", "#2c5f78", "#4f6d6a", "#787546", "#9a7b1c"],
+        linewidths=0.65, linestyles=":", alpha=0.80, zorder=2
+    )
+    if hasattr(cs, "collections"):
+        for coll in cs.collections:
+            coll.set_rasterized(False)
+    else:
+        cs.set_rasterized(False)
+
+    # Place clean non-overlapping iso-FPR contour labels along the right/upper-middle margin
+    iso_label_positions = [
+        (0.02, 3.60),
+        (0.05, 4.75),
+        (0.10, 5.45),
+        (0.15, 5.85),
+        (0.20, 6.25),
+    ]
+    for lvl, x_pos in iso_label_positions:
+        y_pos = (lvl - b0 - b1 * x_pos) / (b2 + b3 * x_pos)
+        if 0.115 <= y_pos <= 0.475:
+            ax.text(
+                x_pos, y_pos, f"{int(round(lvl * 100))}% FPR",
+                fontsize=4.5, color="#333333", ha="center", va="center",
+                bbox=dict(boxstyle="round,pad=0.08", fc="white", ec="none", alpha=0.78),
+                zorder=2.5
+            )
+
     for key, label, marker in arms_a:
         if key not in df_a.index:
             continue
         row = df_a.loc[key]
         x, y, fpr = row["cal_kurtosis"], row["ks_drift"], row["hold_fpr"]
         ax.scatter(
-            x, y, c=[fpr], cmap=cmap, norm=norm, marker=marker, s=36,
-            edgecolors="#111111", linewidths=0.55, zorder=4
+            x, y, c=[fpr], cmap=cmap, norm=norm, marker=marker, s=38,
+            edgecolors="#111111", linewidths=0.60, zorder=4
         )
 
     # Shaded regime box for latent / bounded predictors
-    ax.axhspan(0.108, 0.258, xmin=0.0, xmax=0.55, color="#1d4e89", alpha=0.08, zorder=1)
+    ax.axhspan(0.108, 0.258, xmin=0.0, xmax=0.55, color="#1d4e89", alpha=0.07, zorder=1.5)
     ax.text(
         0.45, 0.115,
-        "Latent / Bounded Predictors\n($D_{\\mathrm{KS}}\\approx 0.17\\text{--}0.23$, FPR $0.9\\text{--}2.8\\%$)",
-        fontsize=5.2, color="#0b4f8a", weight="bold"
+        "Latent / Bounded Predictors\n($D_{\\mathrm{KS}}\\approx 0.17$–$0.23$, FPR $0.9$–$2.8\\%$)",
+        fontsize=5.2, color="#0b4f8a", weight="bold", zorder=5
     )
 
     # Mechanism arrows
@@ -294,7 +351,8 @@ def main():
         2.75, 0.445,
         "(1) LayerNorm score compression\n($\\gamma_2: 6.10\\!\\to\\!0.91$)",
         fontsize=5.2, color="#333333", ha="center", va="top",
-        bbox=dict(boxstyle="round,pad=0.14", fc="white", ec="#cccccc", alpha=0.92)
+        bbox=dict(boxstyle="round,pad=0.14", fc="white", ec="#cccccc", alpha=0.92),
+        zorder=5
     )
 
     x3, y3 = df_a.loc["OpEntropy", ["cal_kurtosis", "ks_drift"]]
@@ -306,7 +364,8 @@ def main():
         2.20, 0.300,
         "(2) Latent projection\n($D_{\\mathrm{KS}}: 0.376\\!\\to\\!0.209$)",
         fontsize=5.2, color="#0b4f8a", ha="center",
-        bbox=dict(boxstyle="round,pad=0.14", fc="white", ec="#99c2ff", alpha=0.92)
+        bbox=dict(boxstyle="round,pad=0.14", fc="white", ec="#99c2ff", alpha=0.92),
+        zorder=5
     )
 
     # Clean cluster label for reconstruction baselines (no cluttered leader lines)
@@ -314,7 +373,8 @@ def main():
         6.10, 0.500,
         "Reconstruction baselines\n(TimesNet, TranAD, TCN)",
         fontsize=5.1, ha="center", va="bottom", color="#444444",
-        bbox=dict(boxstyle="round,pad=0.12", fc="#fafafa", ec="#dddddd", alpha=0.88)
+        bbox=dict(boxstyle="round,pad=0.12", fc="#fafafa", ec="#dddddd", alpha=0.88),
+        zorder=5
     )
 
     sm_map = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -328,9 +388,9 @@ def main():
     ax.set_ylim(0.104, 0.550)
     ax.set_xlabel(r"Calibration excess kurtosis ($\gamma_2$)", labelpad=2)
     ax.set_ylabel(r"Cal$\to$Hold KS drift ($D_{\mathrm{KS}}$)", labelpad=2)
-    ax.set_title("(a) Mechanism Isolation", fontweight="bold", pad=4)
+    ax.set_title("(a) Mechanism Isolation & Iso-FPR Contours", fontweight="bold", pad=4)
     ax.text(
-        0.5, -0.22, "Marker: 12 backbone arms  |  Color: causal FPR (SPOT)",
+        0.5, -0.22, "Markers: 12 arms  |  Contours: bilinear iso-FPR surface ($R^2{=}0.97$)",
         transform=ax.transAxes, ha="center", va="top", fontsize=5.0, color="#555555"
     )
 
@@ -380,7 +440,7 @@ def main():
         arrowprops=dict(arrowstyle="<->", color="#1d4e89", lw=1.15), zorder=5
     )
     ax.annotate(
-        "$+0.178\\text{--}0.214$ ER\n($f^*{=}0.01$)",
+        "$+0.178$–$0.214$ ER\n($f^*{=}0.01$)",
         xy=(0.0103, 0.305), xytext=(0.0108, 0.770),
         fontsize=5.2, color="#0b4f8a", weight="bold",
         bbox=dict(boxstyle="round,pad=0.14", fc="white", ec="#99c2ff", alpha=0.90),
