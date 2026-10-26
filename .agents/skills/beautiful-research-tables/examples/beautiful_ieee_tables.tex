@@ -1,0 +1,149 @@
+% =============================================================================
+% Canonical Publication-Grade LaTeX Table Templates (`beautiful-research-tables`)
+% Synthesized from TeX.SE #112343 ("Beautiful table samples"),
+% TeX.SE #681429 ("How to make better looking tables for a publication"),
+% Simon Fear's `booktabs` documentation, and `IEEEtran` two-column standards.
+% =============================================================================
+\documentclass[journal]{IEEEtran}
+
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{etoolbox}
+\usepackage{threeparttable}
+\usepackage{makecell}
+\usepackage{pifont}
+% Optional modern engine: \usepackage{tabularray} \UseTblrLibrary{booktabs,siunitx}
+
+% --- Recommended Preamble Setup for siunitx + bold best metrics ---
+\robustify\bfseries
+\sisetup{
+    detect-all,
+    mode = text,
+    group-separator = {,},
+    group-minimum-digits = 4,
+    table-align-text-post = false
+}
+
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+\begin{document}
+
+% =============================================================================
+% TEMPLATE 1: Single-Column Quantitative Benchmark Table (`tabular*` + `siunitx`)
+% Fits exact `\columnwidth` (3.5 in) WITHOUT `\resizebox` by using `\footnotesize`
+% and `@{\extracolsep{\fill}}`.
+% =============================================================================
+\begin{table}[!t]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{0pt}
+    \caption{Single-Column Ablation Study with Decimal Alignment and Hoisted Units}
+    \label{tab:template_single_col}
+    \begin{tabular*}{\columnwidth}{
+        @{\extracolsep{\fill}}
+        l
+        S[table-format=2.1]
+        S[table-format=2.1]
+        S[table-format=3.1]
+        S[table-format=1.3]
+        @{}
+    }
+        \toprule
+        & \multicolumn{2}{c}{\textbf{Retention (\%)}} & & \\
+        \cmidrule(lr){2-3}
+        \textbf{Configuration} & {\textbf{15-Turn}} & {\textbf{100-Turn}} & {\textbf{Latency (ms)}} & {\textbf{Cohen's $d_z$}} \\
+        \midrule
+        Unbounded Prompt      & 71.6          & 63.3          & 1420.5        & 0.142 \\
+        Snapshot Prompt       & 64.2          & 35.7          &  890.2        & -0.418 \\
+        \addlinespace[3pt]
+        DSE-Only Floor        & 66.7          & 66.7          &    0.2        & 0.310 \\
+        Hybrid (No Rollback)  & 84.4          & 84.4          &  558.4        & 0.915 \\
+        Hybrid (Full System)  & \bfseries 88.3 & \bfseries 88.3 & \bfseries 520.1 & \bfseries 1.184 \\
+        \bottomrule
+    \end{tabular*}
+    \vspace{2pt}
+    \parbox{\columnwidth}{\scriptsize\emph{Note:} All percentages and latencies are averaged across $N=30$ clustered sessions ($10$ traces $\times 3$ repeats). Best performance in each column is shown in \textbf{bold}.}
+\end{table}
+
+% =============================================================================
+% TEMPLATE 2: Double-Column Multi-Scenario Benchmark (`table*`)
+% Uses hierarchical `\cmidrule(lr)` spanners, disaggregated sub-columns, and
+% dedicated point-estimate vs. 95% confidence interval columns.
+% =============================================================================
+\begin{table*}[!t]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \caption{Double-Column Cross-Scenario Evaluation with Hierarchical Spanners and 95\% Confidence Intervals}
+    \label{tab:template_double_col}
+    \begin{tabular*}{\textwidth}{
+        @{\extracolsep{\fill}}
+        l
+        S[table-format=2.0]
+        c
+        S[table-format=3.1]
+        S[table-format=2.1]
+        c
+        S[table-format=2.1]
+        c
+        S[table-format=4.0]
+        S[table-format=3.0]
+        @{}
+    }
+        \toprule
+        & & & \multicolumn{5}{c}{\textbf{Format \& Execution Compliance Rate, $C_r$ (\%)}} & \multicolumn{2}{c}{\textbf{LIH Latency (ms)}} \\
+        \cmidrule(lr){4-8} \cmidrule(lr){9-10}
+        & & & & \multicolumn{2}{c}{\textbf{LIH Route}} & \multicolumn{2}{c}{\textbf{Combined Suite}} & & \\
+        \cmidrule(lr){5-6} \cmidrule(lr){7-8}
+        \textbf{Attack Scenario} & {\textbf{Models}} & \textbf{Probes ($n_{\text{DSE}}/n_{\text{LIH}}$)} & {\textbf{DSE (\%)}} & {\textbf{Mean}} & \textbf{Range} & {\textbf{Mean}} & \textbf{Range} & {\textbf{Mean}} & {\textbf{Median}} \\
+        \midrule
+        GPU Attacker     & 11 & 69 / 15 & 100.0 & 90.9          & 26.7--100.0 & 98.4          & 86.9--100.0 & 1739          & 339 \\
+        Web Exploitation &  5 & 67 / 15 & 100.0 & 90.7          & 80.0--100.0 & 98.3          & 96.3--100.0 & 1177          & \bfseries 291 \\
+        IoT Exploitation & 12 & 69 / 15 & 100.0 & \bfseries 93.9 & 60.0--100.0 & \bfseries 98.9 & 92.9--100.0 & 1623          & 496 \\
+        DB Exploitation  &  4 & 64 / 20 & 100.0 & 86.2          & 80.0--95.0  & 96.7          & 95.2--98.8  & \bfseries 1134 & 550 \\
+        Ransomware / OS  &  6 & 66 / 18 & 100.0 & 90.7          & 72.2--100.0 & 98.0          & 94.0--100.0 & 2240          & 828 \\
+        \midrule
+        Macro-Average    & 38 & 335 / 83 & 100.0 & 90.5          & 26.7--100.0 & 98.1          & 86.9--100.0 & 1583          & 501 \\
+        \bottomrule
+    \end{tabular*}
+    \vspace{2pt}
+    \parbox{\textwidth}{\scriptsize\emph{Note:} Route counts $n_{\text{DSE}}/n_{\text{LIH}}$ reflect measured dispatch across the $418$-probe suite ($335$ deterministic, $83$ generative). Latency statistics pool generatively routed turns only ($T=0$ greedy decoding on an RTX 5090).}
+\end{table*}
+
+% =============================================================================
+% TEMPLATE 3: Qualitative / Architectural Feature Comparison Matrix
+% Uses left-aligned system labels, centered semantic symbols (`\cmark` / `--`),
+% and `\addlinespace` to separate prior work from the proposed system.
+% =============================================================================
+\begin{table}[!t]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \caption{Architectural Capability Comparison Across Honeypot Families}
+    \label{tab:template_feature_matrix}
+    \begin{tabular*}{\columnwidth}{
+        @{\extracolsep{\fill}}
+        l
+        l
+        c
+        c
+        c
+        S[table-format=2.1]
+        @{}
+    }
+        \toprule
+        \textbf{System} & \textbf{Engine} & \textbf{\makecell{State\\Graph}} & \textbf{\makecell{Atomic\\Rollback}} & \textbf{\makecell{Zero-Shot\\Tools}} & {\textbf{\makecell{100-Turn\\$S_r$ (\%)}}} \\
+        \midrule
+        Cowrie          & Static FSM     & \cmark & --     & --     & 66.7 \\
+        shelLM          & Pure LLM       & --     & --     & \cmark & 63.3 \\
+        HoneyLLM        & Prompt Snapshot & --     & --     & \cmark & 35.7 \\
+        \addlinespace[3pt]
+        \textbf{Ours}   & \textbf{Hybrid DSE+LIH} & \cmark & \cmark & \cmark & \bfseries 88.3 \\
+        \bottomrule
+    \end{tabular*}
+    \vspace{2pt}
+    \parbox{\columnwidth}{\scriptsize\emph{Note:} \cmark\ denotes native architectural support; ``--'' indicates the capability is absent.}
+\end{table}
+
+\end{document}
