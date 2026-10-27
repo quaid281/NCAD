@@ -191,9 +191,7 @@ Consider a continuous multivariate telemetry stream $\mathbf{X} \in \mathbb{R}^{
 \vspace{-8pt}
 \end{figure}
 
-Reconstructive detectors (such as TimesNet, TranAD, and Anomaly Transformer) train an autoencoder to reproduce the raw waveform by minimizing pointwise observation error $\|\mathbf{X} - \mathcal{D}_\theta(\mathcal{E}_\theta(\mathbf{X}))\|_F^2$. Because raw telemetry contains high-frequency sensor noise across all $K$ channels, observation-space residuals exhibit heavy, outlier-prone tails that trigger frequent false alarms.
-
-We instead adopt a Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path} that shifts prediction from raw observation space into a compact 32-dimensional latent space ($D=32$, Fig.~\ref{fig:context_target_schematic}(b)). An online context encoder $E_\theta$ compresses $\mathbf{x}_{\text{ctx}}$ into a context vector $z_{\text{ctx}} \in \mathbb{R}^D$, while a separate target encoder $E_\phi$ compresses $\mathbf{x}_{\text{tgt}}$ into a target vector $z_{\text{tgt}} \in \mathbb{R}^D$. Rather than training $E_\phi$ by direct gradient descent (which would allow both encoders to map all inputs to a constant vector), the target weights $\phi$ are updated as an exponential moving average (EMA) of the online weights $\theta$, $\phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k$ with a cosine momentum schedule $m_k \in [0.996, 0.9995]$ \cite{grill2020bootstrap, assran2023self}. By predicting the summary embedding $z_{\text{tgt}}$ from $z_{\text{ctx}}$, the model discards uninformative channel-level jitter while preserving structural trajectory departures.
+Unlike reconstructive detectors that minimize pointwise observation error $\|\mathbf{X} - \hat{\mathbf{X}}\|_F^2$ and inherit leptokurtic sensor noise (Sections~\ref{sec:intro} and~\ref{sec:related}), we shift prediction into a compact 32-dimensional latent space ($D=32$, Fig.~\ref{fig:context_target_schematic}(b)) using a Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path}. An online context encoder $E_\theta$ compresses $\mathbf{x}_{\text{ctx}}$ into a context vector $z_{\text{ctx}} \in \mathbb{R}^D$, while a separate target encoder $E_\phi$ compresses $\mathbf{x}_{\text{tgt}}$ into a target vector $z_{\text{tgt}} \in \mathbb{R}^D$. Rather than training $E_\phi$ by direct gradient descent (which would allow both encoders to map all inputs to a constant vector), the target weights $\phi$ are updated as an exponential moving average (EMA) of the online weights $\theta$, $\phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k$ with a cosine momentum schedule $m_k \in [0.996, 0.9995]$ \cite{grill2020bootstrap, assran2023self}. By predicting the summary embedding $z_{\text{tgt}}$ from $z_{\text{ctx}}$, the model discards uninformative channel-level jitter while preserving structural trajectory departures.
 
 \subsection{Latent Predictor Architectures and Dynamical Inductive Priors}
 \label{subsec:triad_formulations}
@@ -353,37 +351,38 @@ To guard against point-adjustment inflation, channel-averaging bias, and thresho
 \centering
 \caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
 \vspace{1pt}
-\begin{tabular}{@{}p{0.54\textwidth}@{\hspace{0.02\textwidth}}p{0.44\textwidth}@{}}
+\begin{tabular}{@{}p{0.57\textwidth}@{\hspace{0.03\textwidth}}p{0.40\textwidth}@{}}
 \toprule
 \multicolumn{1}{c}{\textbf{(a) Regularizer Controls on Fixed Architectures \& TOST Equivalence}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
-\setlength{\tabcolsep}{1.6pt}
-\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cccccc@{}}
+\setlength{\tabcolsep}{1.4pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l ccccc c@{}}
 \toprule
-\textbf{Model / Control} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{FPR} & \textbf{ER} & \textbf{Paired $\Delta$F1 ($90\%$ CI)} & \textbf{$p_{\text{TOST}}$} \\
+\textbf{Model / Control} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%\text{ CI}]$} & \textbf{$p_{\text{TOST}}$} \\
 \midrule
-TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & Baseline (cross-arch) & -- \\
+TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & {Baseline} & {--} \\
 \addlinespace[1.5pt]
-Operator-Entropy JEPA & $0.233 \pm 0.028$ & 0.351 & 0.101 & 0.550 & $-0.004$ $[-0.011, +0.003]$ & $0.0007$ ($\pm .03$) \\
-\quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & (also $\pm .015$: $p{=}0.0024$) & $0.0088$ ($\pm .01$) \\
+Operator-Entropy JEPA & $0.233 \pm 0.028$ & 0.351 & 0.101 & 0.550 & $-0.004$ $[-.011, +.003]$ & $0.0007^*$ \\
+\quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & {--} & $0.0088^\dagger$ \\
 \addlinespace[1.5pt]
-Reynolds-Stress JEPA & $0.190 \pm 0.022$ & 0.313 & 0.074 & 0.457 & $+0.013$ $[-0.001, +0.030]$ & $0.0019$ ($\pm .05$) \\
-\quad $\alpha_{\text{stress}}=0$ control & $0.182 \pm 0.036$ & 0.299 & 0.067 & 0.472 & (also $\pm .035$: $p{=}0.0031$) & -- \\
+Reynolds-Stress JEPA & $0.190 \pm 0.022$ & 0.313 & 0.074 & 0.457 & $+0.013$ $[-.001, +.030]$ & $0.0019^*$ \\
+\quad $\alpha_{\text{stress}}=0$ control & $0.182 \pm 0.036$ & 0.299 & 0.067 & 0.472 & {--} & $0.0031^\ddagger$ \\
 \addlinespace[1.5pt]
-Potential-Flow JEPA & $0.138 \pm 0.044$ & 0.235 & 0.087 & 0.449 & $-0.054$ $[-0.131, +0.012]$ & $0.17$ (fails) \\
-\quad no-regime control ($K_r=1$) & $0.189 \pm 0.024$ & 0.279 & 0.084 & 0.431 & -- & -- \\
+Potential-Flow JEPA & $0.138 \pm 0.044$ & 0.235 & 0.087 & 0.449 & $-0.054$ $[-.131, +.012]$ & 0.170 \\
+\quad no-regime control ($K_r{=}1$) & $0.189 \pm 0.024$ & 0.279 & 0.084 & 0.431 & {--} & {--} \\
 \midrule
-TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & -- & -- \\
-TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & -- & -- \\
+TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & {--} & {--} \\
+TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \bottomrule
+\multicolumn{7}{@{}l}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.002$); $^\dagger$equiv.\ to $\pm 0.010$ ($p{=}0.0088$, also $\pm .015$); $^\ddagger$equiv.\ to $\pm 0.035$.} \\
 \end{tabular*}%
 \endgroup
 &
 \begingroup
 \scriptsize
-\setlength{\tabcolsep}{2.5pt}
+\setlength{\tabcolsep}{1.8pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
 \toprule
 \textbf{Stream (F1 / PR-AUC)} & \textbf{Standard Conv} & \textbf{Dyadic Shells} & \textbf{$\Delta$F1 / $\Delta$PR} \\
@@ -536,24 +535,24 @@ Table~\ref{tab:core_benchmark} reports all 33 continuous telemetry streams under
 \noindent\textbf{Domain and Operational Applicability Boundaries:} Synthesizing performance across fault classes and sampling rates defines four operational regimes:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
     \item \emph{Favorable operating regime:} Multi-channel spacecraft and wearable kinematic arrays ($K \ge 9$, SMAP, MSL, Daphnet) with persistent localized transients, where suppressing nuisance false alarms under automated calibration is the primary operational requirement.
-    \item \emph{Latency-constrained regime:} Low-rate telemetry ($0.1\,\text{Hz}$ spacecraft or hourly Metro traffic) where a $63$-step score-emission lag at $S=64$ ($10.5\,\text{min}$ to $63\,\text{h}$) is prohibitive for immediate tripwires and requires short horizons $S \in \{1, 4\}$ (Section~\ref{subsec:horizon_latency}).
-    \item \emph{Quiet single-channel faults:} Flatlines, stuck sensors, and dropouts ($0.02\text{--}0.07$ point recall, Table~\ref{tab:ablations}(d)), which LayerNorm embeddings absorb as nominal background and which require auxiliary variance monitors at higher alarm cost ($14\%\text{--}15\%$ FPR).
+    \item \emph{Latency-constrained telemetry:} Systems where a 63-step emission lag is prohibitive for immediate tripwire response, requiring short horizons $S \in \{1, 4\}$ (Section~\ref{subsec:horizon_latency}).
+    \item \emph{Quiet single-channel faults:} Inactive sensor modes (flatlines, dropouts) that LayerNorm embeddings absorb as nominal background, requiring auxiliary variance monitors when single-channel coverage is mandatory (Section~\ref{subsec:gating_ablation}).
     \item \emph{Continuous non-stationary process ramps:} Industrial heating loops and traffic drifts (GHL, Metro; $0.000\text{--}0.022$ F1), which defeat both static and rolling thresholds.
 \end{enumerate}
 
 \subsection{Evaluating Physical Inductive Priors: Conditioning vs.\ Detection}
 \label{subsec:eval_physics_priors}
-What does the Operator-Entropy formulation contribute beyond unconstrained \texttt{TS-JEPA}? Isolating the spectral regularizer on the fixed Koopman backbone ($\lambda_{\text{ent}}=0$ control, Table~\ref{tab:ablations}(a)) confirms strict TOST equivalence down to $\Delta = \pm 0.015$ and $\pm 0.010$ Point-F1 (Section~\ref{subsec:controlled_ablations}). However, the OpEntropy transition architecture (combining the linear Koopman operator $\mathbf{K}$, detached Lyapunov covariance alignment, and pre-LayerNorm relative radial energy scoring) shortens mean buffered detection delay from $110.3$ steps in TS-JEPA to $79.5$ steps (and from $124.0$ to $112.5$ steps causally in Table~\ref{tab:core_benchmark}(b), or $127.0 \to 58.2$ steps on the eight-stream decoupling panel). Cross-architecture Point-F1 differences against TS-JEPA satisfy $\text{TOST}(\pm 0.05)$ across all 33 streams for both OpEntropy ($+0.016$, $p_{\text{TOST}}=0.0019$) and Reynolds-Stress ($-0.008$, $p_{\text{TOST}}=0.0017$), whereas Potential-Flow degrades Point-F1 ($-0.081$, $p=0.033$ unadjusted) because its curl-free gradient parameterization penalizes periodic nominal orbits. The spectral-entropy and Reynolds priors therefore act as well-posed conditioning constraints rather than detection drivers.
+What does the Operator-Entropy formulation contribute beyond unconstrained \texttt{TS-JEPA}? As established by the fixed-backbone equivalence tests in Section~\ref{subsec:controlled_ablations}, the spectral regularizers condition the operator without altering detection accuracy ($p_{\text{TOST}} < 0.01$ down to $\Delta = \pm 0.010$). However, the OpEntropy transition architecture (combining linear operator $\mathbf{K}$, detached Lyapunov alignment, and radial energy scoring) shortens mean buffered detection delay from $110.3$ to $79.5$ steps ($124.0 \to 112.5$ causally, Table~\ref{tab:core_benchmark}(b), and $127.0 \to 58.2$ on the decoupling panel). Cross-architecture Point-F1 differences against TS-JEPA satisfy $\text{TOST}(\pm 0.05)$ across all 33 streams for both OpEntropy ($+0.016$, $p_{\text{TOST}}=0.0019$) and Reynolds-Stress ($-0.008$, $p_{\text{TOST}}=0.0017$), whereas Potential-Flow degrades Point-F1 ($-0.081$, $p=0.033$ unadjusted) because its curl-free gradient parameterization penalizes periodic nominal orbits. The spectral-entropy and Reynolds priors therefore act as well-posed conditioning constraints rather than detection drivers.
 
 \subsection{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}
 \label{subsec:causal_vs_buffered}
-Strictly causal attribution models real-time deployment, and buffered attribution models retrospective analysis with a 64-step lookahead. Comparing Panels~(a) and~(b) of Table~\ref{tab:core_benchmark} shows the trade-off. Removing the lookahead cuts nominal false alarms for TS-JEPA and OpEntropy JEPA from $9.3\%\text{--}10.1\%$ to $2.4\%\text{--}2.8\%$, against $22.2\%\text{--}24.3\%$ for TranAD and TimesNet. The cost is speed and sensitivity: causal Point-F1 ($0.153\text{--}0.161$ vs.\ $0.209$ for TimesNet) and event recall ($0.487\text{--}0.517$ vs.\ $0.588$) are lower, and mean onset-to-alarm delay rises to $112.5\text{--}124.0$ steps ($62.2$ for TimesNet). In streaming use, latent scoring therefore acts as a conservative filter that trades onset speed for an $8\text{--}20\times$ cut in false alarms. On five non-stationary incident streams, pairing latent scores with rolling SPOT cuts false alarms by up to $21\times$ under regime drift.
+Comparing Panels~(a) and~(b) of Table~\ref{tab:core_benchmark} isolates the operational cost of zero-lookahead streaming. Without retrospective smoothing, the lower false-alarm rate ($2.4\%\text{--}2.8\%$) trades onset speed and sensitivity: causal Point-F1 and event recall are more conservative ($0.153\text{--}0.161$ and $0.487\text{--}0.517$, vs.\ $0.209$ and $0.588$ for TimesNet), and mean detection delay increases to $112.5\text{--}124.0$ steps ($62.2$ for TimesNet). Latent scoring thus functions in streaming mode as a conservative filter that prioritizes false-alarm suppression over rapid onset alarm. On five non-stationary incident streams, pairing latent scores with dynamic rolling SPOT suppresses false alarms by up to $21\times$ under regime drift.
 
 \input{sections/tab_operating_and_horizon.tex}
 
 \subsection{Horizon Length, Score-Emission Latency, and False-Alarm Control}
 \label{subsec:horizon_latency}
-At target horizon $S=64$, window scores emit $S-1=63$ steps after window opening, which is distinct from empirical fault-detection delay $\Delta t = t_{\text{alarm}} - t^*$ measured after anomaly onset (Fig.~\ref{fig:protocol_and_permutation}, Row~3). To evaluate whether shorter horizons eliminate emission latency without sacrificing false-alarm control, Table~\ref{tab:operating_and_horizon}(a) retrains models across $S \in \{1, 4, 16, 32, 64\}$ on five streams (three seeds). At $S=1$ (zero emission lag), OpEntropy JEPA holds causal FPR to $0.5\%$ (vs.\ $2.5\%$ for TimesNet) while achieving $0.729$ event recall and a detection delay of $\Delta t = 76.3$ steps. As horizon $S$ increases from $1$ to $64$, causal FPR for TimesNet rises nearly nine-fold ($2.5\% \to 21.3\%$), whereas OpEntropy and TS-JEPA remain bounded within $0.3\%\text{--}2.0\%$. Time-critical monitoring applications can therefore operate at $S \in \{1, 4\}$ to eliminate score-emission latency while preserving relative false-alarm suppression.
+As established in Section~\ref{subsec:scoring_function}, target horizon $S=64$ imposes a 63-step emission lag before an alarm can trigger. To evaluate whether shorter horizons eliminate this latency without sacrificing false-alarm suppression, Table~\ref{tab:operating_and_horizon}(a) retrains models across $S \in \{1, 4, 16, 32, 64\}$ on five streams (three seeds). At $S=1$ (zero emission lag), OpEntropy JEPA holds causal FPR to $0.5\%$ (vs.\ $2.5\%$ for TimesNet) while achieving $0.729$ event recall and a detection delay of $\Delta t = 76.3$ steps. As horizon $S$ increases from $1$ to $64$, causal FPR for TimesNet rises nearly nine-fold ($2.5\% \to 21.3\%$), whereas OpEntropy and TS-JEPA remain bounded within $0.3\%\text{--}2.0\%$. Time-critical monitoring applications can therefore operate at $S \in \{1, 4\}$ to eliminate score-emission latency while preserving relative false-alarm suppression.
 
 \subsection{Deployable Calibration Quantiles vs.\ Matched Realized Test-FPR Operating Points}
 \label{subsec:matched_operating}
