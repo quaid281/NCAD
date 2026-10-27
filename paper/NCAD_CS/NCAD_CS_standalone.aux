@@ -43,12 +43,12 @@
 \citation{raissi2019physics}
 \citation{greydanus2019hamiltonian,cranmer2020lagrangian}
 \citation{wang2021understanding}
+\citation{koopman1931hamiltonian,mezic2005spectral}
+\citation{brunton2016koopman,lusch2018deep,liu2023koopa}
 \@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Key Operational and Statistical Terms Used Throughout the Manuscript.}}{2}{table.1}\protected@file@percent }
 \newlabel{tab:terms}{{I}{2}{Key Operational and Statistical Terms Used Throughout the Manuscript}{table.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
 \newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
-\citation{koopman1931hamiltonian,mezic2005spectral}
-\citation{brunton2016koopman,lusch2018deep,liu2023koopa}
 \citation{siffer2017anomaly}
 \citation{ferro2003inference}
 \citation{kim2022towards,wu2023flawed,schmidl2022anomaly}
@@ -141,12 +141,12 @@
 \newlabel{subsec:horizon_latency}{{\mbox  {VII-D}}{11}{Horizon Length, Score-Emission Latency, and False-Alarm Control}{subsection.7.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Deployable Calibration Quantiles vs.\ Matched Realized Test-FPR Operating Points}{11}{subsection.7.5}\protected@file@percent }
 \newlabel{subsec:matched_operating}{{\mbox  {VII-E}}{11}{Deployable Calibration Quantiles vs.\ Matched Realized Test-FPR Operating Points}{subsection.7.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)\nobreakspace  {}Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)\nobreakspace  {}Controlled-Drift Stress Test ($n{=}16$), and (c)\nobreakspace  {}Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$).}}{11}{table.4}\protected@file@percent }
+\newlabel{tab:calibrator_comparison}{{IV}{11}{Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)~Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)~Controlled-Drift Stress Test ($n{=}16$), and (c)~Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$)}{table.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-F}}Automated Threshold Calibration Realities on Non-Stationary Telemetry}{11}{subsection.7.6}\protected@file@percent }
 \newlabel{subsec:calibration_realities}{{\mbox  {VII-F}}{11}{Automated Threshold Calibration Realities on Non-Stationary Telemetry}{subsection.7.6}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Operational Latency and Calibration-Quantile Trade-offs: (a)\nobreakspace  {}Target-Horizon Sweep ($S \in \{1,4,16,32,64\}$, lag $S{-}1$, $n{=}5$ streams, 3 seeds) and (b)\nobreakspace  {}Detection at Deployable Nominal Calibration Quantiles $q^*$ ($n{=}19$ streams; ER = event recall, P = precision, FA = false alarms per $1{,}000$ steps).}}{12}{table.4}\protected@file@percent }
-\newlabel{tab:operating_and_horizon}{{IV}{12}{Operational Latency and Calibration-Quantile Trade-offs: (a)~Target-Horizon Sweep ($S \in \{1,4,16,32,64\}$, lag $S{-}1$, $n{=}5$ streams, 3 seeds) and (b)~Detection at Deployable Nominal Calibration Quantiles $q^*$ ($n{=}19$ streams; ER = event recall, P = precision, FA = false alarms per $1{,}000$ steps)}{table.4}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)\nobreakspace  {}Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)\nobreakspace  {}Controlled-Drift Stress Test ($n{=}16$), and (c)\nobreakspace  {}Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$).}}{12}{table.5}\protected@file@percent }
-\newlabel{tab:calibrator_comparison}{{V}{12}{Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)~Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)~Controlled-Drift Stress Test ($n{=}16$), and (c)~Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$)}{table.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Operational latency, score emission, and deployable operating trade-offs. \textbf  {(a)}\nobreakspace  {}Held-out false-positive rate across target horizon lengths $S \in \{1, 4, 16, 32, 64\}$ (score-emission lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, five streams): TimesNet false alarms explode nine-fold ($2.5\% \to 21.3\%$), while TS-JEPA and OpEntropy JEPA remain stable under $2\%$. At $S{=}1$ (zero emission lag), OpEntropy JEPA cuts detection delay to $\Delta t = 76.3$ steps. \textbf  {(b)}\nobreakspace  {}Deployable operating trade-offs at nominal calibration quantiles $q^* \in \{0.001, 0.050\}$ across 19 non-GHL streams (directed arrows indicate $q^*{=}0.001 \to 0.050$): latent predictors define a superior Pareto frontier, achieving higher causal event recall ($0.730\text  {--}0.752$) at substantially fewer nuisance false alarms ($177\text  {--}203$) than TimesNet and TranAD ($262\text  {--}270$).}}{12}{figure.5}\protected@file@percent }
+\newlabel{fig:operating_and_horizon}{{5}{12}{Operational latency, score emission, and deployable operating trade-offs. \textbf {(a)}~Held-out false-positive rate across target horizon lengths $S \in \{1, 4, 16, 32, 64\}$ (score-emission lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, five streams): TimesNet false alarms explode nine-fold ($2.5\% \to 21.3\%$), while TS-JEPA and OpEntropy JEPA remain stable under $2\%$. At $S{=}1$ (zero emission lag), OpEntropy JEPA cuts detection delay to $\Delta t = 76.3$ steps. \textbf {(b)}~Deployable operating trade-offs at nominal calibration quantiles $q^* \in \{0.001, 0.050\}$ across 19 non-GHL streams (directed arrows indicate $q^*{=}0.001 \to 0.050$): latent predictors define a superior Pareto frontier, achieving higher causal event recall ($0.730\text {--}0.752$) at substantially fewer nuisance false alarms ($177\text {--}203$) than TimesNet and TranAD ($262\text {--}270$)}{figure.5}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{12}{section.8}\protected@file@percent }
 \newlabel{sec:conclusion}{{VIII}{12}{Conclusion and Future Work}{section.8}{}}
 \bibstyle{IEEEtran}
