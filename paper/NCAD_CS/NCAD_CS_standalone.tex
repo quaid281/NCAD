@@ -14,6 +14,15 @@
 \usepackage{cite}           % Handles citations like [1]-[3]
 \usepackage{soul}           % For \hl{} highlighting
 \usepackage{siunitx}        % For \sisetup and S column type
+\usepackage{etoolbox}       % For \robustify with siunitx
+\robustify\bfseries
+\robustify\underline
+\sisetup{
+    detect-all,
+    mode = text,
+    group-separator = {,},
+    group-minimum-digits = 4
+}
 \usepackage{multirow}       % Multi-row cells in tables
 \usepackage{booktabs}       % Nicer tables
 \usepackage{textcomp}       % Additional text symbols
@@ -38,8 +47,11 @@
 \setlength{\floatsep}{3pt plus 1pt minus 1pt}
 \setlength{\intextsep}{3pt plus 1pt minus 1pt}
 \setlength{\abovecaptionskip}{2pt}
-\setlength{\belowcaptionskip}{0pt}
-\renewcommand{\arraystretch}{0.86}
+\setlength{\belowcaptionskip}{1pt}
+\setlength{\aboverulesep}{0.28ex}
+\setlength{\belowrulesep}{0.34ex}
+\setlength{\defaultaddspace}{1.5pt}
+\renewcommand{\arraystretch}{0.88}
 \setlength{\tabcolsep}{3.5pt}
 \AtBeginDocument{%
   \setlength{\abovedisplayskip}{3pt plus 1pt minus 1pt}%
@@ -68,7 +80,7 @@
 
 % --- Input from 03_abstract.tex ---
 \begin{abstract}
-Deep reconstructive detectors for multivariate time-series anomaly detection minimize observation-space error, fitting stochastic sensor noise that produces heavy-tailed residuals and severe false-alarm flooding under automated threshold calibration. We investigate how Joint-Embedding Predictive Architectures (JEPAs) condition predictive residuals in a low-dimensional latent space under distribution shift, alongside an Operator-Entropy variant (OpEntropy JEPA) combining a linear Koopman transition operator, spectral entropy and shifted logarithmic Bregman barrier regularizers, coordinate saliency gating, and a multiscale dyadic frequency front-end. Across 33 continuous telemetry streams from seven physical datasets under chronological held-out Streaming Peaks-Over-Threshold calibration, our primary finding is relative false-alarm suppression rather than universal detection superiority or exact attainment of the 0.1\% nominal design risk. Latent predictive scoring reduces held-out false-positive rates three- to four-fold under retrospective buffered attribution (7.4\% to 10.1\% versus 30.0\% to 30.7\% for TimesNet and TranAD) and eight- to twenty-fold under strictly causal streaming (1.1\% to 2.8\% versus 22.2\% to 24.3\%), while point F1 and precision-recall ranking remain comparable to reconstructive baselines. Controlled ablations isolate two distinct mechanisms: LayerNorm bottlenecks compress residual kurtosis, whereas learned latent projections halve calibration-to-holdout distribution drift relative to normalized observation forecasters. On a fixed Koopman backbone, equivalence testing confirms that spectral entropy and barrier terms preserve full operator rank without altering point F1 within a 0.01 to 0.03 margin, while the OpEntropy transition architecture shortens detection delay relative to unconstrained TS-JEPA. Static thresholding still overshoots its 0.1\% design target by 15- to 64-fold out of sample, driven primarily by inter-block distribution shift and serial dependence.
+Deep reconstructive detectors for multivariate time-series anomaly detection minimize observation-space error, fitting stochastic sensor noise that produces heavy-tailed residuals and severe false-alarm flooding under automated threshold calibration. We investigate how Joint-Embedding Predictive Architectures (JEPAs) condition predictive residuals in a low-dimensional latent space under distribution shift, alongside an Operator-Entropy variant (OpEntropy JEPA) combining a linear Koopman transition operator, spectral entropy and shifted logarithmic Bregman barrier regularizers, coordinate saliency gating, and a multiscale dyadic frequency front-end. Across 33 continuous telemetry streams from seven physical datasets under chronological held-out Streaming Peaks-Over-Threshold calibration, our primary finding is relative false-alarm suppression rather than universal detection superiority or exact attainment of the 0.1\% nominal design risk. Latent predictive scoring reduces held-out false-positive rates three- to four-fold under retrospective buffered attribution (7.4\% to 10.1\% versus 30.0\% to 30.7\% for TimesNet and TranAD) and eight- to twenty-fold under strictly causal streaming (1.1\% to 2.8\% versus 22.2\% to 24.3\%), while point F1 and precision-recall ranking remain comparable to reconstructive baselines. Controlled ablations isolate two distinct mechanisms: layer-normalization bottlenecks compress residual kurtosis, whereas learned latent projections halve calibration-to-holdout distribution drift relative to normalized observation forecasters. On a fixed Koopman backbone, equivalence testing confirms that spectral entropy and barrier terms preserve full operator rank without altering point F1 within a 0.01 to 0.03 margin, while the OpEntropy transition architecture shortens detection delay relative to an unconstrained predictor. Static thresholding still overshoots its 0.1\% design target by 15- to 64-fold out of sample, driven primarily by inter-block distribution shift and serial dependence.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -83,23 +95,49 @@ Autonomous anomaly detection in multi-sensor telemetry monitors operational heal
 
 \noindent\textbf{False-Alarm Flooding Under Automated Threshold Calibration:} Operational monitoring requires automated decision rules that convert continuous anomaly scores into binary alarms using nominal calibration data alone. Prevailing deep detectors (TimesNet, TranAD, Anomaly Transformer) minimize point-level reconstruction error in raw observation space \cite{xu2022anomaly, wu2023timesnet, tuli2022tranad}. Because raw telemetry contains ambient sensor jitter and channel-scale disparities, observation-space residuals exhibit heavy-tailed excess kurtosis ($\gamma_2 > 8$) and strong serial clustering. When paired with automated extreme-value thresholding such as Streaming Peaks-Over-Threshold (SPOT) \cite{siffer2017anomaly} at nominal design risk $q = 10^{-3}$ ($0.1\%$), these heavy-tailed residuals suffer severe calibration breakdown on unseen nominal data, triggering false alarms across $22\%\text{--}31\%$ of nominal timesteps.
 
-\noindent\textbf{Latent Residual Conditioning and Scope of Claims:} To suppress false-alarm flooding without synthetic anomaly injection \cite{carmona2021neural}, we study how Joint-Embedding Predictive Architectures (JEPAs) condition predictive residuals in a low-dimensional latent space \cite{lecun2022path} under distribution shift, and formulate an \textit{Operator-Entropy JEPA} (OpEntropy JEPA) transition architecture regularized by Koopman spectral entropy and a shifted Bregman energy barrier. Rather than claiming that physics-inspired regularizers drive anomaly detection accuracy, we evaluate them strictly as algebraic conditioning priors on abstract latent coordinates. Our evaluation separates three operational questions: (i)~relative false-alarm suppression under automated calibration versus exact attainment of the nominal $0.1\%$ risk target, (ii)~discriminative detection across operating points and fault classes, and (iii)~structural score-emission latency versus empirical fault-detection delay.
+\noindent\textbf{Latent Residual Conditioning and Scope of Claims:} A detector that predicts the \emph{summary} of a future window, rather than every raw sample, ignores sensor jitter that no model can forecast. We therefore study Joint-Embedding Predictive Architectures (JEPAs) \cite{lecun2022path}, which forecast a compact 32-dimensional latent summary of the next 64 steps from the preceding 256, without synthetic anomaly injection \cite{carmona2021neural}. We also formulate an \textit{Operator-Entropy JEPA} (OpEntropy JEPA) whose forecasting operator is regularized by Koopman spectral entropy and a shifted Bregman energy barrier. We treat these regularizers as conditioning priors on abstract latent coordinates, and we do not claim that they improve detection accuracy. The evaluation asks three separate questions: (i)~how much do latent residuals reduce false alarms under automated calibration, and does calibration reach its nominal $0.1\%$ risk target; (ii)~does detection quality hold across operating points and fault classes; and (iii)~how long does an operator wait between a fault and an alarm.
 
 \subsection{Contributions}
-This study makes four focused contributions:
+Each contribution below states one finding in words. The supporting numbers sit in the cited tables and figures.
 
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \textbf{Primary Mechanism Isolation (Compression vs.\ Drift):} Across 12 controlled backbone arms on all 19 non-GHL streams (Section~\ref{subsec:controlled_backbone}, Fig.~\ref{fig:mechanism_operating_calibration}(a), Table~\ref{tab:ablations}(e)), adding a $D{=}32$ LayerNorm bottleneck to an observation forecaster compresses calibration kurtosis ($\gamma_2: 6.10 \to 0.91$) and halves causal false-positive rates ($24.7\% \to 11.7\%$), while learned latent projection in TS-JEPA and OpEntropy JEPA halves calibration-to-holdout Kolmogorov--Smirnov drift ($D_{\text{KS}}: 0.376 \to 0.209\text{--}0.214$) and lowers causal false alarms to $0.9\%\text{--}2.8\%$.
-    \item \textbf{Relative False-Alarm Suppression vs.\ Detection Limits:} Across 33 streams from seven datasets (Table~\ref{tab:core_benchmark}), latent scoring reduces relative held-out false-alarm rates three- to four-fold under buffered attribution ($7.4\%\text{--}10.1\%$ vs.\ $30.0\%\text{--}30.7\%$) and $8\times\text{--}20\times$ under strictly causal streaming ($1.1\%\text{--}2.8\%$ vs.\ $22.2\%\text{--}24.3\%$). Separating deployable calibration quantiles ($q^*$) from post-hoc matched realized test-FPR curves ($f^*$, Fig.~\ref{fig:mechanism_operating_calibration}(b)) shows higher low-FPR causal event recall ($0.395\text{--}0.431$ vs.\ $0.217$ at $f^*{=}0.01$), whereas Point-F1, PR-AUC, and buffered recall match reconstructors and quiet flatlines remain weakly detected ($0.02\text{--}0.07$ recall).
-    \item \textbf{Operator-Entropy Conditioning and Equivalence Bounds:} Proposition~\ref{prop:anti_collapse} establishes non-triviality conditions for the Koopman transition operator under finite-$\epsilon$ and singular energy barriers. While the OpEntropy transition architecture cuts buffered detection delay from $110.3$ to $79.5$ steps ($127.0 \to 58.2$ causal), fixed-backbone Two One-Sided Tests ($\lambda_{\text{ent}}{=}0$ control, Table~\ref{tab:ablations}(a)) confirm Point-F1 equivalence within $\Delta = \pm 0.03$ and down to $\pm 0.010$, isolating the spectral regularizer as a conditioning constraint rather than a detection driver.
-    \item \textbf{Operational Calibration Gap and Refitted Permutation Audit:} Static SPOT misses its nominal $0.1\%$ target out of sample ($1.51\%\text{--}1.95\%$ stream-macro causal and $5.54\%\text{--}6.38\%$ buffered FPR across 33 streams for JEPAs, or $15\text{--}20\times$ and $55\text{--}64\times$ overshoot vs.\ $142\text{--}222\times$ for reconstructors, Table~\ref{tab:calibrator_comparison}). A three-stage refitted permutation decomposition (Table~\ref{tab:calibrator_comparison}(c)) estimates that inter-block shift accounts for $56.6\%\text{--}64.1\%$ of excess causal overshoot for JEPAs ($77.5\%\text{--}92.3\%$ for reconstructors) and serial dependence for $29.1\%\text{--}35.3\%$.
+    \item \textbf{Why latent scoring lowers false alarms:} Across 12 controlled backbone arms, a layer-normalization (LayerNorm) bottleneck bounds heavy residual tails, and a learned latent projection also keeps held-out residuals close to calibration residuals (Section~\ref{subsec:controlled_backbone}, Fig.~\ref{fig:mechanism_operating_calibration}(a), Table~\ref{tab:ablations}(e)).
+    \item \textbf{Fewer false alarms, comparable detection:} On 33 streams from seven datasets, latent scoring cuts held-out false alarms several-fold relative to reconstruction baselines under both retrospective (buffered) and strictly causal evaluation, and it recovers more faults at a fixed low false-alarm budget. Point-wise F1 (Point-F1) and precision-recall area under the curve (PR-AUC) stay comparable to the baselines, and quiet single-channel faults remain weakly detected (Table~\ref{tab:core_benchmark}, Fig.~\ref{fig:mechanism_operating_calibration}(b)).
+    \item \textbf{The operator regularizer conditions but does not drive detection:} Proposition~\ref{prop:anti_collapse} shows the Koopman operator cannot collapse to zero. Equivalence tests show that removing the entropy term leaves Point-F1 unchanged, while the full OpEntropy architecture shortens detection delay (Table~\ref{tab:ablations}(a)).
+    \item \textbf{A measured calibration gap:} Standard extreme-value thresholding still exceeds its $0.1\%$ design risk out of sample. A refitted permutation test attributes most of the excess to distribution shift between calibration and test blocks, and a smaller share to serial dependence (Table~\ref{tab:calibrator_comparison}).
 \end{enumerate}
+
+\noindent\textbf{Roadmap.} Section~\ref{sec:related} reviews related work and Section~\ref{sec:dataset} describes the benchmark streams. Section~\ref{sec:proposed_method} defines the architecture and scoring rule, and Section~\ref{sec:exp} defines the evaluation protocol and statistics. Sections~\ref{sec:ablations} and~\ref{sec:results} report ablations and benchmark results, and Section~\ref{sec:conclusion} concludes.
+\begin{table}[t]
+\centering
+\caption{Key Operational and Statistical Terms Used Throughout the Manuscript.\label{tab:terms}}
+\vspace{-2pt}
+\scriptsize
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}p{0.26\columnwidth}p{0.71\columnwidth}@{}}
+\toprule
+\textbf{Term} & \textbf{Meaning} \\
+\midrule
+Latent residual & Gap between the predicted and observed 32-dimensional summary of the next window. \\
+SPOT & Streaming extreme-value rule that sets an alarm threshold from nominal scores alone. \\
+False-positive rate (FPR) & Fraction of nominal timesteps that raise an alarm. \\
+Event recall & Fraction of true anomaly segments with at least one alarm. \\
+\addlinespace[1.8pt]
+Buffered & Retrospective scoring that spreads each window score over its 64 steps. \\
+Causal & Scoring that uses only past data and assigns each score to its final step. \\
+\addlinespace[1.8pt]
+Calibration drift & Shift between residuals on calibration data and on later nominal data, measured by the Kolmogorov--Smirnov distance. \\
+Excess kurtosis & Tail heaviness of the residual distribution; large values mean rare, extreme residuals. \\
+Equivalence test & Test that shows two models differ by less than a stated margin (Section~\ref{sec:exp}). \\
+\bottomrule
+\end{tabular*}
+\vspace{-6pt}
+\end{table}
 
 % --- Input from 05_related.tex ---
 \section{Related Work}
 \label{sec:related}
 
-\noindent\textbf{Observation-Space Forecasting and Reconstructive Detectors:} Deep time-series anomaly detectors predominantly operate in raw observation space by training a network to forecast future sensor readings or reconstruct input windows, flagging timesteps where the point-level observation error $\|\mathbf{X} - \hat{\mathbf{X}}\|_F^2$ exceeds a threshold. Autoregressive LSTMs with non-parametric dynamic thresholding \cite{Hundman2018b} model sequential dependencies directly on raw spacecraft telemetry channels. More recent Transformer and spectral reconstructors introduce specialized attention and frequency modules: TranAD \cite{tuli2022tranad} combines adversarial two-phase training with self-conditioning sub-series attention; Anomaly Transformer \cite{xu2022anomaly} contrasts prior Gaussian kernel associations against series-level self-attention to amplify association discrepancies; and TimesNet \cite{wu2023timesnet} folds 1D sequences into 2D tensors along dominant Fast Fourier Transform (FFT) periods so 2D convolutional kernels can capture intra- and inter-period variations.
+\noindent\textbf{Observation-Space Forecasting and Reconstructive Detectors:} Deep time-series anomaly detectors predominantly operate in raw observation space by training a network to forecast future sensor readings or reconstruct input windows, flagging timesteps where the point-level observation error $\|\mathbf{X} - \hat{\mathbf{X}}\|_F^2$ exceeds a threshold. Autoregressive long short-term memory (LSTM) networks with non-parametric dynamic thresholding \cite{Hundman2018b} model sequential dependencies directly on raw spacecraft telemetry channels. More recent Transformer and spectral reconstructors introduce specialized attention and frequency modules: TranAD \cite{tuli2022tranad} combines adversarial two-phase training with self-conditioning sub-series attention; Anomaly Transformer \cite{xu2022anomaly} contrasts prior Gaussian kernel associations against series-level self-attention to amplify association discrepancies; and TimesNet \cite{wu2023timesnet} folds 1D sequences into 2D tensors along dominant Fast Fourier Transform (FFT) periods so 2D convolutional kernels can capture intra- and inter-period variations.
 
 Despite strong ranking performance on clean benchmarks, observation-space reconstructors share a structural vulnerability under automated thresholding on noisy multi-sensor arrays. Because point-level losses penalize reconstruction error across every channel equally, the network is forced to model high-frequency stochastic noise, quantization jitter, and background environmental fluctuations. In high-dimensional streams ($K \ge 25$), aggregating raw reconstruction errors across channels accumulates heavy-tailed residual spikes, referred to statistically as \emph{leptokurtic} tails (excess kurtosis $\gamma_2 > 0$), which destabilize extreme-value threshold fitting and inflate false alarms whenever baseline operating conditions shift \cite{schmidl2022anomaly}.
 
@@ -107,23 +145,23 @@ Despite strong ranking performance on clean benchmarks, observation-space recons
 
 Joint-Embedding Predictive Architectures (JEPAs) \cite{lecun2022path, assran2023self, bardes2024vjepa} eliminate both raw observation decoding and synthetic negative pairs. Rather than reconstructing inputs, a JEPA encodes a historical context window into a latent vector $z_{\text{ctx}}$ and predicts the target representation $z_{\text{tgt}}$ of a future window produced by a separate target encoder. Because trivial constant embeddings would zero out latent prediction error, non-contrastive architectures prevent representation collapse either through architectural asymmetry (updating the target encoder via an exponential moving average of online weights \cite{grill2020bootstrap}) or through explicit variance-covariance regularization such as VICReg \cite{bardes2021vicreg}, Barlow Twins \cite{zbontar2021barlow}, and batch whitening \cite{ermolov2021whitening}. While prior time-series representation studies evaluate embeddings via post-hoc threshold sweeps, how latent predictive residuals behave under strictly unsupervised extreme-value threshold calibration remains unexplored.
 
-\noindent\textbf{Koopman Operator Theory and Physics-Inspired Priors:} Multi-sensor telemetry reflects the underlying trajectories of physical dynamical systems \cite{brunton2016discovering}. Neural ODEs \cite{chen2018neural} parameterize continuous velocity fields in observation space, whereas Physics-Informed Neural Networks (PINNs) \cite{raissi2019physics} and Hamiltonian or Lagrangian networks \cite{greydanus2019hamiltonian, cranmer2020lagrangian} enforce partial differential conservation laws directly on physical state coordinates. However, rigid differential constraints require known governing equations and suffer from stiff competing gradient pathologies on uncalibrated sensor arrays \cite{wang2021understanding}.
+\noindent\textbf{Koopman Operator Theory and Physics-Inspired Priors:} Multi-sensor telemetry reflects the underlying trajectories of physical dynamical systems \cite{brunton2016discovering}. Neural ordinary differential equations (ODEs) \cite{chen2018neural} parameterize continuous velocity fields in observation space, whereas Physics-Informed Neural Networks (PINNs) \cite{raissi2019physics} and Hamiltonian or Lagrangian networks \cite{greydanus2019hamiltonian, cranmer2020lagrangian} enforce partial differential conservation laws directly on physical state coordinates. However, rigid differential constraints require known governing equations and suffer from stiff competing gradient pathologies on uncalibrated sensor arrays \cite{wang2021understanding}.
 
 Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral} provides a softer dynamical prior: nonlinear dynamics can be lifted into an observable embedding space where time evolution is governed by a linear operator. Data-driven Koopman networks \cite{brunton2016koopman, lusch2018deep, liu2023koopa} learn neural embeddings jointly with a finite-dimensional transition matrix $\mathbf{K}$. Here we regularize the singular value spectrum of $\mathbf{K}$ via Von Neumann spectral entropy and a smooth Bregman energy barrier, maintaining a strict distinction between \emph{physics-inspired} algebraic priors (which shape abstract learned latent coordinates) and \emph{physics-informed} conservation laws, and testing whether operator conditioning yields downstream detection gains or statistical equivalence relative to an unconstrained predictor.
 
 \noindent\textbf{Extreme-Value Threshold Calibration and Evaluation Rigor:} Unsupervised streaming deployment requires converting continuous scores into binary alarms using nominal calibration data alone. Streaming Peaks-Over-Threshold (SPOT) \cite{siffer2017anomaly} fits a Generalized Pareto Distribution (GPD) to score exceedances above a high calibration quantile $u$ to extrapolate a threshold at design risk $q$. However, classical extreme-value theory assumes independent and identically distributed (i.i.d.) samples. Continuous telemetry violates this assumption through short-range serial correlation, which causes threshold exceedances to occur in multi-step bursts quantified by the Ferro--Segers extremal index \cite{ferro2003inference}, and through non-stationary regime drift between calibration and test blocks. Concurrently, recent benchmark audits \cite{kim2022towards, wu2023flawed, schmidl2022anomaly} have shown that ``point-adjusted'' F1 (which credits an entire anomaly segment if a single timestep triggers an alarm) severely inflates scores; we therefore evaluate all models using unadjusted Point-F1, PR-AUC, causal vs.\ buffered attribution, and matched realized false-alarm operating curves.
 
 % --- Input from 06_dataset.tex ---
-\section{Multi-Sensor IoT and Remote Sensing Benchmark Suite}
+\section{Multi-Sensor Internet-of-Things and Remote Sensing Benchmark Suite}
 \label{sec:dataset}
 
-Our benchmark suite comprises 11 datasets spanning 45 continuous telemetry streams sourced from NASA spacecraft archives \cite{Hundman2018b}, the UCI Machine Learning Repository \cite{bachlin2010wearable, asuncion2007uci}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}: 33 streams are evaluated under the primary multi-seed held-out calibration protocol and 12 reserved for operational case studies. Streams span four physical domains: \emph{spacecraft telemetry} (SMAP and MSL entities, with two short-nominal MSL streams reserved; SWAN-SF solar magnetograms \cite{angryk2020multivariate}); \emph{wearable kinematics} (six Daphnet FoG streams \cite{bachlin2010wearable}: 64~Hz tri-axial accelerometry for Freezing-of-Gait events, so $S{=}64$ is a 1-s horizon); \emph{industrial processes} (14 GHL gasoil heating-loop streams, the Genesis pick-and-place testbed, and GECCO water-distribution chemistry/hydrology at 1-minute resolution); and \emph{smart infrastructure} (Room-Occupancy environmental sensing \cite{candanedo2016accurate}, six CICIDS edge network-flow streams, CalIt2 people-flow \cite{asuncion2007uci}, and Metro I-94 highway traffic).
+Our benchmark suite comprises 11 datasets spanning 45 continuous telemetry streams sourced from NASA spacecraft archives \cite{Hundman2018b}, the University of California, Irvine (UCI) Machine Learning Repository \cite{bachlin2010wearable, asuncion2007uci}, TimeEval \cite{schmidl2022anomaly}, and mTSBench \cite{zhou2026mtsbench}: 33 streams are evaluated under the primary multi-seed held-out calibration protocol and 12 reserved for operational case studies. Streams span four physical domains: \emph{spacecraft telemetry} (SMAP and MSL entities, with two short-nominal MSL streams reserved; SWAN-SF solar magnetograms \cite{angryk2020multivariate}); \emph{wearable kinematics} (six Daphnet Freezing-of-Gait (FoG) streams \cite{bachlin2010wearable}: 64~Hz tri-axial accelerometry for Freezing-of-Gait events, so $S{=}64$ is a 1-s horizon); \emph{industrial processes} (14 Gasoil Heating Loop (GHL) streams, the Genesis pick-and-place testbed, and GECCO water-distribution chemistry/hydrology at 1-minute resolution); and \emph{smart infrastructure} (Room-Occupancy environmental sensing \cite{candanedo2016accurate}, six CICIDS edge network-flow streams, CalIt2 people-flow \cite{asuncion2007uci}, and Metro I-94 highway traffic).
 
 Each stream provides nominal training sequences and labeled anomaly test sequences; channels are standardized by training statistics with $\bm{\sigma}$ floored at $10^{-2}$ against flatline phases. We evaluate the standardized subsets studied in the literature \cite{Hundman2018b, schmidl2022anomaly} (of 55 SMAP and 27 MSL archive entities) for strict matching and reproducible runtime.
 
 To eliminate circular in-sample threshold tuning, each nominal sequence is split chronologically into training ($65\%$), nominal calibration ($17.5\%$), and held-out nominal evaluation ($17.5\%$) blocks separated by an unobserved 64-step isolation gap (Section~\ref{subsec:exp_setup}). Stream inclusion in the primary multi-seed protocol required: (i)~$N_{\text{cal}} \ge 500$ calibration windows after splitting, and (ii)~tractable stride-1 multi-seed runtime. Exactly 33 streams across seven datasets satisfy both criteria (6 Daphnet, $K{=}9$; 14 GHL, $K{=}16$; 4 MSL, $K{=}55$; 6 SMAP, $K{=}25$; Genesis, $K{=}18$; Metro, $K{=}5$; SWAN, $K{=}38$). The remaining 12 streams (CalIt2, $K{=}2$; two Room-Occupancy, $K{=}5$; two short-nominal MSL; GECCO, $K{=}9$; six 72-channel CICIDS flows) appear in operational incident case studies and a secondary 11-dataset, 130-stream single-seed baseline cross-check (Table~\ref{tab:core_benchmark}(d)); the dyadic front-end ablation (Table~\ref{tab:ablations}(b)) includes SMD \texttt{machine-1-2} ($K{=}38$).
 
-Two external-validity caveats bound interpretation: (i)~SMAP and MSL contain documented mislabeled segments and point anomalies \cite{wu2023flawed}, so per-dataset scores represent upper bounds on operational detectability; and (ii)~because streams within SMAP, MSL, Daphnet, and GHL share hardware and environmental characteristics, streams within a dataset are not independent domains ($N{=}7$ dataset clusters). We therefore report unweighted Dataset-Macro means, between-stream and within-stream seed SDs, leave-one-dataset-out (LODO) sensitivity, and dataset-clustered permutation tests (Table~\ref{tab:core_benchmark}(c)), restricting conclusions strictly to the evaluated entities and sampling regimes.
+Two external-validity caveats bound interpretation: (i)~SMAP and MSL contain documented mislabeled segments and point anomalies \cite{wu2023flawed}, so per-dataset scores represent upper bounds on operational detectability; and (ii)~because streams within SMAP, MSL, Daphnet, and GHL share hardware and environmental characteristics, streams within a dataset are not independent domains ($N{=}7$ dataset clusters). We therefore report unweighted Dataset-Macro means, between-stream and within-stream seed standard deviations (SDs), leave-one-dataset-out (LODO) sensitivity, and dataset-clustered permutation tests (Table~\ref{tab:core_benchmark}(c)), restricting conclusions strictly to the evaluated entities and sampling regimes.
 
 % --- Input from 07_method.tex ---
 \section{Methodology: Operator-Entropy Joint-Embedding Predictive Architecture}
@@ -139,7 +177,7 @@ Two external-validity caveats bound interpretation: (i)~SMAP and MSL contain doc
 
 \subsection{Problem Formulation and Latent Space Prediction}
 \label{subsec:architecture}
-Consider a continuous multivariate telemetry stream $\mathbf{X} \in \mathbb{R}^{T \times K}$ recording $K$ sensor channels over $T$ timesteps. As illustrated in Fig.~\ref{fig:context_target_schematic}, a sliding window of total length $W = C + S = 320$ steps advances across the stream at stride $1$ and partitions the local series at split index $t$ into two contiguous blocks:
+Consider a continuous multivariate telemetry stream $\mathbf{X} \in \mathbb{R}^{T \times K}$ recording $K$ sensor channels over $T$ timesteps. As illustrated in Fig.~\ref{fig:context_target_schematic}(a), a sliding window of total length $W = C + S = 320$ steps advances across the stream at stride $1$ and partitions the local series at split index $t$ into two contiguous blocks:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
     \item \textbf{Historical context window ($\mathbf{x}_{\text{ctx}} = \mathbf{X}[t - C : t, :] \in \mathbb{R}^{C \times K}$):} The preceding $C = 256$ observations leading up to index $t$, which establish the current nominal operating regime, phase, and baseline amplitude of the system.
     \item \textbf{Suspect target horizon ($\mathbf{x}_{\text{tgt}} = \mathbf{X}[t : t + S, :] \in \mathbb{R}^{S \times K}$):} The subsequent $S = 64$ observations spanning from $t$ to the online decision timestamp $\tau = t + S - 1$, which are inspected to determine whether the system has departed from its expected trajectory.
@@ -148,29 +186,35 @@ Consider a continuous multivariate telemetry stream $\mathbf{X} \in \mathbb{R}^{
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.98\columnwidth]{figures/context_target_window_schematic.pdf}
-\vspace{-4pt}
-\caption{Sliding window partitioning of a multivariate telemetry stream $\mathbf{X} \in \mathbb{R}^{T \times K}$ into a historical context window $\mathbf{x}_{\text{ctx}}$ ($C{=}256$ steps) and a suspect target horizon $\mathbf{x}_{\text{tgt}}$ ($S{=}64$ steps, evaluated at decision timestamp $\tau = t + S - 1$). Rather than reconstructing noisy raw waveforms, the online encoder $E_\theta$ and predictor forecast the target representation $\hat{z}_{\text{tgt}}$ in a 32-dimensional latent space to compare against the EMA target embedding $z_{\text{tgt}} = E_\phi(\mathbf{x}_{\text{tgt}})$.\label{fig:context_target_schematic}}
-\vspace{-6pt}
+\vspace{-5pt}
+\caption{\textbf{(a)}~Sliding window partitioning of $\mathbf{X} \in \mathbb{R}^{T \times K}$ into context $\mathbf{x}_{\text{ctx}}$ ($C{=}256$) and suspect target $\mathbf{x}_{\text{tgt}}$ ($S{=}64$, decision step $\tau = t + S - 1$). \textbf{(b)}~Empirical 2D latent projection ($\mathbb{R}^{32} \to \mathbb{R}^2$, SMAP \texttt{E-1}) centered at $\hat{z}_{\text{tgt}} = \mathbf{K}z_{\text{ctx}}$: nominal calibration ($z_{\text{tgt}}^{\text{cal}}$) and held-out ($z_{\text{tgt}}^{\text{hold}}$) clouds remain inside $\tau_{\text{SPOT}}$, whereas fault state $z_{\text{tgt}}(t)$ crosses $\tau_{\text{SPOT}}$ along $\mathbf{e}(t) = z_{\text{tgt}} - \hat{z}_{\text{tgt}}$.\label{fig:context_target_schematic}}
+\vspace{-8pt}
 \end{figure}
 
 Reconstructive detectors (such as TimesNet, TranAD, and Anomaly Transformer) train an autoencoder to reproduce the raw waveform by minimizing pointwise observation error $\|\mathbf{X} - \mathcal{D}_\theta(\mathcal{E}_\theta(\mathbf{X}))\|_F^2$. Because raw telemetry contains high-frequency sensor noise across all $K$ channels, observation-space residuals exhibit heavy, outlier-prone tails that trigger frequent false alarms.
 
-We instead adopt a Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path} that shifts prediction from raw observation space into a compact 32-dimensional latent space ($D=32$, Fig.~\ref{fig:context_target_schematic}, bottom). An online context encoder $E_\theta$ compresses $\mathbf{x}_{\text{ctx}}$ into a context vector $z_{\text{ctx}} \in \mathbb{R}^D$, while a separate target encoder $E_\phi$ compresses $\mathbf{x}_{\text{tgt}}$ into a target vector $z_{\text{tgt}} \in \mathbb{R}^D$. Rather than training $E_\phi$ by direct gradient descent (which would allow both encoders to map all inputs to a constant vector), the target weights $\phi$ are updated as an exponential moving average (EMA) of the online weights $\theta$, $\phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k$ with a cosine momentum schedule $m_k \in [0.996, 0.9995]$ \cite{grill2020bootstrap, assran2023self}. By predicting the summary embedding $z_{\text{tgt}}$ from $z_{\text{ctx}}$, the model discards uninformative channel-level jitter while preserving structural trajectory departures.
+We instead adopt a Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path} that shifts prediction from raw observation space into a compact 32-dimensional latent space ($D=32$, Fig.~\ref{fig:context_target_schematic}(b)). An online context encoder $E_\theta$ compresses $\mathbf{x}_{\text{ctx}}$ into a context vector $z_{\text{ctx}} \in \mathbb{R}^D$, while a separate target encoder $E_\phi$ compresses $\mathbf{x}_{\text{tgt}}$ into a target vector $z_{\text{tgt}} \in \mathbb{R}^D$. Rather than training $E_\phi$ by direct gradient descent (which would allow both encoders to map all inputs to a constant vector), the target weights $\phi$ are updated as an exponential moving average (EMA) of the online weights $\theta$, $\phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k$ with a cosine momentum schedule $m_k \in [0.996, 0.9995]$ \cite{grill2020bootstrap, assran2023self}. By predicting the summary embedding $z_{\text{tgt}}$ from $z_{\text{ctx}}$, the model discards uninformative channel-level jitter while preserving structural trajectory departures.
 
 \subsection{Latent Predictor Architectures and Dynamical Inductive Priors}
 \label{subsec:triad_formulations}
 We formulate Operator-Entropy JEPA as our primary transition architecture and evaluate it alongside an unconstrained multi-layer perceptron predictor (\texttt{TS-JEPA}) and two comparative physics-inspired variants (Reynolds-Stress and Potential-Flow):
 
 \subsubsection{Operator-Entropy JEPA (Spectral Dynamics and Modal Dispersion)}
-Motivated by Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral}, which represents nonlinear dynamical evolution through linear operators acting on learned observable embeddings, we parameterize the latent transition via a learnable linear matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$ such that $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$. In unconstrained linear forecasting, gradient descent can allow $\mathbf{K}$ to either concentrate all energy onto a few dominant directions (dimensional rank collapse) or shrink its overall magnitude toward zero (norm collapse). We prevent both failure modes by regularizing the singular value spectrum of $\mathbf{K}$ while separating modal dispersion from total operator energy.
+\noindent\textbf{Idea.} Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral} represents nonlinear dynamics as a linear map on learned observables. We follow it and forecast in latent space with a single learnable matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$, so that $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$.
 
-Let $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ denote the singular values of $\mathbf{K}$, where each squared singular value $\lambda_i = \sigma_i^2$ represents the amplification energy along the $i$-th orthogonal mode and $\|\mathbf{K}\|_F^2 = \sum_{i=1}^D \lambda_i$ is the total Frobenius energy. Normalizing the modal energies into a probability distribution $p_i = (\lambda_i + \epsilon_{\log}) / \sum_{j=1}^D (\lambda_j + \epsilon_{\log})$ (with $\epsilon_{\log} = 10^{-12}$ for numerical stability) defines the Von Neumann spectral entropy $\mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D p_i \log p_i$. We define the \textit{Spectral Entropy Deficiency} as the Kullback--Leibler (KL) divergence between the modal distribution $\mathbf{p}$ and the ideal uniform equipartition $\mathbf{u} = [1/D, \dots, 1/D]^\top$:
+\noindent\textbf{Problem.} Trained on prediction error alone, $\mathbf{K}$ can fail in two ways. It can put all its energy into a few directions (rank collapse), or it can shrink toward zero (norm collapse). Either way it stops carrying information about the dynamics.
+
+\noindent\textbf{Fix.} We penalize each failure separately. The first penalty keeps energy spread evenly across directions. The second keeps total energy near its starting scale.
+
+\noindent\textbf{Penalty 1: spread energy evenly.}
+
+The singular values $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ of $\mathbf{K}$ measure how strongly it amplifies each orthogonal direction. Each squared value $\lambda_i = \sigma_i^2$ is the energy in direction $i$, and $\|\mathbf{K}\|_F^2 = \sum_{i=1}^D \lambda_i$ is the total energy. Normalizing the energies into a probability distribution $p_i = (\lambda_i + \epsilon_{\log}) / \sum_{j=1}^D (\lambda_j + \epsilon_{\log})$ (with $\epsilon_{\log} = 10^{-12}$ for numerical stability) defines the Von Neumann spectral entropy $\mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D p_i \log p_i$. We define the \textit{Spectral Entropy Deficiency} as the Kullback--Leibler (KL) divergence between the modal distribution $\mathbf{p}$ and the ideal uniform equipartition $\mathbf{u} = [1/D, \dots, 1/D]^\top$:
 \begin{equation}
     \Delta\mathcal{H}(\mathbf{K}) = \log D - \mathcal{H}_{\text{spectral}}(\mathbf{K}) = \mathcal{D}_{\text{KL}}(\mathbf{p} \,\|\, \mathbf{u}) \ge 0.
 \end{equation}
 When all $D$ singular modes carry equal energy ($\sigma_1 = \dots = \sigma_D$), $\Delta\mathcal{H}(\mathbf{K}) = 0$; conversely, if $\mathbf{K}$ collapses onto a single rank-1 direction, $\Delta\mathcal{H}(\mathbf{K})$ rises toward $\log D$. Minimizing $\Delta\mathcal{H}(\mathbf{K})$ thus encourages a well-conditioned, near-isometric transition matrix.
 
-To prevent the total energy of $\mathbf{K}$ from shrinking toward zero without resorting to hard gradient clipping, we apply a smooth logarithmic Bregman divergence barrier to the normalized energy ratio $r(\mathbf{K}) = \|\mathbf{K}\|_F^2 / D$:
+\noindent\textbf{Penalty 2: keep total energy near one.} A smooth logarithmic Bregman barrier on the energy ratio $r(\mathbf{K}) = \|\mathbf{K}\|_F^2 / D$ stops $\mathbf{K}$ from shrinking, with no hard gradient clipping:
 \begin{equation}
 \begin{aligned}
     \Phi_{\text{energy}}(\mathbf{K}) &= r(\mathbf{K}) - 1 - \log\bigl(r(\mathbf{K}) + \epsilon\bigr) \\
@@ -240,7 +284,7 @@ In high-dimensional streams ($K \ge 25$), faults affecting a single subsystem ca
 with fixed blend $\alpha = 0.5$ and temperature $\tau_g = 0.5$ across all latent models. Input channels are encoded with uniform weights in the deployed pipeline; an auxiliary context-variance input-channel gate is evaluated in Section~\ref{subsec:gating_ablation}.
 
 \subsubsection{Multiscale Frequency Front-End}
-Before the dilated TCN backbone, each input channel is split across $J=4$ smooth dyadic frequency shells on a $256$-point real Fast Fourier Transform (rFFT) grid normalized into an exact amplitude partition of unity ($\sum_{j=1}^J \Psi_j[\omega_m] \equiv 1$ to within $1.2\times 10^{-7}$). Each shell is processed by a causal 1D convolution with kernel sizes $\{15, 9, 5, 3\}$ from coarse to fine scales and recombined via learned softmax routing. Because smooth Fourier shells overlap at band edges, this module acts as a multiscale frequency front-end rather than a strictly orthogonal wavelet bank (Table~\ref{tab:ablations}(b)).
+Before the dilated temporal convolutional network (TCN) backbone, each input channel is split across $J=4$ smooth dyadic frequency shells on a $256$-point real Fast Fourier Transform (rFFT) grid normalized into an exact amplitude partition of unity ($\sum_{j=1}^J \Psi_j[\omega_m] \equiv 1$ to within $1.2\times 10^{-7}$). Each shell is processed by a causal 1D convolution with kernel sizes $\{15, 9, 5, 3\}$ from coarse to fine scales and recombined via learned softmax routing. Because smooth Fourier shells overlap at band edges, this module acts as a multiscale frequency front-end rather than a strictly orthogonal wavelet bank (Table~\ref{tab:ablations}(b)).
 
 \subsubsection{Extreme-Value Threshold Calibration (SPOT)}
 To convert continuous scores $\mathcal{S}(t)$ into binary alarms $\hat{y}_t = \mathbb{I}(\mathcal{S}(t) > \tau_{\text{SPOT}})$ using nominal calibration data alone, we apply Streaming Peaks-Over-Threshold (SPOT) \cite{siffer2017anomaly}. Rather than assuming the entire score distribution is Gaussian, SPOT isolates the upper tail above the 98th calibration percentile $u = p_{98}$ and fits the exceedances $Y = \mathcal{S}(t) - u > 0$ to a Generalized Pareto Distribution (GPD) with tail-heaviness shape parameter $\xi$ and scale parameter $\sigma$ via Grimshaw's maximum-likelihood algorithm \cite{grimshaw1993computing}. Inverting the fitted GPD tail at target false-alarm probability $q = 10^{-3}$ (one expected false alarm per $1{,}000$ nominal steps) yields the closed-form threshold:
@@ -255,7 +299,7 @@ where $N_{\text{cal}}$ is the number of nominal calibration windows and $N_u$ is
 
 \subsection{Experimental Setup and Hyperparameters}
 \label{subsec:exp_setup}
-All architectures are trained and evaluated under an identical streaming time-series pipeline using a past context window of $C=256$ steps and a suspect target horizon of $S=64$ steps (total window length $W = C + S = 320$), evaluated at stride $1$. Context and target representations ($D=32$) are extracted by the multiscale frequency front-end followed by a 6-block causal dilated TCN (48 filters, kernel size $5$, dilations $\{1,2,4,8,16,32\}$). Multi-statistic temporal pooling (terminal, mean, max, and channel statistics) projects features through a linear bottleneck before LayerNorm and dropout ($p=0.20$). Models are trained for $20$ epochs on nominal sequences using AdamW (initial learning rate $10^{-3}$ decayed to $10^{-5}$ via cosine annealing, weight decay $10^{-4}$, batch size $32$).
+All architectures use an identical streaming pipeline with context window $C=256$ and target horizon $S=64$ ($W = C + S = 320$), trained at stride $16$ and evaluated at stride $1$. Context and target representations ($D=32$) are extracted by the multiscale frequency front-end followed by a 6-block causal dilated TCN (48 filters, kernel size $5$, dilations $\{1,2,4,8,16,32\}$). Multi-statistic temporal pooling (terminal, mean, max, and channel statistics) projects features through a linear bottleneck before LayerNorm and dropout ($p=0.20$). Models are trained for $20$ epochs on nominal sequences using AdamW (learning rate $10^{-3} \to 10^{-5}$ via cosine annealing, weight decay $10^{-4}$, batch size $32$).
 
 \begin{figure}[t]
 \centering
@@ -273,7 +317,7 @@ Within $\mathbf{X}_{\text{val}}$ ($N_{\text{val}} = T_{\text{nom}} - N_{\text{tr
 \paragraph{Multi-Seed Replication, Non-Parametric Hypothesis Testing, and Equivalence Bounds}
 Principal models on the 19 non-GHL streams are evaluated across five random seeds ($\{42, 123, 456, 7, 2024\}$); the 14 GHL streams ($>10^6$ observations each) and ablation controls use three seeds. Because random seeds on the same stream are not independent observations, all metrics are averaged across seeds within each stream first, treating the telemetry stream ($n=33$ or $n=19$) as the independent statistical unit. To compare models without assuming Gaussian error distributions across diverse domains, we employ three statistical tools:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \textbf{Paired Wilcoxon signed-rank test and FDR adjustment:} The Wilcoxon signed-rank test is a non-parametric paired hypothesis test that evaluates whether the median difference between two models across the same streams is zero by ranking the absolute magnitudes of their per-stream score differences. Unlike a paired Student's $t$-test, it prevents a single extreme outlier stream from skewing the comparison. When testing multiple model pairs simultaneously, we adjust $p$-values using the Benjamini--Hochberg false-discovery-rate (FDR) procedure ($q_{\text{FDR}} = 0.05$) to cap the expected proportion of false statistical positives, and report $95\%$ stream-resampled bootstrap confidence intervals ($2{,}000$ resamples).
+    \item \textbf{Paired Wilcoxon signed-rank test and false-discovery-rate adjustment:} The Wilcoxon signed-rank test is a non-parametric paired hypothesis test that evaluates whether the median difference between two models across the same streams is zero by ranking the absolute magnitudes of their per-stream score differences. Unlike a paired Student's $t$-test, it prevents a single extreme outlier stream from skewing the comparison. When testing multiple model pairs simultaneously, we adjust $p$-values using the Benjamini--Hochberg false-discovery-rate (FDR) procedure ($q_{\text{FDR}} = 0.05$) to cap the expected proportion of false statistical positives, and report $95\%$ stream-resampled bootstrap confidence intervals (CIs; $2{,}000$ resamples).
     \item \textbf{Two One-Sided Tests (TOST) for statistical equivalence:} In a standard two-sided test, an insignificant result ($p > 0.05$) indicates only inconclusive evidence rather than equal performance. To test whether a physics-inspired regularizer produces practically negligible change relative to an unregularized control, TOST reverses the null hypothesis by testing whether the true mean difference $\mu_1 - \mu_2$ lies outside a prespecified equivalence margin $[-\Delta, +\Delta]$ via two one-sided tests: $H_{01}: \mu_1 - \mu_2 \le -\Delta$ ($p_{\text{lower}}$) and $H_{02}: \mu_1 - \mu_2 \ge +\Delta$ ($p_{\text{upper}}$). Formal equivalence is established if $p_{\text{TOST}} = \max(p_{\text{lower}}, p_{\text{upper}}) < 0.05$ (meaning the $90\%$ paired confidence interval falls strictly inside $[-\Delta, +\Delta]$). We prespecify $\Delta = \pm 0.03$ Point-F1 for fixed-backbone regularizer controls ($\approx 13\%$ of baseline F1, $<0.09\times$ between-stream standard deviation) and $\Delta = \pm 0.05$ for cross-architecture comparisons, and report narrow-margin sensitivity checks down to $\Delta \in \{\pm 0.010, \pm 0.015, \pm 0.020\}$ (Table~\ref{tab:ablations}(a)).
     \item \textbf{Distributional tail and drift diagnostics ($\gamma_2$ and $D_{\text{KS}}$):} To quantify why anomaly scores trigger false alarms, we measure two summary statistics on nominal data: (i)~\emph{excess kurtosis} $\gamma_2 = \mathbb{E}[(s - \mu)^4]/\sigma^4 - 3$, which measures tail heaviness relative to a Gaussian distribution ($\gamma_2 = 0$), where \emph{leptokurtic} scores ($\gamma_2 > 0$) exhibit heavy outlier-prone tails and \emph{platykurtic} scores ($\gamma_2 < 0$) exhibit light, flat-topped tails compressed by normalization or temporal smoothing; and (ii)~the two-sample \emph{Kolmogorov--Smirnov (KS) drift statistic} $D_{\text{KS}} = \sup_x |F_{\text{cal}}(x) - F_{\text{hold}}(x)| \in [0, 1]$, which measures the maximum vertical gap between the empirical cumulative distribution functions of the calibration block ($F_{\text{cal}}$) and the held-out nominal evaluation block ($F_{\text{hold}}$), directly quantifying how severely the nominal baseline shifts over time.
 \end{enumerate}
@@ -295,7 +339,7 @@ Experiments are organized into five non-overlapping cohorts:
     \item \textbf{Cohort 4 (5-stream horizon and frequency-shell panels):} Target-horizon latency sweep ($S \in \{1,4,16,32,64\}$, 3 seeds) and dyadic front-end ablation, reported in Table~\ref{tab:operating_and_horizon}(a) and Table~\ref{tab:ablations}(b).
     \item \textbf{Cohort 5 (130-stream single-seed baseline screen):} Secondary cross-check across 11 datasets against NCAD, DCdetector, and Anomaly Transformer (Table~\ref{tab:core_benchmark}(d)).
 \end{itemize}
-At $K=25$ channels, model parameter counts are comparable across families: $285{,}701$ (OpEntropy JEPA), $289{,}061$ (TS-JEPA), $296{,}037$ (Reynolds-Stress), $338{,}209$ (Potential-Flow), $648{,}553$ (TimesNet), and $205{,}746$ (TranAD). Non-finite telemetry entries are zero-imputed with channel standard deviations floored at $10^{-2}$; SPOT fits GPD parameters $(\xi, \sigma)$ above $u=p_{98}$ via Grimshaw MLE with L-BFGS-B fallback ($\xi \in [-0.9, 10], \sigma \ge 10^{-6}$). All 195 primary multi-seed runs converged under the standard $20$-epoch schedule on PyTorch 2.4 / CUDA 12.4 (NVIDIA RTX 5090, $0.60\text{--}0.84\,\text{ms}$ per window, $184\,\text{MB}$ VRAM); stream manifests, fitted thresholds, and source code are available at \url{https://github.com/quaid281/NCAD}.
+At $K=25$ channels, model parameter counts are comparable across families: $285{,}701$ (OpEntropy JEPA), $289{,}061$ (TS-JEPA), $296{,}037$ (Reynolds-Stress), $338{,}209$ (Potential-Flow), $648{,}553$ (TimesNet), and $205{,}746$ (TranAD). Non-finite telemetry entries are zero-imputed with channel standard deviations floored at $10^{-2}$; SPOT fits GPD parameters $(\xi, \sigma)$ above $u=p_{98}$ via Grimshaw maximum-likelihood estimation (MLE) with a bounded quasi-Newton (L-BFGS-B) fallback ($\xi \in [-0.9, 10], \sigma \ge 10^{-6}$). All 195 primary multi-seed runs converged under the standard $20$-epoch schedule on PyTorch 2.4 / CUDA 12.4 (NVIDIA RTX 5090, $0.60\text{--}0.84\,\text{ms}$ per window, $184\,\text{MB}$ of GPU memory); stream manifests, fitted thresholds, and source code are available at \url{https://github.com/quaid281/NCAD}.
 
 \subsection{Multi-Tier Statistical Evaluation Metrics}
 \label{subsec:eval_metrics}
@@ -307,33 +351,40 @@ To guard against point-adjustment inflation, channel-averaging bias, and thresho
 
 \begin{table*}[t]
 \centering
-\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds).\label{tab:ablations}}
+\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
 \vspace{1pt}
-\begin{tabular}{@{}p{0.52\textwidth}@{\hspace{0.03\textwidth}}p{0.45\textwidth}@{}}
+\begin{tabular}{@{}p{0.54\textwidth}@{\hspace{0.02\textwidth}}p{0.44\textwidth}@{}}
 \toprule
 \multicolumn{1}{c}{\textbf{(a) Regularizer Controls on Fixed Architectures \& TOST Equivalence}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lcccccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{1.6pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cccccc@{}}
 \toprule
 \textbf{Model / Control} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{FPR} & \textbf{ER} & \textbf{Paired $\Delta$F1 ($90\%$ CI)} & \textbf{$p_{\text{TOST}}$} \\
 \midrule
 TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & Baseline (cross-arch) & -- \\
+\addlinespace[1.5pt]
 Operator-Entropy JEPA & $0.233 \pm 0.028$ & 0.351 & 0.101 & 0.550 & $-0.004$ $[-0.011, +0.003]$ & $0.0007$ ($\pm .03$) \\
 \quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & (also $\pm .015$: $p{=}0.0024$) & $0.0088$ ($\pm .01$) \\
+\addlinespace[1.5pt]
 Reynolds-Stress JEPA & $0.190 \pm 0.022$ & 0.313 & 0.074 & 0.457 & $+0.013$ $[-0.001, +0.030]$ & $0.0019$ ($\pm .05$) \\
 \quad $\alpha_{\text{stress}}=0$ control & $0.182 \pm 0.036$ & 0.299 & 0.067 & 0.472 & (also $\pm .035$: $p{=}0.0031$) & -- \\
+\addlinespace[1.5pt]
 Potential-Flow JEPA & $0.138 \pm 0.044$ & 0.235 & 0.087 & 0.449 & $-0.054$ $[-0.131, +0.012]$ & $0.17$ (fails) \\
 \quad no-regime control ($K_r=1$) & $0.189 \pm 0.024$ & 0.279 & 0.084 & 0.431 & -- & -- \\
 \midrule
 TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & -- & -- \\
 TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & -- & -- \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}%
+\endgroup
 &
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
 \toprule
 \textbf{Stream (F1 / PR-AUC)} & \textbf{Standard Conv} & \textbf{Dyadic Shells} & \textbf{$\Delta$F1 / $\Delta$PR} \\
 \midrule
@@ -345,16 +396,18 @@ GECCO \texttt{water\_quality} & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} 
 \midrule
 \textbf{Macro Mean} & \textbf{0.118} / 0.213 & 0.078 / \textbf{0.263} & $-0.040$ / $+0.050$ \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}%
+\endgroup
 \\
 \midrule
 \multicolumn{2}{c}{\textbf{(c) Factorial and Strength Sweep of the Operator Regularizer}} \\
 \multicolumn{2}{c}{%
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lcc cccc ccc ccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{2.2pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcc cccc ccc ccc@{}}
 \toprule
-& & & \multicolumn{4}{c}{\textbf{Operator / representation / stability}} & \multicolumn{3}{c}{\textbf{Buffered}} & \multicolumn{3}{c}{\textbf{Causal}} \\
+& & & \multicolumn{4}{c}{\textbf{Operator / Representation / Stability}} & \multicolumn{3}{c}{\textbf{Buffered}} & \multicolumn{3}{c}{\textbf{Causal}} \\
 \cmidrule(lr){4-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
 \textbf{Arm} & $\lambda_{\text{ent}}$ & $\beta_{\text{norm}}$ & $\text{RankMe}(\mathbf{K})$ & $\kappa(\mathbf{K})$ & $\text{RankMe}(z_{\text{ctx}}/z_{\text{tgt}})$ & $\text{CV}_{\mathcal{L}}$ & FPR & F1 & ER & FPR & F1 & ER \\
 \midrule
@@ -367,16 +420,19 @@ Both (deployed) & 0.50 & 1 & 31.85 & 1.255 & 5.54/11.56 & 0.549 & 0.072 & 0.038 
 Both & 1.00 & 1 & 31.91 & 1.204 & 5.25/11.55 & 0.546 & 0.070 & 0.037 & 0.250 & 0.017 & 0.007 & 0.365 \\
 Both & 2.00 & 1 & 31.95 & 1.154 & 5.34/11.54 & 0.545 & 0.072 & 0.032 & 0.250 & 0.017 & 0.004 & 0.397 \\
 \bottomrule
-\end{tabular}%
-}}
+\end{tabular*}%
+\endgroup
+}
 \\
 \midrule
 \multicolumn{2}{c}{%
-\begin{tabular}{@{}p{0.37\textwidth}@{\hspace{0.02\textwidth}}p{0.61\textwidth}@{}}
+\begin{tabular}{@{}p{0.35\textwidth}@{\hspace{0.02\textwidth}}p{0.63\textwidth}@{}}
 \multicolumn{1}{c}{\textbf{(d) Quiet-Fault Point Recall}} & \multicolumn{1}{c}{\textbf{(e) Controlled Mechanism-Discrimination Study (19 Non-GHL Streams)}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lccccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{2.0pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccccc@{}}
 \toprule
 \textbf{Injected fault} & Unif. & Var. & MAD & \texttt{lowvar} & \texttt{dev\_maxz} \\
 \midrule
@@ -389,11 +445,13 @@ $+5\sigma$ spike & 0.023 & 0.042 & 0.059 & 0.182 & 0.108 \\
 \midrule
 Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}%
+\endgroup
 &
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}l cc cc cc cc cccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{1.2pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cc cc cc cc cccc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Tail/Drift}} & \multicolumn{2}{c}{\textbf{Held FPR}} & \multicolumn{2}{c}{\textbf{Point-F1}} & \multicolumn{2}{c}{\textbf{PR-AUC}} & \multicolumn{4}{c}{\textbf{Causal Event Recall}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13}
@@ -412,8 +470,8 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \texttt{TimesNet} & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & \textbf{0.293} & 0.329 & \textbf{0.588} & 0.618 & 0.217 & 0.407 \\
 \texttt{TranAD} & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 0.602 & 0.149 & 0.343 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}%
+\endgroup
 \end{tabular}%
 }
 \\
@@ -469,11 +527,11 @@ Comparing the 12 controlled backbone arms across all 19 non-GHL streams in Table
 \subsection{Benchmark Performance on Continuous Telemetry}
 \label{subsec:core_benchmark}
 
-Table~\ref{tab:core_benchmark} summarizes performance across all 33 continuous telemetry streams under the chronological held-out SPOT calibration protocol ($u=p_{98}, q=10^{-3}$), reporting retrospective buffered attribution in Panel~(a), strictly causal streaming in Panel~(b), and per-dataset breakdowns in Panel~(c). The central empirical finding is substantial relative false-alarm suppression under automated thresholding, whereas overall Point-F1 and PR-AUC differences against reconstructive baselines are statistically inconclusive.
+Table~\ref{tab:core_benchmark} reports all 33 continuous telemetry streams under the chronological held-out SPOT protocol ($u=p_{98}, q=10^{-3}$): Panel~(a) uses retrospective buffered attribution, Panel~(b) strictly causal streaming, and Panel~(c) per-dataset breakdowns. The main result is a large relative drop in false alarms. Point-F1 and PR-AUC against reconstruction baselines are statistically inconclusive.
 
-\noindent\textbf{Relative False-Alarm Suppression on Held-Out Telemetry:} On the 19 non-GHL streams (Table~\ref{tab:core_benchmark}(a),(b)), latent predictive scoring via TS-JEPA and OpEntropy JEPA lowers held-out nominal FPR three- to four-fold under buffered attribution ($9.3\%$ and $10.1\%$ versus $30.0\%$ for TimesNet and $30.7\%$ for TranAD) and eight- to twenty-fold under strictly causal streaming ($2.4\%$ and $2.8\%$ versus $24.3\%$ and $22.2\%$). Across all 33 streams, the paired buffered FPR reduction is statistically significant for both OpEntropy JEPA ($-14.4\%$ vs.\ TimesNet, $95\%$ CI $[-24.1\%, -6.5\%]$, $p=0.006$; $-14.2\%$ vs.\ TranAD, $p=0.006$) and TS-JEPA ($-15.3\%$, $p=0.002$; $-15.1\%$, $p=0.003$). Dataset-clustered permutation tests across the $N=7$ domain families remain significant ($p = 0.016\text{--}0.031$), and leave-one-dataset-out (LODO) folds hold macro buffered FPR to $3.8\%\text{--}7.0\%$ for JEPAs versus $8.4\%\text{--}18.3\%$ for reconstructors. On MSL, TimesNet achieves a lower buffered FPR than OpEntropy ($13.3\%$ vs.\ $17.7\%$), while on Genesis, Metro, and SWAN reconstructors emit zero alarms and achieve zero F1 due to overly high calibration thresholds.
+\noindent\textbf{Fewer False Alarms on Held-Out Telemetry:} On the 19 non-GHL streams (Table~\ref{tab:core_benchmark}(a),(b)), latent scoring lowers held-out nominal FPR three- to four-fold under buffered attribution ($9.3\%$ and $10.1\%$ for TS-JEPA and OpEntropy JEPA versus $30.0\%$ and $30.7\%$ for TimesNet and TranAD) and eight- to twenty-fold under causal streaming ($2.4\%$ and $2.8\%$ versus $24.3\%$ and $22.2\%$). The reduction holds across all 33 streams in paired tests (buffered FPR $-14.4\%$ to $-15.3\%$ versus TimesNet, $p\le 0.006$; $95\%$ CI for OpEntropy $[-24.1\%, -6.5\%]$) and across the $N=7$ dataset families ($p = 0.016\text{--}0.031$). Leaving one dataset out at a time keeps buffered FPR at $3.8\%\text{--}7.0\%$ for JEPAs versus $8.4\%\text{--}18.3\%$ for reconstructors. The exceptions are MSL, where TimesNet has the lower buffered FPR ($13.3\%$ vs.\ $17.7\%$), and Genesis, Metro, and SWAN, where reconstructors emit no alarms at all because their calibration thresholds are too high.
 
-\noindent\textbf{Point-F1, Event Recall, and Ranking Parity:} Improved false-alarm control does not translate into universal detection superiority. Across the 19 non-GHL streams in Table~\ref{tab:core_benchmark}(a), buffered Point-F1 and event recall for TS-JEPA ($0.206$, recall $0.477$) and OpEntropy JEPA ($0.233$, recall $0.550$) are comparable to TimesNet ($0.197$, recall $0.583$) and TranAD ($0.130$, recall $0.490$). Across all 33 streams, paired differences against TimesNet ($+0.012$ Point-F1, $p=0.54$; $-0.000$ PR-AUC, $p=0.39$) and TranAD ($+0.051$ Point-F1, $p=0.88$; $+0.023$ PR-AUC, $p=0.16$) are statistically indistinguishable from zero. As shown in Table~\ref{tab:core_benchmark}(c), between-stream standard deviations within each dataset are comparable to the means; only SMAP exceeds the trivial constant-alarm baseline $\text{F1}_{\text{all-pos}} = 0.236$ ($0.379$ and $0.396$), although threshold-free PR-AUC exceeds base prevalence $\pi$ on both SMAP ($0.504\text{--}0.525$ vs.\ $\pi=0.150$) and MSL ($0.422\text{--}0.434$ vs.\ $\pi=0.255$).
+\noindent\textbf{Detection Quality Is Comparable, Not Better:} Lower false-alarm rates do not make latent scoring a better detector. Buffered Point-F1 and event recall for TS-JEPA and OpEntropy JEPA fall in the same range as TimesNet and TranAD (Table~\ref{tab:core_benchmark}(a)), and paired differences across all 33 streams are indistinguishable from zero (Point-F1 $+0.012$ and $+0.051$, $p=0.54$ and $0.88$; PR-AUC $-0.000$ and $+0.023$, $p=0.39$ and $0.16$ versus TimesNet and TranAD). Per-dataset standard deviations are as large as the means (Table~\ref{tab:core_benchmark}(c)). Only SMAP beats the trivial always-alarm F1 of $0.236$ ($0.379$ and $0.396$), although PR-AUC exceeds base prevalence $\pi$ on both SMAP ($0.504\text{--}0.525$ vs.\ $\pi=0.150$) and MSL ($0.422\text{--}0.434$ vs.\ $\pi=0.255$).
 
 \noindent\textbf{Domain and Operational Applicability Boundaries:} Synthesizing performance across fault classes and sampling rates defines four operational regimes:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
@@ -489,7 +547,7 @@ What does the Operator-Entropy formulation contribute beyond unconstrained \text
 
 \subsection{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}
 \label{subsec:causal_vs_buffered}
-Strictly causal trailing attribution represents real-time streaming deployment, whereas buffered attribution represents retrospective fixed-lag analysis. Comparing Panels~(a) and~(b) of Table~\ref{tab:core_benchmark} highlights a clear operational trade-off. Eliminating the $64$-step lookahead buffer lowers nominal false alarms from $9.3\%\text{--}10.1\%$ to $2.4\%\text{--}2.8\%$ for TS-JEPA and OpEntropy JEPA (and $1.1\%$ for Reynolds-Stress), compared to $22.2\%\text{--}24.3\%$ for TranAD and TimesNet. Without retrospective smoothing, causal Point-F1 ($0.153\text{--}0.161$ vs.\ $0.209$ for TimesNet) and causal event recall ($0.487\text{--}0.517$ vs.\ $0.588$) are more conservative, and mean onset-to-alarm delay increases ($\Delta t = 112.5\text{--}124.0$ steps vs.\ $62.2$ steps for TimesNet). In online streaming without lookahead buffers, latent predictive scoring thus functions as a conservative high-precision filter that trades raw onset speed for an $8\text{--}20\times$ reduction in false alarms. On five non-stationary incident streams, pairing latent scores with dynamic rolling SPOT suppresses false alarms by up to $21\times$ under regime drift.
+Strictly causal attribution models real-time deployment, and buffered attribution models retrospective analysis with a 64-step lookahead. Comparing Panels~(a) and~(b) of Table~\ref{tab:core_benchmark} shows the trade-off. Removing the lookahead cuts nominal false alarms for TS-JEPA and OpEntropy JEPA from $9.3\%\text{--}10.1\%$ to $2.4\%\text{--}2.8\%$, against $22.2\%\text{--}24.3\%$ for TranAD and TimesNet. The cost is speed and sensitivity: causal Point-F1 ($0.153\text{--}0.161$ vs.\ $0.209$ for TimesNet) and event recall ($0.487\text{--}0.517$ vs.\ $0.588$) are lower, and mean onset-to-alarm delay rises to $112.5\text{--}124.0$ steps ($62.2$ for TimesNet). In streaming use, latent scoring therefore acts as a conservative filter that trades onset speed for an $8\text{--}20\times$ cut in false alarms. On five non-stationary incident streams, pairing latent scores with rolling SPOT cuts false alarms by up to $21\times$ under regime drift.
 
 \input{sections/tab_operating_and_horizon.tex}
 
@@ -499,7 +557,7 @@ At target horizon $S=64$, window scores emit $S-1=63$ steps after window opening
 
 \subsection{Deployable Calibration Quantiles vs.\ Matched Realized Test-FPR Operating Points}
 \label{subsec:matched_operating}
-Because reconstructive baselines calibrate to a much higher realized false-alarm rate ($22\%\text{--}31\%$) than latent predictors ($1\%\text{--}10\%$), raw recall at a single SPOT threshold confounds discriminative sensitivity with threshold placement. Indeed, when anomaly segments span hundreds to over a thousand timesteps (mean length $402$ steps in Daphnet and $1{,}102$ steps in SMAP), a detector alarming randomly at $30\%$ FPR intersects $>95\%$ of segments by chance alone ($1 - (1-\text{FPR})^L$). We therefore evaluate two complementary operating regimes:
+Reconstruction baselines calibrate to a realized false-alarm rate of $22\%\text{--}31\%$, against $1\%\text{--}10\%$ for latent predictors. Raw recall at one SPOT threshold therefore mixes detector quality with threshold placement. Long anomaly segments make this worse: Daphnet segments average $402$ steps and SMAP segments $1{,}102$, so a detector alarming at random with FPR $30\%$ still touches over $95\%$ of segments, since $1-(1-\text{FPR})^L$ approaches one. We compare the models under two operating regimes:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
     \item \textbf{Deployable nominal calibration quantiles ($q^*$, Table~\ref{tab:operating_and_horizon}(b)):} Thresholds are set at fixed empirical quantiles of the nominal calibration block without test labels. At causal calibration quantile $q^* = 0.050$, TS-JEPA and OpEntropy JEPA achieve higher event recall ($0.730$ and $0.752$) and higher precision ($0.251$ and $0.259$) at fewer false alarms ($177\text{--}203$ per $1{,}000$ nominal steps) than TimesNet ($0.618$ recall, $262$ alarms) and TranAD ($0.602$ recall, $270$ alarms).
     \item \textbf{Post-hoc matched realized test-FPR curves ($f^*$, Fig.~\ref{fig:mechanism_operating_calibration}(b) and Table~\ref{tab:ablations}(e)):} Oracle thresholds are chosen to equalize realized test nominal FPR across models. At a stringent $1\%$ realized causal false-alarm budget ($f^* = 0.01$), latent models nearly double event recall ($0.371\text{--}0.431$) compared to TimesNet ($0.217$) and TranAD ($0.149$). At relaxed budgets ($f^* \ge 0.10$ causal and across buffered mappings), recall curves converge ($p = 0.625$ over $f^* \in [0.10, 0.50]$). Latent scoring thus specifically improves sensitivity in the low-false-alarm operating regime ($f^* \le 0.01$).

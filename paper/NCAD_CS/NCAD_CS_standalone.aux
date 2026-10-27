@@ -19,8 +19,8 @@
 \citation{Hundman2018b}
 \citation{xu2022anomaly,wu2023timesnet,tuli2022tranad}
 \citation{siffer2017anomaly}
-\citation{carmona2021neural}
 \citation{lecun2022path}
+\citation{carmona2021neural}
 \HyPL@Entry{0<</S/D>>}
 \@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:intro}{{I}{1}{Introduction}{section.1}{}}
@@ -43,10 +43,12 @@
 \citation{raissi2019physics}
 \citation{greydanus2019hamiltonian,cranmer2020lagrangian}
 \citation{wang2021understanding}
-\citation{koopman1931hamiltonian,mezic2005spectral}
-\citation{brunton2016koopman,lusch2018deep,liu2023koopa}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Key Operational and Statistical Terms Used Throughout the Manuscript.}}{2}{table.1}\protected@file@percent }
+\newlabel{tab:terms}{{I}{2}{Key Operational and Statistical Terms Used Throughout the Manuscript}{table.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
 \newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
+\citation{koopman1931hamiltonian,mezic2005spectral}
+\citation{brunton2016koopman,lusch2018deep,liu2023koopa}
 \citation{siffer2017anomaly}
 \citation{ferro2003inference}
 \citation{kim2022towards,wu2023flawed,schmidl2022anomaly}
@@ -62,8 +64,8 @@
 \citation{wu2023flawed}
 \citation{lecun2022path}
 \citation{grill2020bootstrap,assran2023self}
-\@writefile{toc}{\contentsline {section}{\numberline {III}Multi-Sensor IoT and Remote Sensing Benchmark Suite}{3}{section.3}\protected@file@percent }
-\newlabel{sec:dataset}{{III}{3}{Multi-Sensor IoT and Remote Sensing Benchmark Suite}{section.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}Multi-Sensor Internet-of-Things and Remote Sensing Benchmark Suite}{3}{section.3}\protected@file@percent }
+\newlabel{sec:dataset}{{III}{3}{Multi-Sensor Internet-of-Things and Remote Sensing Benchmark Suite}{section.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {IV}Methodology: Operator-Entropy Joint-Embedding Predictive Architecture}{3}{section.4}\protected@file@percent }
 \newlabel{sec:proposed_method}{{IV}{3}{Methodology: Operator-Entropy Joint-Embedding Predictive Architecture}{section.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Problem Formulation and Latent Space Prediction}{3}{subsection.4.1}\protected@file@percent }
@@ -71,8 +73,8 @@
 \citation{koopman1931hamiltonian,mezic2005spectral}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Operator-Entropy JEPA architecture. Online ($E_\theta $) and momentum target ($E_\phi $) encoders map context ($\mathbf  {x}_{\text  {ctx}} \in \mathbb  {R}^{256 \times K}$) and suspect ($\mathbf  {x}_{\text  {tgt}} \in \mathbb  {R}^{64 \times K}$) windows into latent space, where a Koopman operator ($\mathbf  {K} \in \mathbb  {R}^{32 \times 32}$) forecasts $\hat  {\mathbf  {z}}_{\text  {tgt}} = \mathbf  {K}\mathbf  {z}_{\text  {ctx}}$ under spectral-entropy and Bregman-barrier regularization for coordinate-gated SPOT scoring.}}{4}{figure.1}\protected@file@percent }
 \newlabel{fig:triad_architecture}{{1}{4}{Operator-Entropy JEPA architecture. Online ($E_\theta $) and momentum target ($E_\phi $) encoders map context ($\mathbf {x}_{\text {ctx}} \in \mathbb {R}^{256 \times K}$) and suspect ($\mathbf {x}_{\text {tgt}} \in \mathbb {R}^{64 \times K}$) windows into latent space, where a Koopman operator ($\mathbf {K} \in \mathbb {R}^{32 \times 32}$) forecasts $\hat {\mathbf {z}}_{\text {tgt}} = \mathbf {K}\mathbf {z}_{\text {ctx}}$ under spectral-entropy and Bregman-barrier regularization for coordinate-gated SPOT scoring}{figure.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Sliding window partitioning of a multivariate telemetry stream $\mathbf  {X} \in \mathbb  {R}^{T \times K}$ into a historical context window $\mathbf  {x}_{\text  {ctx}}$ ($C{=}256$ steps) and a suspect target horizon $\mathbf  {x}_{\text  {tgt}}$ ($S{=}64$ steps, evaluated at decision timestamp $\tau = t + S - 1$). Rather than reconstructing noisy raw waveforms, the online encoder $E_\theta $ and predictor forecast the target representation $\hat  {z}_{\text  {tgt}}$ in a 32-dimensional latent space to compare against the EMA target embedding $z_{\text  {tgt}} = E_\phi (\mathbf  {x}_{\text  {tgt}})$.}}{4}{figure.2}\protected@file@percent }
-\newlabel{fig:context_target_schematic}{{2}{4}{Sliding window partitioning of a multivariate telemetry stream $\mathbf {X} \in \mathbb {R}^{T \times K}$ into a historical context window $\mathbf {x}_{\text {ctx}}$ ($C{=}256$ steps) and a suspect target horizon $\mathbf {x}_{\text {tgt}}$ ($S{=}64$ steps, evaluated at decision timestamp $\tau = t + S - 1$). Rather than reconstructing noisy raw waveforms, the online encoder $E_\theta $ and predictor forecast the target representation $\hat {z}_{\text {tgt}}$ in a 32-dimensional latent space to compare against the EMA target embedding $z_{\text {tgt}} = E_\phi (\mathbf {x}_{\text {tgt}})$}{figure.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {(a)}\nobreakspace  {}Sliding window partitioning of $\mathbf  {X} \in \mathbb  {R}^{T \times K}$ into context $\mathbf  {x}_{\text  {ctx}}$ ($C{=}256$) and suspect target $\mathbf  {x}_{\text  {tgt}}$ ($S{=}64$, decision step $\tau = t + S - 1$). \textbf  {(b)}\nobreakspace  {}Empirical 2D latent projection ($\mathbb  {R}^{32} \to \mathbb  {R}^2$, SMAP \texttt  {E-1}) centered at $\hat  {z}_{\text  {tgt}} = \mathbf  {K}z_{\text  {ctx}}$: nominal calibration ($z_{\text  {tgt}}^{\text  {cal}}$) and held-out ($z_{\text  {tgt}}^{\text  {hold}}$) clouds remain inside $\tau _{\text  {SPOT}}$, whereas fault state $z_{\text  {tgt}}(t)$ crosses $\tau _{\text  {SPOT}}$ along $\mathbf  {e}(t) = z_{\text  {tgt}} - \hat  {z}_{\text  {tgt}}$.}}{4}{figure.2}\protected@file@percent }
+\newlabel{fig:context_target_schematic}{{2}{4}{\textbf {(a)}~Sliding window partitioning of $\mathbf {X} \in \mathbb {R}^{T \times K}$ into context $\mathbf {x}_{\text {ctx}}$ ($C{=}256$) and suspect target $\mathbf {x}_{\text {tgt}}$ ($S{=}64$, decision step $\tau = t + S - 1$). \textbf {(b)}~Empirical 2D latent projection ($\mathbb {R}^{32} \to \mathbb {R}^2$, SMAP \texttt {E-1}) centered at $\hat {z}_{\text {tgt}} = \mathbf {K}z_{\text {ctx}}$: nominal calibration ($z_{\text {tgt}}^{\text {cal}}$) and held-out ($z_{\text {tgt}}^{\text {hold}}$) clouds remain inside $\tau _{\text {SPOT}}$, whereas fault state $z_{\text {tgt}}(t)$ crosses $\tau _{\text {SPOT}}$ along $\mathbf {e}(t) = z_{\text {tgt}} - \hat {z}_{\text {tgt}}$}{figure.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Latent Predictor Architectures and Dynamical Inductive Priors}{4}{subsection.4.2}\protected@file@percent }
 \newlabel{subsec:triad_formulations}{{\mbox  {IV-B}}{4}{Latent Predictor Architectures and Dynamical Inductive Priors}{subsection.4.2}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-B}1}Operator-Entropy JEPA (Spectral Dynamics and Modal Dispersion)}{4}{subsubsection.4.2.1}\protected@file@percent }
@@ -95,20 +97,20 @@
 \newlabel{eq:saliency_gate}{{5}{6}{Coordinate Saliency Gating}{equation.4.5}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}2}Multiscale Frequency Front-End}{6}{subsubsection.4.4.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}3}Extreme-Value Threshold Calibration (SPOT)}{6}{subsubsection.4.4.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row\nobreakspace  {}1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text  {tr}}$. Row\nobreakspace  {}2 indexes causal held-out scores $v[0:M_{\text  {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text  {val}})$. Row\nobreakspace  {}3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text  {alm}} - t^*$).}}{6}{figure.3}\protected@file@percent }
+\newlabel{fig:protocol_and_permutation}{{3}{6}{Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row~1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text {tr}}$. Row~2 indexes causal held-out scores $v[0:M_{\text {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text {val}})$. Row~3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text {alm}} - t^*$)}{figure.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Protocol and Evaluation Metrics}{6}{section.5}\protected@file@percent }
 \newlabel{sec:exp}{{V}{6}{Experimental Protocol and Evaluation Metrics}{section.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Experimental Setup and Hyperparameters}{6}{subsection.5.1}\protected@file@percent }
 \newlabel{subsec:exp_setup}{{\mbox  {V-A}}{6}{Experimental Setup and Hyperparameters}{subsection.5.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row\nobreakspace  {}1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text  {tr}}$. Row\nobreakspace  {}2 indexes causal held-out scores $v[0:M_{\text  {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text  {val}})$. Row\nobreakspace  {}3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text  {alm}} - t^*$).}}{6}{figure.3}\protected@file@percent }
-\newlabel{fig:protocol_and_permutation}{{3}{6}{Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row~1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text {tr}}$. Row~2 indexes causal held-out scores $v[0:M_{\text {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text {val}})$. Row~3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text {alm}} - t^*$)}{figure.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0a}Held-Out Calibration Protocol and Boundary Isolation}{6}{paragraph.5.1.0.1}\protected@file@percent }
-\citation{schmidl2022anomaly,kim2022towards}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0b}Multi-Seed Replication, Non-Parametric Hypothesis Testing, and Equivalence Bounds}{7}{paragraph.5.1.0.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Baseline Architectures, Fairness Checks, and Cohort Structure}{7}{subsection.5.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Cohort Summary and Reproducibility Specifications}{7}{subsection.5.3}\protected@file@percent }
 \newlabel{subsec:cohort_repro}{{\mbox  {V-C}}{7}{Cohort Summary and Reproducibility Specifications}{subsection.5.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Multi-Tier Statistical Evaluation Metrics}{7}{subsection.5.4}\protected@file@percent }
-\newlabel{subsec:eval_metrics}{{\mbox  {V-D}}{7}{Multi-Tier Statistical Evaluation Metrics}{subsection.5.4}{}}
+\citation{schmidl2022anomaly,kim2022towards}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Multi-Tier Statistical Evaluation Metrics}{8}{subsection.5.4}\protected@file@percent }
+\newlabel{subsec:eval_metrics}{{\mbox  {V-D}}{8}{Multi-Tier Statistical Evaluation Metrics}{subsection.5.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VI}Ablation Studies and Analysis}{8}{section.6}\protected@file@percent }
 \newlabel{sec:ablations}{{VI}{8}{Ablation Studies and Analysis}{section.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Ablation 1: Physical Regularizer Controls on Fixed Architectures}{8}{subsection.6.1}\protected@file@percent }
@@ -118,18 +120,18 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Ablation 3: Auxiliary Input-Channel Gating and Quiet-Fault Monitors}{8}{subsection.6.3}\protected@file@percent }
 \newlabel{subsec:gating_ablation}{{\mbox  {VI-C}}{8}{Ablation 3: Auxiliary Input-Channel Gating and Quiet-Fault Monitors}{subsection.6.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}Ablation 4: Multiscale Dyadic-Shell Front-End}{8}{subsection.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}{8}{subsection.6.5}\protected@file@percent }
-\newlabel{subsec:controlled_backbone}{{\mbox  {VI-E}}{8}{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}{subsection.6.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Ablation and Mechanism-Discrimination Studies: (a)\nobreakspace  {}Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)\nobreakspace  {}Dyadic Front-End ($n{=}5$), (c)\nobreakspace  {}Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)\nobreakspace  {}Injected Quiet-Fault Point Recall ($n{=}6$), and (e)\nobreakspace  {}12-Arm Backbone Comparison ($n{=}19$, 5 Seeds).}}{9}{table.1}\protected@file@percent }
-\newlabel{tab:ablations}{{I}{9}{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds)}{table.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Ablation and Mechanism-Discrimination Studies: (a)\nobreakspace  {}Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)\nobreakspace  {}Dyadic Front-End ($n{=}5$), (c)\nobreakspace  {}Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)\nobreakspace  {}Injected Quiet-Fault Point Recall ($n{=}6$), and (e)\nobreakspace  {}12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.}}{9}{table.2}\protected@file@percent }
+\newlabel{tab:ablations}{{II}{9}{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}{9}{subsection.6.5}\protected@file@percent }
+\newlabel{subsec:controlled_backbone}{{\mbox  {VI-E}}{9}{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}{subsection.6.5}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VII}Results and Discussion}{9}{section.7}\protected@file@percent }
 \newlabel{sec:results}{{VII}{9}{Results and Discussion}{section.7}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Benchmark Performance on Continuous Telemetry}{9}{subsection.7.1}\protected@file@percent }
 \newlabel{subsec:core_benchmark}{{\mbox  {VII-A}}{9}{Benchmark Performance on Continuous Telemetry}{subsection.7.1}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Residual conditioning and operating curves across 19 non-GHL streams (five seeds, strictly causal trailing inference). \textbf  {(a)}\nobreakspace  {}Calibration excess kurtosis ($\gamma _2$) vs.\ calibration-to-holdout KS drift ($D_{\text  {KS}}$), colored by held-out causal FPR at SPOT $q{=}10^{-3}$ with bilinear iso-FPR topographic contours ($R^2{=}0.97$), illustrating LayerNorm score compression and learned latent projection. \textbf  {(b)}\nobreakspace  {}Causal event recall across matched realized test-FPR budgets $f^* \in [0.01, 0.50]$ with $95\%$ stream-bootstrap confidence bands.}}{10}{figure.4}\protected@file@percent }
 \newlabel{fig:mechanism_operating_calibration}{{4}{10}{Residual conditioning and operating curves across 19 non-GHL streams (five seeds, strictly causal trailing inference). \textbf {(a)}~Calibration excess kurtosis ($\gamma _2$) vs.\ calibration-to-holdout KS drift ($D_{\text {KS}}$), colored by held-out causal FPR at SPOT $q{=}10^{-3}$ with bilinear iso-FPR topographic contours ($R^2{=}0.97$), illustrating LayerNorm score compression and learned latent projection. \textbf {(b)}~Causal event recall across matched realized test-FPR budgets $f^* \in [0.01, 0.50]$ with $95\%$ stream-bootstrap confidence bands}{figure.4}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Held-Out Calibration Benchmark (SPOT, $u{=}p_{98}, q{=}10^{-3}$): (a)\nobreakspace  {}Retrospective Buffered ($S{=}64$) and (b)\nobreakspace  {}Strictly Causal Trailing Attribution across 19 Non-GHL Streams ($95\%$ Stream-Bootstrap CIs in Brackets) and 14 GHL Streams, (c)\nobreakspace  {}Per-Dataset Breakdown (Mean $\pm $ SD), and (d)\nobreakspace  {}130-Stream Single-Seed Cross-Check. Best in \textbf  {bold}, second \underline  {underlined}.}}{10}{table.2}\protected@file@percent }
-\newlabel{tab:core_benchmark}{{II}{10}{Held-Out Calibration Benchmark (SPOT, $u{=}p_{98}, q{=}10^{-3}$): (a)~Retrospective Buffered ($S{=}64$) and (b)~Strictly Causal Trailing Attribution across 19 Non-GHL Streams ($95\%$ Stream-Bootstrap CIs in Brackets) and 14 GHL Streams, (c)~Per-Dataset Breakdown (Mean $\pm $ SD), and (d)~130-Stream Single-Seed Cross-Check. Best in \textbf {bold}, second \underline {underlined}}{table.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Held-Out Calibration Benchmark (SPOT, $u{=}p_{98}, q{=}10^{-3}$): (a)\nobreakspace  {}Retrospective Buffered ($S{=}64$) and (b)\nobreakspace  {}Strictly Causal Trailing Attribution across 19 Non-GHL Streams ($95\%$ Stream-Bootstrap CIs in Brackets) and 14 GHL Streams, (c)\nobreakspace  {}Per-Dataset Breakdown (Mean $\pm $ SD), and (d)\nobreakspace  {}130-Stream Single-Seed Cross-Check. Best in \textbf  {bold}, second \underline {underlined}.}}{10}{table.3}\protected@file@percent }
+\newlabel{tab:core_benchmark}{{III}{10}{Held-Out Calibration Benchmark (SPOT, $u{=}p_{98}, q{=}10^{-3}$): (a)~Retrospective Buffered ($S{=}64$) and (b)~Strictly Causal Trailing Attribution across 19 Non-GHL Streams ($95\%$ Stream-Bootstrap CIs in Brackets) and 14 GHL Streams, (c)~Per-Dataset Breakdown (Mean $\pm $ SD), and (d)~130-Stream Single-Seed Cross-Check. Best in \textbf {bold}, second \underline {underlined}}{table.3}{}}
 \citation{ferro2003inference}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Evaluating Physical Inductive Priors: Conditioning vs.\ Detection}{11}{subsection.7.2}\protected@file@percent }
 \newlabel{subsec:eval_physics_priors}{{\mbox  {VII-B}}{11}{Evaluating Physical Inductive Priors: Conditioning vs.\ Detection}{subsection.7.2}{}}
@@ -141,10 +143,10 @@
 \newlabel{subsec:matched_operating}{{\mbox  {VII-E}}{11}{Deployable Calibration Quantiles vs.\ Matched Realized Test-FPR Operating Points}{subsection.7.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-F}}Automated Threshold Calibration Realities on Non-Stationary Telemetry}{11}{subsection.7.6}\protected@file@percent }
 \newlabel{subsec:calibration_realities}{{\mbox  {VII-F}}{11}{Automated Threshold Calibration Realities on Non-Stationary Telemetry}{subsection.7.6}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Operational Latency and Calibration-Quantile Trade-offs: (a)\nobreakspace  {}Target-Horizon Sweep ($S \in \{1,4,16,32,64\}$, lag $S{-}1$, $n{=}5$ streams, 3 seeds) and (b)\nobreakspace  {}Detection at Deployable Nominal Calibration Quantiles $q^*$ ($n{=}19$ streams; ER = event recall, P = precision, FA = false alarms per $1{,}000$ steps).}}{12}{table.3}\protected@file@percent }
-\newlabel{tab:operating_and_horizon}{{III}{12}{Operational Latency and Calibration-Quantile Trade-offs: (a)~Target-Horizon Sweep ($S \in \{1,4,16,32,64\}$, lag $S{-}1$, $n{=}5$ streams, 3 seeds) and (b)~Detection at Deployable Nominal Calibration Quantiles $q^*$ ($n{=}19$ streams; ER = event recall, P = precision, FA = false alarms per $1{,}000$ steps)}{table.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)\nobreakspace  {}Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)\nobreakspace  {}Controlled-Drift Stress Test ($n{=}16$), and (c)\nobreakspace  {}Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$).}}{12}{table.4}\protected@file@percent }
-\newlabel{tab:calibrator_comparison}{{IV}{12}{Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)~Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)~Controlled-Drift Stress Test ($n{=}16$), and (c)~Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$)}{table.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Operational Latency and Calibration-Quantile Trade-offs: (a)\nobreakspace  {}Target-Horizon Sweep ($S \in \{1,4,16,32,64\}$, lag $S{-}1$, $n{=}5$ streams, 3 seeds) and (b)\nobreakspace  {}Detection at Deployable Nominal Calibration Quantiles $q^*$ ($n{=}19$ streams; ER = event recall, P = precision, FA = false alarms per $1{,}000$ steps).}}{12}{table.4}\protected@file@percent }
+\newlabel{tab:operating_and_horizon}{{IV}{12}{Operational Latency and Calibration-Quantile Trade-offs: (a)~Target-Horizon Sweep ($S \in \{1,4,16,32,64\}$, lag $S{-}1$, $n{=}5$ streams, 3 seeds) and (b)~Detection at Deployable Nominal Calibration Quantiles $q^*$ ($n{=}19$ streams; ER = event recall, P = precision, FA = false alarms per $1{,}000$ steps)}{table.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)\nobreakspace  {}Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)\nobreakspace  {}Controlled-Drift Stress Test ($n{=}16$), and (c)\nobreakspace  {}Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$).}}{12}{table.5}\protected@file@percent }
+\newlabel{tab:calibrator_comparison}{{V}{12}{Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)~Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)~Controlled-Drift Stress Test ($n{=}16$), and (c)~Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$)}{table.5}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{12}{section.8}\protected@file@percent }
 \newlabel{sec:conclusion}{{VIII}{12}{Conclusion and Future Work}{section.8}{}}
 \bibstyle{IEEEtran}
@@ -156,8 +158,8 @@
 \bibcite{wu2023timesnet}{5}
 \bibcite{tuli2022tranad}{6}
 \bibcite{siffer2017anomaly}{7}
-\bibcite{carmona2021neural}{8}
-\bibcite{lecun2022path}{9}
+\bibcite{lecun2022path}{8}
+\bibcite{carmona2021neural}{9}
 \bibcite{schmidl2022anomaly}{10}
 \bibcite{yue2022ts2vec}{11}
 \bibcite{yang2023dcdetector}{12}

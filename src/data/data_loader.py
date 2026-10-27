@@ -104,7 +104,7 @@ class DataLoader:
             axis = 0 if train_raw.ndim == 2 else None
             mean_val = np.mean(train_raw, axis=axis)
             std_val = np.std(train_raw, axis=axis)
-            std_val = np.where(std_val < 1e-8, 1.0, std_val)
+            std_val = np.where(std_val < 1e-8, 1.0, np.maximum(std_val, 0.01))
             norm_stats = NormalizationStats(mean=mean_val, std=std_val)
             train_normalized = norm_stats.transform(train_raw)
             test_normalized = norm_stats.transform(test_raw)

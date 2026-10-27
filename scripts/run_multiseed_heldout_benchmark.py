@@ -493,8 +493,8 @@ def run(ds, ch, seeds, device, epochs, val_frac, out_rows, dump_dir=None, overwr
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456])
-    ap.add_argument("--epochs", type=int, default=10)
-    ap.add_argument("--val-frac", type=float, default=0.3)
+    ap.add_argument("--epochs", type=int, default=20)
+    ap.add_argument("--val-frac", type=float, default=0.35)
     ap.add_argument("--streams", nargs="*", default=None, help="DS:channel entries")
     ap.add_argument("--models", nargs="*", default=None, help="subset of MODELS (or PotentialFlow-noregime)")
     ap.add_argument("--out", default=str(ROOT / "reports" / "multiseed_heldout_benchmark.csv"))

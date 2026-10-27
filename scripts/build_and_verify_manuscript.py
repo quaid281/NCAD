@@ -211,9 +211,14 @@ def main():
     step("6. Auditing manuscript prose against anti-AI writing rules (docs/SKILL.md)...")
     from scan_ai_writing import run_scan
     ai_audit_ok = run_scan()
+
+    # 7. IEEE acronym audit: define each acronym at first use
+    step("7. Auditing acronym definitions at first use (IEEE style)...")
+    from audit_acronyms import run_audit
+    acronym_ok = run_audit()
     
     print("\n" + "=" * 70)
-    if not tex_errors and not has_pdf_issues and budget_ok and ai_audit_ok:
+    if not tex_errors and not has_pdf_issues and budget_ok and ai_audit_ok and acronym_ok:
         print(" [SUCCESS] All cross-references, page budget, and SKILL.md anti-AI rules verified cleanly!")
         print("=" * 70)
         sys.exit(0)
@@ -222,6 +227,8 @@ def main():
             print(f" [ACTION REQUIRED] Reduce text/figures to satisfy the <= {MAX_PAGE_BUDGET} page ceiling.")
         if not ai_audit_ok:
             print(" [ACTION REQUIRED] Eliminate identified AI writing patterns per docs/SKILL.md.")
+        if not acronym_ok:
+            print(" [ACTION REQUIRED] Define each acronym as Full Name (ACR) at first use.")
         if tex_errors or has_pdf_issues:
             print(" [ACTION REQUIRED] Resolve broken cross-references or citations.")
         print("=" * 70)

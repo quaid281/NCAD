@@ -48,6 +48,16 @@
   `In conclusion`), copula avoidance (`serves as`, `boasts`, `features` as verb),
   and hedge stacking (`could potentially`). Em-dash rate in prose must remain
   at or below 1.0 per 1,000 words.
+- **Define acronyms at first use (IEEE style):** Before committing any
+  manuscript change, run
+  `C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/audit_acronyms.py`.
+  Every acronym must be spelled out in the form `Full Name (ACR)` at its
+  first use, and the abstract must define its own acronyms because it stands
+  alone. Dataset, model, and product proper names (SMAP, TimesNet, PyTorch)
+  are exempt via the allowlists in the script. Fix every reported item. The
+  check is also enforced automatically by `scripts/build_and_verify_manuscript.py`.
+  Add a new false positive to the allowlist in the script instead of ignoring
+  the report.
 - **Git:** work on `dev`; the user syncs/pushes `main`. Use the standard
   Devin commit trailer (`Generated with [Devin]` / Co-Authored-By).
 
@@ -96,6 +106,9 @@ Key requirements:
 # Rebuild, compile, and verify manuscript (builds standalone,
 # scans for unresolved '??' / '[?]' markers, audits SKILL.md anti-AI rules, and enforces <= 13-page budget)
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_and_verify_manuscript.py
+
+# Audit acronyms: each must be defined (Full Name (ACR)) before first use
+C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/audit_acronyms.py
 
 # Audit manuscript prose against anti-AI writing patterns (docs/SKILL.md)
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/scan_ai_writing.py

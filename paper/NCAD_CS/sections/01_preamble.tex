@@ -11,6 +11,15 @@
 \usepackage{cite}           % Handles citations like [1]-[3]
 \usepackage{soul}           % For \hl{} highlighting
 \usepackage{siunitx}        % For \sisetup and S column type
+\usepackage{etoolbox}       % For \robustify with siunitx
+\robustify\bfseries
+\robustify\underline
+\sisetup{
+    detect-all,
+    mode = text,
+    group-separator = {,},
+    group-minimum-digits = 4
+}
 \usepackage{multirow}       % Multi-row cells in tables
 \usepackage{booktabs}       % Nicer tables
 \usepackage{textcomp}       % Additional text symbols
@@ -35,8 +44,11 @@
 \setlength{\floatsep}{3pt plus 1pt minus 1pt}
 \setlength{\intextsep}{3pt plus 1pt minus 1pt}
 \setlength{\abovecaptionskip}{2pt}
-\setlength{\belowcaptionskip}{0pt}
-\renewcommand{\arraystretch}{0.86}
+\setlength{\belowcaptionskip}{1pt}
+\setlength{\aboverulesep}{0.28ex}
+\setlength{\belowrulesep}{0.34ex}
+\setlength{\defaultaddspace}{1.5pt}
+\renewcommand{\arraystretch}{0.88}
 \setlength{\tabcolsep}{3.5pt}
 \AtBeginDocument{%
   \setlength{\abovedisplayskip}{3pt plus 1pt minus 1pt}%

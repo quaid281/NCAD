@@ -1,44 +1,42 @@
 \begin{table}[t]
 \centering
-\small
+\scriptsize
+\setlength{\tabcolsep}{1.8pt}
 \caption{Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)~Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses), (b)~Controlled-Drift Stress Test ($n{=}16$), and (c)~Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$).\label{tab:calibrator_comparison}}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}llcccc@{}}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} ll c S[table-format=2.0] c S[table-format=1.4] @{}}
 \toprule
-\textbf{(a) Model} & \textbf{Calibrator Rule} & \textbf{Causal FPR} & \textbf{Overshoot $>q$} & \textbf{Buffered FPR} & \textbf{Point-F1 (buf)} \\
+\textbf{(a) Model} & \textbf{Calibrator Rule} & \textbf{Causal FPR} & {\textbf{Over.\ (\%)}} & \textbf{Buffered FPR} & {\textbf{F1 (buf)}} \\
 \midrule
 \multirow{4}{*}{TS-JEPA}
- & Standard SPOT ($q=10^{-3}$)      & 0.0171 (0.0151) & 10\% & 0.0640 (0.0554) & 0.1386 \\
- & SPOT + Kurtosis ($\beta=0.167$) & 0.0185 (0.0159) & 10\% & 0.1630 (0.1397) & 0.1498 \\
- & Empirical 99.5th Percentile     & 0.0254 (0.0229) & 21\% & 0.0756 (0.0659) & 0.1399 \\
- & Validation Maximum              & 0.0160 (0.0140) & 7\%  & 0.0658 (0.0568) & 0.1385 \\
-\midrule
+ & Standard SPOT ($q{=}10^{-3}$)      & 0.0171 (0.0151) & 10 & 0.0640 (0.0554) & 0.1386 \\
+ & SPOT + Kurtosis ($\beta{=}0.167$) & 0.0185 (0.0159) & 10 & 0.1630 (0.1397) & 0.1498 \\
+ & Empirical 99.5th Pct.             & 0.0254 (0.0229) & 21 & 0.0756 (0.0659) & 0.1399 \\
+ & Validation Maximum                & 0.0160 (0.0140) & 7  & 0.0658 (0.0568) & 0.1385 \\
+\addlinespace[2.0pt]
 \multirow{4}{*}{OpEntropy}
- & Standard SPOT ($q=10^{-3}$)      & 0.0212 (0.0195) & 14\% & 0.0725 (0.0638) & 0.1573 \\
- & SPOT + Kurtosis ($\beta=0.167$) & 0.0209 (0.0188) & 10\% & 0.1346 (0.1165) & 0.1610 \\
- & Empirical 99.5th Percentile     & 0.0298 (0.0281) & 27\% & 0.0882 (0.0783) & 0.1633 \\
- & Validation Maximum              & 0.0187 (0.0170) & 10\% & 0.0727 (0.0637) & 0.1566 \\
-\midrule
+ & Standard SPOT ($q{=}10^{-3}$)      & 0.0212 (0.0195) & 14 & 0.0725 (0.0638) & 0.1573 \\
+ & SPOT + Kurtosis ($\beta{=}0.167$) & 0.0209 (0.0188) & 10 & 0.1346 (0.1165) & 0.1610 \\
+ & Empirical 99.5th Pct.             & 0.0298 (0.0281) & 27 & 0.0882 (0.0783) & 0.1633 \\
+ & Validation Maximum                & 0.0187 (0.0170) & 10 & 0.0727 (0.0637) & 0.1566 \\
+\addlinespace[2.0pt]
 \multirow{4}{*}{TimesNet}
- & Standard SPOT ($q=10^{-3}$)      & 0.1795 (0.1611) & 49\% & 0.2217 (0.1985) & 0.1395 \\
- & SPOT + Kurtosis ($\beta=0.167$) & 0.1843 (0.1623) & 46\% & 0.2281 (0.2011) & 0.1352 \\
- & Empirical 99.5th Percentile     & 0.1914 (0.1752) & 51\% & 0.2338 (0.2125) & 0.1413 \\
- & Validation Maximum              & 0.1791 (0.1599) & 48\% & 0.2263 (0.2032) & 0.1410 \\
-\midrule
+ & Standard SPOT ($q{=}10^{-3}$)      & 0.1795 (0.1611) & 49 & 0.2217 (0.1985) & 0.1395 \\
+ & SPOT + Kurtosis ($\beta{=}0.167$) & 0.1843 (0.1623) & 46 & 0.2281 (0.2011) & 0.1352 \\
+ & Empirical 99.5th Pct.             & 0.1914 (0.1752) & 51 & 0.2338 (0.2125) & 0.1413 \\
+ & Validation Maximum                & 0.1791 (0.1599) & 48 & 0.2263 (0.2032) & 0.1410 \\
+\addlinespace[2.0pt]
 \multirow{4}{*}{TranAD}
- & Standard SPOT ($q=10^{-3}$)      & 0.1601 (0.1423) & 46\% & 0.2217 (0.1963) & 0.0936 \\
- & SPOT + Kurtosis ($\beta=0.167$) & 0.1722 (0.1513) & 43\% & 0.2453 (0.2151) & 0.0940 \\
- & Empirical 99.5th Percentile     & 0.1712 (0.1544) & 51\% & 0.2343 (0.2093) & 0.0962 \\
- & Validation Maximum              & 0.1580 (0.1392) & 44\% & 0.2270 (0.2009) & 0.0952 \\
+ & Standard SPOT ($q{=}10^{-3}$)      & 0.1601 (0.1423) & 46 & 0.2217 (0.1963) & 0.0936 \\
+ & SPOT + Kurtosis ($\beta{=}0.167$) & 0.1722 (0.1513) & 43 & 0.2453 (0.2151) & 0.0940 \\
+ & Empirical 99.5th Pct.             & 0.1712 (0.1544) & 51 & 0.2343 (0.2093) & 0.0962 \\
+ & Validation Maximum                & 0.1580 (0.1392) & 44 & 0.2270 (0.2009) & 0.0952 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}
 
 \vspace{2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] @{}}
 \toprule
-\textbf{(b) Injected condition} & \textbf{Static SPOT} & \textbf{Static empirical} & \textbf{Rolling empirical} & \textbf{Rolling SPOT} \\
+\textbf{(b) Injected condition} & {\textbf{Static SPOT}} & {\textbf{Static emp.}} & {\textbf{Rolling emp.}} & {\textbf{Rolling SPOT}} \\
 \midrule
 Stationary (no injection) & 0.061 & 0.162 & 0.016 & 0.047 \\
 Mean shift $+1.0\sigma$ & 0.087 & 0.216 & 0.011 & 0.043 \\
@@ -47,22 +45,20 @@ Variance scale $2.0$ & 0.082 & 0.195 & 0.016 & 0.047 \\
 Autocorrelation $0.9$ & 0.113 & 0.232 & 0.024 & 0.055 \\
 Continuous mean ramp & 0.075 & 0.186 & 0.326 & 0.385 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}
 
 \vspace{2pt}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}l ccc ccc@{}}
+\setlength{\tabcolsep}{1.1pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l S[table-format=1.4] S[table-format=1.4] S[table-format=1.4] cc S[table-format=1.1] @{}}
 \toprule
-& \multicolumn{3}{c}{\textbf{Refitted Stage Causal FPR}} & \multicolumn{3}{c}{\textbf{Estimated Share of Excess ($\text{FPR}_{\text{chrono}} - q$)}} \\
+& \multicolumn{3}{c}{\textbf{Refitted Stage Causal FPR}} & \multicolumn{3}{c}{\textbf{Share of Excess ($\text{FPR}_{\text{chrono}} - q$, \%)}} \\
 \cmidrule(lr){2-4} \cmidrule(lr){5-7}
-\textbf{(c) Model} & $\text{FPR}_{\text{chrono}}$ & $\text{FPR}_{\text{block}}$ & $\text{FPR}_{\text{point}}$ & \textbf{Inter-Block Shift ($95\%$ CI)} & \textbf{Serial Dep.\ ($95\%$ CI)} & \textbf{i.i.d.\ Tail} \\
+\textbf{(c) Model} & {$\text{FPR}_{\text{chr}}$} & {$\text{FPR}_{\text{blk}}$} & {$\text{FPR}_{\text{pt}}$} & {\textbf{Inter-Block ($95\%$ CI)}} & {\textbf{Serial Dep.\ ($95\%$ CI)}} & {\textbf{i.i.d.}} \\
 \midrule
-TS-JEPA   & 0.0121 & 0.0058 & 0.0019 & $56.6\%$ ($+.0063$ $[-.0054, +.0194]$) & $35.3\%$ ($+.0039$ $[+.0001, +.0103]$) & $8.1\%$ \\
-OpEntropy & 0.0185 & 0.0073 & 0.0022 & $64.1\%$ ($+.0112$ $[-.0015, +.0336]$) & $29.1\%$ ($+.0051$ $[-.0005, +.0146]$) & $6.9\%$ \\
-TimesNet  & 0.0872 & 0.0204 & 0.0037 & $77.5\%$ ($+.0668$ $[+.0310, +.1082]$) & $19.4\%$ ($+.0167$ $[+.0041, +.0338]$) & $3.1\%$ \\
-TranAD    & 0.0741 & 0.0067 & 0.0032 & $92.3\%$ ($+.0674$ $[+.0354, +.1062]$) & $4.7\%$  ($+.0035$ $[+.0002, +.0078]$) & $3.0\%$ \\
+TS-JEPA   & 0.0121 & 0.0058 & 0.0019 & $56.6$ ($+.0063$ $[-.0054, +.0194]$) & $35.3$ ($+.0039$ $[+.0001, +.0103]$) & 8.1 \\
+OpEntropy & 0.0185 & 0.0073 & 0.0022 & $64.1$ ($+.0112$ $[-.0015, +.0336]$) & $29.1$ ($+.0051$ $[-.0005, +.0146]$) & 6.9 \\
+TimesNet  & 0.0872 & 0.0204 & 0.0037 & $77.5$ ($+.0668$ $[+.0310, +.1082]$) & $19.4$ ($+.0167$ $[+.0041, +.0338]$) & 3.1 \\
+TranAD    & 0.0741 & 0.0067 & 0.0032 & $92.3$ ($+.0674$ $[+.0354, +.1062]$) & $4.7$  ($+.0035$ $[+.0002, +.0078]$) & 3.0 \\
 \bottomrule
-\end{tabular}%
-}\par\vspace{-8pt}
+\end{tabular*}\par\vspace{-8pt}
 \end{table}

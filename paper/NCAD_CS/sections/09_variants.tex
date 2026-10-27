@@ -3,33 +3,40 @@
 
 \begin{table*}[t]
 \centering
-\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds).\label{tab:ablations}}
+\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
 \vspace{1pt}
-\begin{tabular}{@{}p{0.52\textwidth}@{\hspace{0.03\textwidth}}p{0.45\textwidth}@{}}
+\begin{tabular}{@{}p{0.54\textwidth}@{\hspace{0.02\textwidth}}p{0.44\textwidth}@{}}
 \toprule
 \multicolumn{1}{c}{\textbf{(a) Regularizer Controls on Fixed Architectures \& TOST Equivalence}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lcccccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{1.6pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cccccc@{}}
 \toprule
 \textbf{Model / Control} & \textbf{Point-F1} & \textbf{PR-AUC} & \textbf{FPR} & \textbf{ER} & \textbf{Paired $\Delta$F1 ($90\%$ CI)} & \textbf{$p_{\text{TOST}}$} \\
 \midrule
 TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & Baseline (cross-arch) & -- \\
+\addlinespace[1.5pt]
 Operator-Entropy JEPA & $0.233 \pm 0.028$ & 0.351 & 0.101 & 0.550 & $-0.004$ $[-0.011, +0.003]$ & $0.0007$ ($\pm .03$) \\
 \quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & (also $\pm .015$: $p{=}0.0024$) & $0.0088$ ($\pm .01$) \\
+\addlinespace[1.5pt]
 Reynolds-Stress JEPA & $0.190 \pm 0.022$ & 0.313 & 0.074 & 0.457 & $+0.013$ $[-0.001, +0.030]$ & $0.0019$ ($\pm .05$) \\
 \quad $\alpha_{\text{stress}}=0$ control & $0.182 \pm 0.036$ & 0.299 & 0.067 & 0.472 & (also $\pm .035$: $p{=}0.0031$) & -- \\
+\addlinespace[1.5pt]
 Potential-Flow JEPA & $0.138 \pm 0.044$ & 0.235 & 0.087 & 0.449 & $-0.054$ $[-0.131, +0.012]$ & $0.17$ (fails) \\
 \quad no-regime control ($K_r=1$) & $0.189 \pm 0.024$ & 0.279 & 0.084 & 0.431 & -- & -- \\
 \midrule
 TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & -- & -- \\
 TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & -- & -- \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}%
+\endgroup
 &
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
 \toprule
 \textbf{Stream (F1 / PR-AUC)} & \textbf{Standard Conv} & \textbf{Dyadic Shells} & \textbf{$\Delta$F1 / $\Delta$PR} \\
 \midrule
@@ -41,16 +48,18 @@ GECCO \texttt{water\_quality} & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} 
 \midrule
 \textbf{Macro Mean} & \textbf{0.118} / 0.213 & 0.078 / \textbf{0.263} & $-0.040$ / $+0.050$ \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}%
+\endgroup
 \\
 \midrule
 \multicolumn{2}{c}{\textbf{(c) Factorial and Strength Sweep of the Operator Regularizer}} \\
 \multicolumn{2}{c}{%
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lcc cccc ccc ccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{2.2pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcc cccc ccc ccc@{}}
 \toprule
-& & & \multicolumn{4}{c}{\textbf{Operator / representation / stability}} & \multicolumn{3}{c}{\textbf{Buffered}} & \multicolumn{3}{c}{\textbf{Causal}} \\
+& & & \multicolumn{4}{c}{\textbf{Operator / Representation / Stability}} & \multicolumn{3}{c}{\textbf{Buffered}} & \multicolumn{3}{c}{\textbf{Causal}} \\
 \cmidrule(lr){4-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
 \textbf{Arm} & $\lambda_{\text{ent}}$ & $\beta_{\text{norm}}$ & $\text{RankMe}(\mathbf{K})$ & $\kappa(\mathbf{K})$ & $\text{RankMe}(z_{\text{ctx}}/z_{\text{tgt}})$ & $\text{CV}_{\mathcal{L}}$ & FPR & F1 & ER & FPR & F1 & ER \\
 \midrule
@@ -63,16 +72,19 @@ Both (deployed) & 0.50 & 1 & 31.85 & 1.255 & 5.54/11.56 & 0.549 & 0.072 & 0.038 
 Both & 1.00 & 1 & 31.91 & 1.204 & 5.25/11.55 & 0.546 & 0.070 & 0.037 & 0.250 & 0.017 & 0.007 & 0.365 \\
 Both & 2.00 & 1 & 31.95 & 1.154 & 5.34/11.54 & 0.545 & 0.072 & 0.032 & 0.250 & 0.017 & 0.004 & 0.397 \\
 \bottomrule
-\end{tabular}%
-}}
+\end{tabular*}%
+\endgroup
+}
 \\
 \midrule
 \multicolumn{2}{c}{%
-\begin{tabular}{@{}p{0.37\textwidth}@{\hspace{0.02\textwidth}}p{0.61\textwidth}@{}}
+\begin{tabular}{@{}p{0.35\textwidth}@{\hspace{0.02\textwidth}}p{0.63\textwidth}@{}}
 \multicolumn{1}{c}{\textbf{(d) Quiet-Fault Point Recall}} & \multicolumn{1}{c}{\textbf{(e) Controlled Mechanism-Discrimination Study (19 Non-GHL Streams)}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}lccccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{2.0pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccccc@{}}
 \toprule
 \textbf{Injected fault} & Unif. & Var. & MAD & \texttt{lowvar} & \texttt{dev\_maxz} \\
 \midrule
@@ -85,11 +97,13 @@ $+5\sigma$ spike & 0.023 & 0.042 & 0.059 & 0.182 & 0.108 \\
 \midrule
 Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}%
+\endgroup
 &
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{@{}l cc cc cc cc cccc@{}}
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{1.2pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cc cc cc cc cccc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Tail/Drift}} & \multicolumn{2}{c}{\textbf{Held FPR}} & \multicolumn{2}{c}{\textbf{Point-F1}} & \multicolumn{2}{c}{\textbf{PR-AUC}} & \multicolumn{4}{c}{\textbf{Causal Event Recall}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13}
@@ -108,8 +122,8 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \texttt{TimesNet} & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & \textbf{0.293} & 0.329 & \textbf{0.588} & 0.618 & 0.217 & 0.407 \\
 \texttt{TranAD} & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 0.602 & 0.149 & 0.343 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}%
+\endgroup
 \end{tabular}%
 }
 \\
