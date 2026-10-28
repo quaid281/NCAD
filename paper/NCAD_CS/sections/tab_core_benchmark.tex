@@ -10,10 +10,8 @@
 \textbf{Model} & {FPR $[95\%\text{ CI}]$ $\downarrow$} & {F1 $[95\%\text{ CI}]$ $\uparrow$} & {PR-AUC $\uparrow$} & {ER $\uparrow$} & {$\Delta t$ $\downarrow$} & {FPR $[95\%\text{ CI}]$ $\downarrow$} & {F1 $[95\%\text{ CI}]$ $\uparrow$} & {ER $\uparrow$} & {$\Delta t$ $\downarrow$} & {FPR $\downarrow$} & {F1 $\uparrow$} & {DS-Macro F1 $\uparrow$} \\
 \midrule
 \multicolumn{13}{@{}l}{\textit{Latent-space predictive architectures (JEPAs)}} \\
-TS-JEPA (unconstrained)   & 0.093 $[.048, .145]$ & \underline{0.206} $[.113, .319]$ & \underline{0.331} & 0.477 & 110.3 & 0.024 $[.007, .046]$ & \underline{0.161} $[.063, .287]$ & 0.487 & 124.0 & \underline{0.004} & 0.000 & \underline{0.115} \\
-Operator-Entropy JEPA     & 0.101 $[.043, .180]$ & \textbf{0.233} $[.131, .355]$ & \bfseries 0.351 & \underline{0.550} & \underline{79.5} & 0.028 $[.007, .063]$ & 0.153 $[.070, .247]$ & 0.517 & \underline{112.5} & 0.012 & 0.001 & \bfseries 0.125 \\
-Reynolds-Stress JEPA      & \underline{0.074} $[.038, .118]$ & 0.190 $[.101, .295]$ & 0.313 & 0.457 & 160.9 & \underline{0.011} $[.006, .017]$ & 0.131 $[.051, .232]$ & 0.491 & 142.1 & \bfseries 0.003 & 0.002 & 0.101 \\
-Potential-Flow JEPA       & 0.087 $[.041, .142]$ & 0.138 $[.062, .231]$ & 0.235 & 0.449 & 104.1 & \textbf{0.008} $[.002, .016]$ & 0.029 $[.005, .064]$ & 0.459 & 138.4 & 0.011 & 0.006 & 0.089 \\
+TS-JEPA (unconstrained)   & \underline{0.093} $[.048, .145]$ & \underline{0.206} $[.113, .319]$ & \underline{0.331} & 0.477 & 110.3 & \textbf{0.024} $[.007, .046]$ & \underline{0.161} $[.063, .287]$ & 0.487 & 124.0 & \underline{0.004} & 0.000 & \underline{0.115} \\
+Operator-Entropy JEPA     & 0.101 $[.043, .180]$ & \textbf{0.233} $[.131, .355]$ & \bfseries 0.351 & \underline{0.550} & \underline{79.5} & \underline{0.028} $[.007, .063]$ & 0.153 $[.070, .247]$ & 0.517 & \underline{112.5} & 0.012 & 0.001 & \bfseries 0.125 \\
 \addlinespace[2.2pt]
 \multicolumn{13}{@{}l}{\textit{Observation-space reconstructive baselines}} \\
 TimesNet                  & 0.300 $[.162, .446]$ & 0.197 $[.098, .315]$ & 0.329 & \bfseries 0.583 & \bfseries 48.5 & 0.243 $[.123, .375]$ & \textbf{0.209} $[.109, .326]$ & \bfseries 0.588 & \bfseries 62.2 & 0.061 & \bfseries 0.022 & 0.100 \\

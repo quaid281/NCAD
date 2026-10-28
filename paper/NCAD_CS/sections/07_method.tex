@@ -27,26 +27,25 @@ Consider a continuous multivariate telemetry stream $\mathbf{X} \in \mathbb{R}^{
 
 Unlike reconstructive detectors that minimize pointwise observation error $\|\mathbf{X} - \hat{\mathbf{X}}\|_F^2$ and inherit leptokurtic sensor noise (Sections~\ref{sec:intro} and~\ref{sec:related}), we shift prediction into a compact 32-dimensional latent space ($D=32$, Fig.~\ref{fig:context_target_schematic}(b)) using a Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path}. An online context encoder $E_\theta$ compresses $\mathbf{x}_{\text{ctx}}$ into a context vector $z_{\text{ctx}} \in \mathbb{R}^D$, while a separate target encoder $E_\phi$ compresses $\mathbf{x}_{\text{tgt}}$ into a target vector $z_{\text{tgt}} \in \mathbb{R}^D$. Rather than training $E_\phi$ by direct gradient descent (which would allow both encoders to map all inputs to a constant vector), the target weights $\phi$ are updated as an exponential moving average (EMA) of the online weights $\theta$, $\phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k$ with a cosine momentum schedule $m_k \in [0.996, 0.9995]$ \cite{grill2020bootstrap, assran2023self}. By predicting the summary embedding $z_{\text{tgt}}$ from $z_{\text{ctx}}$, the model discards uninformative channel-level jitter while preserving structural trajectory departures.
 
-\subsection{Latent Predictor Architectures and Dynamical Inductive Priors}
+\subsection{Latent Predictor Architectures and Spectral Conditioning}
 \label{subsec:triad_formulations}
-We formulate Operator-Entropy JEPA as our primary transition architecture and evaluate it alongside an unconstrained multi-layer perceptron predictor (\texttt{TS-JEPA}) and two comparative physics-inspired variants (Reynolds-Stress and Potential-Flow):
+We formulate Operator-Entropy JEPA as a linear Koopman transition architecture and evaluate it alongside an unconstrained multi-layer perceptron predictor (\texttt{TS-JEPA}):
 
-\subsubsection{Operator-Entropy JEPA (Spectral Dynamics and Modal Dispersion)}
+\subsubsection{Operator-Entropy JEPA (Spectral Conditioning)}
 \noindent\textbf{Idea.} Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral} represents nonlinear dynamics as a linear map on learned observables. We follow it and forecast in latent space with a single learnable matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$, so that $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$.
 
 \noindent\textbf{Problem.} Trained on prediction error alone, $\mathbf{K}$ can fail in two ways. It can put all its energy into a few directions (rank collapse), or it can shrink toward zero (norm collapse). Either way it stops carrying information about the dynamics.
 
-\noindent\textbf{Fix.} We penalize each failure separately. The first penalty keeps energy spread evenly across directions. The second keeps total energy near its starting scale.
+\noindent\textbf{Fix.} We regularize both the shape and total scale of the singular value spectrum of $\mathbf{K}$ via a unified spectral conditioning functional $\mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}}\Phi_{\text{energy}}(\mathbf{K})$.
 
-\noindent\textbf{Penalty 1: spread energy evenly.}
-
+\noindent\textbf{Spectral shape ($\Delta\mathcal{H}$): spread energy evenly.}
 The singular values $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ of $\mathbf{K}$ measure how strongly it amplifies each orthogonal direction. Each squared value $\lambda_i = \sigma_i^2$ is the energy in direction $i$, and $\|\mathbf{K}\|_F^2 = \sum_{i=1}^D \lambda_i$ is the total energy. Normalizing the energies into a probability distribution $p_i = (\lambda_i + \epsilon_{\log}) / \sum_{j=1}^D (\lambda_j + \epsilon_{\log})$ (with $\epsilon_{\log} = 10^{-12}$ for numerical stability) defines the Von Neumann spectral entropy $\mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D p_i \log p_i$. We define the \textit{Spectral Entropy Deficiency} as the Kullback--Leibler (KL) divergence between the modal distribution $\mathbf{p}$ and the ideal uniform equipartition $\mathbf{u} = [1/D, \dots, 1/D]^\top$:
 \begin{equation}
     \Delta\mathcal{H}(\mathbf{K}) = \log D - \mathcal{H}_{\text{spectral}}(\mathbf{K}) = \mathcal{D}_{\text{KL}}(\mathbf{p} \,\|\, \mathbf{u}) \ge 0.
 \end{equation}
 When all $D$ singular modes carry equal energy ($\sigma_1 = \dots = \sigma_D$), $\Delta\mathcal{H}(\mathbf{K}) = 0$; conversely, if $\mathbf{K}$ collapses onto a single rank-1 direction, $\Delta\mathcal{H}(\mathbf{K})$ rises toward $\log D$. Minimizing $\Delta\mathcal{H}(\mathbf{K})$ thus encourages a well-conditioned, near-isometric transition matrix.
 
-\noindent\textbf{Penalty 2: keep total energy near one.} A smooth logarithmic Bregman barrier on the energy ratio $r(\mathbf{K}) = \|\mathbf{K}\|_F^2 / D$ stops $\mathbf{K}$ from shrinking, with no hard gradient clipping:
+\noindent\textbf{Spectral scale ($\Phi_{\text{energy}}$): keep total energy near one.} Because $\Delta\mathcal{H}(c\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K})$ is scale-invariant for $c > 0$, a smooth logarithmic Bregman barrier on the energy ratio $r(\mathbf{K}) = \|\mathbf{K}\|_F^2 / D$ stops $\mathbf{K}$ from shrinking, with no hard gradient clipping:
 \begin{equation}
 \begin{aligned}
     \Phi_{\text{energy}}(\mathbf{K}) &= r(\mathbf{K}) - 1 - \log\bigl(r(\mathbf{K}) + \epsilon\bigr) \\
@@ -61,7 +60,7 @@ with $\epsilon = 10^{-6}$. This convex barrier equals zero at the unit-energy sc
 \end{aligned}
 \label{eq:op_entropy_loss}
 \end{equation}
-where $B$ is the batch size, $\beta_{\text{norm}} = 1.0$, $\lambda_{\text{ent}} = 0.5$, and $\beta_{\text{Lyap}} = 0.02$. Here $\mathcal{L}_{\text{Lyap}}$ is a discrete Lyapunov covariance-alignment penalty that matches the trace-normalized batch covariance of predicted states $\mathbf{K}\operatorname{sg}(z_{\text{ctx}})$ to that of $z_{\text{tgt}}$, applying a stop-gradient operator $\operatorname{sg}(\cdot)$ to $z_{\text{ctx}}$ so that the operator regularizers condition $\mathbf{K}$ without distorting the encoder representations.
+where $B$ is the batch size, $\beta_{\text{norm}} = 1.0$, $\lambda_{\text{ent}} = 0.5$, and $\beta_{\text{Lyap}} = 0.02$. Because context and target windows have asymmetric lengths ($C=256$ vs.\ $S=64$), $\mathcal{L}_{\text{Lyap}}$ aligns the trace-normalized batch covariance of predicted states $\mathbf{K}\operatorname{sg}(z_{\text{ctx}})$ to that of $z_{\text{tgt}}$, applying a stop-gradient operator $\operatorname{sg}(\cdot)$ to $z_{\text{ctx}}$ so that operator conditioning acts solely on $\mathbf{K}$ without distorting the encoder representations.
 
 \begin{proposition}[Operator Non-Triviality Under Finite-$\epsilon$ and Singular Barriers]
 \label{prop:anti_collapse}
@@ -74,15 +73,6 @@ For $\epsilon > 0$, $\nabla_{\mathbf{K}}\Phi_{\text{energy}}(\mathbf{K}) = \frac
 \end{proof}
 
 \noindent\textbf{Remark (Scope of Regularization):} Proposition~\ref{prop:anti_collapse} guarantees non-degeneracy of the transition matrix $\mathbf{K}$, not diversity of the encoder representations $z_{\text{ctx}}, z_{\text{tgt}}$. Unlike representation regularizers such as VICReg \cite{bardes2021vicreg} or Barlow Twins \cite{zbontar2021barlow} that penalize encoder covariance collapse directly, $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ constrains only the transition spectrum; encoder collapse is prevented empirically by the momentum target encoder and stop-gradient decoupling (Table~\ref{tab:ablations}(c)).
-
-\subsubsection{Comparative Physical Priors (Reynolds-Stress and Potential-Flow Heads)}
-\label{subsubsec:reynolds_stress_jepa}
-\label{subsubsec:potential_flow_jepa}
-To test whether alternative continuum-mechanics priors improve anomaly detection, we evaluate two additional latent predictor heads under identical encoder backbones:
-\begin{itemize}[leftmargin=*, nosep, itemsep=1pt]
-    \item \textbf{Reynolds-Stress JEPA (Second-Moment Closure Head):} Inspired by fluid-mechanical Reynolds decomposition (which separates mean flow from turbulent covariance fluctuations), this variant augments the mean prediction $\hat{z}_{\text{tgt}}$ with a lower-triangular Cholesky factor head $\mathbf{L} \in \mathbb{R}^{d_s \times d_s}$ ($d_s = 16$) that predicts the projected outer-product second moment $\boldsymbol{\Sigma}_{\text{obs}} = (\mathbf{P} z_{\text{tgt}})(\mathbf{P} z_{\text{tgt}})^\top + 10^{-3}\mathbf{I}$ via $\boldsymbol{\Sigma}_{\text{pred}} = \mathbf{L}\mathbf{L}^\top + 10^{-3}\mathbf{I}$. Training minimizes the sum of the latent prediction MSE and $0.1\operatorname{MSE}(\boldsymbol{\Sigma}_{\text{pred}}, \boldsymbol{\Sigma}_{\text{obs}})$, and inference adds $0.5\,g(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}}))$ to the primary residual score.
-    \item \textbf{Potential-Flow JEPA (Curl-Free Flow Matching Head):} Motivated by conservative irrotational vector fields, this variant parameterizes a curl-free velocity field $\hat{v} = -\nabla_{z_t}\Phi_\psi$ as the negative gradient of a scalar potential $\Phi_\psi$ conditioned on flow time $t \in [0,1]$, context $z_{\text{ctx}}$, and a soft router over $K_r = 4$ orthonormal subspaces. Training uses conditional flow matching along linear paths from Gaussian noise to $z_{\text{tgt}}$, and inference evaluates the velocity residual at the trajectory midpoint. Because curl-free gradient fields cannot represent closed rotational orbits without multi-regime switching, this inductive bias is hypothesized to penalize periodic nominal telemetry (Section~\ref{subsec:eval_physics_priors}).
-\end{itemize}
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}

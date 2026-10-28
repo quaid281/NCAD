@@ -3,11 +3,11 @@
 
 \begin{table*}[t]
 \centering
-\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Controls and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
+\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
 \vspace{1pt}
 \begin{tabular}{@{}p{0.54\textwidth}@{\hspace{0.03\textwidth}}p{0.43\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) Regularizer Controls on Fixed Architectures \& TOST Equivalence}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
+\multicolumn{1}{c}{\textbf{(a) Regularizer Control on Fixed Architecture \& TOST Equivalence}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
@@ -20,17 +20,11 @@ TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & {Baseline}
 \addlinespace[1.5pt]
 Operator-Entropy JEPA & $0.233 \pm 0.028$ & 0.351 & 0.101 & 0.550 & $-0.004$ $[-.011, +.003]$ & $0.0007^*$ \\
 \quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & {--} & $0.0088^\dagger$ \\
-\addlinespace[1.5pt]
-Reynolds-Stress JEPA & $0.190 \pm 0.022$ & 0.313 & 0.074 & 0.457 & $+0.013$ $[-.001, +.030]$ & $0.0019^*$ \\
-\quad $\alpha_{\text{stress}}=0$ control & $0.182 \pm 0.036$ & 0.299 & 0.067 & 0.472 & {--} & $0.0031^\ddagger$ \\
-\addlinespace[1.5pt]
-Potential-Flow JEPA & $0.138 \pm 0.044$ & 0.235 & 0.087 & 0.449 & $-0.054$ $[-.131, +.012]$ & 0.170 \\
-\quad no-regime control ($K_r{=}1$) & $0.189 \pm 0.024$ & 0.279 & 0.084 & 0.431 & {--} & {--} \\
 \midrule
 TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & {--} & {--} \\
 TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \bottomrule
-\multicolumn{7}{@{}l}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.002$); $^\dagger$equiv.\ to $\pm 0.010$ ($p{=}0.0088$, also $\pm .015$); $^\ddagger$equiv.\ to $\pm 0.035$.} \\
+\multicolumn{7}{@{}l}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.001$); $^\dagger$equiv.\ to $\pm 0.010$ ($p{=}0.0088$, also $\pm .015$ and $\pm .020$).} \\
 \end{tabular*}%
 \endgroup
 &
@@ -140,19 +134,15 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \vspace{-8pt}
 \end{figure*}
 
-\subsection{Ablation 1: Physical Regularizer Controls on Fixed Architectures}
+\subsection{Ablation 1: Operator Regularizer Control on Fixed Architecture}
 \label{subsec:controlled_ablations}
-To test whether physics-inspired regularizers drive anomaly detection accuracy, Table~\ref{tab:ablations}(a) disables each physical penalty on its fixed architecture across all 19 non-GHL streams:
-\begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \textbf{Operator-Entropy vs.\ $\lambda_{\text{ent}}{=}0$ (fixed Koopman backbone):} Removing the spectral regularizer leaves buffered Point-F1 ($0.232$ vs.\ $0.235$, paired difference $-0.004$, two-sided $p=0.89$) and PR-AUC ($0.365$ vs.\ $0.365$) virtually identical. Two One-Sided Tests confirm formal equivalence within the prespecified $\Delta = \pm 0.03$ margin ($p_{\text{TOST}} = 0.0007$) and across narrow-margin sensitivity checks down to $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 0.0015$), $\Delta = \pm 0.015$ ($p_{\text{TOST}} = 0.0024$, with $90\%$ CI $[-0.0112, +0.0029]$ strictly inside $[-\Delta, +\Delta]$), and $\Delta = \pm 0.010$ ($p_{\text{TOST}} = 0.0088$), as well as within $\pm 0.010$ PR-AUC and $\pm 0.025$ event recall.
-    \item \textbf{Reynolds-Stress vs.\ $\alpha_{\text{stress}}{=}0$ (fixed backbone):} Disabling the second-moment loss yields a $+0.013$ Point-F1 shift (two-sided $p=0.59$), confirming TOST equivalence within $\Delta = \pm 0.05$ ($p_{\text{TOST}} = 0.0019$) and down to $\Delta = \pm 0.035$ ($p_{\text{TOST}} = 0.0031$).
-    \item \textbf{Potential-Flow vs.\ no-regime ($K_r{=}1$):} Disabling multi-regime routing shifts Point-F1 by $-0.054$ ($p_{\text{TOST}} = 0.17$), failing equivalence at $\Delta = \pm 0.05$.
-\end{enumerate}
-These fixed-backbone regularizer controls must be distinguished from cross-architecture comparisons against unconstrained TS-JEPA (which uses an MLP predictor without radial energy scoring or Lyapunov covariance alignment). On the 19-stream subset, the $+0.028$ Point-F1 difference between OpEntropy JEPA and TS-JEPA ($90\%$ CI $[-0.018, +0.074]$, $p_{\text{TOST}} = 0.11$) is statistically inconclusive at $\Delta = \pm 0.05$, whereas across all 33 primary streams OpEntropy JEPA ($+0.016$, $90\%$ CI $[-0.009, +0.045]$, $p_{\text{TOST}} = 0.0019$) and Reynolds-Stress ($-0.008$, $p_{\text{TOST}} = 0.0017$) satisfy $\text{TOST}(\pm 0.05)$ (with OpEntropy vs.\ TS-JEPA also satisfying $\text{TOST}(\pm 0.030)$ at $p_{\text{TOST}} = 0.0077$ and $\pm 0.015$ causal FPR at $p_{\text{TOST}} = 0.0001$).
+To test whether the spectral regularizer drives anomaly detection accuracy on its fixed Koopman backbone, Table~\ref{tab:ablations}(a) compares Operator-Entropy JEPA against an unregularized control ($\lambda_{\text{ent}} = 0$) across all 19 non-GHL streams. Removing the spectral regularizer leaves buffered Point-F1 ($0.233$ vs.\ $0.235$, paired difference $-0.004$, two-sided $p=0.89$) and PR-AUC ($0.351$ vs.\ $0.365$) virtually identical. Two One-Sided Tests confirm formal equivalence within the prespecified $\Delta = \pm 0.03$ margin ($p_{\text{TOST}} = 0.0007$) and across narrow-margin sensitivity checks down to $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 0.0015$), $\Delta = \pm 0.015$ ($p_{\text{TOST}} = 0.0024$, with $90\%$ CI $[-0.0112, +0.0029]$ strictly inside $[-\Delta, +\Delta]$), and $\Delta = \pm 0.010$ ($p_{\text{TOST}} = 0.0088$), as well as within $\pm 0.010$ PR-AUC and $\pm 0.025$ event recall.
+
+This fixed-backbone regularizer control must be distinguished from cross-architecture comparisons against unconstrained TS-JEPA (which uses an MLP predictor without radial energy scoring or covariance alignment). On the 19-stream subset, the $+0.028$ Point-F1 difference between OpEntropy JEPA and TS-JEPA ($90\%$ CI $[-0.018, +0.074]$, $p_{\text{TOST}} = 0.11$) is statistically inconclusive at $\Delta = \pm 0.05$, whereas across all 33 primary streams OpEntropy JEPA ($+0.016$, $90\%$ CI $[-0.009, +0.045]$, $p_{\text{TOST}} = 0.0019$) satisfies $\text{TOST}(\pm 0.05)$, $\text{TOST}(\pm 0.030)$ at $p_{\text{TOST}} = 0.0077$, and $\pm 0.015$ causal FPR at $p_{\text{TOST}} = 0.0001$.
 
 \subsection{Ablation 2: Factorial Isolation of the Entropy Term and Energy Barrier}
 \label{subsec:factorial}
-Table~\ref{tab:ablations}(c) crosses the spectral-entropy term and Bregman energy barrier across $\lambda_{\text{ent}} \in [0, 2.0]$ on six streams (three seeds). To quantify spectral diversity, we report the effective rank $\operatorname{RankMe} = \exp(-\sum_i p_i \log p_i) \in [1, 32]$ (which measures how many of the $D=32$ dimensions carry active variance) and the operator condition number $\kappa = \sigma_{\max}/\sigma_{\min} \ge 1$ (the ratio of largest to smallest singular values, where $\kappa = 1$ denotes an ideal distance-preserving isometry). Three findings emerge. First, because the Koopman matrix $\mathbf{K}$ is initialized near the identity, the unregularized operator is already near full rank ($\operatorname{RankMe}(\mathbf{K}) = 31.53$ of $32$, condition number $\kappa = 1.437$); increasing $\lambda_{\text{ent}}$ tightens conditioning monotonically ($\kappa = 1.255$ at the deployed $\lambda_{\text{ent}}=0.50$, and $\kappa = 1.154$ at $\lambda_{\text{ent}}=2.00$) while lowering training loss variation ($\text{CV}_{\mathcal{L}}: 0.565 \to 0.545$). Second, because $\mathcal{L}_{\text{Lyap}}$ applies a stop-gradient to $z_{\text{ctx}}$, encoder effective ranks remain invariant across all regularizer strengths ($\operatorname{RankMe}(z_{\text{ctx}}) \in [5.16, 5.54]$, $\operatorname{RankMe}(z_{\text{tgt}}) \in [11.54, 11.58]$). Third, detection and false-alarm rates remain stable across arms, with the deployed setting ($\lambda_{\text{ent}}=0.50, \beta_{\text{norm}}=1$) attaining the highest causal event recall ($0.444$ vs.\ $0.369$ unregularized). On an eight-stream decoupling panel, pairing detached Lyapunov alignment ($\beta_{\text{Lyap}}=0.02$) with the smooth Bregman barrier cuts causal detection delay from $127.0$ steps (TS-JEPA) and $80.2$ steps ($\beta_{\text{Lyap}}=0$) to $58.2$ steps while raising causal Point-F1 from $0.044$ to $0.094$.
+Table~\ref{tab:ablations}(c) crosses the spectral-entropy term and Bregman energy barrier across $\lambda_{\text{ent}} \in [0, 2.0]$ on six streams (three seeds). To quantify spectral diversity, we report the effective rank $\operatorname{RankMe} = \exp(-\sum_i p_i \log p_i) \in [1, 32]$ (which measures how many of the $D=32$ dimensions carry active variance) and the operator condition number $\kappa = \sigma_{\max}/\sigma_{\min} \ge 1$ (the ratio of largest to smallest singular values, where $\kappa = 1$ denotes an ideal distance-preserving isometry). First, because the Koopman matrix $\mathbf{K}$ is initialized near the identity, the unregularized operator is already near full rank ($\operatorname{RankMe}(\mathbf{K}) = 31.53$ of $32$, condition number $\kappa = 1.437$); increasing $\lambda_{\text{ent}}$ tightens conditioning monotonically ($\kappa = 1.255$ at the deployed $\lambda_{\text{ent}}=0.50$, and $\kappa = 1.154$ at $\lambda_{\text{ent}}=2.00$) while lowering training loss variation ($\text{CV}_{\mathcal{L}}: 0.565 \to 0.545$). Second, because $\mathcal{L}_{\text{Lyap}}$ applies a stop-gradient to $z_{\text{ctx}}$, encoder effective ranks remain invariant across all regularizer strengths ($\operatorname{RankMe}(z_{\text{ctx}}) \in [5.16, 5.54]$, $\operatorname{RankMe}(z_{\text{tgt}}) \in [11.54, 11.58]$). Third, detection and false-alarm rates remain stable across arms, with the deployed setting ($\lambda_{\text{ent}}=0.50, \beta_{\text{norm}}=1$) attaining the highest causal event recall ($0.444$ vs.\ $0.369$ unregularized). On an eight-stream decoupling panel, pairing detached covariance alignment ($\beta_{\text{Lyap}}=0.02$) with the smooth Bregman barrier cuts causal detection delay from $127.0$ steps (TS-JEPA) and $80.2$ steps ($\beta_{\text{Lyap}}=0$) to $58.2$ steps while raising causal Point-F1 from $0.044$ to $0.094$.
 
 \subsection{Ablation 3: Auxiliary Input-Channel Gating and Quiet-Fault Monitors}
 \label{subsec:gating_ablation}
