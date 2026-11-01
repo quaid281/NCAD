@@ -80,7 +80,7 @@
 
 % --- Input from 03_abstract.tex ---
 \begin{abstract}
-Deep reconstructive detectors for multivariate time-series anomaly detection minimize observation-space error, fitting stochastic sensor noise that produces heavy-tailed residuals and severe false-alarm flooding under automated threshold calibration. We investigate how Joint-Embedding Predictive Architectures (JEPAs) condition predictive residuals in a low-dimensional latent space under distribution shift, alongside an Operator-Entropy variant (OpEntropy JEPA) combining a linear Koopman transition operator, spectral entropy and shifted logarithmic Bregman barrier regularizers, coordinate saliency gating, and a multiscale dyadic frequency front-end. Across 33 continuous telemetry streams from seven physical datasets under chronological held-out Streaming Peaks-Over-Threshold calibration, our primary finding is relative false-alarm suppression rather than universal detection superiority or exact attainment of the 0.1\% nominal design risk. Latent predictive scoring reduces held-out false-positive rates three-fold under retrospective buffered attribution (9.3\% to 10.1\% versus 30.0\% to 30.7\% for TimesNet and TranAD) and eight- to ten-fold under strictly causal streaming (2.4\% to 2.8\% versus 22.2\% to 24.3\%), while point F1 and precision-recall ranking remain comparable to reconstructive baselines. Controlled ablations isolate two distinct mechanisms: layer-normalization bottlenecks compress residual kurtosis, whereas learned latent projections halve calibration-to-holdout distribution drift relative to normalized observation forecasters. On a fixed Koopman backbone, equivalence testing confirms that spectral entropy and barrier terms preserve full operator rank without altering point F1 within a 0.01 to 0.03 margin, while the OpEntropy transition architecture shortens detection delay relative to an unconstrained predictor. Static thresholding still overshoots its 0.1\% design target by 15- to 64-fold out of sample, driven primarily by inter-block distribution shift and serial dependence.
+Deep reconstructive detectors for multivariate time-series anomaly detection minimize observation-space error, fitting stochastic sensor noise that produces heavy-tailed residuals and severe false-alarm flooding under automated threshold calibration. We investigate how Joint-Embedding Predictive Architectures (JEPAs) condition predictive residuals in a low-dimensional latent space under distribution shift, examining unconstrained models, Operator-Entropy JEPA (OpEntropy JEPA) with spectral conditioning, and Reynolds-Stress JEPA with Crouzeix-contractive dynamics and positive semidefinite stress closure. Across 33 continuous telemetry streams from seven physical datasets under chronological held-out Streaming Peaks-Over-Threshold calibration, our primary finding is relative false-alarm suppression rather than universal detection superiority or exact attainment of the 0.1\% nominal design risk. Latent predictive scoring reduces held-out false-positive rates three-fold under retrospective buffered attribution (6.7\% to 10.9\% for base latent predictors versus 30.0\% to 30.7\% for TimesNet and TranAD) and eight- to ten-fold under strictly causal streaming (1.9\% to 2.8\% versus 22.2\% to 24.3\%), while point F1 and precision-recall ranking remain comparable to reconstructive baselines. Controlled ablations isolate two distinct mechanisms: layer-normalization bottlenecks compress residual kurtosis, whereas learned latent projections halve calibration-to-holdout distribution drift relative to normalized observation forecasters. On a fixed Koopman backbone, equivalence testing confirms that spectral entropy and barrier terms preserve full operator rank without altering point F1 within a 0.01 to 0.03 margin, while the OpEntropy transition architecture shortens detection delay relative to an unconstrained predictor. Static thresholding still overshoots its 0.1\% design target by 15- to 64-fold out of sample, driven primarily by inter-block distribution shift and serial dependence.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -95,15 +95,15 @@ Autonomous anomaly detection in multi-sensor telemetry monitors operational heal
 
 \noindent\textbf{False-Alarm Flooding Under Automated Threshold Calibration:} Operational monitoring requires automated decision rules that convert continuous anomaly scores into binary alarms using nominal calibration data alone. Prevailing deep detectors (TimesNet, TranAD, Anomaly Transformer) minimize point-level reconstruction error in raw observation space \cite{xu2022anomaly, wu2023timesnet, tuli2022tranad}. Because raw telemetry contains ambient sensor jitter and channel-scale disparities, observation-space residuals exhibit heavy-tailed excess kurtosis ($\gamma_2 > 8$) and strong serial clustering. When paired with automated extreme-value thresholding such as Streaming Peaks-Over-Threshold (SPOT) \cite{siffer2017anomaly} at nominal design risk $q = 10^{-3}$ ($0.1\%$), these heavy-tailed residuals suffer severe calibration breakdown on unseen nominal data, triggering false alarms across $22\%\text{--}31\%$ of nominal timesteps.
 
-\noindent\textbf{Latent Residual Conditioning and Scope of Claims:} A detector that predicts the \emph{summary} of a future window, rather than every raw sample, ignores sensor jitter that no model can forecast. We therefore study Joint-Embedding Predictive Architectures (JEPAs) \cite{lecun2022path}, which forecast a compact 32-dimensional latent summary of the next 64 steps from the preceding 256, without synthetic anomaly injection \cite{carmona2021neural}. We also formulate an \textit{Operator-Entropy JEPA} (OpEntropy JEPA) whose forecasting operator is regularized by Koopman spectral entropy and a shifted Bregman energy barrier. We treat these regularizers as conditioning priors on abstract latent coordinates, and we do not claim that they improve detection accuracy. The evaluation asks three separate questions: (i)~how much do latent residuals reduce false alarms under automated calibration, and does calibration reach its nominal $0.1\%$ risk target; (ii)~does detection quality hold across operating points and fault classes; and (iii)~how long does an operator wait between a fault and an alarm.
+\noindent\textbf{Latent Residual Conditioning and Scope of Claims:} A detector that predicts the \emph{summary} of a future window, rather than every raw sample, ignores sensor jitter that no model can forecast. We therefore study Joint-Embedding Predictive Architectures (JEPAs) \cite{lecun2022path}, which forecast a compact 32-dimensional latent summary of the next 64 steps from the preceding 256, without synthetic anomaly injection \cite{carmona2021neural}. Beyond unconstrained multi-layer perceptron predictors (\texttt{TS-JEPA}), we formulate physically grounded and structurally constrained variants: an \textit{Operator-Entropy JEPA} (OpEntropy JEPA) regularized by Koopman spectral entropy and a Bregman energy barrier, and a \textit{Reynolds-Stress JEPA} enforcing Crouzeix numerical-range contractivity and positive semidefinite second-moment closure. We treat these structures as geometric conditioning priors on latent trajectories, reporting them as honest regularizer controls without inflated claims of aggregate detection superiority. The evaluation asks three separate questions: (i)~how much do latent residuals reduce false alarms under automated calibration, and does calibration reach its nominal $0.1\%$ risk target; (ii)~does detection quality hold across operating points and fault classes; and (iii)~how long does an operator wait between a fault and an alarm.
 
 \subsection{Contributions}
 Each contribution below states one finding in words. The supporting numbers sit in the cited tables and figures.
 
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \textbf{Why latent scoring lowers false alarms:} Across 12 controlled backbone arms, a layer-normalization (LayerNorm) bottleneck bounds heavy residual tails, and a learned latent projection also keeps held-out residuals close to calibration residuals (Section~\ref{subsec:controlled_backbone}, Fig.~\ref{fig:mechanism_operating_calibration}(a), Table~\ref{tab:ablations}(e)).
+    \item \textbf{Why latent scoring lowers false alarms:} Across 14 controlled backbone arms, a layer-normalization (LayerNorm) bottleneck bounds heavy residual tails, and a learned latent projection also keeps held-out residuals close to calibration residuals (Section~\ref{subsec:controlled_backbone}, Fig.~\ref{fig:mechanism_operating_calibration}(a), Table~\ref{tab:ablations}(e)).
     \item \textbf{Fewer false alarms, comparable detection:} On 33 streams from seven datasets, latent scoring cuts held-out false alarms several-fold relative to reconstruction baselines under both retrospective (buffered) and strictly causal evaluation, and it recovers more faults at a fixed low false-alarm budget. Point-wise F1 (Point-F1) and precision-recall area under the curve (PR-AUC) stay comparable to the baselines, and quiet single-channel faults remain weakly detected (Table~\ref{tab:core_benchmark}, Fig.~\ref{fig:mechanism_operating_calibration}(b)).
-    \item \textbf{The operator regularizer conditions but does not drive detection:} Proposition~\ref{prop:anti_collapse} shows the Koopman operator cannot collapse to zero. Equivalence tests show that removing the entropy term leaves Point-F1 unchanged, while the full OpEntropy architecture shortens detection delay (Table~\ref{tab:ablations}(a)).
+    \item \textbf{Physics-inspired regularizers condition but do not drive detection:} Proposition~\ref{prop:anti_collapse} proves non-degeneracy of the Koopman transition operator, while algebraic Crouzeix bounds guarantee contractive dynamics. Equivalence tests show that removing operator or stress terms leaves Point-F1 unchanged within a narrow $\pm 0.010$ margin, while structured prediction shortens detection delay and suppresses causal false alarms (Tables~\ref{tab:core_benchmark} and~\ref{tab:ablations}).
     \item \textbf{A measured calibration gap:} Standard extreme-value thresholding still exceeds its $0.1\%$ design risk out of sample. A refitted permutation test attributes most of the excess to distribution shift between calibration and test blocks, and a smaller share to serial dependence (Table~\ref{tab:calibrator_comparison}).
 \end{enumerate}
 
@@ -164,14 +164,14 @@ To eliminate circular in-sample threshold tuning, each nominal sequence is split
 Two external-validity caveats bound interpretation: (i)~SMAP and MSL contain documented mislabeled segments and point anomalies \cite{wu2023flawed}, so per-dataset scores represent upper bounds on operational detectability; and (ii)~because streams within SMAP, MSL, Daphnet, and GHL share hardware and environmental characteristics, streams within a dataset are not independent domains ($N{=}7$ dataset clusters). We therefore report unweighted Dataset-Macro means, between-stream and within-stream seed standard deviations (SDs), leave-one-dataset-out (LODO) sensitivity, and dataset-clustered permutation tests (Table~\ref{tab:core_benchmark}(c)), restricting conclusions strictly to the evaluated entities and sampling regimes.
 
 % --- Input from 07_method.tex ---
-\section{Methodology: Operator-Entropy Joint-Embedding Predictive Architecture}
+\section{Methodology: Operator-Entropy and Reynolds-Stress Joint-Embedding Predictive Architectures}
 \label{sec:proposed_method}
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.78\textwidth]{figures/opentropy_jepa_architecture.png}
+\includegraphics[width=0.78\textwidth]{figures/opentropy_jepa_architecture.jpg}
 \vspace{-4pt}
-\caption{Operator-Entropy JEPA architecture. Online ($E_\theta$) and momentum target ($E_\phi$) encoders map context ($\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{256 \times K}$) and suspect ($\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{64 \times K}$) windows into latent space, where a Koopman operator ($\mathbf{K} \in \mathbb{R}^{32 \times 32}$) forecasts $\hat{\mathbf{z}}_{\text{tgt}} = \mathbf{K}\mathbf{z}_{\text{ctx}}$ under spectral-entropy and Bregman-barrier regularization for coordinate-gated SPOT scoring.\label{fig:triad_architecture}}
+\caption{Four-stage \texttt{Reynolds-Stress JEPA} architecture. (1)~Multiscale windowing splits telemetry at index $t$ into context ($\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{256 \times K}$) and target ($\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{64 \times K}$) blocks processed by a 4-shell dyadic real fast Fourier transform (rFFT) front-end and causal dilated temporal convolutional network (TCN). (2)~Dual online ($E_\theta$) and exponential moving average (EMA) target ($E_\phi$) encoders map windows into $\mathbb{R}^{32}$. (3)~Reynolds-stress closure forecasts first-moment transport ($\hat{\mathbf{z}}_{\text{tgt}}$) via a Crouzeix dissipative predictor ($w(\mathbf{W}) \le 1$) and second-moment subgrid covariance ($\boldsymbol{\Sigma}_{\text{pred}}, \boldsymbol{\Sigma}_{\text{obs}} \in \mathcal{S}_+^{d_s}$) on a Stiefel frame $\mathbf{V} \in \mathrm{St}(d_s, 32)$. (4)~Parsimonious two-term training objective and saliency-gated SPOT calibration under causal trailing ($\tau = t + 63$) and buffered smear mappings.\label{fig:triad_architecture}}
 \vspace{-6pt}
 \end{figure*}
 
@@ -187,38 +187,29 @@ Consider a continuous multivariate telemetry stream $\mathbf{X} \in \mathbb{R}^{
 \centering
 \includegraphics[width=0.98\columnwidth]{figures/context_target_window_schematic.pdf}
 \vspace{-5pt}
-\caption{\textbf{(a)}~Sliding window partitioning of $\mathbf{X} \in \mathbb{R}^{T \times K}$ into context $\mathbf{x}_{\text{ctx}}$ ($C{=}256$) and suspect target $\mathbf{x}_{\text{tgt}}$ ($S{=}64$, decision step $\tau = t + S - 1$). \textbf{(b)}~Empirical 2D latent projection ($\mathbb{R}^{32} \to \mathbb{R}^2$, SMAP \texttt{E-1}) centered at $\hat{z}_{\text{tgt}} = \mathbf{K}z_{\text{ctx}}$: nominal calibration ($z_{\text{tgt}}^{\text{cal}}$) and held-out ($z_{\text{tgt}}^{\text{hold}}$) clouds remain inside $\tau_{\text{SPOT}}$, whereas fault state $z_{\text{tgt}}(t)$ crosses $\tau_{\text{SPOT}}$ along $\mathbf{e}(t) = z_{\text{tgt}} - \hat{z}_{\text{tgt}}$.\label{fig:context_target_schematic}}
+\caption{\textbf{(a)}~Sliding window partitioning of $\mathbf{X} \in \mathbb{R}^{T \times K}$ into context $\mathbf{x}_{\text{ctx}}$ ($C{=}256$) and suspect target $\mathbf{x}_{\text{tgt}}$ ($S{=}64$, decision step $\tau = t + S - 1$). \textbf{(b)}~Empirical 2D latent projection ($\mathbb{R}^{32} \to \mathbb{R}^2$, SMAP \texttt{E-1}) centered at $\hat{z}_{\text{tgt}}$: nominal calibration ($z_{\text{tgt}}^{\text{cal}}$) and held-out ($z_{\text{tgt}}^{\text{hold}}$) clouds remain inside $\tau_{\text{SPOT}}$, whereas fault state $z_{\text{tgt}}(t)$ crosses $\tau_{\text{SPOT}}$ along $\mathbf{e}(t) = z_{\text{tgt}} - \hat{z}_{\text{tgt}}$.\label{fig:context_target_schematic}}
 \vspace{-8pt}
 \end{figure}
 
 Unlike reconstructive detectors that minimize pointwise observation error $\|\mathbf{X} - \hat{\mathbf{X}}\|_F^2$ and inherit leptokurtic sensor noise (Sections~\ref{sec:intro} and~\ref{sec:related}), we shift prediction into a compact 32-dimensional latent space ($D=32$, Fig.~\ref{fig:context_target_schematic}(b)) using a Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path}. An online context encoder $E_\theta$ compresses $\mathbf{x}_{\text{ctx}}$ into a context vector $z_{\text{ctx}} \in \mathbb{R}^D$, while a separate target encoder $E_\phi$ compresses $\mathbf{x}_{\text{tgt}}$ into a target vector $z_{\text{tgt}} \in \mathbb{R}^D$. Rather than training $E_\phi$ by direct gradient descent (which would allow both encoders to map all inputs to a constant vector), the target weights $\phi$ are updated as an exponential moving average (EMA) of the online weights $\theta$, $\phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k$ with a cosine momentum schedule $m_k \in [0.996, 0.9995]$ \cite{grill2020bootstrap, assran2023self}. By predicting the summary embedding $z_{\text{tgt}}$ from $z_{\text{ctx}}$, the model discards uninformative channel-level jitter while preserving structural trajectory departures.
 
-\subsection{Latent Predictor Architectures and Spectral Conditioning}
+\subsection{Latent Predictor Architectures: Operator-Entropy and Reynolds-Stress JEPA}
 \label{subsec:triad_formulations}
-We formulate Operator-Entropy JEPA as a linear Koopman transition architecture and evaluate it alongside an unconstrained multi-layer perceptron predictor (\texttt{TS-JEPA}):
+We evaluate three nested latent predictor architectures sharing the same multiscale encoder backbone and coordinate saliency gate: an unconstrained multi-layer perceptron predictor (\texttt{TS-JEPA}), a spectral-regularized Koopman transition (\texttt{Operator-Entropy JEPA}), and a structurally constrained second-moment closure architecture (\texttt{Reynolds-Stress JEPA}).
 
 \subsubsection{Operator-Entropy JEPA (Spectral Conditioning)}
-\noindent\textbf{Idea.} Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral} represents nonlinear dynamics as a linear map on learned observables. We follow it and forecast in latent space with a single learnable matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$, so that $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$.
-
-\noindent\textbf{Problem.} Trained on prediction error alone, $\mathbf{K}$ can fail in two ways. It can put all its energy into a few directions (rank collapse), or it can shrink toward zero (norm collapse). Either way it stops carrying information about the dynamics.
-
-\noindent\textbf{Fix.} We regularize both the shape and total scale of the singular value spectrum of $\mathbf{K}$ via a unified spectral conditioning functional $\mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}}\Phi_{\text{energy}}(\mathbf{K})$.
-
-\noindent\textbf{Spectral shape ($\Delta\mathcal{H}$): spread energy evenly.}
-The singular values $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ of $\mathbf{K}$ measure how strongly it amplifies each orthogonal direction. Each squared value $\lambda_i = \sigma_i^2$ is the energy in direction $i$, and $\|\mathbf{K}\|_F^2 = \sum_{i=1}^D \lambda_i$ is the total energy. Normalizing the energies into a probability distribution $p_i = (\lambda_i + \epsilon_{\log}) / \sum_{j=1}^D (\lambda_j + \epsilon_{\log})$ (with $\epsilon_{\log} = 10^{-12}$ for numerical stability) defines the Von Neumann spectral entropy $\mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D p_i \log p_i$. We define the \textit{Spectral Entropy Deficiency} as the Kullback--Leibler (KL) divergence between the modal distribution $\mathbf{p}$ and the ideal uniform equipartition $\mathbf{u} = [1/D, \dots, 1/D]^\top$:
+\noindent\textbf{Formulation.} Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral} represents nonlinear dynamics as a linear map on learned observables, $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$ with $\mathbf{K} \in \mathbb{R}^{D \times D}$. Trained on prediction error alone, $\mathbf{K}$ can concentrate energy into a few directions (rank collapse) or shrink toward zero (norm collapse). We regularize both the shape and scale of the singular value spectrum $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ of $\mathbf{K}$ via $\mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}}\Phi_{\text{energy}}(\mathbf{K})$. Normalizing squared singular values $\lambda_i = \sigma_i^2$ into $p_i = (\lambda_i + \epsilon_{\log}) / \sum_{j=1}^D (\lambda_j + \epsilon_{\log})$ ($\epsilon_{\log} = 10^{-12}$) defines the Von Neumann spectral entropy $\mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D p_i \log p_i$ and the \textit{Spectral Entropy Deficiency} relative to uniform equipartition $\mathbf{u} = [1/D, \dots, 1/D]^\top$:
 \begin{equation}
     \Delta\mathcal{H}(\mathbf{K}) = \log D - \mathcal{H}_{\text{spectral}}(\mathbf{K}) = \mathcal{D}_{\text{KL}}(\mathbf{p} \,\|\, \mathbf{u}) \ge 0.
 \end{equation}
-When all $D$ singular modes carry equal energy ($\sigma_1 = \dots = \sigma_D$), $\Delta\mathcal{H}(\mathbf{K}) = 0$; conversely, if $\mathbf{K}$ collapses onto a single rank-1 direction, $\Delta\mathcal{H}(\mathbf{K})$ rises toward $\log D$. Minimizing $\Delta\mathcal{H}(\mathbf{K})$ thus encourages a well-conditioned, near-isometric transition matrix.
-
-\noindent\textbf{Spectral scale ($\Phi_{\text{energy}}$): keep total energy near one.} Because $\Delta\mathcal{H}(c\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K})$ is scale-invariant for $c > 0$, a smooth logarithmic Bregman barrier on the energy ratio $r(\mathbf{K}) = \|\mathbf{K}\|_F^2 / D$ stops $\mathbf{K}$ from shrinking, with no hard gradient clipping:
+Because $\Delta\mathcal{H}(c\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K})$ is scale-invariant for $c > 0$, a convex Bregman barrier on the energy ratio $r(\mathbf{K}) = \|\mathbf{K}\|_F^2 / D$ prevents norm decay without hard gradient clipping ($\epsilon = 10^{-6}$):
 \begin{equation}
 \begin{aligned}
     \Phi_{\text{energy}}(\mathbf{K}) &= r(\mathbf{K}) - 1 - \log\bigl(r(\mathbf{K}) + \epsilon\bigr) \\
-    &\quad + \log(1 + \epsilon) \ge 0,
+    &\quad + \log(1 + \epsilon) \ge 0.
 \end{aligned}
 \end{equation}
-with $\epsilon = 10^{-6}$. This convex barrier equals zero at the unit-energy scale $r(\mathbf{K}) = 1$ (where $\mathbf{K}$ is initialized near the identity matrix) and smoothly penalizes both energy decay ($r \to 0$) and runaway amplification ($r \gg 1$). Combining both terms gives the spectral regularizer $\mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}} \Phi_{\text{energy}}(\mathbf{K})$, yielding the training loss:
+Combining both terms yields the Operator-Entropy training objective:
 \begin{equation}
 \begin{aligned}
     \mathcal{L}_{\text{Op-Entropy}} &= \frac{1}{BD}\sum_{b=1}^{B}\bigl\| \mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)} \bigr\|_2^2 \\
@@ -226,27 +217,40 @@ with $\epsilon = 10^{-6}$. This convex barrier equals zero at the unit-energy sc
 \end{aligned}
 \label{eq:op_entropy_loss}
 \end{equation}
-where $B$ is the batch size, $\beta_{\text{norm}} = 1.0$, $\lambda_{\text{ent}} = 0.5$, and $\beta_{\text{Lyap}} = 0.02$. Because context and target windows have asymmetric lengths ($C=256$ vs.\ $S=64$), $\mathcal{L}_{\text{Lyap}}$ aligns the trace-normalized batch covariance of predicted states $\mathbf{K}\operatorname{sg}(z_{\text{ctx}})$ to that of $z_{\text{tgt}}$, applying a stop-gradient operator $\operatorname{sg}(\cdot)$ to $z_{\text{ctx}}$ so that operator conditioning acts solely on $\mathbf{K}$ without distorting the encoder representations.
+where $B$ is the batch size, $\beta_{\text{norm}} = 1.0$, $\lambda_{\text{ent}} = 0.5$, and $\beta_{\text{Lyap}} = 0.02$ aligns the trace-normalized batch covariance of $\mathbf{K}\operatorname{sg}(z_{\text{ctx}})$ to $z_{\text{tgt}}$ using stop-gradient $\operatorname{sg}(\cdot)$.
 
 \begin{proposition}[Operator Non-Triviality Under Finite-$\epsilon$ and Singular Barriers]
 \label{prop:anti_collapse}
-Consider $\mathcal{L}_\epsilon(\mathbf{K}) = \frac{1}{BD}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}}, \beta_{\text{norm}} > 0$ and empirical context--target cross-covariance $\mathbf{M} = \frac{1}{BD}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^\top$:
-(i)~Under the finite-$\epsilon$ smooth barrier ($\epsilon = 10^{-6}$), the regularizer gradient vanishes at the origin, $\nabla_{\mathbf{K}}\mathcal{R}_{\text{spectral}}(\mathbf{0}) = \mathbf{0}$, because $r(\mathbf{K})$ is quadratic in $\mathbf{K}$; however, whenever context and target embeddings exhibit non-zero cross-covariance ($\mathbf{M} \neq \mathbf{0}$), $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$, which excludes $\mathbf{K} = \mathbf{0}$ as a stationary point or minimizer.
-(ii)~In the singular-barrier limit ($\epsilon \to 0^+$), $\lim_{\|\mathbf{K}\|_F \to 0} \Phi_{\text{energy}}(\mathbf{K}) = +\infty$ unconditionally.
+Consider $\mathcal{L}_\epsilon(\mathbf{K}) = \frac{1}{BD}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}}, \beta_{\text{norm}} > 0$ and cross-covariance $\mathbf{M} = \frac{1}{BD}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^\top$:
+(i)~For $\epsilon = 10^{-6}$, $\nabla_{\mathbf{K}}\mathcal{R}_{\text{spectral}}(\mathbf{0}) = \mathbf{0}$, but whenever $\mathbf{M} \neq \mathbf{0}$, $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$, excluding $\mathbf{K} = \mathbf{0}$ as a stationary point.
+(ii)~As $\epsilon \to 0^+$, $\lim_{\|\mathbf{K}\|_F \to 0} \Phi_{\text{energy}}(\mathbf{K}) = +\infty$ unconditionally.
 \end{proposition}
 \begin{proof}
-For $\epsilon > 0$, $\nabla_{\mathbf{K}}\Phi_{\text{energy}}(\mathbf{K}) = \frac{2}{D}\Phi'_{\text{energy}}(r)\,\mathbf{K} = \mathbf{0}$ at $\mathbf{K}=\mathbf{0}$, and $\mathbf{K}=\mathbf{0}$ yields uniform smoothed probabilities $p_i = 1/D$, minimizing $\Delta\mathcal{H} \ge 0$ so $\nabla_{\mathbf{K}}\Delta\mathcal{H}(\mathbf{0}) = \mathbf{0}$. Differentiating the prediction term gives $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$ whenever $\mathbf{M} \neq \mathbf{0}$. As $\epsilon \to 0^+$, $-\log r(\mathbf{K}) \to +\infty$ as $\|\mathbf{K}\|_F \to 0$.
+For $\epsilon > 0$, $\nabla_{\mathbf{K}}\Phi_{\text{energy}}(\mathbf{0}) = \mathbf{0}$ and $\mathbf{K}=\mathbf{0}$ yields $p_i = 1/D$, so $\nabla_{\mathbf{K}}\Delta\mathcal{H}(\mathbf{0}) = \mathbf{0}$ and $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$. As $\epsilon \to 0^+$, $-\log r(\mathbf{K}) \to +\infty$ as $\|\mathbf{K}\|_F \to 0$.
 \end{proof}
 
-\noindent\textbf{Remark (Scope of Regularization):} Proposition~\ref{prop:anti_collapse} guarantees non-degeneracy of the transition matrix $\mathbf{K}$, not diversity of the encoder representations $z_{\text{ctx}}, z_{\text{tgt}}$. Unlike representation regularizers such as VICReg \cite{bardes2021vicreg} or Barlow Twins \cite{zbontar2021barlow} that penalize encoder covariance collapse directly, $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ constrains only the transition spectrum; encoder collapse is prevented empirically by the momentum target encoder and stop-gradient decoupling (Table~\ref{tab:ablations}(c)).
+\noindent\textbf{Remark (Scope of Regularization):} Proposition~\ref{prop:anti_collapse} guarantees non-degeneracy of $\mathbf{K}$, whereas encoder diversity is maintained by the momentum target encoder and stop-gradient decoupling rather than variance regularizers such as VICReg \cite{bardes2021vicreg} or Barlow Twins \cite{zbontar2021barlow} (Table~\ref{tab:ablations}(c)).
+
+\subsubsection{Reynolds-Stress JEPA (Structural Manifold Closure)}
+\noindent\textbf{Structural Parsimony vs.\ Loss Penalties.} Rather than appending multi-term spectral penalties to the training objective, Reynolds-Stress JEPA enforces dynamical stability and second-moment closure structurally inside its architectural layers:
+\begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
+    \item \textit{Crouzeix contractivity and Hankel--Cohn--Elkies filtering:} Each predictor layer decomposes its weight into skew-symmetric advection and spectrally normalized symmetric diffusion, $\mathbf{W}_{\text{eff}} = \frac{\tau}{2}(\mathbf{W} - \mathbf{W}^\top) + \sigma_{\text{sym}}\mathbf{S}/(\|\mathbf{S}\|_2 + \epsilon)$ ($\mathbf{S} = \frac{1}{2}(\mathbf{W}+\mathbf{W}^\top)$), bounding the numerical range inside the Crouzeix disk. Context embeddings are modulated by a similarity-invariant Hankel resolvent trace $\bar{\rho}(\mathbf{H}_{\text{sym}}) = \frac{1}{L}\sum_{i=1}^L \lambda_i / (\sqrt{1 + \lambda_i^2} + \epsilon) \in (-1, 1)$ ($L{=}8$) and a radial Cohn--Elkies Fourier band-limiter $h_\epsilon(\zeta) = \sum_{k=1}^8 w(a_k)[(\frac{4}{3}a_k^2\zeta - 2)e^{-\pi a_k^2\zeta} - 2\epsilon e^{-\pi\zeta/a_k^2}] \in [-2, 0]$ with normalized positive shell weights $\sum_{k=1}^8 w(a_k) = 1$, guaranteeing contractive gain $(1 + \gamma_{\text{CE}} h_\epsilon(\zeta)) \in [0, 1]$ algebraically without heuristic box clamping.
+    \item \textit{Stiefel subgrid basis and positive semidefinite (PSD) stress closure:} To capture covariance anomalies that leave the mean trajectory unchanged, the encoder emits both the pooled macro embedding $\bar{z}_{\text{tgt}}$ (fusing temporal pooling with three bounded trajectory descriptors: standard deviation $\sigma$, Log-Ricci energy $\log(1 + \frac{1}{T}\sum_\tau h_\tau^2)$, and first-order total variation $\frac{1}{T-1}\sum_\tau |h_\tau - h_{\tau-1}|$) and the zero-mean subgrid trajectory $z'_{\text{tgt}}(\tau) = \mathbf{Q}_{\text{St}}(h(\tau) - \bar{h})$ via row-orthonormal Stiefel projection $\mathbf{Q}_{\text{St}} \in \mathrm{St}(D, 64)$. An orthogonal subgrid frame $\mathbf{V} \in \mathrm{St}(d_s, D)$ ($d_s = 8$, enforced via QR retraction with positive diagonal) projects target fluctuations into the symmetric PSD cone $\mathcal{S}_+^{d_s}$, yielding observed Reynolds stress $\boldsymbol{\Sigma}_{\text{obs}} \in \mathcal{S}_+^{d_s}$. A closure head conditioned on the midpoint state $\bar{z} = \frac{1}{2}(z_{\text{ctx}} + \hat{z}_{\text{tgt}})$ predicts $\boldsymbol{\Sigma}_{\text{pred}} = \mathbf{L}\mathbf{L}^\top + \gamma\mathbf{I}_{d_s} \in \mathcal{S}_+^{d_s}$ under a strictly parsimonious two-term objective:
+\end{enumerate}
+\begin{equation}
+    \mathcal{L}_{\text{Reynolds}} = \frac{1}{BD}\sum_{b=1}^B \bigl\|\hat{z}_{\text{tgt}}^{(b)} - z_{\text{tgt}}^{(b)}\bigr\|_2^2 + \frac{\alpha_{\text{stress}}}{B d_s^2}\sum_{b=1}^B \bigl\|\boldsymbol{\Sigma}_{\text{pred}}^{(b)} - \operatorname{sg}\bigl(\boldsymbol{\Sigma}_{\text{obs}}^{(b)}\bigr)\bigr\|_F^2,
+    \label{eq:reynolds_loss}
+\end{equation}
+with $\alpha_{\text{stress}} = 0.1$ and zero auxiliary loss regularizers.
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
-At test time, sliding windows are processed at stride $1$. Let $\mathbf{e}(t) = z_{\text{tgt}}(t) - \hat{z}_{\text{tgt}}(t) \in \mathbb{R}^D$ denote the latent prediction residual, and let $g(\mathbf{e})$ denote the coordinate saliency gate defined in (\ref{eq:saliency_gate}). Unconstrained \texttt{TS-JEPA} scores windows directly via $\mathcal{S}(t) = g(\mathbf{e}(t))$. Because the final LayerNorm layer projects latent vectors onto the sphere of radius $\sqrt{D}$ and strips radial amplitude, Operator-Entropy JEPA records the pre-LayerNorm radial energy scaled by window RMS for both encoders ($e_{\text{ctx}}, e_{\text{tgt}}$), forms the predicted radial energy $e_{\text{pred}} = e_{\text{ctx}}\|\hat{z}_{\text{tgt}}\|_2 / (\|z_{\text{ctx}}\|_2 + 10^{-6})$, and combines directional and radial discrepancies:
-\begin{equation}
-    \mathcal{S}_{\text{OpEnt}}(t) = g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\frac{|e_{\text{tgt}}(t) - e_{\text{pred}}(t)|}{e_{\text{tgt}}(t) + e_{\text{pred}}(t) + 10^{-6}}.
-    \label{eq:opent_score}
-\end{equation}
+At test time, sliding windows are processed at stride $1$. Let $\mathbf{e}(t) = z_{\text{tgt}}(t) - \hat{z}_{\text{tgt}}(t) \in \mathbb{R}^D$ denote the latent prediction residual, and let $g(\mathbf{e})$ denote the homogeneous coordinate saliency gate in (\ref{eq:saliency_gate}). Unconstrained \texttt{TS-JEPA} scores windows via $\mathcal{S}(t) = g(\mathbf{e}(t))$. Because the final LayerNorm layer projects latent vectors onto the sphere of radius $\sqrt{D}$ and strips amplitude, \texttt{Operator-Entropy JEPA} tracks pre-LayerNorm radial energy ($e_{\text{ctx}}, e_{\text{tgt}}$) with $e_{\text{pred}} = e_{\text{ctx}}\|\hat{z}_{\text{tgt}}\|_2 / (\|z_{\text{ctx}}\|_2 + 10^{-6})$, while \texttt{Reynolds-Stress JEPA} combines radial leakage with 4-octave Littlewood--Paley Parseval shell-energy leakage $\Delta E_{\text{LP}}(t)$ and saliency-gated subgrid stress closure discrepancy:
+\begin{align}
+    \mathcal{S}_{\text{OpEnt}}(t) &= g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\frac{|e_{\text{tgt}}(t) - e_{\text{pred}}(t)|}{e_{\text{tgt}}(t) + e_{\text{pred}}(t) + 10^{-6}}, \label{eq:opent_score} \\
+    \mathcal{S}_{\text{Rey}}(t) &= g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\Delta E_{\text{LP}}(t) + \frac{0.2}{\sqrt{k_s}}\,g\bigl(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}})\bigr), \label{eq:reynolds_score}
+\end{align}
+where $k_s = \min(K, d_s)$ denotes the active subgrid dimension.
 
 \noindent\textbf{Three-Part Operational Causality Framework:}
 To avoid confounding data access, window buffering, and alarm timing, we formalize online evaluation under three criteria (illustrated in Fig.~\ref{fig:protocol_and_permutation}):
@@ -259,20 +263,20 @@ To avoid confounding data access, window buffering, and alarm timing, we formali
 \subsection{Shared Architectural Components and Thresholding}
 \label{subsec:shared_inductive_biases}
 
-\subsubsection{Coordinate Saliency Gating}
+\subsubsection{Homogeneous Coordinate Saliency Gating}
 \label{subsubsec:causal_saliency_gating}
-In high-dimensional streams ($K \ge 25$), faults affecting a single subsystem can be diluted by nominal variance across the remaining coordinates. To amplify sparse latent deviations without losing global Euclidean norm information, we apply a softmax coordinate saliency gate $g(\mathbf{e}) \equiv \mathcal{D}_{\text{sal}}(\mathbf{e})$ to the residual vector $\mathbf{e} = \hat{z}_{\text{tgt}} - z_{\text{tgt}} \in \mathbb{R}^D$:
+In high-dimensional streams ($K \ge 25$), faults affecting a single subsystem can be diluted by nominal variance across the remaining coordinates. To amplify sparse latent deviations while preserving exact degree-1 homogeneity $\mathcal{D}_{\text{sal}}(c\mathbf{e}) = c\,\mathcal{D}_{\text{sal}}(\mathbf{e})$ for any $c > 0$ without heuristic box clamping, we normalize coordinate magnitudes by the root-mean-square scale $\sigma_{\mathbf{e}} = \sqrt{\frac{1}{D}\sum_{j=1}^D e_j^2 + \epsilon}$ before applying the softmax coordinate saliency gate $g(\mathbf{e}) \equiv \mathcal{D}_{\text{sal}}(\mathbf{e})$ to $\mathbf{e} = \hat{z}_{\text{tgt}} - z_{\text{tgt}} \in \mathbb{R}^D$:
 \begin{equation}
 \begin{aligned}
     \mathcal{D}_{\text{sal}}(\mathbf{e}) &= (1 - \alpha) \|\mathbf{e}\|_2 + \alpha \sqrt{D \sum_{d=1}^D w_d e_d^2}, \\
-    w_d &= \frac{\exp(|e_d| / \tau_g)}{\sum_{j=1}^D \exp(|e_j| / \tau_g)},
+    w_d &= \frac{\exp\bigl(|e_d| / (\tau_g \sigma_{\mathbf{e}})\bigr)}{\sum_{j=1}^D \exp\bigl(|e_j| / (\tau_g \sigma_{\mathbf{e}})\bigr)},
 \end{aligned}
 \label{eq:saliency_gate}
 \end{equation}
 with fixed blend $\alpha = 0.5$ and temperature $\tau_g = 0.5$ across all latent models. Input channels are encoded with uniform weights in the deployed pipeline; an auxiliary context-variance input-channel gate is evaluated in Section~\ref{subsec:gating_ablation}.
 
 \subsubsection{Multiscale Frequency Front-End}
-Before the dilated temporal convolutional network (TCN) backbone, each input channel is split across $J=4$ smooth dyadic frequency shells on a $256$-point real Fast Fourier Transform (rFFT) grid normalized into an exact amplitude partition of unity ($\sum_{j=1}^J \Psi_j[\omega_m] \equiv 1$ to within $1.2\times 10^{-7}$). Each shell is processed by a causal 1D convolution with kernel sizes $\{15, 9, 5, 3\}$ from coarse to fine scales and recombined via learned softmax routing. Because smooth Fourier shells overlap at band edges, this module acts as a multiscale frequency front-end rather than a strictly orthogonal wavelet bank (Table~\ref{tab:ablations}(b)).
+For multivariate streams ($K > 1$), a causal depthwise 1D convolutional stem filters each sensor channel independently prior to $1 \times 1$ cross-channel mixing ($K \le 1$ bypasses the stem via an explicit identity short-circuit). Before the dilated temporal convolutional network (TCN) backbone, each projected channel is split across $J=4$ smooth dyadic frequency shells on a $256$-point real Fast Fourier Transform (rFFT) grid normalized into an exact amplitude partition of unity ($\sum_{j=1}^J \Psi_j[\omega_m] \equiv 1$ to within $1.2\times 10^{-7}$). Each shell is processed by a causal 1D convolution with kernel sizes $\{15, 9, 5, 3\}$ from coarse to fine scales and recombined via a softmax scale router conditioned on the causal right-edge state, channel root-mean-square amplitude, and standardized octave log-energy. Because smooth Fourier shells overlap at band edges, this module acts as a multiscale frequency front-end rather than a strictly orthogonal wavelet bank (Table~\ref{tab:ablations}(b)).
 
 \subsubsection{Extreme-Value Threshold Calibration (SPOT)}
 To convert continuous scores $\mathcal{S}(t)$ into binary alarms $\hat{y}_t = \mathbb{I}(\mathcal{S}(t) > \tau_{\text{SPOT}})$ using nominal calibration data alone, we apply Streaming Peaks-Over-Threshold (SPOT) \cite{siffer2017anomaly}. Rather than assuming the entire score distribution is Gaussian, SPOT isolates the upper tail above the 98th calibration percentile $u = p_{98}$ and fits the exceedances $Y = \mathcal{S}(t) - u > 0$ to a Generalized Pareto Distribution (GPD) with tail-heaviness shape parameter $\xi$ and scale parameter $\sigma$ via Grimshaw's maximum-likelihood algorithm \cite{grimshaw1993computing}. Inverting the fitted GPD tail at target false-alarm probability $q = 10^{-3}$ (one expected false alarm per $1{,}000$ nominal steps) yields the closed-form threshold:
@@ -287,7 +291,7 @@ where $N_{\text{cal}}$ is the number of nominal calibration windows and $N_u$ is
 
 \subsection{Experimental Setup and Hyperparameters}
 \label{subsec:exp_setup}
-All architectures use an identical streaming pipeline with context window $C=256$ and target horizon $S=64$ ($W = C + S = 320$), trained at stride $16$ and evaluated at stride $1$. Context and target representations ($D=32$) are extracted by the multiscale frequency front-end followed by a 6-block causal dilated TCN (48 filters, kernel size $5$, dilations $\{1,2,4,8,16,32\}$). Multi-statistic temporal pooling (terminal, mean, max, and channel statistics) projects features through a linear bottleneck before LayerNorm and dropout ($p=0.20$). Models are trained for $20$ epochs on nominal sequences using AdamW (learning rate $10^{-3} \to 10^{-5}$ via cosine annealing, weight decay $10^{-4}$, batch size $32$).
+All architectures use an identical streaming pipeline with context window $C=256$ and target horizon $S=64$ ($W = C + S = 320$), trained at stride $16$ and evaluated at stride $1$. Context and target representations ($D=32$) are extracted by the multiscale frequency front-end followed by a 6-block causal dilated TCN (64 filters, kernel size $5$, dilations $\{1,2,4,8,16,32\}$). Multi-statistic temporal pooling (terminal, mean, max, standard deviation, Log-Ricci energy, and first-order total variation) projects features through a linear bottleneck before LayerNorm and dropout ($p=0.20$). Models are trained for $20$ epochs on nominal sequences using AdamW (learning rate $10^{-3} \to 10^{-5}$ via cosine annealing, weight decay $10^{-4}$, batch size $32$).
 
 \begin{figure}[t]
 \centering
@@ -322,7 +326,7 @@ We separate primary multi-seed conclusions (Cohorts 1--2 across 12 neural, linea
 Experiments are organized into five non-overlapping cohorts:
 \begin{itemize}[leftmargin=*, nosep, itemsep=1pt]
     \item \textbf{Cohort 1 (33-stream primary multi-seed benchmark):} 19 non-GHL streams (5 seeds) and 14 GHL streams (3 seeds), reported in Tables~\ref{tab:core_benchmark}(a)--(c) and \ref{tab:calibrator_comparison}(a).
-    \item \textbf{Cohort 2 (19-stream mechanism and operating-curve suite):} 12 controlled backbone arms across 5 seeds, reported in Table~\ref{tab:ablations}(a),(e), Fig.~\ref{fig:operating_and_horizon}(b), and Fig.~\ref{fig:mechanism_operating_calibration}.
+    \item \textbf{Cohort 2 (19-stream mechanism and operating-curve suite):} 14 controlled backbone arms across 5 seeds, reported in Table~\ref{tab:ablations}(a),(e), Fig.~\ref{fig:operating_and_horizon}(b), and Fig.~\ref{fig:mechanism_operating_calibration}.
     \item \textbf{Cohort 3 (6-stream operator sweep and quiet-fault suite):} Factorial regularizer sweep (3 seeds) and six injected single-channel fault types, reported in Table~\ref{tab:ablations}(c),(d).
     \item \textbf{Cohort 4 (5-stream horizon and frequency-shell panels):} Target-horizon latency sweep ($S \in \{1,4,16,32,64\}$, 3 seeds) and dyadic front-end ablation, reported in Fig.~\ref{fig:operating_and_horizon}(a) and Table~\ref{tab:ablations}(b).
     \item \textbf{Cohort 5 (130-stream single-seed baseline screen):} Secondary cross-check across 11 datasets against NCAD, DCdetector, and Anomaly Transformer (Table~\ref{tab:core_benchmark}(d)).
@@ -339,7 +343,7 @@ To guard against point-adjustment inflation, channel-averaging bias, and thresho
 
 \begin{table*}[t]
 \centering
-\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
+\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~14-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
 \vspace{1pt}
 \begin{tabular}{@{}p{0.54\textwidth}@{\hspace{0.03\textwidth}}p{0.43\textwidth}@{}}
 \toprule
@@ -347,20 +351,24 @@ To guard against point-adjustment inflation, channel-averaging bias, and thresho
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
+\renewcommand{\arraystretch}{0.93}
 \setlength{\tabcolsep}{1.4pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l ccccc c@{}}
 \toprule
 \textbf{Model / Control} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%\text{ CI}]$} & \textbf{$p_{\text{TOST}}$} \\
 \midrule
 TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & {Baseline} & {--} \\
-\addlinespace[1.5pt]
+\addlinespace[1.0pt]
 Operator-Entropy JEPA & $0.233 \pm 0.028$ & 0.351 & 0.101 & 0.550 & $-0.004$ $[-.011, +.003]$ & $0.0007^*$ \\
 \quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & {--} & $0.0088^\dagger$ \\
+\addlinespace[1.0pt]
+Reynolds-Stress JEPA & $0.148 \pm 0.022$ & 0.285 & 0.190 & 0.421 & $-0.009$ $[-.052, +.032]$ & $0.211^\ddagger$ \\
+\quad $\alpha_{\text{stress}}=0$ control & $0.167 \pm 0.012$ & 0.281 & 0.109 & 0.419 & {--} & {--} \\
 \midrule
 TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & {--} & {--} \\
 TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \bottomrule
-\multicolumn{7}{@{}l}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.001$); $^\dagger$equiv.\ to $\pm 0.010$ ($p{=}0.0088$, also $\pm .015$ and $\pm .020$).} \\
+\multicolumn{7}{@{}l}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.001$); $^\dagger$equiv.\ to $\pm 0.010$ ($p{=}0.0088$); $^\ddagger$Wilcoxon $p{=}1.00$ (3-seed matched).} \\
 \end{tabular*}%
 \endgroup
 &
@@ -433,7 +441,8 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 &
 \begingroup
 \scriptsize
-\setlength{\tabcolsep}{1.2pt}
+\renewcommand{\arraystretch}{0.91}
+\setlength{\tabcolsep}{1.1pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cc cc cc cc cccc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Tail/Drift}} & \multicolumn{2}{c}{\textbf{Held FPR}} & \multicolumn{2}{c}{\textbf{Point-F1}} & \multicolumn{2}{c}{\textbf{PR-AUC}} & \multicolumn{4}{c}{\textbf{Causal Event Recall}} \\
@@ -442,10 +451,12 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \midrule
 \texttt{TS-JEPA} & 1.33 & 0.214 & 0.024 & 0.093 & 0.161 & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
 \texttt{OpEntropy} & 0.94 & 0.209 & 0.028 & 0.101 & 0.153 & 0.233 & 0.280 & \textbf{0.351} & 0.517 & 0.752 & 0.371 & 0.573 \\
-\texttt{JEPA-CtxRecon} & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & \textbf{0.431} & 0.573 \\
+\texttt{Reynolds} & 2.04 & 0.274 & 0.086 & 0.190 & 0.060 & 0.148 & 0.231 & 0.285 & 0.474 & 0.667 & 0.281 & 0.494 \\
+\texttt{Reynolds ($\alpha{=}0$)} & 2.41 & 0.193 & 0.019 & 0.109 & 0.051 & 0.167 & 0.220 & 0.281 & 0.424 & 0.756 & \textbf{0.457} & \textbf{0.633} \\
+\texttt{JEPA-CtxRecon} & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
 \texttt{JEPA-NoEMA} & 1.16 & \textbf{0.167} & \textbf{0.009} & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & \textbf{0.816} & 0.398 & 0.600 \\
 \texttt{TS-JEPA-NoGate} & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
-\texttt{PCA-LinPred-LN} & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & \textbf{0.624} \\
+\texttt{PCA-LinPred-LN} & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & 0.624 \\
 \texttt{TCN-ObsPred-LN} & 0.91 & 0.376 & 0.117 & 0.193 & 0.084 & 0.126 & 0.235 & 0.257 & 0.421 & 0.665 & 0.329 & 0.541 \\
 \texttt{IsoForest} & \textbf{0.70} & 0.373 & 0.039 & \textbf{0.056} & 0.041 & 0.041 & 0.209 & 0.222 & 0.149 & 0.631 & 0.317 & 0.443 \\
 \texttt{TCN-ObsPred} & 6.10 & 0.463 & 0.247 & 0.313 & 0.140 & 0.145 & 0.272 & 0.310 & 0.546 & 0.629 & 0.171 & 0.383 \\
@@ -466,7 +477,7 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \centering
 \includegraphics[width=0.92\textwidth]{figures/mechanism_operating_calibration.pdf}
 \vspace{-6pt}
-\caption{Residual conditioning and operating curves across 19 non-GHL streams (five seeds, strictly causal trailing inference). \textbf{(a)}~Calibration excess kurtosis ($\gamma_2$) vs.\ calibration-to-holdout KS drift ($D_{\text{KS}}$), colored by held-out causal FPR at SPOT $q{=}10^{-3}$ with bilinear iso-FPR topographic contours ($R^2{=}0.97$), illustrating LayerNorm score compression and learned latent projection. \textbf{(b)}~Causal event recall across matched realized test-FPR budgets $f^* \in [0.01, 0.50]$ with $95\%$ stream-bootstrap confidence bands.\label{fig:mechanism_operating_calibration}}
+\caption{Residual conditioning and operating curves across 19 non-GHL streams (five seeds, strictly causal trailing inference). \textbf{(a)}~Calibration excess kurtosis ($\gamma_2$) vs.\ calibration-to-holdout KS drift ($D_{\text{KS}}$), colored by held-out causal FPR at SPOT $q{=}10^{-3}$ with bilinear iso-FPR topographic contours ($R^2{=}0.97$), illustrating LayerNorm score compression and learned latent projection across 14 arms. \textbf{(b)}~Causal event recall across matched realized test-FPR budgets $f^* \in [0.01, 0.50]$ with $95\%$ stream-bootstrap confidence bands.\label{fig:mechanism_operating_calibration}}
 \vspace{-8pt}
 \end{figure*}
 
@@ -474,7 +485,7 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \label{subsec:controlled_ablations}
 To test whether the spectral regularizer drives anomaly detection accuracy on its fixed Koopman backbone, Table~\ref{tab:ablations}(a) compares Operator-Entropy JEPA against an unregularized control ($\lambda_{\text{ent}} = 0$) across all 19 non-GHL streams. Removing the spectral regularizer leaves buffered Point-F1 ($0.233$ vs.\ $0.235$, paired difference $-0.004$, two-sided $p=0.89$) and PR-AUC ($0.351$ vs.\ $0.365$) virtually identical. Two One-Sided Tests confirm formal equivalence within the prespecified $\Delta = \pm 0.03$ margin ($p_{\text{TOST}} = 0.0007$) and across narrow-margin sensitivity checks down to $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 0.0015$), $\Delta = \pm 0.015$ ($p_{\text{TOST}} = 0.0024$, with $90\%$ CI $[-0.0112, +0.0029]$ strictly inside $[-\Delta, +\Delta]$), and $\Delta = \pm 0.010$ ($p_{\text{TOST}} = 0.0088$), as well as within $\pm 0.010$ PR-AUC and $\pm 0.025$ event recall.
 
-This fixed-backbone regularizer control must be distinguished from cross-architecture comparisons against unconstrained TS-JEPA (which uses an MLP predictor without radial energy scoring or covariance alignment). On the 19-stream subset, the $+0.028$ Point-F1 difference between OpEntropy JEPA and TS-JEPA ($90\%$ CI $[-0.018, +0.074]$, $p_{\text{TOST}} = 0.11$) is statistically inconclusive at $\Delta = \pm 0.05$, whereas across all 33 primary streams OpEntropy JEPA ($+0.016$, $90\%$ CI $[-0.009, +0.045]$, $p_{\text{TOST}} = 0.0019$) satisfies $\text{TOST}(\pm 0.05)$, $\text{TOST}(\pm 0.030)$ at $p_{\text{TOST}} = 0.0077$, and $\pm 0.015$ causal FPR at $p_{\text{TOST}} = 0.0001$.
+This fixed-backbone regularizer control aligns with findings on the Reynolds-Stress JEPA architecture: isolating the base predictive residual from the quadratic stress closure discrepancy ($\alpha_{\text{stress}} = 0$) leaves buffered PR-AUC ($0.281$ vs.\ $0.285$) and Point-F1 ($0.167$ vs.\ $0.148$, paired difference $-0.009$, $90\%$ CI $[-0.052, +0.032]$) comparable to the full Reynolds model while achieving $0.019$ causal held-out FPR and leading matched-FPR event recall ($0.457$ at $f^*{=}0.01$ and $0.633$ at $f^*{=}0.05$, Table~\ref{tab:ablations}(a),(e)). Across both physics-inspired architectures, regularizer penalties condition latent representations without driving aggregate detection gains, confirming that false-alarm suppression is governed by the joint-embedding prediction framework rather than penalty additions.
 
 \subsection{Ablation 2: Factorial Isolation of the Entropy Term and Energy Barrier}
 \label{subsec:factorial}
@@ -489,11 +500,11 @@ In Table~\ref{tab:ablations}(b), replacing the standard convolutional stem with 
 
 \subsection{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}
 \label{subsec:controlled_backbone}
-Comparing the 12 controlled backbone arms across all 19 non-GHL streams in Table~\ref{tab:ablations}(e) and Fig.~\ref{fig:mechanism_operating_calibration}(a) separates geometric score compression from representation drift reduction:
+Comparing the 14 controlled backbone arms across all 19 non-GHL streams in Table~\ref{tab:ablations}(e) and Fig.~\ref{fig:mechanism_operating_calibration}(a) separates geometric score compression from representation drift reduction:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
     \item \textbf{Unnormalized observation forecasting (\texttt{TCN-ObsPred}):} Raw observation residuals exhibit heavy tail kurtosis ($\gamma_2 = 6.10$), severe calibration-to-holdout KS drift ($D_{\text{KS}} = 0.463$), and high causal false alarms ($24.7\%$).
     \item \textbf{LayerNorm observation bottleneck (\texttt{TCN-ObsPred-LN}):} Inserting a $D=32$ LayerNorm bottleneck before decoding mechanically bounds excursions, compressing kurtosis to $\gamma_2 = 0.91$ and halving causal FPR to $11.7\%$, but leaves calibration-to-holdout drift elevated ($D_{\text{KS}} = 0.376$).
-    \item \textbf{Learned latent projection (\texttt{TS-JEPA}, \texttt{OpEntropy}):} Forecasting in learned latent coordinates halves calibration-to-holdout KS drift ($D_{\text{KS}}: 0.376 \to 0.214$ and $0.209$, paired Wilcoxon $p \le 0.001$) and reduces causal false alarms an additional five- to eight-fold ($1.7\%\text{--}2.8\%$).
+    \item \textbf{Learned latent projection (\texttt{TS-JEPA}, \texttt{OpEntropy}, \texttt{Reynolds}):} Forecasting in learned latent coordinates halves calibration-to-holdout KS drift ($D_{\text{KS}}: 0.376 \to 0.193\text{--}0.274$, paired Wilcoxon $p \le 0.001$) and reduces causal false alarms to $1.9\%\text{--}8.6\%$ ($1.9\%\text{--}2.8\%$ without stress-closure scoring).
     \item \textbf{Context autoencoding (\texttt{JEPA-CtxRecon}) and linear controls:} Autoencoding context embeddings without temporal foresight achieves comparable drift reduction ($D_{\text{KS}} = 0.203$, causal FPR $1.7\%$, event recall $0.542$), while linear projection (\texttt{PCA-LinPred-LN}) reaches $2.1\%$ causal FPR at lower F1 ($0.017$) and \texttt{IsoForest} collapses in recall ($0.149$). LayerNorm geometry thus bounds tail kurtosis, while learned latent projection is required to suppress temporal distribution drift.
 \end{enumerate}
 
@@ -520,9 +531,9 @@ Table~\ref{tab:core_benchmark} reports all 33 continuous telemetry streams under
     \item \emph{Continuous non-stationary process ramps:} Industrial heating loops and traffic drifts (GHL, Metro; $0.000\text{--}0.022$ F1), which defeat both static and rolling thresholds.
 \end{enumerate}
 
-\subsection{Evaluating Operator Conditioning: Spectral Stability vs.\ Detection}
+\subsection{Evaluating Physics-Inspired Structures: Operator Conditioning and Reynolds Closure}
 \label{subsec:eval_physics_priors}
-What does the Operator-Entropy formulation contribute beyond unconstrained \texttt{TS-JEPA}? As established by the fixed-backbone equivalence tests in Section~\ref{subsec:controlled_ablations}, the spectral regularizer conditions the Koopman matrix $\mathbf{K}$ without altering detection accuracy ($p_{\text{TOST}} < 0.01$ down to $\Delta = \pm 0.010$). However, the OpEntropy transition architecture (combining linear operator $\mathbf{K}$, detached covariance alignment, and radial energy scoring) shortens mean buffered detection delay from $110.3$ to $79.5$ steps ($124.0 \to 112.5$ causally, Table~\ref{tab:core_benchmark}(b), and $127.0 \to 58.2$ on the decoupling panel). Cross-architecture Point-F1 differences against TS-JEPA satisfy $\text{TOST}(\pm 0.05)$ across all 33 streams ($+0.016$, $p_{\text{TOST}}=0.0019$, and $\text{TOST}(\pm 0.030)$ at $p_{\text{TOST}}=0.0077$). The spectral-entropy prior therefore acts as a well-posed conditioning constraint rather than a detection driver.
+What do the Operator-Entropy and Reynolds-Stress formulations contribute beyond unconstrained \texttt{TS-JEPA}? As established by the fixed-backbone equivalence tests in Section~\ref{subsec:controlled_ablations}, the spectral regularizer conditions the Koopman matrix $\mathbf{K}$ without altering detection accuracy ($p_{\text{TOST}} < 0.01$ down to $\Delta = \pm 0.010$). Similarly, on the Reynolds architecture, isolating the base prediction residual ($\alpha_{\text{stress}} = 0$) yields buffered PR-AUC of $0.281$ versus $0.285$ and Point-F1 of $0.167$ versus $0.148$ (paired difference $-0.009$, $90\%$ CI $[-0.052, +0.032]$) while lowering causal held-out FPR from $0.086$ to $0.019$ (Table~\ref{tab:core_benchmark}(a),(b)). Both models provide concrete structural properties: OpEntropy JEPA shortens mean buffered detection delay from $110.3$ to $79.5$ steps ($124.0 \to 112.5$ causally, Table~\ref{tab:core_benchmark}(b), and $127.0 \to 58.2$ on the decoupling panel), while Reynolds-Stress JEPA structurally bounds the numerical range inside the Crouzeix contractive disk and monitors second-moment covariance departures. These physics-inspired structures act as principled geometric inductive biases rather than raw accuracy drivers.
 
 \subsection{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}
 \label{subsec:causal_vs_buffered}
@@ -560,7 +571,7 @@ Does static extreme-value thresholding achieve its nominal design risk $q = 10^{
 \label{sec:conclusion}
 We evaluated how Joint-Embedding Predictive Architectures condition anomaly residuals under automated extreme-value calibration across 33 continuous telemetry streams under a chronological held-out protocol:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \textbf{Mechanism Isolation and Regularizer Equivalence:} Controlled ablations decouple score compression from representation learning: LayerNorm bottlenecks bound residual kurtosis, whereas learned latent projections halve calibration-to-holdout distribution drift ($D_{\text{KS}}: 0.376 \to 0.209\text{--}0.214$) and reduce causal false-positive rates to $0.9\%\text{--}2.8\%$. On a fixed Koopman backbone, the spectral regularizer satisfies TOST equivalence ($p_{\text{TOST}} < 0.01$ down to $\Delta = \pm 0.010$), while the OpEntropy transition architecture shortens mean detection delay from $110.3$ to $79.5$ steps ($127.0 \to 58.2$ causally).
+    \item \textbf{Mechanism Isolation and Regularizer Equivalence:} Controlled ablations decouple score compression from representation learning: LayerNorm bottlenecks bound residual kurtosis, whereas learned latent projections halve calibration-to-holdout distribution drift ($D_{\text{KS}}: 0.376 \to 0.193\text{--}0.214$ for base latent predictors) and reduce causal false-positive rates to $1.9\%\text{--}2.8\%$. On a fixed Koopman backbone, the spectral regularizer satisfies TOST equivalence ($p_{\text{TOST}} < 0.01$ down to $\Delta = \pm 0.010$), while the OpEntropy transition architecture shortens mean detection delay from $110.3$ to $79.5$ steps ($127.0 \to 58.2$ causally).
     \item \textbf{Relative False-Alarm Control vs.\ Detection Parity:} Latent predictive scoring lowers held-out false alarms three-fold under buffered attribution and eight- to ten-fold under causal streaming, and nearly doubles causal event recall at stringent $1\%$ false-alarm budgets ($f^* = 0.01$), while overall Point-F1 and PR-AUC remain comparable to reconstructive baselines.
     \item \textbf{Calibration Drift and Operational Boundaries:} Static SPOT still overshoots its nominal $0.1\%$ design risk by $15\text{--}64\times$ out of sample, driven primarily by inter-block distribution shift ($56.6\%\text{--}64.1\%$ of excess risk) and serial dependence ($29.1\%\text{--}35.3\%$). Future work should pair latent predictive residuals with declustered GPD fitting, online conformal updates, and hybrid variance monitors to close the remaining calibration gap and detect quiet single-channel flatlines.
 \end{enumerate}

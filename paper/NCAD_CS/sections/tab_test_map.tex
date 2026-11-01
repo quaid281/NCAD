@@ -3,7 +3,8 @@
 \scriptsize
 \caption{Complete statistical test map for paired stream-level comparisons. Cohorts: 19 non-GHL streams (5 seeds) and all 33 primary streams (1--5 seeds). Seeds are averaged within stream before testing (independent unit = stream). $p_{\mathrm{adj}}$: Benjamini--Hochberg FDR within each cohort $\times$ regime family (45 tests). Effect: median paired difference [95\% bootstrap CI]; $r_b$: rank-biserial.}
 \label{tab:test_map}
-\resizebox{\columnwidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}llllccccc@{}}
 \toprule
 Cohort & Regime & Endpoint & Comparison & $n$ & $p$ & $p_{\mathrm{adj}}$ & Median diff. [CI] & $r_b$ \\
@@ -189,6 +190,5 @@ primary (n=33) & Causal & Detection delay (steps) & Reynolds - TimesNet & 14 & 0
 primary (n=33) & Causal & Detection delay (steps) & PotentialFlow - TimesNet & 13 & 0.1099 & 0.2149 & 62.5000 [-0.4251, 105.6324] & 0.50 \\
 primary (n=33) & Causal & Detection delay (steps) & TimesNet - TranAD & 26 & 0.1626 & 0.2523 & 0.0000 [-300.2782, 3.3327] & -0.29 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}

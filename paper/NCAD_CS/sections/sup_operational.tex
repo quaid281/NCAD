@@ -14,30 +14,30 @@ To analyze operational incident detection, Table~\ref{tab:operational_incident_m
 \small
 \caption{Operational incident detection comparison across representative telemetry streams: Room Occupancy (stream: \texttt{default}, 11 ground-truth events), NASA SMAP (stream: \texttt{P-3}, 1 thruster fault), and CalIt2 (stream: \texttt{traffic}, 21 pedestrian burst events). We contrast Standard (Middle, Static EVT), Sharp (Dense, Static EVT), and Adaptive (Dense, Dynamic SPOT) inference modes.}
 \label{tab:operational_incident_metrics}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}llccccccc@{}}
 \toprule
 \textbf{Evaluated Stream} & \textbf{Operational Configuration} & \textbf{Pt-F1} & \textbf{Pt-Prec} & \textbf{Evt-F1} & \textbf{Evt-Prec} & \textbf{Evt-Rec} & \textbf{Rng-F1} & \textbf{False Pos.} \\
 \midrule
 \multicolumn{9}{l}{\textit{Room Occupancy: Stream \texttt{default} (Environmental Sensing, 11 Ground-Truth Incidents)}} \\
-\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.3728 & 22.9\% & 0.5238 & 35.5\% & 100\% & 0.3708 & 3,842 \\
-\texttt{operator\_entropy} & Sharp (Dense, Static EVT)   & 0.3329 & 20.0\% & \textbf{0.9167} & \textbf{84.6\%} & \textbf{100\%} & 0.3329 & 4,705 \\
-\texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & 0.1273 & 29.9\% & 0.6364 & 63.6\% & 63.6\% & 0.3699 & \textbf{223} ($\downarrow 21\times$) \\
-\texttt{potential\_flow}   & Sharp (Dense, Static EVT)   & 0.3431 & 20.7\% & \textbf{0.9167} & \textbf{84.6\%} & \textbf{100\%} & 0.3431 & 4,496 \\
-\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0441 & 10.2\% & 0.5714 & 60.0\% & 54.5\% & 0.1636 & \textbf{291} ($\downarrow 15\times$) \\
+\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.3728 & 22.9 & 0.5238 & 35.5 & 100 & 0.3708 & 3,842 \\
+\texttt{operator\_entropy} & Sharp (Dense, Static EVT)   & 0.3329 & 20.0 & \textbf{0.9167} & \textbf{84.6} & \textbf{100} & 0.3329 & 4,705 \\
+\texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & 0.1273 & 29.9 & 0.6364 & 63.6 & 63.6 & 0.3699 & \textbf{223} ($\downarrow 21\times$) \\
+\texttt{potential\_flow}   & Sharp (Dense, Static EVT)   & 0.3431 & 20.7 & \textbf{0.9167} & \textbf{84.6} & \textbf{100} & 0.3431 & 4,496 \\
+\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0441 & 10.2 & 0.5714 & 60.0 & 54.5 & 0.1636 & \textbf{291} ($\downarrow 15\times$) \\
 \midrule
 \multicolumn{9}{l}{\textit{NASA SMAP: Stream \texttt{P-3} (Spacecraft Telemetry, 1 Continuous Fault Segment)}} \\
-\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.0087 & 14.6\% & 0.1818 & 10.0\% & 100\% & 0.2266 & 35 \\
-\texttt{operator\_entropy} & Sharp (Dense, Static EVT)   & 0.1274 & 27.3\% & 0.1538 & 8.3\%  & 100\% & \textbf{0.3634} & 295 \\
-\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0110 & 6.9\%  & \textbf{0.3333} & 20.0\% & \textbf{100\%} & 0.1213 & \textbf{108} \\
+\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.0087 & 14.6 & 0.1818 & 10.0 & 100 & 0.2266 & 35 \\
+\texttt{operator\_entropy} & Sharp (Dense, Static EVT)   & 0.1274 & 27.3 & 0.1538 & 8.3  & 100 & \textbf{0.3634} & 295 \\
+\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0110 & 6.9  & \textbf{0.3333} & 20.0 & \textbf{100} & 0.1213 & \textbf{108} \\
 \midrule
 \multicolumn{9}{l}{\textit{CalIt2: Stream \texttt{traffic} (Pedestrian Entrance Flow, 21 Transient Event Clusters)}} \\
-\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.0131 & 1.9\%  & 0.0588 & 7.7\%  & 4.8\%  & 0.0216 & 53 \\
-\texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & \textbf{0.1368} & 8.7\%  & \textbf{0.3226} & 50.0\% & 23.8\% & \textbf{0.1274} & 357 \\
-\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0903 & 14.3\% & 0.0909 & \textbf{100.0\%} & 4.8\%  & 0.0714 & \textbf{42} \\
+\texttt{operator\_entropy} & Standard (Middle, Static EVT) & 0.0131 & 1.9  & 0.0588 & 7.7  & 4.8  & 0.0216 & 53 \\
+\texttt{operator\_entropy} & Adaptive (Dense, Dynamic SPOT) & \textbf{0.1368} & 8.7  & \textbf{0.3226} & 50.0 & 23.8 & \textbf{0.1274} & 357 \\
+\texttt{potential\_flow}   & Adaptive (Dense, Dynamic SPOT) & 0.0903 & 14.3 & 0.0909 & \textbf{100.0} & 4.8  & 0.0714 & \textbf{42} \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table*}
 
 Table~\ref{tab:operational_incident_metrics} highlights three operational characteristics:
@@ -58,7 +58,8 @@ Table~\ref{tab:causal_vs_buffered} compares operational latency, false-alarm rat
 \small
 \caption{Operational latency and detection fidelity under Strictly Causal ($0$-lookahead delay) versus Buffered Window ($64$-lookahead delay) inference across 5 representative telemetry streams. Under causal streaming, TS-JEPA achieves an empirical false-positive rate of $4.18\%$ ($\text{FAR}_{1\text{k}} = 41.76$ false alarms per 1k points), compared to $30.06\%$ for TimesNet and $20.81\%$ for TranAD.}
 \label{tab:causal_vs_buffered}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}llccccccc@{}}
 \toprule
 \textbf{Inference Setting} & \textbf{Model} & \textbf{Empirical FPR} & \textbf{$\text{FAR}_{1\text{k}}$ (/1k pts)} & \textbf{False Positives} & \textbf{Point-F1} & \textbf{Precision} & \textbf{Mean Delay ($\Delta t$)} & \textbf{Recall ($\tau \le 64$)} \\
@@ -73,8 +74,7 @@ Table~\ref{tab:causal_vs_buffered} compares operational latency, false-alarm rat
 & TimesNet & 0.2800 & 280.03 & 16,916.8 & \textbf{0.0807} & 0.1404 & 235.3 & 0.2571 \\
 & TranAD & 0.1998 & 199.82 & 16,339.6 & 0.0197 & \textbf{0.2284} & \textbf{32.8} & \textbf{0.2786} \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table*}
 
 Under strictly causal streaming, TS-JEPA maintains an empirical false-positive rate of $4.18\%$ ($41.76$ false alarms per $1{,}000$ points), generating an average of $1{,}685.6$ false alarms per stream. In contrast, TimesNet and TranAD generate $16{,}952.0$ and $16{,}637.6$ false alarms (empirical FPRs of $30.06\%$ and $20.81\%$). On GECCO water telemetry ($113{,}000$ test points), TimesNet and TranAD trigger over $81{,}500$ false alarms ($99.6\%$ FPR), whereas TS-JEPA triggers zero false alarms.
@@ -93,7 +93,8 @@ Table~\ref{tab:computational_profile} benchmarks parameter complexity, peak GPU 
 \small
 \caption{Computational profile, memory consumption, latency, and throughput benchmarked on an NVIDIA RTX 5090 GPU ($K=25$, window size $320$).}
 \label{tab:computational_profile}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
 \textbf{Model Architecture} & \textbf{Parameters} & \textbf{VRAM (MB)} & \textbf{Latency (ms/win)} & \textbf{Infer (win/s)} & \textbf{Train (win/s)} \\
@@ -106,8 +107,7 @@ Helmholtz JEPA & 416,391 & 185.3 & 0.8378 & 1,193.6 & 526.6 \\
 TimesNet & 648,553 & 279.6 & \textbf{0.2908} & 3,439.4 & 1,161.4 \\
 TranAD & 205,746 & 1,280.0 & \textbf{0.1897} & \textbf{5,272.2} & \textbf{1,554.4} \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 As shown in Table~\ref{tab:computational_profile}, Operator-Entropy JEPA possesses fewer trainable parameters ($285{,}701$) than unconstrained TS-JEPA ($289{,}061$), because its explicit Koopman transition matrix $\mathbf{A} \in \mathbb{R}^{32 \times 32}$ ($1{,}024$ weights) replaces the multi-layer MLP predictor. All JEPA variants maintain a compact peak GPU memory footprint of $183.8\text{--}185.3\,$MB, consuming nearly $7\times$ less memory than TranAD ($1{,}280.0\,$MB), whose self-attention maps scale quadratically with window length. Forward inference latency for the JEPA family ranges between $0.60\text{--}0.84\,$ms per window ($1{,}184\text{--}1{,}647$ windows per second). While TimesNet ($0.29\,$ms) and TranAD ($0.19\,$ms) achieve faster forward inference, the JEPA family operates well within sub-millisecond operational streaming deadlines on GPU hardware. These measurements characterize workstation accelerator throughput; on resource-constrained embedded processors or flight microcontrollers lacking dedicated tensor cores, sequential end-to-end latency depends directly on clock frequencies and memory bandwidth, motivating integer quantization (Section~\ref{sec:conclusion}) for edge deployment.

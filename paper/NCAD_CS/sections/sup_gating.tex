@@ -22,7 +22,8 @@ For per-fault-type behavior, six single-channel fault classes (flatline, stuck s
 \centering
 \caption{Auxiliary input-channel gating variant (not deployed): Point-F1 under uniform, context-gate, target-only-leaky, and independent gating.}
 \label{tab:gating_variants}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Stream} & \textbf{Uniform (deployed)} & \textbf{Context Gate} & \textbf{Target-Only} & \textbf{Independent} \\
@@ -34,15 +35,15 @@ Daphnet \texttt{S01R01E1} ($K=9$) & 0.146 & 0.061 & \textbf{0.306} & 0.158 \\
 \midrule
 \textbf{Macro Avg} & \textbf{0.118} & 0.077 & 0.128 & 0.071 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 \begin{table}[h]
 \centering
 \caption{Macro point recall of gating modes under injected single-channel faults.}
 \label{tab:fault_recall}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lccc@{}}
 \toprule
 \textbf{Injected Fault Type} & \textbf{Uniform} & \textbf{Var. Gate} & \textbf{MAD-Gate} \\
@@ -56,7 +57,6 @@ $+5\sigma$ spike control & 0.023 & 0.042 & \textbf{0.059} \\
 \midrule
 Mean nominal FPR & \textbf{0.019} & 0.069 & 0.055 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 
 \end{table}

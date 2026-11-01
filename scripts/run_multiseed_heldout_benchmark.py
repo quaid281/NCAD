@@ -359,7 +359,7 @@ def train_model(name, tr_win, k, device, epochs):
             # EMA target encoder's contribution to residual conditioning.
             m.update_target_encoder(1.0 if name == "JEPA-NoEMA" else None)
 
-    mean_only = name in ("Reynolds-meanscore", "Reynolds-alpha0")
+    mean_only = (name == "Reynolds-meanscore")
     nogate = name == "TS-JEPA-NoGate"  # equalized-gating control: plain L2 discrepancy
 
     def score(w):
@@ -373,7 +373,7 @@ def train_model(name, tr_win, k, device, epochs):
                     out.append(d.norm(dim=-1).cpu().numpy())
                 elif mean_only:
                     zc = m._extract_context(ch[:, :C])
-                    d = m.target_encoder(ch[:, C:]) - m.predictor(zc)
+                    d = m._extract_target(ch[:, C:]) - m._predict(zc)
                     out.append(m.saliency_gate(d).cpu().numpy())
                 elif ctx_recon:
                     out.append(m.compute_predictive_discrepancy(ch[:, :C], ch[:, :C]).cpu().numpy())

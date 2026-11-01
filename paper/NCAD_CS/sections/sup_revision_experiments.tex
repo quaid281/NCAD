@@ -15,7 +15,8 @@ Two distinct operational mechanisms are evident:
 \centering
 \scriptsize
 \caption{Controlled Score-Conditioning Study (Experiment A): Residual-distribution diagnostics and downstream detection metrics on held-out nominal telemetry (buffered regime, stream-averaged over 19 non-GHL streams at five seeds). $\gamma_2$: excess kurtosis; $q_{99.9}/q_{99}$: tail ratio; $\theta$: extremal index (runs declustering); $N_{\mathrm{eff}}$: effective independent exceedances; FPR: out-of-sample exceedance rate at static SPOT threshold ($u=0.98, q=10^{-3}$); Point-F1: unadjusted point F1; Event-Rec: event recall; $\Delta t$: mean detection delay (steps) over detected events; PR-AUC: precision-recall area under curve.}\label{tab:residual_diagnostics}
-\resizebox{\textwidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lcccccccccc@{}}
 \toprule
 Model Architecture & $\gamma_2$ & $q_{99.9}/q_{99}$ & $\mathrm{ACF}_1$ & $\theta$ & $N_{\mathrm{eff}}$ & FPR & Point-F1 & Event-Rec & Delay ($\Delta t$) & PR-AUC \\
@@ -44,15 +45,15 @@ IsoForest (Isolation Trees)    & -0.34 & 1.383 & 0.996 & 0.164 & 1.4 & 0.056 & 0
 KNN-Dist ($k$NN Distance)      & 3.37 & 1.376 & 0.998 & 0.124 & 1.1 & 0.301 & 0.161 & 0.546 & 63.5 & 0.326 \\
 ZScoreMax (Per-Channel Max-z)  & 9.97 & 1.617 & 0.997 & 0.131 & 1.2 & 0.339 & 0.209 & 0.609 & 67.5 & 0.374 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table*}
 
 \begin{table}[t]
 \centering
 \scriptsize
 \caption{Operating-characteristic summary on 19 non-GHL streams (seeds averaged within streams). Partial AUC = mean event recall over design budgets $\le 0.10$; $q^*{=}0.05$ columns give event recall and \emph{realized} test FPR at that design budget.}\label{tab:operating_characteristic}
-\resizebox{\columnwidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
 Model & pAUC (trail.) & pAUC (smear) & ER$_{0.05}$ (trail.) & FPR$_{0.05}$ (trail.) & ER$_{0.05}$ (smear) & FPR$_{0.05}$ (smear) \\
@@ -75,8 +76,7 @@ Obs-MAD & 0.611 & 0.612 & 0.604 & 0.201 & 0.606 & 0.235 \\
 TranAD & 0.603 & 0.599 & 0.602 & 0.270 & 0.596 & 0.295 \\
 ZScoreMax & 0.594 & 0.621 & 0.595 & 0.258 & 0.609 & 0.320 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 \begin{table}[t]
@@ -195,7 +195,8 @@ Table~\ref{tab:drift_calibration} evaluates calibrator reliability under nine co
 \centering
 \scriptsize
 \caption{Controlled-drift calibration study: achieved held-out FPR (design $q=10^{-3}$) under injected shifts in real residual streams (stream-averaged over 16 streams with $\ge 200$ calibration/evaluation windows; the three short MSL streams are excluded). Rolling variants recalibrate per evaluation block.}\label{tab:drift_calibration}
-\resizebox{\columnwidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
 Condition & SPOT & SPOT+decl. & Empirical ($q=10^{-3}$) & Roll.\ Emp.\ ($q=10^{-3}$) & Roll.\ SPOT \\
@@ -210,8 +211,7 @@ stationary & 0.061 & 0.159 & 0.162 & 0.016 & 0.047 \\
 var scale 1.5 & 0.072 & 0.172 & 0.178 & 0.016 & 0.047 \\
 var scale 2.0 & 0.082 & 0.186 & 0.195 & 0.016 & 0.047 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 \begin{table}[t]
@@ -267,7 +267,8 @@ Across the 244 shared anomaly events detected by both models across 65 evaluatio
 \centering
 \scriptsize
 \caption{Shared Intersecting Event Detection Delay ($q^*{=}0.05$). Paired runs: stream--seed cells where both models detected at least one common event; Shared Events: total intersecting events; $\Delta t_{\mathrm{TS\text{-}JEPA}}$ and $\Delta t_{\mathrm{Model}}$: mean detection delay over shared events (steps); Difference: $\Delta t_{\mathrm{TS\text{-}JEPA}} - \Delta t_{\mathrm{Model}}$.}\label{tab:delay_intersection}
-\resizebox{\columnwidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
 \textbf{Model Contrast} & \textbf{Paired Runs} & \textbf{Shared Events} & $\mathbf{\Delta t_{\mathrm{TS\text{-}JEPA}}}$ & $\mathbf{\Delta t_{\mathrm{Model}}}$ & \textbf{Difference} \\
@@ -284,8 +285,7 @@ TimesNet      & 65 & 244 & 59.21 & 56.91 & +2.30 \\
 TranAD        & 63 & 230 & 60.27 & 120.92 & -60.65 \\
 ZScoreMax     & 69 & 252 & 59.79 & 90.32 & -30.53 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 \begin{table}[t]
@@ -330,7 +330,8 @@ swan:sf & trailing & noise-matched & 0.002 & 0.004 \\
 \centering
 \scriptsize
 \caption{Multi-dataset benchmark comparison for published deep anomaly detection baselines across 11 telemetry datasets (130 streams; unified pipeline under SPOT calibration). Panel A reports unadjusted Point-F1; Panel B reports Point-Adjusted F1 (PA-F1). Macro averages weight each dataset equally; Stream-Macro averages across all 130 evaluation streams. Best result in \textbf{bold}, second \underline{underlined}.}\label{tab:sota_baselines}
-\resizebox{\columnwidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lccccccc@{}}
 \toprule
 Dataset & Streams & NCAD & DCdetector & Anom.Trans. & TimesNet & TranAD & TS-JEPA \\
@@ -367,8 +368,7 @@ SWAN         &  1 & \textbf{0.725} & 0.713 & \underline{0.724} & 0.714 & 0.681 &
 \textbf{Macro Mean}  & 11  & \underline{0.252} & 0.211 & 0.243 & 0.233 & 0.249 & \textbf{0.310} \\
 \textbf{Stream Mean} & 130 & \underline{0.298} & 0.268 & 0.247 & 0.275 & 0.263 & \textbf{0.401} \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 \subsection{Multi-Dataset Baseline Benchmark Analysis}
@@ -387,25 +387,25 @@ To eliminate ambiguity across reported False-Positive Rates in the manuscript an
 \centering
 \scriptsize
 \caption{Master Headline False-Positive Rate (FPR) Reconciliation Table. Cross-reference mapping all reported FPR values across the manuscript and supplementary material to their evaluation cohorts, random seed coverage, temporal attribution regimes, calibration configurations, aggregation levels, and primary text locations.}\label{tab:master_fpr_reconciliation}
-\resizebox{\textwidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}llcccccp{4.8cm}@{}}
 \toprule
 \textbf{Reported FPR} & \textbf{Model / Architecture} & \textbf{Evaluation Cohort} & \textbf{Seeds} & \textbf{Attribution} & \textbf{Calibrator} & \textbf{Aggregation} & \textbf{Primary Manuscript Context} \\
 \midrule
-$0.076$ ($7.6\%$) & TS-JEPA & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Primary held-out benchmark (Section~\ref{subsec:core_benchmark}, Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)) \\
-$0.300$ ($30.0\%$) & TimesNet & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Baseline reconstructive benchmark (Section~\ref{subsec:core_benchmark}, Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)) \\
-$0.307$ ($30.7\%$) & TranAD & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Baseline attention reconstructive benchmark (Section~\ref{subsec:core_benchmark}, Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)) \\
-$0.005$ ($0.5\%$) & Linear AR Forecaster & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Linear dynamical control (Section~\ref{subsec:core_benchmark}) \\
-$0.0526$ ($5.26\%$) & TS-JEPA & 33 primary streams & 1--5 & Buffered (smear) & Static SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & 33-stream calibrator comparison (Section~\ref{subsec:calibration_realities}, Table~\ref{tab:calibrator_comparison}) \\
-$0.2217$ ($22.17\%$) & TimesNet / TranAD & 33 primary streams & 1--5 & Buffered (smear) & Static SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & 33-stream calibrator comparison (Section~\ref{subsec:calibration_realities}, Table~\ref{tab:calibrator_comparison}) \\
-$0.080$ ($8.0\%$) & TS-JEPA & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Experiment A controlled backbone study (Section~\ref{subsec:controlled_backbone}, Table~\ref{tab:residual_diagnostics}) \\
-$0.186$ ($18.6\%$) & TCN-ObsPred-LN / PCA-LinPred-LN & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Experiment A bounded score controls (Section~\ref{subsec:controlled_backbone}, Table~\ref{tab:residual_diagnostics}) \\
-$0.014$ ($1.4\%$) & TS-JEPA & 19 non-GHL streams & 5 & Causal (trailing) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Strictly causal streaming benchmark (Section~\ref{subsec:controlled_backbone}, Table~\ref{tab:causal_benchmark}) \\
-$0.118$ ($11.8\%$) & TS-JEPA & 15-stream matched backbone & 1 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Preliminary 15-stream noise robustness ablation (Section~\ref{subsec:controlled_backbone}, Table~\ref{tab:controlled_backbone}) \\
-$0.33\%$ ($0.0033$) & TS-JEPA & 6-stream pilot diagnostic & 1 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & EVT failure-mechanism decomposition (Section~\ref{sup:evt_detail}, Table~\ref{tab:evt_failure_decomposition}) \\
+$0.076$ ($7.6$) & TS-JEPA & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Primary held-out benchmark (Section~\ref{subsec:core_benchmark}, Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)) \\
+$0.300$ ($30.0$) & TimesNet & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Baseline reconstructive benchmark (Section~\ref{subsec:core_benchmark}, Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)) \\
+$0.307$ ($30.7$) & TranAD & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Baseline attention reconstructive benchmark (Section~\ref{subsec:core_benchmark}, Table~\ref{tab:core_benchmark}, Table~\ref{tab:ablations}(a)) \\
+$0.005$ ($0.5$) & Linear AR Forecaster & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Linear dynamical control (Section~\ref{subsec:core_benchmark}) \\
+$0.0526$ ($5.26$) & TS-JEPA & 33 primary streams & 1--5 & Buffered (smear) & Static SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & 33-stream calibrator comparison (Section~\ref{subsec:calibration_realities}, Table~\ref{tab:calibrator_comparison}) \\
+$0.2217$ ($22.17$) & TimesNet / TranAD & 33 primary streams & 1--5 & Buffered (smear) & Static SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & 33-stream calibrator comparison (Section~\ref{subsec:calibration_realities}, Table~\ref{tab:calibrator_comparison}) \\
+$0.080$ ($8.0$) & TS-JEPA & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Experiment A controlled backbone study (Section~\ref{subsec:controlled_backbone}, Table~\ref{tab:residual_diagnostics}) \\
+$0.186$ ($18.6$) & TCN-ObsPred-LN / PCA-LinPred-LN & 19 non-GHL streams & 5 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Experiment A bounded score controls (Section~\ref{subsec:controlled_backbone}, Table~\ref{tab:residual_diagnostics}) \\
+$0.014$ ($1.4$) & TS-JEPA & 19 non-GHL streams & 5 & Causal (trailing) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Strictly causal streaming benchmark (Section~\ref{subsec:controlled_backbone}, Table~\ref{tab:causal_benchmark}) \\
+$0.118$ ($11.8$) & TS-JEPA & 15-stream matched backbone & 1 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & Preliminary 15-stream noise robustness ablation (Section~\ref{subsec:controlled_backbone}, Table~\ref{tab:controlled_backbone}) \\
+$0.33$ ($0.0033$) & TS-JEPA & 6-stream pilot diagnostic & 1 & Buffered (smear) & SPOT ($u{=}0.98, q{=}10^{-3}$) & Stream-macro & EVT failure-mechanism decomposition (Section~\ref{sup:evt_detail}, Table~\ref{tab:evt_failure_decomposition}) \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table*}
 
 \subsection{Complete 17-Model Common Support Matrix on Realized FPR}

@@ -3,7 +3,7 @@
 \caption{Matched-Backbone Controlled Ablation across 15 Telemetry Streams. All three models use the exact same \texttt{HybridTCNEncoder} backbone ($F=48, D=32, C=256, S=64$), identical training epochs (20), AdamW optimizer, and identical held-out EVT/SPOT validation calibration. Observation forecasting in raw sensor space matches reconstruction behavior ($\kappa \approx 56$, $\text{FPR} \approx 27.6\%$, $p=0.68$). Shifting the predictive loss to latent space compresses residual tails ($\kappa = 1.77$), significantly lowering clean false-alarm rate ($p=0.048$) and stabilizing against severe sensor noise ($0\,\text{dB}$ FPR $13.9\%$ vs.\ $51.0\%$, $p=0.0026$), at the cost of lower point-level recall.}
 \label{tab:controlled_backbone}
 \small
-\begin{tabular}{lcccccc} \toprule
+\begin{tabular}{@{}lcccccc@{}} \toprule
 \textbf{Architecture \& Objective} & \textbf{Val. Kurtosis} & \textbf{Test Kurtosis} & \textbf{Clean FPR} & \textbf{0\,dB FPR} & \textbf{Clean Point-F1} & \textbf{Clean Recall} \\
  & ($\kappa_{\text{val}}$) & ($\kappa_{\text{test}}$) & ($\text{SNR}=\infty$) & ($\text{SNR}=0\,\text{dB}$) & ($\text{SNR}=\infty$) & ($\text{SNR}=\infty$) \\ \midrule
 TCN Observation Autoencoder (Reconstruction) & $6.09 \pm 14.52$ & $57.26 \pm 106.74$ & $0.2729 \pm 0.343$ & $0.5410 \pm 0.415$ & $0.1977 \pm 0.169$ & $0.4330 \pm 0.402$ \\

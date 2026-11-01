@@ -23,7 +23,7 @@ STANDALONE = ROOT / "paper" / "NCAD_CS" / "NCAD_CS_standalone.tex"
 COMMON = {
     "IEEE", "TNNLS", "AUC", "ROC", "CPU", "GPU", "PDF", "MSE", "KL", "LP",
     "NASA", "TCN", "MLP", "RMS", "SVD", "PCA", "IID", "EMA", "FFT", "CNN",
-    "LSTM", "GRU", "AdamW", "ReLU", "GELU", "SiLU", "DWT", "DB4", "PAC",
+    "LSTM", "GRU", "AdamW", "ReLU", "GELU", "SiLU", "DWT", "DB4", "PAC", "QR",
 }
 # Dataset / model proper names, not acronyms to expand.
 PROPER = {

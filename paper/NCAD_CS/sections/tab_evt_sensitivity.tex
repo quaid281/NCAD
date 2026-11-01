@@ -3,7 +3,8 @@
 \small
 \caption{Sensitivity Analysis of Extreme Value Theory (SPOT) Calibration Parameters across Benchmark Streams. We evaluate the sensitivity of empirical False Positive Rates (on held-out nominal validation splits and test sequences) and Point-F1 across initial tail quantiles $u \in \{0.95, 0.98, 0.99\}$, design risk parameters $q \in \{10^{-2}, 10^{-3}, 10^{-4}\}$, and kurtosis adaptation coefficients $\beta \in \{0.0, 0.083, 0.167, 0.25, 0.50\}$ alongside non-parametric baselines.}
 \label{tab:evt_sensitivity}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}l cccc c@{}}
 \toprule
 \textbf{Threshold Calibration Method} & \textbf{Design $q$} & \textbf{Tail $u$} & \textbf{Val FPR} & \textbf{Test FPR} & \textbf{Point-F1} \\
@@ -34,6 +35,5 @@ Max-of-Validation                           & --        & --   & \textbf{0.00000
 Empirical 99.5th Percentile                 & --        & --   & 0.00544 & 0.1837 & 0.1028 \\
 Gaussian 3-Sigma ($\mu + 3\sigma$)          & --        & --   & 0.00882 & 0.1879 & 0.1016 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}

@@ -28,6 +28,7 @@ When inspecting, reviewing, editing, or generating content for `.tex` and `.bib`
 
 - **Documentation & Integrity**: Preserve existing comments, docstrings, and type annotations unless specifically updating them.
 - **Consistency**: Adhere to the established TS-JEPA modular architectures and clean separation of concerns across models, trainers, datasets, and utilities.
+- **Strict Loss & Architectural Parsimony (.agents/skills/loss-and-architecture-parsimony/SKILL.md)**: Enforce geometric, spectral, and manifold invariants structurally inside architectural layers rather than adding multi-term regularizer penalties to compute_objective. Never introduce duplicate forward passes, redundant LayerNorm / 	anh / clamp wrappers over algebraically bounded operators, or cross-model loss imports. Keep ReynoldsStressJEPAModel.compute_objective strictly to its two physical alignment terms ($\mathcal{L}_{\text{pred}} + \alpha_{\text{stress}}\mathcal{L}_{\text{stress}}$).
 
 ---
 

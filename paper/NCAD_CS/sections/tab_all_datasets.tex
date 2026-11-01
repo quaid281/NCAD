@@ -3,8 +3,9 @@
 \caption{Per-Dataset Unadjusted Point-F1 Across All 7 Evaluated Telemetry Benchmarks (33 Matched Streams) under Held-Out Calibration (SPOT, $q=10^{-3}$; up to five seeds on non-GHL streams). Best result for each dataset is in \textbf{bold}, and second best is \underline{underlined}. The bottom row reports unweighted Dataset-Macro averages matching Table~\ref{tab:core_benchmark}.}
 \label{tab:all_datasets}
 \small
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{ll c cccc cc}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}ll c cccc cc@{}}
 \toprule
 \textbf{Dataset} & \textbf{Physical Sensing Domain} & \textbf{Streams} & \textbf{TS-JEPA (Control)} & \textbf{Operator-Entropy} & \textbf{Reynolds-Stress} & \textbf{Potential-Flow} & \textbf{TimesNet} & \textbf{TranAD} \\
 \midrule
@@ -18,6 +19,5 @@ SWAN     & Solar Flare Magnetic Telemetry   & 1  & \textbf{0.241}    & 0.060 & \
 \midrule
 \textbf{Dataset-Macro Mean} & Across All 7 Benchmarks & 33 & \textbf{0.148} & \underline{0.130} & 0.122 & 0.064 & 0.100 & 0.069 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table*}

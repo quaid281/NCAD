@@ -3,8 +3,9 @@
 \caption{Per-Dataset Precision-Recall Area Under the Curve (PR-AUC / Average Precision) Across All 7 Evaluated Telemetry Benchmarks (33 Matched Channels). The best result for each dataset is in \textbf{bold}, and the second best is \underline{underlined}. Continuous ranking evaluates the unthresholded predictive scores.}
 \label{tab:dataset_prauc}
 \small
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{ll c cccc cc}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}ll c cccc cc@{}}
 \toprule
 \textbf{Dataset} & \textbf{Physical Telemetry Domain} & \textbf{Streams} & \textbf{TS-JEPA (Control)} & \textbf{Operator-Entropy} & \textbf{Reynolds-Stress} & \textbf{Potential-Flow} & \textbf{TimesNet} & \textbf{TranAD} \\
 \midrule
@@ -18,6 +19,5 @@ SWAN     & Solar Flare Magnetic Telemetry   & 1  & \underline{0.519} & 0.370 & 0
 \midrule
 \textbf{Dataset-Macro Mean} & Across All 7 Benchmarks & 33 & \textbf{0.242} & \underline{0.227} & 0.214 & 0.147 & 0.206 & 0.216 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table*}

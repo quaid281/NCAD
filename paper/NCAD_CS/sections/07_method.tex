@@ -1,11 +1,11 @@
-\section{Methodology: Operator-Entropy Joint-Embedding Predictive Architecture}
+\section{Methodology: Operator-Entropy and Reynolds-Stress Joint-Embedding Predictive Architectures}
 \label{sec:proposed_method}
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.78\textwidth]{figures/opentropy_jepa_architecture.png}
+\includegraphics[width=0.78\textwidth]{figures/opentropy_jepa_architecture.jpg}
 \vspace{-4pt}
-\caption{Operator-Entropy JEPA architecture. Online ($E_\theta$) and momentum target ($E_\phi$) encoders map context ($\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{256 \times K}$) and suspect ($\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{64 \times K}$) windows into latent space, where a Koopman operator ($\mathbf{K} \in \mathbb{R}^{32 \times 32}$) forecasts $\hat{\mathbf{z}}_{\text{tgt}} = \mathbf{K}\mathbf{z}_{\text{ctx}}$ under spectral-entropy and Bregman-barrier regularization for coordinate-gated SPOT scoring.\label{fig:triad_architecture}}
+\caption{Four-stage \texttt{Reynolds-Stress JEPA} architecture. (1)~Multiscale windowing splits telemetry at index $t$ into context ($\mathbf{x}_{\text{ctx}} \in \mathbb{R}^{256 \times K}$) and target ($\mathbf{x}_{\text{tgt}} \in \mathbb{R}^{64 \times K}$) blocks processed by a 4-shell dyadic real fast Fourier transform (rFFT) front-end and causal dilated temporal convolutional network (TCN). (2)~Dual online ($E_\theta$) and exponential moving average (EMA) target ($E_\phi$) encoders map windows into $\mathbb{R}^{32}$. (3)~Reynolds-stress closure forecasts first-moment transport ($\hat{\mathbf{z}}_{\text{tgt}}$) via a Crouzeix dissipative predictor ($w(\mathbf{W}) \le 1$) and second-moment subgrid covariance ($\boldsymbol{\Sigma}_{\text{pred}}, \boldsymbol{\Sigma}_{\text{obs}} \in \mathcal{S}_+^{d_s}$) on a Stiefel frame $\mathbf{V} \in \mathrm{St}(d_s, 32)$. (4)~Parsimonious two-term training objective and saliency-gated SPOT calibration under causal trailing ($\tau = t + 63$) and buffered smear mappings.\label{fig:triad_architecture}}
 \vspace{-6pt}
 \end{figure*}
 
@@ -21,38 +21,29 @@ Consider a continuous multivariate telemetry stream $\mathbf{X} \in \mathbb{R}^{
 \centering
 \includegraphics[width=0.98\columnwidth]{figures/context_target_window_schematic.pdf}
 \vspace{-5pt}
-\caption{\textbf{(a)}~Sliding window partitioning of $\mathbf{X} \in \mathbb{R}^{T \times K}$ into context $\mathbf{x}_{\text{ctx}}$ ($C{=}256$) and suspect target $\mathbf{x}_{\text{tgt}}$ ($S{=}64$, decision step $\tau = t + S - 1$). \textbf{(b)}~Empirical 2D latent projection ($\mathbb{R}^{32} \to \mathbb{R}^2$, SMAP \texttt{E-1}) centered at $\hat{z}_{\text{tgt}} = \mathbf{K}z_{\text{ctx}}$: nominal calibration ($z_{\text{tgt}}^{\text{cal}}$) and held-out ($z_{\text{tgt}}^{\text{hold}}$) clouds remain inside $\tau_{\text{SPOT}}$, whereas fault state $z_{\text{tgt}}(t)$ crosses $\tau_{\text{SPOT}}$ along $\mathbf{e}(t) = z_{\text{tgt}} - \hat{z}_{\text{tgt}}$.\label{fig:context_target_schematic}}
+\caption{\textbf{(a)}~Sliding window partitioning of $\mathbf{X} \in \mathbb{R}^{T \times K}$ into context $\mathbf{x}_{\text{ctx}}$ ($C{=}256$) and suspect target $\mathbf{x}_{\text{tgt}}$ ($S{=}64$, decision step $\tau = t + S - 1$). \textbf{(b)}~Empirical 2D latent projection ($\mathbb{R}^{32} \to \mathbb{R}^2$, SMAP \texttt{E-1}) centered at $\hat{z}_{\text{tgt}}$: nominal calibration ($z_{\text{tgt}}^{\text{cal}}$) and held-out ($z_{\text{tgt}}^{\text{hold}}$) clouds remain inside $\tau_{\text{SPOT}}$, whereas fault state $z_{\text{tgt}}(t)$ crosses $\tau_{\text{SPOT}}$ along $\mathbf{e}(t) = z_{\text{tgt}} - \hat{z}_{\text{tgt}}$.\label{fig:context_target_schematic}}
 \vspace{-8pt}
 \end{figure}
 
 Unlike reconstructive detectors that minimize pointwise observation error $\|\mathbf{X} - \hat{\mathbf{X}}\|_F^2$ and inherit leptokurtic sensor noise (Sections~\ref{sec:intro} and~\ref{sec:related}), we shift prediction into a compact 32-dimensional latent space ($D=32$, Fig.~\ref{fig:context_target_schematic}(b)) using a Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path}. An online context encoder $E_\theta$ compresses $\mathbf{x}_{\text{ctx}}$ into a context vector $z_{\text{ctx}} \in \mathbb{R}^D$, while a separate target encoder $E_\phi$ compresses $\mathbf{x}_{\text{tgt}}$ into a target vector $z_{\text{tgt}} \in \mathbb{R}^D$. Rather than training $E_\phi$ by direct gradient descent (which would allow both encoders to map all inputs to a constant vector), the target weights $\phi$ are updated as an exponential moving average (EMA) of the online weights $\theta$, $\phi_k \leftarrow m_k \phi_{k-1} + (1 - m_k) \theta_k$ with a cosine momentum schedule $m_k \in [0.996, 0.9995]$ \cite{grill2020bootstrap, assran2023self}. By predicting the summary embedding $z_{\text{tgt}}$ from $z_{\text{ctx}}$, the model discards uninformative channel-level jitter while preserving structural trajectory departures.
 
-\subsection{Latent Predictor Architectures and Spectral Conditioning}
+\subsection{Latent Predictor Architectures: Operator-Entropy and Reynolds-Stress JEPA}
 \label{subsec:triad_formulations}
-We formulate Operator-Entropy JEPA as a linear Koopman transition architecture and evaluate it alongside an unconstrained multi-layer perceptron predictor (\texttt{TS-JEPA}):
+We evaluate three nested latent predictor architectures sharing the same multiscale encoder backbone and coordinate saliency gate: an unconstrained multi-layer perceptron predictor (\texttt{TS-JEPA}), a spectral-regularized Koopman transition (\texttt{Operator-Entropy JEPA}), and a structurally constrained second-moment closure architecture (\texttt{Reynolds-Stress JEPA}).
 
 \subsubsection{Operator-Entropy JEPA (Spectral Conditioning)}
-\noindent\textbf{Idea.} Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral} represents nonlinear dynamics as a linear map on learned observables. We follow it and forecast in latent space with a single learnable matrix $\mathbf{K} \in \mathbb{R}^{D \times D}$, so that $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$.
-
-\noindent\textbf{Problem.} Trained on prediction error alone, $\mathbf{K}$ can fail in two ways. It can put all its energy into a few directions (rank collapse), or it can shrink toward zero (norm collapse). Either way it stops carrying information about the dynamics.
-
-\noindent\textbf{Fix.} We regularize both the shape and total scale of the singular value spectrum of $\mathbf{K}$ via a unified spectral conditioning functional $\mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}}\Phi_{\text{energy}}(\mathbf{K})$.
-
-\noindent\textbf{Spectral shape ($\Delta\mathcal{H}$): spread energy evenly.}
-The singular values $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ of $\mathbf{K}$ measure how strongly it amplifies each orthogonal direction. Each squared value $\lambda_i = \sigma_i^2$ is the energy in direction $i$, and $\|\mathbf{K}\|_F^2 = \sum_{i=1}^D \lambda_i$ is the total energy. Normalizing the energies into a probability distribution $p_i = (\lambda_i + \epsilon_{\log}) / \sum_{j=1}^D (\lambda_j + \epsilon_{\log})$ (with $\epsilon_{\log} = 10^{-12}$ for numerical stability) defines the Von Neumann spectral entropy $\mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D p_i \log p_i$. We define the \textit{Spectral Entropy Deficiency} as the Kullback--Leibler (KL) divergence between the modal distribution $\mathbf{p}$ and the ideal uniform equipartition $\mathbf{u} = [1/D, \dots, 1/D]^\top$:
+\noindent\textbf{Formulation.} Koopman operator theory \cite{koopman1931hamiltonian, mezic2005spectral} represents nonlinear dynamics as a linear map on learned observables, $\hat{z}_{\text{tgt}} = \mathbf{K} z_{\text{ctx}}$ with $\mathbf{K} \in \mathbb{R}^{D \times D}$. Trained on prediction error alone, $\mathbf{K}$ can concentrate energy into a few directions (rank collapse) or shrink toward zero (norm collapse). We regularize both the shape and scale of the singular value spectrum $\sigma_1 \ge \dots \ge \sigma_D \ge 0$ of $\mathbf{K}$ via $\mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}}\Phi_{\text{energy}}(\mathbf{K})$. Normalizing squared singular values $\lambda_i = \sigma_i^2$ into $p_i = (\lambda_i + \epsilon_{\log}) / \sum_{j=1}^D (\lambda_j + \epsilon_{\log})$ ($\epsilon_{\log} = 10^{-12}$) defines the Von Neumann spectral entropy $\mathcal{H}_{\text{spectral}}(\mathbf{K}) = -\sum_{i=1}^D p_i \log p_i$ and the \textit{Spectral Entropy Deficiency} relative to uniform equipartition $\mathbf{u} = [1/D, \dots, 1/D]^\top$:
 \begin{equation}
     \Delta\mathcal{H}(\mathbf{K}) = \log D - \mathcal{H}_{\text{spectral}}(\mathbf{K}) = \mathcal{D}_{\text{KL}}(\mathbf{p} \,\|\, \mathbf{u}) \ge 0.
 \end{equation}
-When all $D$ singular modes carry equal energy ($\sigma_1 = \dots = \sigma_D$), $\Delta\mathcal{H}(\mathbf{K}) = 0$; conversely, if $\mathbf{K}$ collapses onto a single rank-1 direction, $\Delta\mathcal{H}(\mathbf{K})$ rises toward $\log D$. Minimizing $\Delta\mathcal{H}(\mathbf{K})$ thus encourages a well-conditioned, near-isometric transition matrix.
-
-\noindent\textbf{Spectral scale ($\Phi_{\text{energy}}$): keep total energy near one.} Because $\Delta\mathcal{H}(c\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K})$ is scale-invariant for $c > 0$, a smooth logarithmic Bregman barrier on the energy ratio $r(\mathbf{K}) = \|\mathbf{K}\|_F^2 / D$ stops $\mathbf{K}$ from shrinking, with no hard gradient clipping:
+Because $\Delta\mathcal{H}(c\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K})$ is scale-invariant for $c > 0$, a convex Bregman barrier on the energy ratio $r(\mathbf{K}) = \|\mathbf{K}\|_F^2 / D$ prevents norm decay without hard gradient clipping ($\epsilon = 10^{-6}$):
 \begin{equation}
 \begin{aligned}
     \Phi_{\text{energy}}(\mathbf{K}) &= r(\mathbf{K}) - 1 - \log\bigl(r(\mathbf{K}) + \epsilon\bigr) \\
-    &\quad + \log(1 + \epsilon) \ge 0,
+    &\quad + \log(1 + \epsilon) \ge 0.
 \end{aligned}
 \end{equation}
-with $\epsilon = 10^{-6}$. This convex barrier equals zero at the unit-energy scale $r(\mathbf{K}) = 1$ (where $\mathbf{K}$ is initialized near the identity matrix) and smoothly penalizes both energy decay ($r \to 0$) and runaway amplification ($r \gg 1$). Combining both terms gives the spectral regularizer $\mathcal{R}_{\text{spectral}}(\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K}) + \beta_{\text{norm}} \Phi_{\text{energy}}(\mathbf{K})$, yielding the training loss:
+Combining both terms yields the Operator-Entropy training objective:
 \begin{equation}
 \begin{aligned}
     \mathcal{L}_{\text{Op-Entropy}} &= \frac{1}{BD}\sum_{b=1}^{B}\bigl\| \mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)} \bigr\|_2^2 \\
@@ -60,27 +51,40 @@ with $\epsilon = 10^{-6}$. This convex barrier equals zero at the unit-energy sc
 \end{aligned}
 \label{eq:op_entropy_loss}
 \end{equation}
-where $B$ is the batch size, $\beta_{\text{norm}} = 1.0$, $\lambda_{\text{ent}} = 0.5$, and $\beta_{\text{Lyap}} = 0.02$. Because context and target windows have asymmetric lengths ($C=256$ vs.\ $S=64$), $\mathcal{L}_{\text{Lyap}}$ aligns the trace-normalized batch covariance of predicted states $\mathbf{K}\operatorname{sg}(z_{\text{ctx}})$ to that of $z_{\text{tgt}}$, applying a stop-gradient operator $\operatorname{sg}(\cdot)$ to $z_{\text{ctx}}$ so that operator conditioning acts solely on $\mathbf{K}$ without distorting the encoder representations.
+where $B$ is the batch size, $\beta_{\text{norm}} = 1.0$, $\lambda_{\text{ent}} = 0.5$, and $\beta_{\text{Lyap}} = 0.02$ aligns the trace-normalized batch covariance of $\mathbf{K}\operatorname{sg}(z_{\text{ctx}})$ to $z_{\text{tgt}}$ using stop-gradient $\operatorname{sg}(\cdot)$.
 
 \begin{proposition}[Operator Non-Triviality Under Finite-$\epsilon$ and Singular Barriers]
 \label{prop:anti_collapse}
-Consider $\mathcal{L}_\epsilon(\mathbf{K}) = \frac{1}{BD}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}}, \beta_{\text{norm}} > 0$ and empirical context--target cross-covariance $\mathbf{M} = \frac{1}{BD}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^\top$:
-(i)~Under the finite-$\epsilon$ smooth barrier ($\epsilon = 10^{-6}$), the regularizer gradient vanishes at the origin, $\nabla_{\mathbf{K}}\mathcal{R}_{\text{spectral}}(\mathbf{0}) = \mathbf{0}$, because $r(\mathbf{K})$ is quadratic in $\mathbf{K}$; however, whenever context and target embeddings exhibit non-zero cross-covariance ($\mathbf{M} \neq \mathbf{0}$), $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$, which excludes $\mathbf{K} = \mathbf{0}$ as a stationary point or minimizer.
-(ii)~In the singular-barrier limit ($\epsilon \to 0^+$), $\lim_{\|\mathbf{K}\|_F \to 0} \Phi_{\text{energy}}(\mathbf{K}) = +\infty$ unconditionally.
+Consider $\mathcal{L}_\epsilon(\mathbf{K}) = \frac{1}{BD}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}}, \beta_{\text{norm}} > 0$ and cross-covariance $\mathbf{M} = \frac{1}{BD}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^\top$:
+(i)~For $\epsilon = 10^{-6}$, $\nabla_{\mathbf{K}}\mathcal{R}_{\text{spectral}}(\mathbf{0}) = \mathbf{0}$, but whenever $\mathbf{M} \neq \mathbf{0}$, $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$, excluding $\mathbf{K} = \mathbf{0}$ as a stationary point.
+(ii)~As $\epsilon \to 0^+$, $\lim_{\|\mathbf{K}\|_F \to 0} \Phi_{\text{energy}}(\mathbf{K}) = +\infty$ unconditionally.
 \end{proposition}
 \begin{proof}
-For $\epsilon > 0$, $\nabla_{\mathbf{K}}\Phi_{\text{energy}}(\mathbf{K}) = \frac{2}{D}\Phi'_{\text{energy}}(r)\,\mathbf{K} = \mathbf{0}$ at $\mathbf{K}=\mathbf{0}$, and $\mathbf{K}=\mathbf{0}$ yields uniform smoothed probabilities $p_i = 1/D$, minimizing $\Delta\mathcal{H} \ge 0$ so $\nabla_{\mathbf{K}}\Delta\mathcal{H}(\mathbf{0}) = \mathbf{0}$. Differentiating the prediction term gives $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$ whenever $\mathbf{M} \neq \mathbf{0}$. As $\epsilon \to 0^+$, $-\log r(\mathbf{K}) \to +\infty$ as $\|\mathbf{K}\|_F \to 0$.
+For $\epsilon > 0$, $\nabla_{\mathbf{K}}\Phi_{\text{energy}}(\mathbf{0}) = \mathbf{0}$ and $\mathbf{K}=\mathbf{0}$ yields $p_i = 1/D$, so $\nabla_{\mathbf{K}}\Delta\mathcal{H}(\mathbf{0}) = \mathbf{0}$ and $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$. As $\epsilon \to 0^+$, $-\log r(\mathbf{K}) \to +\infty$ as $\|\mathbf{K}\|_F \to 0$.
 \end{proof}
 
-\noindent\textbf{Remark (Scope of Regularization):} Proposition~\ref{prop:anti_collapse} guarantees non-degeneracy of the transition matrix $\mathbf{K}$, not diversity of the encoder representations $z_{\text{ctx}}, z_{\text{tgt}}$. Unlike representation regularizers such as VICReg \cite{bardes2021vicreg} or Barlow Twins \cite{zbontar2021barlow} that penalize encoder covariance collapse directly, $\mathcal{R}_{\text{spectral}}(\mathbf{K})$ constrains only the transition spectrum; encoder collapse is prevented empirically by the momentum target encoder and stop-gradient decoupling (Table~\ref{tab:ablations}(c)).
+\noindent\textbf{Remark (Scope of Regularization):} Proposition~\ref{prop:anti_collapse} guarantees non-degeneracy of $\mathbf{K}$, whereas encoder diversity is maintained by the momentum target encoder and stop-gradient decoupling rather than variance regularizers such as VICReg \cite{bardes2021vicreg} or Barlow Twins \cite{zbontar2021barlow} (Table~\ref{tab:ablations}(c)).
+
+\subsubsection{Reynolds-Stress JEPA (Structural Manifold Closure)}
+\noindent\textbf{Structural Parsimony vs.\ Loss Penalties.} Rather than appending multi-term spectral penalties to the training objective, Reynolds-Stress JEPA enforces dynamical stability and second-moment closure structurally inside its architectural layers:
+\begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
+    \item \textit{Crouzeix contractivity and Hankel--Cohn--Elkies filtering:} Each predictor layer decomposes its weight into skew-symmetric advection and spectrally normalized symmetric diffusion, $\mathbf{W}_{\text{eff}} = \frac{\tau}{2}(\mathbf{W} - \mathbf{W}^\top) + \sigma_{\text{sym}}\mathbf{S}/(\|\mathbf{S}\|_2 + \epsilon)$ ($\mathbf{S} = \frac{1}{2}(\mathbf{W}+\mathbf{W}^\top)$), bounding the numerical range inside the Crouzeix disk. Context embeddings are modulated by a similarity-invariant Hankel resolvent trace $\bar{\rho}(\mathbf{H}_{\text{sym}}) = \frac{1}{L}\sum_{i=1}^L \lambda_i / (\sqrt{1 + \lambda_i^2} + \epsilon) \in (-1, 1)$ ($L{=}8$) and a radial Cohn--Elkies Fourier band-limiter $h_\epsilon(\zeta) = \sum_{k=1}^8 w(a_k)[(\frac{4}{3}a_k^2\zeta - 2)e^{-\pi a_k^2\zeta} - 2\epsilon e^{-\pi\zeta/a_k^2}] \in [-2, 0]$ with normalized positive shell weights $\sum_{k=1}^8 w(a_k) = 1$, guaranteeing contractive gain $(1 + \gamma_{\text{CE}} h_\epsilon(\zeta)) \in [0, 1]$ algebraically without heuristic box clamping.
+    \item \textit{Stiefel subgrid basis and positive semidefinite (PSD) stress closure:} To capture covariance anomalies that leave the mean trajectory unchanged, the encoder emits both the pooled macro embedding $\bar{z}_{\text{tgt}}$ (fusing temporal pooling with three bounded trajectory descriptors: standard deviation $\sigma$, Log-Ricci energy $\log(1 + \frac{1}{T}\sum_\tau h_\tau^2)$, and first-order total variation $\frac{1}{T-1}\sum_\tau |h_\tau - h_{\tau-1}|$) and the zero-mean subgrid trajectory $z'_{\text{tgt}}(\tau) = \mathbf{Q}_{\text{St}}(h(\tau) - \bar{h})$ via row-orthonormal Stiefel projection $\mathbf{Q}_{\text{St}} \in \mathrm{St}(D, 64)$. An orthogonal subgrid frame $\mathbf{V} \in \mathrm{St}(d_s, D)$ ($d_s = 8$, enforced via QR retraction with positive diagonal) projects target fluctuations into the symmetric PSD cone $\mathcal{S}_+^{d_s}$, yielding observed Reynolds stress $\boldsymbol{\Sigma}_{\text{obs}} \in \mathcal{S}_+^{d_s}$. A closure head conditioned on the midpoint state $\bar{z} = \frac{1}{2}(z_{\text{ctx}} + \hat{z}_{\text{tgt}})$ predicts $\boldsymbol{\Sigma}_{\text{pred}} = \mathbf{L}\mathbf{L}^\top + \gamma\mathbf{I}_{d_s} \in \mathcal{S}_+^{d_s}$ under a strictly parsimonious two-term objective:
+\end{enumerate}
+\begin{equation}
+    \mathcal{L}_{\text{Reynolds}} = \frac{1}{BD}\sum_{b=1}^B \bigl\|\hat{z}_{\text{tgt}}^{(b)} - z_{\text{tgt}}^{(b)}\bigr\|_2^2 + \frac{\alpha_{\text{stress}}}{B d_s^2}\sum_{b=1}^B \bigl\|\boldsymbol{\Sigma}_{\text{pred}}^{(b)} - \operatorname{sg}\bigl(\boldsymbol{\Sigma}_{\text{obs}}^{(b)}\bigr)\bigr\|_F^2,
+    \label{eq:reynolds_loss}
+\end{equation}
+with $\alpha_{\text{stress}} = 0.1$ and zero auxiliary loss regularizers.
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
-At test time, sliding windows are processed at stride $1$. Let $\mathbf{e}(t) = z_{\text{tgt}}(t) - \hat{z}_{\text{tgt}}(t) \in \mathbb{R}^D$ denote the latent prediction residual, and let $g(\mathbf{e})$ denote the coordinate saliency gate defined in (\ref{eq:saliency_gate}). Unconstrained \texttt{TS-JEPA} scores windows directly via $\mathcal{S}(t) = g(\mathbf{e}(t))$. Because the final LayerNorm layer projects latent vectors onto the sphere of radius $\sqrt{D}$ and strips radial amplitude, Operator-Entropy JEPA records the pre-LayerNorm radial energy scaled by window RMS for both encoders ($e_{\text{ctx}}, e_{\text{tgt}}$), forms the predicted radial energy $e_{\text{pred}} = e_{\text{ctx}}\|\hat{z}_{\text{tgt}}\|_2 / (\|z_{\text{ctx}}\|_2 + 10^{-6})$, and combines directional and radial discrepancies:
-\begin{equation}
-    \mathcal{S}_{\text{OpEnt}}(t) = g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\frac{|e_{\text{tgt}}(t) - e_{\text{pred}}(t)|}{e_{\text{tgt}}(t) + e_{\text{pred}}(t) + 10^{-6}}.
-    \label{eq:opent_score}
-\end{equation}
+At test time, sliding windows are processed at stride $1$. Let $\mathbf{e}(t) = z_{\text{tgt}}(t) - \hat{z}_{\text{tgt}}(t) \in \mathbb{R}^D$ denote the latent prediction residual, and let $g(\mathbf{e})$ denote the homogeneous coordinate saliency gate in (\ref{eq:saliency_gate}). Unconstrained \texttt{TS-JEPA} scores windows via $\mathcal{S}(t) = g(\mathbf{e}(t))$. Because the final LayerNorm layer projects latent vectors onto the sphere of radius $\sqrt{D}$ and strips amplitude, \texttt{Operator-Entropy JEPA} tracks pre-LayerNorm radial energy ($e_{\text{ctx}}, e_{\text{tgt}}$) with $e_{\text{pred}} = e_{\text{ctx}}\|\hat{z}_{\text{tgt}}\|_2 / (\|z_{\text{ctx}}\|_2 + 10^{-6})$, while \texttt{Reynolds-Stress JEPA} combines radial leakage with 4-octave Littlewood--Paley Parseval shell-energy leakage $\Delta E_{\text{LP}}(t)$ and saliency-gated subgrid stress closure discrepancy:
+\begin{align}
+    \mathcal{S}_{\text{OpEnt}}(t) &= g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\frac{|e_{\text{tgt}}(t) - e_{\text{pred}}(t)|}{e_{\text{tgt}}(t) + e_{\text{pred}}(t) + 10^{-6}}, \label{eq:opent_score} \\
+    \mathcal{S}_{\text{Rey}}(t) &= g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\Delta E_{\text{LP}}(t) + \frac{0.2}{\sqrt{k_s}}\,g\bigl(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}})\bigr), \label{eq:reynolds_score}
+\end{align}
+where $k_s = \min(K, d_s)$ denotes the active subgrid dimension.
 
 \noindent\textbf{Three-Part Operational Causality Framework:}
 To avoid confounding data access, window buffering, and alarm timing, we formalize online evaluation under three criteria (illustrated in Fig.~\ref{fig:protocol_and_permutation}):
@@ -93,20 +97,20 @@ To avoid confounding data access, window buffering, and alarm timing, we formali
 \subsection{Shared Architectural Components and Thresholding}
 \label{subsec:shared_inductive_biases}
 
-\subsubsection{Coordinate Saliency Gating}
+\subsubsection{Homogeneous Coordinate Saliency Gating}
 \label{subsubsec:causal_saliency_gating}
-In high-dimensional streams ($K \ge 25$), faults affecting a single subsystem can be diluted by nominal variance across the remaining coordinates. To amplify sparse latent deviations without losing global Euclidean norm information, we apply a softmax coordinate saliency gate $g(\mathbf{e}) \equiv \mathcal{D}_{\text{sal}}(\mathbf{e})$ to the residual vector $\mathbf{e} = \hat{z}_{\text{tgt}} - z_{\text{tgt}} \in \mathbb{R}^D$:
+In high-dimensional streams ($K \ge 25$), faults affecting a single subsystem can be diluted by nominal variance across the remaining coordinates. To amplify sparse latent deviations while preserving exact degree-1 homogeneity $\mathcal{D}_{\text{sal}}(c\mathbf{e}) = c\,\mathcal{D}_{\text{sal}}(\mathbf{e})$ for any $c > 0$ without heuristic box clamping, we normalize coordinate magnitudes by the root-mean-square scale $\sigma_{\mathbf{e}} = \sqrt{\frac{1}{D}\sum_{j=1}^D e_j^2 + \epsilon}$ before applying the softmax coordinate saliency gate $g(\mathbf{e}) \equiv \mathcal{D}_{\text{sal}}(\mathbf{e})$ to $\mathbf{e} = \hat{z}_{\text{tgt}} - z_{\text{tgt}} \in \mathbb{R}^D$:
 \begin{equation}
 \begin{aligned}
     \mathcal{D}_{\text{sal}}(\mathbf{e}) &= (1 - \alpha) \|\mathbf{e}\|_2 + \alpha \sqrt{D \sum_{d=1}^D w_d e_d^2}, \\
-    w_d &= \frac{\exp(|e_d| / \tau_g)}{\sum_{j=1}^D \exp(|e_j| / \tau_g)},
+    w_d &= \frac{\exp\bigl(|e_d| / (\tau_g \sigma_{\mathbf{e}})\bigr)}{\sum_{j=1}^D \exp\bigl(|e_j| / (\tau_g \sigma_{\mathbf{e}})\bigr)},
 \end{aligned}
 \label{eq:saliency_gate}
 \end{equation}
 with fixed blend $\alpha = 0.5$ and temperature $\tau_g = 0.5$ across all latent models. Input channels are encoded with uniform weights in the deployed pipeline; an auxiliary context-variance input-channel gate is evaluated in Section~\ref{subsec:gating_ablation}.
 
 \subsubsection{Multiscale Frequency Front-End}
-Before the dilated temporal convolutional network (TCN) backbone, each input channel is split across $J=4$ smooth dyadic frequency shells on a $256$-point real Fast Fourier Transform (rFFT) grid normalized into an exact amplitude partition of unity ($\sum_{j=1}^J \Psi_j[\omega_m] \equiv 1$ to within $1.2\times 10^{-7}$). Each shell is processed by a causal 1D convolution with kernel sizes $\{15, 9, 5, 3\}$ from coarse to fine scales and recombined via learned softmax routing. Because smooth Fourier shells overlap at band edges, this module acts as a multiscale frequency front-end rather than a strictly orthogonal wavelet bank (Table~\ref{tab:ablations}(b)).
+For multivariate streams ($K > 1$), a causal depthwise 1D convolutional stem filters each sensor channel independently prior to $1 \times 1$ cross-channel mixing ($K \le 1$ bypasses the stem via an explicit identity short-circuit). Before the dilated temporal convolutional network (TCN) backbone, each projected channel is split across $J=4$ smooth dyadic frequency shells on a $256$-point real Fast Fourier Transform (rFFT) grid normalized into an exact amplitude partition of unity ($\sum_{j=1}^J \Psi_j[\omega_m] \equiv 1$ to within $1.2\times 10^{-7}$). Each shell is processed by a causal 1D convolution with kernel sizes $\{15, 9, 5, 3\}$ from coarse to fine scales and recombined via a softmax scale router conditioned on the causal right-edge state, channel root-mean-square amplitude, and standardized octave log-energy. Because smooth Fourier shells overlap at band edges, this module acts as a multiscale frequency front-end rather than a strictly orthogonal wavelet bank (Table~\ref{tab:ablations}(b)).
 
 \subsubsection{Extreme-Value Threshold Calibration (SPOT)}
 To convert continuous scores $\mathcal{S}(t)$ into binary alarms $\hat{y}_t = \mathbb{I}(\mathcal{S}(t) > \tau_{\text{SPOT}})$ using nominal calibration data alone, we apply Streaming Peaks-Over-Threshold (SPOT) \cite{siffer2017anomaly}. Rather than assuming the entire score distribution is Gaussian, SPOT isolates the upper tail above the 98th calibration percentile $u = p_{98}$ and fits the exceedances $Y = \mathcal{S}(t) - u > 0$ to a Generalized Pareto Distribution (GPD) with tail-heaviness shape parameter $\xi$ and scale parameter $\sigma$ via Grimshaw's maximum-likelihood algorithm \cite{grimshaw1993computing}. Inverting the fitted GPD tail at target false-alarm probability $q = 10^{-3}$ (one expected false alarm per $1{,}000$ nominal steps) yields the closed-form threshold:

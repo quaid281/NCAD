@@ -18,6 +18,19 @@ class TimeFirstLayerNorm(nn.Module):
         return x.transpose(1, 2)
 
 
+def _qr_retract(mat: torch.Tensor) -> torch.Tensor:
+    """Sign-stabilized QR retraction onto the Stiefel manifold."""
+    if mat.size(0) <= mat.size(1):
+        q, r = torch.linalg.qr(mat.T)
+        d = torch.sign(torch.diagonal(r))
+        d = torch.where(d == 0, torch.ones_like(d), d)
+        return (q * d.unsqueeze(0)).T
+    q, r = torch.linalg.qr(mat)
+    d = torch.sign(torch.diagonal(r))
+    d = torch.where(d == 0, torch.ones_like(d), d)
+    return q * d.unsqueeze(0)
+
+
 class CausalTCNBlock(nn.Module):
     """Two-layer causal TCN block with residual connection, layer norm, and horizon-adaptive dilation."""
 
@@ -99,6 +112,18 @@ class HybridTCNEncoder(nn.Module):
         self.latent_dim = latent_dim
         self.filters = filters
         self.tcn_layers = tcn_layers
+
+        # Per-channel depthwise causal temporal stem before cross-channel 1x1 mixing (explicit K<=1 short-circuit)
+        self.stem_kernel = 3
+        if input_dim > 1:
+            self.channel_stem = nn.Conv1d(
+                input_dim, input_dim, kernel_size=self.stem_kernel, groups=input_dim
+            )
+            self.stem_gate = nn.Parameter(torch.tensor(0.05))
+        else:
+            self.channel_stem = None
+            self.stem_gate = None
+
         self.input_projection = nn.Conv1d(input_dim, filters, kernel_size=1)
 
         # Optional Littlewood-Paley dyadic frequency shell decomposition (Navier-Stokes Blowup, §2)
@@ -124,14 +149,18 @@ class HybridTCNEncoder(nn.Module):
             [CausalTCNBlock(filters, kernel_size=kernel_size, dilation=2**layer, dropout=dropout) for layer in range(tcn_layers)]
         )
 
+        # Row-orthonormal Stiefel basis for subgrid temporal fluctuations h'(t) -> z'(t)
+        self.fluct_basis = nn.Parameter(torch.eye(latent_dim, filters))
+
         self.temporal_dense = nn.Sequential(
             nn.Linear(filters * 3, 128),
             nn.GELU(),
             nn.LayerNorm(128),
             nn.Dropout(dropout),
         )
+        # 3-MVP bounded statistical/spectral descriptors: [std, log_energy, tv1] (filters * 3)
         self.stat_dense = nn.Sequential(
-            nn.Linear(filters * 6, 128),
+            nn.Linear(filters * 3, 128),
             nn.GELU(),
             nn.LayerNorm(128),
             nn.Dropout(dropout),
@@ -148,12 +177,22 @@ class HybridTCNEncoder(nn.Module):
         else:
             self.resolvent_bottleneck = None
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        self.last_trajectory: torch.Tensor | None = None
+
+    def forward(
+        self, inputs: torch.Tensor, return_sequence: bool = False
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         if inputs.ndim != 3:
             raise ValueError("Expected tensor with shape (batch, sequence, features).")
 
         raw_rms = torch.sqrt(torch.mean(inputs.pow(2), dim=(1, 2)))
         x = inputs.transpose(1, 2)
+
+        if self.channel_stem is not None and x.shape[-1] >= self.stem_kernel:
+            stem_out = F.gelu(self.channel_stem(F.pad(x, (self.stem_kernel - 1, 0))))
+            stem_rms = torch.sqrt(torch.mean(stem_out.pow(2), dim=-1, keepdim=True) + 1.0)
+            x = x + torch.tanh(self.stem_gate) * (stem_out / stem_rms)
+
         x = self.input_projection(x)
 
         if self.hankel_filter is not None:
@@ -184,26 +223,29 @@ class HybridTCNEncoder(nn.Module):
         if self.resolvent_bottleneck is not None:
             latent = self.resolvent_bottleneck(latent)
 
-        return torch.nan_to_num(latent)
+        latent = torch.nan_to_num(latent)
+
+        # Dual-moment Reynolds decomposition trajectory: Z(t) = z_bar + z'(t), mean_t(z'(t)) == 0
+        x_centered = (x - avg_features.unsqueeze(-1)).transpose(1, 2)
+        q_fluct = _qr_retract(self.fluct_basis)
+        z_fluct = F.linear(x_centered, q_fluct)
+        z_traj = latent.unsqueeze(1) + z_fluct
+        self.last_trajectory = z_traj.detach()
+
+        if return_sequence:
+            return latent, z_traj
+        return latent
 
     @staticmethod
     def _statistical_spectral_features(x: torch.Tensor) -> torch.Tensor:
-        mean = torch.mean(x, dim=2)
+        """Compute the 3 MVP bounded statistical/spectral descriptors: [std, log_energy, tv1]."""
         std = torch.std(x, dim=2, unbiased=False)
-        centered = x - mean.unsqueeze(-1)
-        safe_std = torch.clamp(std, min=1e-6)
-        skew = torch.mean(centered**3, dim=2) / (safe_std**3)
-        kurtosis = torch.mean(centered**4, dim=2) / (safe_std**4)
-        energy = torch.mean(x**2, dim=2)
-
-        signs = torch.sign(x)
-        signs = torch.where(signs == 0, torch.ones_like(signs), signs)
+        log_energy = torch.log1p(torch.mean(x.pow(2), dim=2))
         if x.shape[2] > 1:
-            zero_crossing = torch.mean(torch.abs(signs[:, :, 1:] - signs[:, :, :-1]), dim=2) * 0.5
+            tv1 = torch.mean(torch.abs(x[:, :, 1:] - x[:, :, :-1]), dim=2)
         else:
-            zero_crossing = torch.zeros_like(mean)
-
-        features = torch.cat([mean, std, skew, kurtosis, energy, zero_crossing], dim=1)
+            tv1 = torch.zeros_like(std)
+        features = torch.cat([std, log_energy, tv1], dim=1)
         return torch.nan_to_num(features)
 
 

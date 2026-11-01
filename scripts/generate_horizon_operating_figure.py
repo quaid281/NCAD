@@ -2,8 +2,9 @@
 """Generate publication-grade true-vector figure for Target-Horizon sweep and Deployable Quantiles.
 
 Compact sleek horizontal layout tailored for IEEE two-column full-width banner:
-figsize=(7.14, 1.55) inches.
+figsize=(7.14, 1.65) inches.
 """
+import sys
 from pathlib import Path
 import numpy as np
 import matplotlib
@@ -11,25 +12,32 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[1]
+SKILL_SCRIPTS = ROOT / ".agents" / "skills" / "beautiful-research-figures" / "scripts"
+if str(SKILL_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SKILL_SCRIPTS))
+
+from ieee_vector_style import save_true_vector_figure  # noqa: E402
+
 FIGDIR = ROOT / "paper" / "NCAD_CS" / "figures"
 FIGDIR.mkdir(parents=True, exist_ok=True)
-PDF_OUT = FIGDIR / "operating_and_horizon_tradeoffs.pdf"
-SVG_OUT = FIGDIR / "operating_and_horizon_tradeoffs.svg"
+OUT_STEM = FIGDIR / "operating_and_horizon_tradeoffs"
 
-# Palette definitions
+# Palette definitions (Churkin / IEEE grayscale-safe high-contrast)
 C_OPENT_CAUS = "#378d94"   # Deep Teal
+C_REY0_CAUS = "#1d4e89"    # Deep Navy
+C_REY_CAUS = "#2b7a78"     # Emerald Teal
 C_TSJEPA_CAUS = "#6a408d"  # Churkin Deep Purple
 C_TIMESNET_CAUS = "#e13661"# Vibrant Coral / Crimson
 C_TRANAD_CAUS = "#4e4e4e"  # Slate Grey
 C_OPENT_BUF = "#77b5b6"    # Muted Teal
+
 
 def set_ieee_style():
     plt.rcParams.update({
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
         "svg.fonttype": "none",
-        "font.family": "serif",
-        "font.serif": ["STIXGeneral", "Times New Roman", "DejaVu Serif"],
+        "font.family": "Times New Roman",
         "mathtext.fontset": "stix",
         "axes.edgecolor": "#333333",
         "axes.linewidth": 0.75,
@@ -39,36 +47,41 @@ def set_ieee_style():
         "ytick.minor.width": 0.35,
         "xtick.direction": "out",
         "ytick.direction": "out",
-        "xtick.labelsize": 8.0,
-        "ytick.labelsize": 8.0,
-        "axes.labelsize": 8.8,
-        "axes.titlesize": 8.5,
-        "legend.fontsize": 7.8,
+        "xtick.labelsize": 7.8,
+        "ytick.labelsize": 7.8,
+        "axes.labelsize": 8.2,
+        "axes.titlesize": 8.4,
+        "legend.fontsize": 7.0,
         "figure.dpi": 300,
     })
 
+
 def make_figure():
     set_ieee_style()
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.14, 1.55), gridspec_kw={"wspace": 0.30})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.14, 1.68), gridspec_kw={"wspace": 0.28})
+    fig.subplots_adjust(top=0.77, bottom=0.23, left=0.07, right=0.98)
 
     # =========================================================================
     # Panel (a): Target Horizon Length S vs Causal FPR
     # =========================================================================
     x_indices = np.arange(5)
-    x_labels = ["$S{=}1$\n(lag 0)", "$S{=}4$\n(lag 3)", "$S{=}16$\n(lag 15)", "$S{=}32$\n(lag 31)", "$S{=}64$\n(lag 63)"]
+    x_labels = [
+        "$S{=}1$\n(lag 0)", "$S{=}4$\n(lag 3)", "$S{=}16$\n(lag 15)",
+        "$S{=}32$\n(lag 31)", "$S{=}64$\n(lag 63)"
+    ]
 
     fpr_opent_caus = np.array([0.005, 0.007, 0.003, 0.011, 0.020]) * 100
     fpr_tsjepa_caus = np.array([0.004, 0.006, 0.003, 0.003, 0.004]) * 100
     fpr_timesnet_caus = np.array([0.025, 0.031, 0.061, 0.098, 0.213]) * 100
     fpr_opent_buf = np.array([0.005, 0.020, 0.043, 0.057, 0.099]) * 100
 
-    ax1.plot(x_indices, fpr_timesnet_caus, color=C_TIMESNET_CAUS, linestyle="--", linewidth=1.6, marker="s", markersize=4.8, label="TimesNet (caus)", zorder=3)
-    ax1.plot(x_indices, fpr_opent_buf, color=C_OPENT_BUF, linestyle=":", linewidth=1.5, marker="^", markersize=4.5, label="OpEnt (buf)", zorder=3)
-    ax1.plot(x_indices, fpr_opent_caus, color=C_OPENT_CAUS, linestyle="-", linewidth=1.8, marker="o", markersize=5.2, label="OpEnt (caus)", zorder=4)
-    ax1.plot(x_indices, fpr_tsjepa_caus, color=C_TSJEPA_CAUS, linestyle="-", linewidth=1.6, marker="D", markersize=4.5, label="TS-JEPA (caus)", zorder=4)
+    ax1.plot(x_indices, fpr_timesnet_caus, color=C_TIMESNET_CAUS, linestyle="--", linewidth=1.6, marker="s", markersize=4.6, label="TimesNet (caus)", zorder=3)
+    ax1.plot(x_indices, fpr_opent_buf, color=C_OPENT_BUF, linestyle=":", linewidth=1.5, marker="^", markersize=4.3, label="OpEnt (buf)", zorder=3)
+    ax1.plot(x_indices, fpr_opent_caus, color=C_OPENT_CAUS, linestyle="-", linewidth=1.8, marker="o", markersize=5.0, label="OpEnt (caus)", zorder=4)
+    ax1.plot(x_indices, fpr_tsjepa_caus, color=C_TSJEPA_CAUS, linestyle="-", linewidth=1.6, marker="D", markersize=4.3, label="TS-JEPA (caus)", zorder=4)
 
     ax1.set_xticks(x_indices)
-    ax1.set_xticklabels(x_labels, fontsize=7.5)
+    ax1.set_xticklabels(x_labels, fontsize=7.4)
     ax1.set_xlabel("Target Horizon $S$ (Score-Emission Lag $S{-}1$)", labelpad=3)
     ax1.set_ylabel("Held-Out FPR (%)", labelpad=3)
     ax1.set_ylim(-0.5, 23.5)
@@ -78,20 +91,26 @@ def make_figure():
     ax1.grid(True, which="major", linestyle="-", linewidth=0.5, color="#e0e0e0", alpha=0.7)
     ax1.set_axisbelow(True)
 
-    ax1.annotate("9x False-Alarm Explosion\n($2.5\\% \\to 21.3\\%$)", xy=(4, 21.3), xytext=(1.8, 16.5),
+    ax1.annotate("9x False-Alarm Explosion\n($2.5\\% \\to 21.3\\%$)", xy=(4, 21.3), xytext=(1.75, 16.2),
                  arrowprops=dict(arrowstyle="->", color=C_TIMESNET_CAUS, lw=0.9),
-                 fontsize=7.2, color="#911838", fontweight="semibold")
-    ax1.annotate("Stable Sub-2% FPR", xy=(4, 2.0), xytext=(2.2, 5.0),
+                 fontsize=6.8, color="#911838", fontweight="semibold")
+    ax1.annotate("Stable Sub-2% FPR", xy=(4, 2.0), xytext=(2.15, 5.2),
                  arrowprops=dict(arrowstyle="->", color=C_OPENT_CAUS, lw=0.9),
-                 fontsize=7.2, color="#1f5d62", fontweight="semibold")
+                 fontsize=6.8, color="#1f5d62", fontweight="semibold")
 
-    ax1.set_title(r"\textbf{(a)} Latency vs. False-Alarm Explosion across $S$", pad=13)
-    ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2, frameon=False, columnspacing=0.8, handletextpad=0.3, fontsize=7.6)
+    ax1.set_title("(a) Latency vs. False-Alarm Explosion across $S$", fontweight="bold", pad=16)
+    ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncol=4, frameon=False, columnspacing=0.55, handletextpad=0.25, fontsize=6.5)
 
     # =========================================================================
     # Panel (b): Event Recall vs False Alarm Rate across Deployable Quantiles q*
     # =========================================================================
     models_data = {
+        "Reynolds-alpha0": {
+            "fa": [45.0, 112.5], "er": [0.482, 0.756], "color": C_REY0_CAUS, "marker": "p", "label": "Reynolds ($\\alpha{=}0$)"
+        },
+        "Reynolds": {
+            "fa": [64.0, 150.9], "er": [0.497, 0.667], "color": C_REY_CAUS, "marker": "*", "label": "Reynolds"
+        },
         "OpEntropy": {
             "fa": [93.7, 202.8], "er": [0.556, 0.752], "color": C_OPENT_CAUS, "marker": "o", "label": "OpEntropy"
         },
@@ -106,36 +125,44 @@ def make_figure():
         },
     }
 
-    ax2.axvspan(70, 210, ymin=0.55, ymax=1.0, color="#77b5b6", alpha=0.10, zorder=1)
-    ax2.text(140, 0.765, "JEPA Causal Frontier\n(High Recall, Low Alarms)", fontsize=7.0, color="#21575b",
-             ha="center", va="center", style="italic")
+    ax2.axvspan(38, 210, ymin=0.45, ymax=1.0, color="#77b5b6", alpha=0.10, zorder=1)
+    ax2.text(124, 0.782, "JEPA Causal Frontier (High Recall, Low Alarms)", fontsize=6.5, color="#21575b",
+             ha="center", va="center", style="italic", weight="bold")
 
     for name, m in models_data.items():
         fa, er = m["fa"], m["er"]
         ax2.annotate("", xy=(fa[1], er[1]), xytext=(fa[0], er[0]),
-                     arrowprops=dict(arrowstyle="->", color=m["color"], lw=1.4, mutation_scale=10),
+                     arrowprops=dict(arrowstyle="->", color=m["color"], lw=1.35, mutation_scale=9),
                      zorder=3)
-        ax2.scatter(fa[0], er[0], s=30, facecolors="none", edgecolors=m["color"], linewidths=1.4, zorder=4)
-        ax2.scatter(fa[1], er[1], s=40, facecolors=m["color"], edgecolors="#222222", linewidths=0.7, marker=m["marker"], label=m["label"], zorder=4)
-        ax2.text(fa[0]-4, er[0]-0.015, "$q^*{=}10^{-3}$", fontsize=7.0, ha="right", color=m["color"])
-        ax2.text(fa[1]+4, er[1]+0.008, "$q^*{=}0.05$", fontsize=7.0, ha="left", color=m["color"])
+        ax2.scatter(fa[0], er[0], s=26, facecolors="none", edgecolors=m["color"], linewidths=1.3, zorder=4)
+        ax2.scatter(fa[1], er[1], s=36, facecolors=m["color"], edgecolors="#222222", linewidths=0.65, marker=m["marker"], label=m["label"], zorder=4)
+
+    ax2.text(44.0, 0.452, "$q^*{=}10^{-3}$", fontsize=6.4, ha="left", color=C_REY0_CAUS, weight="bold")
+    ax2.text(114.5, 0.758, "$q^*{=}0.05$", fontsize=6.4, ha="left", color=C_REY0_CAUS, weight="bold")
+    ax2.text(220.0, 0.562, "$q^*{=}10^{-3}$", fontsize=6.3, ha="right", color=C_TIMESNET_CAUS)
+    ax2.text(264.5, 0.622, "$q^*{=}0.05$", fontsize=6.3, ha="left", color=C_TIMESNET_CAUS)
 
     ax2.set_xlabel("False Alarms per 1,000 Nominal Steps", labelpad=3)
     ax2.set_ylabel("Causal Event Recall (ER)", labelpad=3)
-    ax2.set_xlim(60, 310)
-    ax2.set_ylim(0.44, 0.81)
-    ax2.set_yticks(np.arange(0.45, 0.85, 0.05))
+    ax2.set_xlim(32, 305)
+    ax2.set_ylim(0.43, 0.82)
+    ax2.set_yticks(np.arange(0.45, 0.85, 0.10))
 
     ax2.grid(True, which="major", linestyle="-", linewidth=0.5, color="#e0e0e0", alpha=0.7)
     ax2.set_axisbelow(True)
 
-    ax2.set_title(r"\textbf{(b)} Operating Trade-offs at Deployable Nominal $q^*$", pad=13)
-    ax2.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2, frameon=False, columnspacing=0.8, handletextpad=0.3, fontsize=7.6)
+    ax2.set_title("(b) Operating Trade-offs at Deployable Nominal $q^*$", fontweight="bold", pad=16)
+    ax2.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncol=3, frameon=False, columnspacing=0.55, handletextpad=0.22, fontsize=6.4)
 
-    fig.savefig(PDF_OUT, bbox_inches="tight", pad_inches=0.02)
-    fig.savefig(SVG_OUT, bbox_inches="tight", pad_inches=0.02)
-    plt.close(fig)
-    print(f"Generated compact {PDF_OUT} and {SVG_OUT}")
+    saved = save_true_vector_figure(
+        fig, OUT_STEM, formats=("svg", "pdf", "png"),
+        png_dpi=300, inkscape_postprocess_pdf=True,
+        ensure_pure_vector=True, ensure_outside_legend=True
+    )
+    print("Generated true-vector horizon & operating figure:")
+    for fmt, p in saved.items():
+        print(f"  [{fmt.upper()}] {p}")
+
 
 if __name__ == "__main__":
     make_figure()

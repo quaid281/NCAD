@@ -12,7 +12,8 @@ In Operator-Entropy JEPA, the transition operator $\mathbf{A} \in \mathbb{R}^{D 
 \small
 \caption{Empirical spectral diagnostics of learned transition operators and representations across five benchmark telemetry streams ($D=32$). Operator-Entropy preserves full theoretical rank ($\exp(\mathcal{H}) = 31.996$ out of 32.0), preventing dimensional collapse.}
 \label{tab:operator_entropy_validation}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Model Architecture} & \textbf{Operator Rank ($\text{RankMe}$)} & \textbf{Rep. Rank} & \textbf{Point-F1} & \textbf{Empirical FPR} \\
@@ -22,8 +23,7 @@ Representation-Entropy JEPA & 24.647 & \textbf{7.579} & 0.0479 & 0.0442 \\
 Vanilla TS-JEPA (Unconstrained) & 24.807 & 3.993 & 0.0301 & \textbf{0.0371} \\
 VICReg TS-JEPA & 24.339 & 5.881 & 0.0043 & 0.0273 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 As shown in Table~\ref{tab:operator_entropy_validation}, unconstrained Vanilla TS-JEPA and VICReg collapse across $7\text{--}8$ singular modes, yielding an effective operator rank of $24.3\text{--}24.8$. Operator-Entropy JEPA achieves an effective operator rank of $31.996$ out of $32.0$, confirming that the regularizer prevents modal collapse. However, full operator rank alone does not prevent representation collapse: the single-operator penalty acts exclusively on $\mathbf{A}$, allowing the encoder to map observations into a low-dimensional subspace ($\text{Tr}(\mathbf{\Sigma}_Z) = 0.0002$) while $\mathbf{A}$ maintains full rank off-manifold.
@@ -42,7 +42,8 @@ which penalizes rotational and structural drift between predicted and target rep
 \small
 \caption{Controlled ablation study resolving operator-representation decoupling across eight benchmark telemetry streams under strictly causal trailing evaluation (SPOT $u=0.98, q=10^{-3}$). Enforcing discrete Lyapunov invariance expands representation rank, cutting alarm delay by up to $73\%$ (OpEntropy-Lyapunov), while decoupling representation entropy ($\alpha_Z=0$, OpEntropy-Boosted) achieves the highest event recall ($0.4449$, $+33.3\%$). The Cayley parameterization achieves the highest overall AUROC.}
 \label{tab:opentropy_ablation}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
 \textbf{Model Architecture} & \textbf{Event Recall} & \textbf{Delay (Steps)} & \textbf{Held-Out FPR} & \textbf{AUROC} & \textbf{Point-F1} \\
@@ -54,8 +55,7 @@ OpEntropy-Lyapunov ($\alpha_Z=0.005, \beta_{\text{Lyap}}=0.02$) & 0.4328 & \text
 OpEntropy-Cayley-Lyapunov (Cayley $W$ + Lyap) & 0.3935 & 103.8 & 0.0336 & \textbf{0.5242} & 0.0371 \\
 OpEntropy-Boosted ($\alpha_Z=0, \beta_{\text{Lyap}}=0.02$) & \textbf{0.4449} & 48.4 & 0.0206 & 0.4937 & 0.0498 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 As documented in Table~\ref{tab:opentropy_ablation}, expanding representation rank via unconstrained dual spectral entropy ($\alpha_Z=0.005$) increases nominal false alarms to $0.0328$. Coupling the Discrete Lyapunov Invariance Defect aligns operator rotation with representation covariance, reducing nominal FPR by $35\%$ ($0.0212$) and cutting mean event detection latency from $112.0$ to $30.1$ steps. Decoupling representation covariance entropy ($\alpha_Z=0$) while maintaining the Lyapunov defect ($\beta_{\text{Lyap}}=0.02$) and excising inert math layers (OpEntropy-Boosted) yields the highest event recall ($0.4449$, a $+33.3\%$ relative gain over Historical OpEntropy) at reduced nominal FPR ($0.0206$ vs.\ $0.0241$), though Point-F1 ($0.0498$ vs.\ $0.0617$) remains lower than unconstrained TS-JEPA. On wearable kinematics (\texttt{Daphnet:S01R01E1}), event recall reaches $0.9643$ (vs.\ $0.5000$ for TS-JEPA and $0.4643$ for Historical OpEntropy). Parameterizing the transition via the Cayley transform yields the highest overall discriminative ranking (AUROC $0.5242$ trailing, $0.5651$ smear) and achieves complete detection ($1.0000$ recall) on spacecraft telemetry (\texttt{MSL:M-1}) and $0.5000$ on server telemetry (\texttt{SMD:machine-1-2}) where unconstrained TS-JEPA collapses to $0.0000$.
@@ -68,7 +68,8 @@ Reynolds-Stress JEPA aligns second-order latent fluctuation statistics ($\Sigma_
 \small
 \caption{Controlled covariance vs.\ marginal anomaly benchmark. Reynolds-Stress JEPA improves marginal variance detection over unconstrained TS-JEPA ($0.5838$ vs.\ $0.3313$ PR-AUC), but both latent models struggle on pure correlation flips.}
 \label{tab:covariance_validation}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Pure Covariance Shift}} & \multicolumn{2}{c}{\textbf{Pure Marginal Shift}} \\
@@ -80,8 +81,7 @@ TS-JEPA (Unconstrained) & 0.0409 & 0.0000 & 0.3313 & 0.0000 \\
 TimesNet & \textbf{0.9313} & 0.6558 & \textbf{0.9998} & 0.6267 \\
 TranAD & 0.6761 & \textbf{0.7246} & 0.9343 & \textbf{0.6560} \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 Table~\ref{tab:covariance_validation} indicates that on marginal variance shifts, Reynolds-Stress improves PR-AUC by $+76\%$ over TS-JEPA ($0.5838$ vs.\ $0.3313$). However, on pure covariance shifts without marginal changes, both latent models show low sensitivity ($0.041\text{--}0.050$ PR-AUC) relative to observation-space baselines ($0.676\text{--}0.931$). Standard temporal pooling across channels averages out instantaneous phase alignments, preventing the second-moment loss from isolating cross-channel relationship shifts unless explicit pairwise relational graphs are modeled.
@@ -93,7 +93,8 @@ To determine whether the choice of empirical covariance formulation affects the 
 \centering
 \scriptsize
 \caption{Reynolds-Stress covariance mode ablation across nine held-out telemetry streams (SPOT calibration, buffered smear regime). Across instantaneous rank-1 outer product, centered temporal-window covariance, and batch covariance, downstream Point-F1 differences remain within $|\Delta\mathrm{F1}| \le 0.009$ ($p=0.4375$).}\label{tab:reynolds_covmodes}
-\resizebox{\columnwidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lccccccccc@{}}
 \toprule
 & \multicolumn{3}{c}{\textbf{Instantaneous Rank-1}} & \multicolumn{3}{c}{\textbf{Temporal-Window}} & \multicolumn{3}{c}{\textbf{Batch Covariance}} \\
@@ -112,8 +113,7 @@ swan:sf          & 0.098 & 0.014 & 0.392 & 0.048 & 0.005 & 0.413 & 0.126 & 0.027
 \midrule
 \textbf{Macro Mean} & \textbf{0.188} & 0.084 & 0.362 & \textbf{0.179} & 0.080 & 0.364 & \textbf{0.178} & 0.105 & 0.336 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 \subsubsection{Potential-Flow: Conservative vs. Circulating Dynamics}
@@ -124,7 +124,8 @@ Potential-Flow JEPA constrains transition velocities to curl-free potential grad
 \small
 \caption{Dynamical system validation comparing curl-free Potential-Flow ($\hat{v} = -\nabla\Phi$), Helmholtz decomposition ($\hat{v} = -\nabla\Phi + \text{curl}(A)$), and unconstrained TS-JEPA on conservative Hamiltonian vs.\ non-conservative limit-cycle phase spaces.}
 \label{tab:potential_flow_validation}
-\resizebox{\linewidth}{!}{%
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Conservative Duffing}} & \multicolumn{2}{c}{\textbf{Non-Conservative Van der Pol}} \\
@@ -135,8 +136,7 @@ Helmholtz JEPA ($\nabla\Phi + \text{curl}(A)$) & \textbf{0.5985} & \textbf{0.781
 TS-JEPA (Unconstrained) & 0.5855 & 0.7583 & 0.4577 & 0.6660 \\
 Potential-Flow JEPA ($-\nabla\Phi$) & 0.1701 & 0.2036 & 0.3106 & 0.3548 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
 Table~\ref{tab:potential_flow_validation} confirms that pure curl-free potential flow is mathematically incapable of representing closed circulating orbits, yielding poor detection on Van der Pol ($0.3548$ Point-F1 vs.\ $0.7574$ for Helmholtz JEPA). Because physical telemetry often exhibits non-conservative, cyclic behavior (e.g., diurnal cycles, rotational turbines), enforcing irrotational dynamics severely penalizes normal circulating trajectories, explaining Potential-Flow's poor benchmark performance ($0.065$ dataset-macro F1 in Table~\ref{tab:core_benchmark}). Numerical Jacobian diagnostics show that while the raw spatial gradient field is curl-free (antisymmetric fraction $< 10^{-7}$), enforcing the spherical tangent projection introduces a $15.0\%\text{--}15.7\%$ antisymmetric curl component ($0.150$ on SMAP \texttt{P-3}, $0.157$ on MSL \texttt{M-1}). Tangent projection breaks the curl-free invariant without restoring sufficient circular capacity to track cyclic trajectories.

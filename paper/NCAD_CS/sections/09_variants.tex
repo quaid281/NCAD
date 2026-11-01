@@ -3,7 +3,7 @@
 
 \begin{table*}[t]
 \centering
-\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~12-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
+\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~14-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
 \vspace{1pt}
 \begin{tabular}{@{}p{0.54\textwidth}@{\hspace{0.03\textwidth}}p{0.43\textwidth}@{}}
 \toprule
@@ -11,20 +11,24 @@
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
+\renewcommand{\arraystretch}{0.93}
 \setlength{\tabcolsep}{1.4pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l ccccc c@{}}
 \toprule
 \textbf{Model / Control} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%\text{ CI}]$} & \textbf{$p_{\text{TOST}}$} \\
 \midrule
 TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & {Baseline} & {--} \\
-\addlinespace[1.5pt]
+\addlinespace[1.0pt]
 Operator-Entropy JEPA & $0.233 \pm 0.028$ & 0.351 & 0.101 & 0.550 & $-0.004$ $[-.011, +.003]$ & $0.0007^*$ \\
 \quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & {--} & $0.0088^\dagger$ \\
+\addlinespace[1.0pt]
+Reynolds-Stress JEPA & $0.148 \pm 0.022$ & 0.285 & 0.190 & 0.421 & $-0.009$ $[-.052, +.032]$ & $0.211^\ddagger$ \\
+\quad $\alpha_{\text{stress}}=0$ control & $0.167 \pm 0.012$ & 0.281 & 0.109 & 0.419 & {--} & {--} \\
 \midrule
 TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & {--} & {--} \\
 TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \bottomrule
-\multicolumn{7}{@{}l}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.001$); $^\dagger$equiv.\ to $\pm 0.010$ ($p{=}0.0088$, also $\pm .015$ and $\pm .020$).} \\
+\multicolumn{7}{@{}l}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.001$); $^\dagger$equiv.\ to $\pm 0.010$ ($p{=}0.0088$); $^\ddagger$Wilcoxon $p{=}1.00$ (3-seed matched).} \\
 \end{tabular*}%
 \endgroup
 &
@@ -97,7 +101,8 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 &
 \begingroup
 \scriptsize
-\setlength{\tabcolsep}{1.2pt}
+\renewcommand{\arraystretch}{0.91}
+\setlength{\tabcolsep}{1.1pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cc cc cc cc cccc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Tail/Drift}} & \multicolumn{2}{c}{\textbf{Held FPR}} & \multicolumn{2}{c}{\textbf{Point-F1}} & \multicolumn{2}{c}{\textbf{PR-AUC}} & \multicolumn{4}{c}{\textbf{Causal Event Recall}} \\
@@ -106,10 +111,12 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \midrule
 \texttt{TS-JEPA} & 1.33 & 0.214 & 0.024 & 0.093 & 0.161 & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
 \texttt{OpEntropy} & 0.94 & 0.209 & 0.028 & 0.101 & 0.153 & 0.233 & 0.280 & \textbf{0.351} & 0.517 & 0.752 & 0.371 & 0.573 \\
-\texttt{JEPA-CtxRecon} & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & \textbf{0.431} & 0.573 \\
+\texttt{Reynolds} & 2.04 & 0.274 & 0.086 & 0.190 & 0.060 & 0.148 & 0.231 & 0.285 & 0.474 & 0.667 & 0.281 & 0.494 \\
+\texttt{Reynolds ($\alpha{=}0$)} & 2.41 & 0.193 & 0.019 & 0.109 & 0.051 & 0.167 & 0.220 & 0.281 & 0.424 & 0.756 & \textbf{0.457} & \textbf{0.633} \\
+\texttt{JEPA-CtxRecon} & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
 \texttt{JEPA-NoEMA} & 1.16 & \textbf{0.167} & \textbf{0.009} & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & \textbf{0.816} & 0.398 & 0.600 \\
 \texttt{TS-JEPA-NoGate} & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
-\texttt{PCA-LinPred-LN} & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & \textbf{0.624} \\
+\texttt{PCA-LinPred-LN} & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & 0.624 \\
 \texttt{TCN-ObsPred-LN} & 0.91 & 0.376 & 0.117 & 0.193 & 0.084 & 0.126 & 0.235 & 0.257 & 0.421 & 0.665 & 0.329 & 0.541 \\
 \texttt{IsoForest} & \textbf{0.70} & 0.373 & 0.039 & \textbf{0.056} & 0.041 & 0.041 & 0.209 & 0.222 & 0.149 & 0.631 & 0.317 & 0.443 \\
 \texttt{TCN-ObsPred} & 6.10 & 0.463 & 0.247 & 0.313 & 0.140 & 0.145 & 0.272 & 0.310 & 0.546 & 0.629 & 0.171 & 0.383 \\
@@ -130,7 +137,7 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \centering
 \includegraphics[width=0.92\textwidth]{figures/mechanism_operating_calibration.pdf}
 \vspace{-6pt}
-\caption{Residual conditioning and operating curves across 19 non-GHL streams (five seeds, strictly causal trailing inference). \textbf{(a)}~Calibration excess kurtosis ($\gamma_2$) vs.\ calibration-to-holdout KS drift ($D_{\text{KS}}$), colored by held-out causal FPR at SPOT $q{=}10^{-3}$ with bilinear iso-FPR topographic contours ($R^2{=}0.97$), illustrating LayerNorm score compression and learned latent projection. \textbf{(b)}~Causal event recall across matched realized test-FPR budgets $f^* \in [0.01, 0.50]$ with $95\%$ stream-bootstrap confidence bands.\label{fig:mechanism_operating_calibration}}
+\caption{Residual conditioning and operating curves across 19 non-GHL streams (five seeds, strictly causal trailing inference). \textbf{(a)}~Calibration excess kurtosis ($\gamma_2$) vs.\ calibration-to-holdout KS drift ($D_{\text{KS}}$), colored by held-out causal FPR at SPOT $q{=}10^{-3}$ with bilinear iso-FPR topographic contours ($R^2{=}0.97$), illustrating LayerNorm score compression and learned latent projection across 14 arms. \textbf{(b)}~Causal event recall across matched realized test-FPR budgets $f^* \in [0.01, 0.50]$ with $95\%$ stream-bootstrap confidence bands.\label{fig:mechanism_operating_calibration}}
 \vspace{-8pt}
 \end{figure*}
 
@@ -138,7 +145,7 @@ Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
 \label{subsec:controlled_ablations}
 To test whether the spectral regularizer drives anomaly detection accuracy on its fixed Koopman backbone, Table~\ref{tab:ablations}(a) compares Operator-Entropy JEPA against an unregularized control ($\lambda_{\text{ent}} = 0$) across all 19 non-GHL streams. Removing the spectral regularizer leaves buffered Point-F1 ($0.233$ vs.\ $0.235$, paired difference $-0.004$, two-sided $p=0.89$) and PR-AUC ($0.351$ vs.\ $0.365$) virtually identical. Two One-Sided Tests confirm formal equivalence within the prespecified $\Delta = \pm 0.03$ margin ($p_{\text{TOST}} = 0.0007$) and across narrow-margin sensitivity checks down to $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 0.0015$), $\Delta = \pm 0.015$ ($p_{\text{TOST}} = 0.0024$, with $90\%$ CI $[-0.0112, +0.0029]$ strictly inside $[-\Delta, +\Delta]$), and $\Delta = \pm 0.010$ ($p_{\text{TOST}} = 0.0088$), as well as within $\pm 0.010$ PR-AUC and $\pm 0.025$ event recall.
 
-This fixed-backbone regularizer control must be distinguished from cross-architecture comparisons against unconstrained TS-JEPA (which uses an MLP predictor without radial energy scoring or covariance alignment). On the 19-stream subset, the $+0.028$ Point-F1 difference between OpEntropy JEPA and TS-JEPA ($90\%$ CI $[-0.018, +0.074]$, $p_{\text{TOST}} = 0.11$) is statistically inconclusive at $\Delta = \pm 0.05$, whereas across all 33 primary streams OpEntropy JEPA ($+0.016$, $90\%$ CI $[-0.009, +0.045]$, $p_{\text{TOST}} = 0.0019$) satisfies $\text{TOST}(\pm 0.05)$, $\text{TOST}(\pm 0.030)$ at $p_{\text{TOST}} = 0.0077$, and $\pm 0.015$ causal FPR at $p_{\text{TOST}} = 0.0001$.
+This fixed-backbone regularizer control aligns with findings on the Reynolds-Stress JEPA architecture: isolating the base predictive residual from the quadratic stress closure discrepancy ($\alpha_{\text{stress}} = 0$) leaves buffered PR-AUC ($0.281$ vs.\ $0.285$) and Point-F1 ($0.167$ vs.\ $0.148$, paired difference $-0.009$, $90\%$ CI $[-0.052, +0.032]$) comparable to the full Reynolds model while achieving $0.019$ causal held-out FPR and leading matched-FPR event recall ($0.457$ at $f^*{=}0.01$ and $0.633$ at $f^*{=}0.05$, Table~\ref{tab:ablations}(a),(e)). Across both physics-inspired architectures, regularizer penalties condition latent representations without driving aggregate detection gains, confirming that false-alarm suppression is governed by the joint-embedding prediction framework rather than penalty additions.
 
 \subsection{Ablation 2: Factorial Isolation of the Entropy Term and Energy Barrier}
 \label{subsec:factorial}
@@ -153,10 +160,10 @@ In Table~\ref{tab:ablations}(b), replacing the standard convolutional stem with 
 
 \subsection{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}
 \label{subsec:controlled_backbone}
-Comparing the 12 controlled backbone arms across all 19 non-GHL streams in Table~\ref{tab:ablations}(e) and Fig.~\ref{fig:mechanism_operating_calibration}(a) separates geometric score compression from representation drift reduction:
+Comparing the 14 controlled backbone arms across all 19 non-GHL streams in Table~\ref{tab:ablations}(e) and Fig.~\ref{fig:mechanism_operating_calibration}(a) separates geometric score compression from representation drift reduction:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
     \item \textbf{Unnormalized observation forecasting (\texttt{TCN-ObsPred}):} Raw observation residuals exhibit heavy tail kurtosis ($\gamma_2 = 6.10$), severe calibration-to-holdout KS drift ($D_{\text{KS}} = 0.463$), and high causal false alarms ($24.7\%$).
     \item \textbf{LayerNorm observation bottleneck (\texttt{TCN-ObsPred-LN}):} Inserting a $D=32$ LayerNorm bottleneck before decoding mechanically bounds excursions, compressing kurtosis to $\gamma_2 = 0.91$ and halving causal FPR to $11.7\%$, but leaves calibration-to-holdout drift elevated ($D_{\text{KS}} = 0.376$).
-    \item \textbf{Learned latent projection (\texttt{TS-JEPA}, \texttt{OpEntropy}):} Forecasting in learned latent coordinates halves calibration-to-holdout KS drift ($D_{\text{KS}}: 0.376 \to 0.214$ and $0.209$, paired Wilcoxon $p \le 0.001$) and reduces causal false alarms an additional five- to eight-fold ($1.7\%\text{--}2.8\%$).
+    \item \textbf{Learned latent projection (\texttt{TS-JEPA}, \texttt{OpEntropy}, \texttt{Reynolds}):} Forecasting in learned latent coordinates halves calibration-to-holdout KS drift ($D_{\text{KS}}: 0.376 \to 0.193\text{--}0.274$, paired Wilcoxon $p \le 0.001$) and reduces causal false alarms to $1.9\%\text{--}8.6\%$ ($1.9\%\text{--}2.8\%$ without stress-closure scoring).
     \item \textbf{Context autoencoding (\texttt{JEPA-CtxRecon}) and linear controls:} Autoencoding context embeddings without temporal foresight achieves comparable drift reduction ($D_{\text{KS}} = 0.203$, causal FPR $1.7\%$, event recall $0.542$), while linear projection (\texttt{PCA-LinPred-LN}) reaches $2.1\%$ causal FPR at lower F1 ($0.017$) and \texttt{IsoForest} collapses in recall ($0.149$). LayerNorm geometry thus bounds tail kurtosis, while learned latent projection is required to suppress temporal distribution drift.
 \end{enumerate}

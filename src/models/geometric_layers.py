@@ -930,18 +930,20 @@ class CohnElkiesFilter(nn.Module):
         grid = torch.linspace(a_min, a_max, n_shells)
         self.register_buffer("shell_nodes", grid)
 
-        # Compute fixed dual-shell weights w(a)
-        taper = 1.0 - 2.0 * eps * (1.0 + grid)
+        # Compute strictly positive normalized dual-shell weights w(a) > 0
+        # Since cos(a * zeta) - 1 in [-2, 0] and sum_k w(a_k) = 1, h_eps in [-2, 0] algebraically without clamping.
+        taper = torch.abs(1.0 - 2.0 * eps * (1.0 + grid)) + eps
         cosh_a = torch.cosh(grid)
-        w_s = - (taper * torch.exp(-2.0 * grid)) / (2.0 * torch.square(grid) * cosh_a + 1e-6)
+        w_s = (taper * torch.exp(-2.0 * grid)) / (2.0 * torch.square(grid) * cosh_a + 1e-6)
         # Remote shell for high-frequency damping
         B_val = min(1.0 / (eps ** 2 + 1e-4), 20.0)
         w_B = math.exp(-0.5 * B_val) / math.cosh(B_val)
-        w_total = w_s + w_B
+        w_raw = w_s + w_B
+        w_total = w_raw / w_raw.sum().clamp(min=1e-6)
         self.register_buffer("shell_weights", w_total)
 
-        # Learnable spectral gain gate
-        self.gain = nn.Parameter(torch.ones(latent_dim) * 0.1)
+        # Learnable spectral gain gate (initialized so sigmoid(-2.2) ≈ 0.1)
+        self.gain = nn.Parameter(torch.full((latent_dim,), -2.2))
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         """Apply Cohn-Elkies dual-shell spectral modulation to representation z.
@@ -956,21 +958,20 @@ class CohnElkiesFilter(nn.Module):
         zeta = z / (self.lam + 1e-5)  # (..., D)
 
         # Vectorized Mellin perturbation across shells:
-        # cos(a * zeta) - 1: shape (..., D, n_shells)
-        # shell_nodes: (n_shells,)
+        # cos(a * zeta) - 1 in [-2, 0]: shape (..., D, n_shells)
         zeta_expanded = zeta.unsqueeze(-1)  # (..., D, 1)
-        nodes = self.shell_nodes.view(*([1] * zeta.ndim), self.n_shells)  # (1, ..., 1, n_shells)
+        nodes = self.shell_nodes.view(*([1] * zeta.ndim), self.n_shells)
         weights = self.shell_weights.view(*([1] * zeta.ndim), self.n_shells)
 
-        # Sum_k w(a_k) * (cos(a_k * zeta) - 1)
+        # Non-positive envelope h_eps in [-2, 0] strictly by positive shell weights
         cos_diff = torch.cos(zeta_expanded * nodes) - 1.0
-        h_eps = torch.sum(cos_diff * weights, dim=-1)  # (..., D)
+        h_eps = torch.sum(cos_diff * weights, dim=-1)  # (..., D) in [-2, 0]
 
-        # Even damping factor exp(lambda * h_eps) in (0, 1]
-        damping = torch.exp(torch.clamp(self.lam * h_eps, min=-10.0, max=0.0))
+        # Even damping factor exp(lambda * h_eps) in [exp(-2*lambda), 1] without hard clamping
+        damping = torch.exp(self.lam * h_eps)
 
         # Modulated output with residual highway
-        return z * (1.0 + torch.tanh(self.gain) * (damping - 1.0))
+        return z * (1.0 + torch.sigmoid(self.gain) * (damping - 1.0))
 
 
 class MovingSubspaceProjector(nn.Module):
@@ -1159,17 +1160,14 @@ class HankelMomentFilter(nn.Module):
             # Symmetrize Hankel: H_sym = 1/2 (H + H^T)
             H_sym = 0.5 * (H + H.transpose(-1, -2))
 
-            # Resolvent purification: R(H) = H (H^2 + gamma*I)^{-1/2} or soft spectral shrink
-            eye = torch.eye(h, device=x.device, dtype=x.dtype).unsqueeze(0)
-            evals, evecs = torch.linalg.eigh(H_sym)
+            # Resolvent spectral trace: Tr(H_sym (|H_sym| + gamma I)^{-1}) / h in (-1, 1)
+            # By similarity invariance of trace, Tr(V diag(lambda_filt) V^T) == sum(lambda_filt).
+            evals = torch.linalg.eigvalsh(H_sym)
             evals_filtered = evals / (torch.abs(evals) + self.gamma)
-            H_purified = evecs @ torch.diag_embed(evals_filtered) @ evecs.transpose(-1, -2)
+            gate = evals_filtered.mean(dim=-1, keepdim=True)  # (B, 1) strictly in (-1, 1)
 
-            # Extract trace-ratio gate: Tr(H_purified) / h in [-1, 1]
-            gate = torch.diagonal(H_purified, dim1=-2, dim2=-1).mean(dim=-1, keepdim=True)  # (B, 1)
-
-            # Smoothly gate representation: z_out = z * (1 + 0.5 * gate)
-            return x * (1.0 + 0.5 * torch.tanh(gate))
+            # Directly modulate representation by algebraically bounded resolvent trace
+            return x * (1.0 + 0.5 * gate)
 
         elif x.ndim == 3:
             # (B, L, D): apply along time sequence
@@ -1253,18 +1251,19 @@ class CoordinateSaliencyGate(nn.Module):
         if a <= 0.0:
             return base_l2
 
-        # Coordinate magnitudes
+        # Scale-normalized coordinate magnitudes for exact degree-1 homogeneity D(c * e) = c * D(e)
         mag = torch.abs(residual)
+        coord_rms = (base_l2 / math.sqrt(float(max(D, 1)))).unsqueeze(-1) + self.eps
+        mag_norm = mag / coord_rms
 
         if self.adaptive_tau:
-            # Adaptive temperature based on dispersion of coordinate errors
-            scale = torch.std(mag, dim=-1, keepdim=True, unbiased=False)
-            eff_tau = torch.clamp(scale, min=0.05, max=5.0)
+            scale = torch.std(mag_norm, dim=-1, keepdim=True, unbiased=False) + self.eps
+            eff_tau = scale * max(t, 1e-4)
         else:
             eff_tau = max(t, 1e-4)
 
         # SoftMax saliency weights along coordinate dimension
-        weights = F.softmax(mag / eff_tau, dim=-1)
+        weights = F.softmax(mag_norm / eff_tau, dim=-1)
 
         # Weighted energy scaled by D for scale preservation
         weighted_energy = torch.sum(weights * sq_diff, dim=-1)
@@ -1467,16 +1466,15 @@ class LittlewoodPaleyDyadicBlock(nn.Module):
             nn.GELU(),
             nn.Linear(router_hidden, num_shells),
         )
-        # Initialize scale router projection with small normal weights for stable balanced gating
-        nn.init.normal_(self.scale_router[-1].weight, mean=0.0, std=0.02)
+        # Initialize scale router projection with Xavier uniform weights to prevent batch variance collapse
+        nn.init.xavier_uniform_(self.scale_router[-1].weight, gain=1.0)
         nn.init.zeros_(self.scale_router[-1].bias)
-
-
 
         # Output projection and layer norm
         self.out_proj = nn.Conv1d(channels, channels, kernel_size=1)
         self.norm = nn.LayerNorm(channels)
-        self.gamma = nn.Parameter(torch.tensor(0.1))  # Small positive initialization for immediate multi-scale gradient flow
+        self.gamma = nn.Parameter(torch.tensor(0.25))  # Preserves multi-scale shell divergence
+        self.last_shell_energy: Optional[torch.Tensor] = None
         self._filter_cache: dict[Tuple[int, torch.device, torch.dtype], torch.Tensor] = {}
         self._fbins_cache: dict[Tuple[int, torch.device, torch.dtype], torch.Tensor] = {}
 
@@ -1586,12 +1584,17 @@ class LittlewoodPaleyDyadicBlock(nn.Module):
 
         # 5. Dynamic scale importance gating
         # Multi-scale energy descriptors:
-        # RMS energy across time for each channel: (B, C)
+        # Causal right-edge state + RMS energy across time for each channel: (B, C)
         x_rms = torch.sqrt(torch.mean(x**2, dim=-1) + 1e-6)
+        x_causal = x[:, :, -1] + x_rms
         # Shell energy across channels and time: (B, J)
         shell_energy = torch.mean(x_shells**2, dim=(-1, -2)).transpose(0, 1)
+        self.last_shell_energy = shell_energy.detach()
         log_shell_energy = torch.log(shell_energy + 1e-6)
-        router_feat = torch.cat([x_rms, log_shell_energy], dim=-1)  # (B, C + J)
+        shell_rel = (log_shell_energy - log_shell_energy.mean(dim=-1, keepdim=True)) / (
+            log_shell_energy.std(dim=-1, keepdim=True, unbiased=False) + 1e-5
+        )
+        router_feat = torch.cat([x_causal, shell_rel], dim=-1)  # (B, C + J)
         scale_weights = F.softmax(self.scale_router(router_feat), dim=-1)  # (B, J)
 
         # Broadcast across channels and time: (B, J, 1, 1)

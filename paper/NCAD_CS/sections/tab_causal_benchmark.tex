@@ -3,8 +3,9 @@
 \caption{Strictly causal streaming benchmark ($0$-lookahead, trailing attribution), 33 streams, held-out SPOT ($q{=}10^{-3}$). ``Non-GHL'': 19 streams at five seeds (stream-macro, $\pm$ seed SD); ``GHL'': 14 streams at three-to-five seeds. Latent predictors cut nominal false alarms to $0.97\%\text{--}1.89\%$ on non-GHL (12--25$\times$ below reconstructive baselines) at the cost of lower causal Point-F1 and event recall.}
 \label{tab:causal_benchmark}
 \small
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{l ccccc c cc}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}l ccccc c cc@{}}
 \toprule
 & \multicolumn{5}{c}{\textbf{Non-GHL Streams (19 Streams, 5 Seeds)}} & \multicolumn{3}{c}{\textbf{Gasoil Heating Loop (14 Streams)}} \\
 \cmidrule(lr){2-6} \cmidrule(lr){7-9}
@@ -20,6 +21,5 @@ Potential-Flow JEPA                      & \textbf{0.0097} & 0.0233 $\pm$ 0.0166
 TimesNet (ICLR 2023)                     & 0.2427 & \textbf{0.2091 $\pm$ 0.0265} & \textbf{0.2931} & \textbf{0.5882} & 0.2163 & 0.0563 & \textbf{0.022} & \textbf{0.850} \\
 TranAD (VLDB 2022)                       & 0.2219 & \underline{0.1405 $\pm$ 0.0154} & 0.2483 & \underline{0.5334} & 0.2027 & 0.0398 & 0.018 & 0.811 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table*}

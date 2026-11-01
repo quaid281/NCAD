@@ -217,3 +217,30 @@ class TestModelIntegrations:
         disc = model.compute_predictive_discrepancy(ctx, tgt)
         assert disc.shape == (B,)
         assert torch.all(disc >= 0.0)
+
+
+    def test_hybrid_tcn_reynolds_dual_moment_and_3mvp(self):
+        """Verify 3-MVP statistical branch, K<=1 stem short-circuit, and exact Reynolds trajectory identity."""
+        B, T, K, D, F_dim = 4, 32, 5, 16, 32
+        enc_multi = HybridTCNEncoder(input_dim=K, latent_dim=D, filters=F_dim, tcn_layers=2)
+        enc_uni = HybridTCNEncoder(input_dim=1, latent_dim=D, filters=F_dim, tcn_layers=2)
+
+        assert enc_multi.channel_stem is not None
+        assert enc_uni.channel_stem is None
+        assert enc_multi.stat_dense[0].in_features == F_dim * 3
+
+        x = torch.randn(B, T, K)
+        z_bar, z_traj = enc_multi(x, return_sequence=True)
+        assert z_bar.shape == (B, D)
+        assert z_traj.shape == (B, T, D)
+        # Exact Reynolds decomposition identity: time-mean of Z_{1:T} equals macro z_bar
+        assert torch.allclose(z_traj.mean(dim=1), z_bar, atol=1e-5)
+
+        model = ReynoldsStressJEPAModel(context_encoder=enc_multi, latent_dim=D, stress_dim=8)
+        model.cov_mode = "temporal"
+        tgt = torch.randn(B, 16, K)
+        z_tgt = model._extract_target(tgt)
+        sigma_obs = model.compute_observed_stress(z_tgt, target_windows=tgt)
+        assert sigma_obs.shape == (B, 8, 8)
+        evals = torch.linalg.eigvalsh(sigma_obs)
+        assert evals.min().item() >= 1e-3 - 1e-6
