@@ -42,6 +42,7 @@ Because $\Delta\mathcal{H}(c\mathbf{K}) = \Delta\mathcal{H}(\mathbf{K})$ is scal
     \Phi_{\text{energy}}(\mathbf{K}) &= r(\mathbf{K}) - 1 - \log\bigl(r(\mathbf{K}) + \epsilon\bigr) \\
     &\quad + \log(1 + \epsilon) \ge 0.
 \end{aligned}
+\label{eq:bregman_barrier}
 \end{equation}
 Combining both terms yields the Operator-Entropy training objective:
 \begin{equation}
@@ -51,38 +52,42 @@ Combining both terms yields the Operator-Entropy training objective:
 \end{aligned}
 \label{eq:op_entropy_loss}
 \end{equation}
-where $B$ is the batch size, $\beta_{\text{norm}} = 1.0$, $\lambda_{\text{ent}} = 0.5$, and $\beta_{\text{Lyap}} = 0.02$ aligns the trace-normalized batch covariance of $\mathbf{K}\operatorname{sg}(z_{\text{ctx}})$ to $z_{\text{tgt}}$ using stop-gradient $\operatorname{sg}(\cdot)$.
+where $B$ is the batch size, $\beta_{\text{norm}} = 1.0$, $\lambda_{\text{ent}} = 0.5$, and $\beta_{\text{Lyap}} = 0.02$ aligns the trace-normalized batch covariance of $\mathbf{K}\operatorname{sg}(z_{\text{ctx}})$ to $z_{\text{tgt}}$ using stop-gradient $\operatorname{sg}(\cdot)$. Because $\epsilon = 10^{-6}$ smooths the logarithm in (\ref{eq:bregman_barrier}), we verify that $\mathbf{K} = \mathbf{0}$ cannot become a false equilibrium during training.
 
-\begin{proposition}[Operator Non-Triviality Under Finite-$\epsilon$ and Singular Barriers]
+\begin{proposition}[Operator Non-Degeneracy at the Origin]
 \label{prop:anti_collapse}
-Consider $\mathcal{L}_\epsilon(\mathbf{K}) = \frac{1}{BD}\sum_{b=1}^B \|\mathbf{K} z_{\text{ctx}}^{(b)} - z_{\text{tgt}}^{(b)}\|_2^2 + \lambda_{\text{ent}} \mathcal{R}_{\text{spectral}}(\mathbf{K})$ with $\lambda_{\text{ent}}, \beta_{\text{norm}} > 0$ and cross-covariance $\mathbf{M} = \frac{1}{BD}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^\top$:
-(i)~For $\epsilon = 10^{-6}$, $\nabla_{\mathbf{K}}\mathcal{R}_{\text{spectral}}(\mathbf{0}) = \mathbf{0}$, but whenever $\mathbf{M} \neq \mathbf{0}$, $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$, excluding $\mathbf{K} = \mathbf{0}$ as a stationary point.
-(ii)~As $\epsilon \to 0^+$, $\lim_{\|\mathbf{K}\|_F \to 0} \Phi_{\text{energy}}(\mathbf{K}) = +\infty$ unconditionally.
+Let $\mathbf{M} = \frac{1}{BD}\sum_{b=1}^B z_{\text{tgt}}^{(b)} {z_{\text{ctx}}^{(b)}}^\top$ denote the context-to-target cross-covariance under (\ref{eq:op_entropy_loss}) with $\lambda_{\text{ent}}, \beta_{\text{norm}} > 0$:
+(i)~\emph{Non-zero gradient for finite $\epsilon > 0$:} At $\mathbf{K} = \mathbf{0}$, $\nabla_{\mathbf{K}}\mathcal{R}_{\text{spectral}}(\mathbf{0}) = \mathbf{0}$; whenever $\mathbf{M} \neq \mathbf{0}$, $\nabla_{\mathbf{K}}\mathcal{L}_{\text{Op-Entropy}}(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$, so $\mathbf{K} = \mathbf{0}$ is never a stationary point.
+(ii)~\emph{Exact barrier limit:} As $\epsilon \to 0^+$, $\lim_{\|\mathbf{K}\|_F \to 0} \Phi_{\text{energy}}(\mathbf{K}) = +\infty$, forming an infinite barrier against norm collapse.
 \end{proposition}
 \begin{proof}
-For $\epsilon > 0$, $\nabla_{\mathbf{K}}\Phi_{\text{energy}}(\mathbf{0}) = \mathbf{0}$ and $\mathbf{K}=\mathbf{0}$ yields $p_i = 1/D$, so $\nabla_{\mathbf{K}}\Delta\mathcal{H}(\mathbf{0}) = \mathbf{0}$ and $\nabla_{\mathbf{K}}\mathcal{L}_\epsilon(\mathbf{0}) = -2\mathbf{M} \neq \mathbf{0}$. As $\epsilon \to 0^+$, $-\log r(\mathbf{K}) \to +\infty$ as $\|\mathbf{K}\|_F \to 0$.
+At $\mathbf{K} = \mathbf{0}$, uniform weights $p_i = 1/D$ minimize $\Delta\mathcal{H}$ ($\nabla_{\mathbf{K}}\Delta\mathcal{H}(\mathbf{0}) = \mathbf{0}$), and $\nabla_{\mathbf{K}}\Phi_{\text{energy}}(\mathbf{0}) = \mathbf{0}$ by the chain rule on (\ref{eq:bregman_barrier}). Differentiating the prediction term at $\mathbf{K} = \mathbf{0}$ leaves $-2\mathbf{M} \neq \mathbf{0}$, while $\epsilon \to 0^+$ as $r(\mathbf{K}) \to 0$ drives $-\log r(\mathbf{K}) \to +\infty$.
 \end{proof}
 
-\noindent\textbf{Remark (Scope of Regularization):} Proposition~\ref{prop:anti_collapse} guarantees non-degeneracy of $\mathbf{K}$, whereas encoder diversity is maintained by the momentum target encoder and stop-gradient decoupling rather than variance regularizers such as VICReg \cite{bardes2021vicreg} or Barlow Twins \cite{zbontar2021barlow} (Table~\ref{tab:ablations}(c)).
+\noindent\textbf{Remark (Scope of Regularization):} Proposition~\ref{prop:anti_collapse} prevents collapse of the transition matrix $\mathbf{K}$, while encoder representation diversity is maintained by the EMA target encoder and stop-gradient decoupling rather than extra variance penalties such as VICReg \cite{bardes2021vicreg} or Barlow Twins \cite{zbontar2021barlow} (Table~\ref{tab:ablations}(c)).
 
-\subsubsection{Reynolds-Stress JEPA (Structural Manifold Closure)}
-\noindent\textbf{Structural Parsimony vs.\ Loss Penalties.} Rather than appending multi-term spectral penalties to the training objective, Reynolds-Stress JEPA enforces dynamical stability and second-moment closure structurally inside its architectural layers:
+\subsubsection{Reynolds-Stress JEPA (Second-Moment Subgrid Closure)}
+\noindent\textbf{Physical Motivation and Structural Parsimony.} Predicting only the window mean $\hat{z}_{\text{tgt}}$ (first moment) can miss variance-shifting faults whose mean stays near nominal. Inspired by Reynolds averaging in turbulence, which splits a flow into its resolved mean $\bar{z}$ and subgrid covariance $\boldsymbol{\Sigma}$, Reynolds-Stress JEPA predicts both moments while enforcing stability and positive semidefinite (PSD) geometry directly inside the network layers rather than via extra loss penalties:
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
-    \item \textit{Crouzeix contractivity and Hankel--Cohn--Elkies filtering:} Each predictor layer decomposes its weight into skew-symmetric advection and spectrally normalized symmetric diffusion, $\mathbf{W}_{\text{eff}} = \frac{\tau}{2}(\mathbf{W} - \mathbf{W}^\top) + \sigma_{\text{sym}}\mathbf{S}/(\|\mathbf{S}\|_2 + \epsilon)$ ($\mathbf{S} = \frac{1}{2}(\mathbf{W}+\mathbf{W}^\top)$), bounding the numerical range inside the Crouzeix disk. Context embeddings are modulated by a similarity-invariant Hankel resolvent trace $\bar{\rho}(\mathbf{H}_{\text{sym}}) = \frac{1}{L}\sum_{i=1}^L \lambda_i / (\sqrt{1 + \lambda_i^2} + \epsilon) \in (-1, 1)$ ($L{=}8$) and a radial Cohn--Elkies Fourier band-limiter $h_\epsilon(\zeta) = \sum_{k=1}^8 w(a_k)[(\frac{4}{3}a_k^2\zeta - 2)e^{-\pi a_k^2\zeta} - 2\epsilon e^{-\pi\zeta/a_k^2}] \in [-2, 0]$ with normalized positive shell weights $\sum_{k=1}^8 w(a_k) = 1$, guaranteeing contractive gain $(1 + \gamma_{\text{CE}} h_\epsilon(\zeta)) \in [0, 1]$ algebraically without heuristic box clamping.
-    \item \textit{Stiefel subgrid basis and positive semidefinite (PSD) stress closure:} To capture covariance anomalies that leave the mean trajectory unchanged, the encoder emits both the pooled macro embedding $\bar{z}_{\text{tgt}}$ (fusing temporal pooling with three bounded trajectory descriptors: standard deviation $\sigma$, Log-Ricci energy $\log(1 + \frac{1}{T}\sum_\tau h_\tau^2)$, and first-order total variation $\frac{1}{T-1}\sum_\tau |h_\tau - h_{\tau-1}|$) and the zero-mean subgrid trajectory $z'_{\text{tgt}}(\tau) = \mathbf{Q}_{\text{St}}(h(\tau) - \bar{h})$ via row-orthonormal Stiefel projection $\mathbf{Q}_{\text{St}} \in \mathrm{St}(D, 64)$. An orthogonal subgrid frame $\mathbf{V} \in \mathrm{St}(d_s, D)$ ($d_s = 8$, enforced via QR retraction with positive diagonal) projects target fluctuations into the symmetric PSD cone $\mathcal{S}_+^{d_s}$, yielding observed Reynolds stress $\boldsymbol{\Sigma}_{\text{obs}} \in \mathcal{S}_+^{d_s}$. A closure head conditioned on the midpoint state $\bar{z} = \frac{1}{2}(z_{\text{ctx}} + \hat{z}_{\text{tgt}})$ predicts $\boldsymbol{\Sigma}_{\text{pred}} = \mathbf{L}\mathbf{L}^\top + \gamma\mathbf{I}_{d_s} \in \mathcal{S}_+^{d_s}$ under a strictly parsimonious two-term objective:
+    \item \textit{Stable mean prediction (Crouzeix-contractive layers):} Each predictor layer splits its weight $\mathbf{W}$ into skew-symmetric rotation $\mathbf{A} = \frac{1}{2}(\mathbf{W} - \mathbf{W}^\top)$ and spectrally normalized symmetric damping $\mathbf{S} = \frac{1}{2}(\mathbf{W} + \mathbf{W}^\top)$, forming $\mathbf{W}_{\text{eff}} = \tau\mathbf{A} + \sigma_{\text{sym}}\mathbf{S}/(\|\mathbf{S}\|_2 + \epsilon)$. This keeps the numerical range inside the unit stability disk without eigenvalue clipping, while lag-$8$ Hankel and $8$-shell radial Fourier filters damp high-frequency context jitter.
+    \item \textit{Subgrid covariance and PSD closure (Stiefel projection):} Alongside the pooled summary $\bar{z}_{\text{tgt}} \in \mathbb{R}^D$ (mean, max, terminal, standard deviation, log-energy, and first-difference statistics), the encoder centers the $64$-channel TCN sequence $h(\tau) - \bar{h}$ and projects it via an orthonormal basis $\mathbf{Q}_{\text{St}} \in \mathrm{St}(D, 64)$ into zero-mean fluctuations $z'_{\text{tgt}}(\tau) \in \mathbb{R}^D$. A second orthonormal frame $\mathbf{V} \in \mathrm{St}(d_s, D)$ ($d_s = 8$, via QR factorization) compresses $z'_{\text{tgt}}(\tau)$ into the observed stress matrix $\boldsymbol{\Sigma}_{\text{obs}} \in \mathcal{S}_+^{d_s}$, while a midpoint closure head on $\bar{z} = \frac{1}{2}(z_{\text{ctx}} + \hat{z}_{\text{tgt}})$ predicts $\boldsymbol{\Sigma}_{\text{pred}} = \mathbf{L}\mathbf{L}^\top + \gamma\mathbf{I}_{d_s} \in \mathcal{S}_+^{d_s}$ under a two-term objective:
 \end{enumerate}
 \begin{equation}
-    \mathcal{L}_{\text{Reynolds}} = \frac{1}{BD}\sum_{b=1}^B \bigl\|\hat{z}_{\text{tgt}}^{(b)} - z_{\text{tgt}}^{(b)}\bigr\|_2^2 + \frac{\alpha_{\text{stress}}}{B d_s^2}\sum_{b=1}^B \bigl\|\boldsymbol{\Sigma}_{\text{pred}}^{(b)} - \operatorname{sg}\bigl(\boldsymbol{\Sigma}_{\text{obs}}^{(b)}\bigr)\bigr\|_F^2,
-    \label{eq:reynolds_loss}
+\begin{aligned}
+    \mathcal{L}_{\text{Reynolds}} &= \frac{1}{BD}\sum_{b=1}^B \bigl\|\hat{z}_{\text{tgt}}^{(b)} - z_{\text{tgt}}^{(b)}\bigr\|_2^2 \\
+    &\quad + \frac{\alpha_{\text{stress}}}{B d_s^2}\sum_{b=1}^B \bigl\|\boldsymbol{\Sigma}_{\text{pred}}^{(b)} - \operatorname{sg}\bigl(\boldsymbol{\Sigma}_{\text{obs}}^{(b)}\bigr)\bigr\|_F^2,
+\end{aligned}
+\label{eq:reynolds_loss}
 \end{equation}
-with $\alpha_{\text{stress}} = 0.1$ and zero auxiliary loss regularizers.
+with $\alpha_{\text{stress}} = 0.1$ and no auxiliary loss penalties.
 
 \subsection{Anomaly Scoring and Operational Detection Latency}
 \label{subsec:scoring_function}
 At test time, sliding windows are processed at stride $1$. Let $\mathbf{e}(t) = z_{\text{tgt}}(t) - \hat{z}_{\text{tgt}}(t) \in \mathbb{R}^D$ denote the latent prediction residual, and let $g(\mathbf{e})$ denote the homogeneous coordinate saliency gate in (\ref{eq:saliency_gate}). Unconstrained \texttt{TS-JEPA} scores windows via $\mathcal{S}(t) = g(\mathbf{e}(t))$. Because the final LayerNorm layer projects latent vectors onto the sphere of radius $\sqrt{D}$ and strips amplitude, \texttt{Operator-Entropy JEPA} tracks pre-LayerNorm radial energy ($e_{\text{ctx}}, e_{\text{tgt}}$) with $e_{\text{pred}} = e_{\text{ctx}}\|\hat{z}_{\text{tgt}}\|_2 / (\|z_{\text{ctx}}\|_2 + 10^{-6})$, while \texttt{Reynolds-Stress JEPA} combines radial leakage with 4-octave Littlewood--Paley Parseval shell-energy leakage $\Delta E_{\text{LP}}(t)$ and saliency-gated subgrid stress closure discrepancy:
 \begin{align}
     \mathcal{S}_{\text{OpEnt}}(t) &= g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\frac{|e_{\text{tgt}}(t) - e_{\text{pred}}(t)|}{e_{\text{tgt}}(t) + e_{\text{pred}}(t) + 10^{-6}}, \label{eq:opent_score} \\
-    \mathcal{S}_{\text{Rey}}(t) &= g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\Delta E_{\text{LP}}(t) + \frac{0.2}{\sqrt{k_s}}\,g\bigl(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}})\bigr), \label{eq:reynolds_score}
+    \mathcal{S}_{\text{Rey}}(t) &= g\bigl(\mathbf{e}(t)\bigr) + 0.2\,\Delta E_{\text{LP}}(t) \nonumber \\
+    &\quad + \frac{0.2}{\sqrt{k_s}}\,g\bigl(\operatorname{vec}(\boldsymbol{\Sigma}_{\text{obs}} - \boldsymbol{\Sigma}_{\text{pred}})\bigr), \label{eq:reynolds_score}
 \end{align}
 where $k_s = \min(K, d_s)$ denotes the active subgrid dimension.
 

@@ -96,6 +96,7 @@ Not all AI-isms are equal. When doing a quick pass or triaging a large document,
 - Bold overuse
 - Performative concession and call-to-adventure closers ("while promising, challenges remain...", "paving the way for a more principled understanding...", "opens up exciting avenues for future research...")
 - Symmetrical bipartite contrast structures ("While X..., Y...", "Not only X, but also Y")
+- Wall-of-math inline cramming & unmotivated formalism — never pack multiple multi-term equations (`\sum`, `\frac`, `\int`) inline into a single run-on paragraph or state propositions/proofs without first giving plain-English intuition; the paper must be easy to read and easy to follow, with multi-term equations broken cleanly in display math (`aligned`) so formulas never spill into the margin
 - Dual-mechanism reflex ("due to both X and Y" without distinct ablation evidence)
 - Generic future-narrative closers ("may become one of the most important narratives…")
 - Social endorsement closers ("This one is worth your time:", "thank me later")

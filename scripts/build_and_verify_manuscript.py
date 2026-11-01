@@ -39,7 +39,7 @@ def build_standalone():
 def run_tectonic(target_file):
     import shutil
     tectonic_bin = shutil.which("tectonic") or "tectonic"
-    cmd = [tectonic_bin, "--keep-intermediates", str(target_file)]
+    cmd = [tectonic_bin, "--keep-intermediates", "--keep-logs", str(target_file)]
     res = subprocess.run(cmd, cwd=str(PAPER_DIR), capture_output=True, text=True, shell=True)
     if res.returncode != 0:
         err(f"Tectonic compilation failed for {target_file.name if hasattr(target_file, 'name') else target_file}:")
@@ -163,6 +163,26 @@ def check_page_budget():
         print(f"  [OK] Page count is within budget ({page_count}/{MAX_PAGE_BUDGET} pages).")
         return True
 
+def check_overfull_hboxes():
+    step("4b. Checking LaTeX log for formula or table margin spills (Overfull \\hbox)...")
+    log_path = PAPER_DIR / "NCAD_CS_standalone.log"
+    if not log_path.exists():
+        warn("NCAD_CS_standalone.log not found; skipping Overfull \\hbox check.")
+        return True
+    log_text = log_path.read_text(encoding="utf-8", errors="ignore")
+    spills = []
+    for line in log_text.splitlines():
+        m = re.search(r"Overfull \\hbox \(([0-9.]+)pt too wide\)", line)
+        if m and float(m.group(1)) > 1.0:
+            spills.append(line.strip())
+    if spills:
+        err(f"Found {len(spills)} formula/table margin spill(s) (> 1.0pt):")
+        for s in spills:
+            print(f"    {s}")
+        return False
+    print("  [OK] Zero Overfull \\hbox margin spills detected (0 spills > 1.0pt).")
+    return True
+
 def main():
     print("=" * 70)
     print(" NCAD-CS Manuscript Build, Reference Scanner & Quality Verifier")
@@ -204,8 +224,9 @@ def main():
     else:
         print(f"  [OK] {STANDALONE_PDF.name}: 0 rendered '??' or '[?]' issues.")
         
-    # Check page budget
+    # Check page budget and zero margin spills
     budget_ok = check_page_budget()
+    spill_ok = check_overfull_hboxes()
     
     # 6. Anti-AI writing pattern audit (docs/SKILL.md)
     step("6. Auditing manuscript prose against anti-AI writing rules (docs/SKILL.md)...")
@@ -218,7 +239,7 @@ def main():
     acronym_ok = run_audit()
     
     print("\n" + "=" * 70)
-    if not tex_errors and not has_pdf_issues and budget_ok and ai_audit_ok and acronym_ok:
+    if not tex_errors and not has_pdf_issues and budget_ok and spill_ok and ai_audit_ok and acronym_ok:
         print(" [SUCCESS] All cross-references, page budget, and SKILL.md anti-AI rules verified cleanly!")
         print("=" * 70)
         sys.exit(0)

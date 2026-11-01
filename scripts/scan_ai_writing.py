@@ -226,6 +226,19 @@ def scan_file(file_path: Path):
         check_category("P1 Copula Avoidance", P1_COPULA)
         check_category("P1 Hedge Stacking", P1_HEDGES)
 
+        # Check P1 Wall-of-math inline cramming (>= 3 inline math blocks containing \sum, \frac, or \int on one prose line)
+        inline_math_blocks = re.findall(r"\$([^$]+)\$", line)
+        heavy_inline = [m for m in inline_math_blocks if re.search(r"\\(?:sum|frac|int|prod)\b", m)]
+        if len(heavy_inline) >= 3:
+            issues.append({
+                "file": file_path.name,
+                "line": line_idx,
+                "category": "P1 Readability / Wall-of-Math",
+                "label": "Inline formula overload (>=3 multi-term inline equations in one paragraph)",
+                "match": f"{len(heavy_inline)} heavy inline formulas",
+                "context": line.strip()[:120]
+            })
+
         # Check P0 Unanchored Comparative Claims
         for pat in UNANCHORED_COMPARATIVE_PATTERNS:
             for m in re.finditer(pat, line, re.IGNORECASE):

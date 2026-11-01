@@ -5,14 +5,14 @@
 \centering
 \caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~14-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
 \vspace{1pt}
-\begin{tabular}{@{}p{0.54\textwidth}@{\hspace{0.03\textwidth}}p{0.43\textwidth}@{}}
+\begin{tabular}{@{}p{0.55\textwidth}@{\hspace{0.015\textwidth}}p{0.435\textwidth}@{}}
 \toprule
 \multicolumn{1}{c}{\textbf{(a) Regularizer Control on Fixed Architecture \& TOST Equivalence}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
 \renewcommand{\arraystretch}{0.93}
-\setlength{\tabcolsep}{1.4pt}
+\setlength{\tabcolsep}{1.1pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l ccccc c@{}}
 \toprule
 \textbf{Model / Control} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%\text{ CI}]$} & \textbf{$p_{\text{TOST}}$} \\
@@ -28,7 +28,7 @@ Reynolds-Stress JEPA & $0.148 \pm 0.022$ & 0.285 & 0.190 & 0.421 & $-0.009$ $[-.
 TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & {--} & {--} \\
 TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \bottomrule
-\multicolumn{7}{@{}l}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.001$); $^\dagger$equiv.\ to $\pm 0.010$ ($p{=}0.0088$); $^\ddagger$Wilcoxon $p{=}1.00$ (3-seed matched).} \\
+\multicolumn{7}{@{}p{\linewidth}@{}}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.001$); $^\dagger$to $\pm 0.010$ ($p{=}0.0088$); $^\ddagger$Wilcoxon $p{=}1.00$ (3 seeds).} \\
 \end{tabular*}%
 \endgroup
 &
@@ -37,7 +37,7 @@ TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \setlength{\tabcolsep}{1.2pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
 \toprule
-\textbf{Stream (F1 / PR-AUC)} & \textbf{Standard Conv} & \textbf{Dyadic Shells} & \textbf{$\Delta$F1 / $\Delta$PR} \\
+\textbf{Stream (F1 / PR-AUC)} & \textbf{Std.\ Conv} & \textbf{Dyadic Shells} & \textbf{$\Delta$F1 / $\Delta$PR} \\
 \midrule
 SMAP \texttt{P-3} & \textbf{0.301} / 0.280 & 0.115 / \textbf{0.296} & $-0.186$ / $+0.017$ \\
 MSL \texttt{M-1} & 0.014 / \textbf{0.491} & \textbf{0.016} / 0.449 & $+0.002$ / $-0.043$ \\
@@ -51,12 +51,12 @@ GECCO \texttt{water\_quality} & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} 
 \endgroup
 \\
 \midrule
-\multicolumn{2}{c}{\textbf{(c) Factorial and Strength Sweep of the Operator Regularizer}} \\
-\multicolumn{2}{c}{%
+\multicolumn{2}{@{}c@{}}{\textbf{(c) Factorial and Strength Sweep of the Operator Regularizer}} \\
+\multicolumn{2}{@{}c@{}}{%
 \begingroup
 \scriptsize
 \setlength{\tabcolsep}{2.2pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcc cccc ccc ccc@{}}
+\begin{tabular*}{0.995\textwidth}{@{\extracolsep{\fill}}lcc cccc ccc ccc@{}}
 \toprule
 & & & \multicolumn{4}{c}{\textbf{Operator / Representation / Stability}} & \multicolumn{3}{c}{\textbf{Buffered}} & \multicolumn{3}{c}{\textbf{Causal}} \\
 \cmidrule(lr){4-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
@@ -72,12 +72,12 @@ Both & 1.00 & 1 & 31.91 & 1.204 & 5.25/11.55 & 0.546 & 0.070 & 0.037 & 0.250 & 0
 Both & 2.00 & 1 & 31.95 & 1.154 & 5.34/11.54 & 0.545 & 0.072 & 0.032 & 0.250 & 0.017 & 0.004 & 0.397 \\
 \bottomrule
 \end{tabular*}%
-\endgroup
+\endgroup%
 }
 \\
 \midrule
-\multicolumn{2}{c}{%
-\begin{tabular}{@{}p{0.35\textwidth}@{\hspace{0.02\textwidth}}p{0.63\textwidth}@{}}
+\multicolumn{2}{@{}c@{}}{%
+\begin{tabular}{@{}p{0.345\textwidth}@{\hspace{0.015\textwidth}}p{0.635\textwidth}@{}}
 \multicolumn{1}{c}{\textbf{(d) Quiet-Fault Point Recall}} & \multicolumn{1}{c}{\textbf{(e) Controlled Mechanism-Discrimination Study (19 Non-GHL Streams)}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup

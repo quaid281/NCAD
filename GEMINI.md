@@ -17,6 +17,7 @@ When inspecting, reviewing, editing, or generating content for `.tex` and `.bib`
 ### B. High-Impact Academic Tone (Top-Tier ML Venues: NeurIPS / ICLR / ICML / KDD)
 - **Active & Direct Voice**: Favor active, authoritative constructions over passive or verbose phrasing (e.g., replace *"it can be observed that the model achieves"* with *"the model achieves"*).
 - **Conciseness & Precision**: Eliminate empty fillers, redundancies, and weak hedges (e.g., *"in order to"*, *"widely considered to be"*, *"serves as a way to"*).
+- **Readability & Zero Formula-Spill Invariant**: The paper must be easy to read and easy to follow. Introduce every proposition, proof, and architectural block with clear plain-English intuition before equations, avoid cramming multiple multi-term equations inline into a single paragraph, and wrap long display equations with `aligned` so the compiled PDF has zero `Overfull \hbox` margin spills.
 - **Claims Grounded in Evidence**: Ensure empirical claims strictly reflect the benchmark metrics (AUROC, PR-AUC, F1-Score) and theoretical foundations (VICReg, Flow Matching, EVT/SPOT).
 
 ### C. Safe Editing Protocol

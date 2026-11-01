@@ -34,6 +34,7 @@
   facing diagnostics whitelisted in `.gitignore` (`stream_manifest.csv`,
   `evt_tail_diagnostics.csv`, `lp_filterbank_*.csv`,
   `heldout_reynolds_covmodes.csv`).
+- **Readability, Plain-English Motivation & Zero Formula/Margin Spills Invariant:** The manuscript must be easy to read and easy to follow from start to finish. Every mathematical proposition, proof, and architectural subsection must first state its plain-English physical or statistical motivation before introducing equations, and must never cram three or more multi-term formulas (`\sum`, `\frac`, `\int`) inline into a single run-on paragraph. Multi-term display equations must be broken cleanly across lines (`aligned`) so that the compiled PDF has **zero `Overfull \hbox` margin spills** (enforced automatically by `scripts/build_and_verify_manuscript.py` and `scripts/scan_ai_writing.py`).
 - **Always scan the manuscript with `docs/SKILL.md`:** Before committing any
   manuscript or documentation changes, always audit all paper sections
   against `docs/SKILL.md` (`C:/Users/andre/OneDrive/Desktop/NCAD_CS/docs/SKILL.md`)
