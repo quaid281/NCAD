@@ -1,46 +1,80 @@
-\begin{table*}[t]
+\begin{table*}[!t]
 \centering
-\caption{Held-Out Calibration Benchmark (SPOT, $u{=}p_{98}, q{=}10^{-3}$): (a)~Retrospective Buffered ($S{=}64$) and (b)~Strictly Causal Trailing Attribution across 19 Non-GHL Streams ($95\%$ Stream-Bootstrap CIs in Brackets) and 14 GHL Streams, (c)~Per-Dataset Breakdown (Mean $\pm$ SD), and (d)~130-Stream Single-Seed Cross-Check. Best in \textbf{bold}, second \underline{underlined}.\label{tab:core_benchmark}}
+\caption{Held-Out Calibration Benchmark (SPOT, $u{=}p_{98}, q{=}10^{-3}$): (a)~Retrospective Buffered ($S{=}64$) and (b)~Strictly Causal Trailing Attribution across 19 Non-GHL Streams and 14 GHL Streams, (c)~Per-Dataset Breakdown across $N{=}7$ Telemetry Families, and (d)~130-Stream Single-Seed Cross-Check. Best in \textbf{bold}, second \underline{underlined}.\label{tab:core_benchmark}}
 \scriptsize
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l cc S[table-format=1.3] S[table-format=1.3] S[table-format=3.1] cc S[table-format=1.3] S[table-format=3.1] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] @{}}
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular*}{\textwidth}{
+    @{\extracolsep{\fill}}
+    l
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=3.1]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=3.1]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    @{}
+}
 \toprule
-& \multicolumn{5}{c}{\textbf{(a) Buffered, non-GHL (19 streams)}} & \multicolumn{4}{c}{\textbf{(b) Strictly causal, non-GHL (19 streams)}} & \multicolumn{2}{c}{\textbf{GHL buf (14)}} & {\textbf{Summary}} \\
-\cmidrule(r{6pt}){2-6} \cmidrule(lr{6pt}){7-10} \cmidrule(lr{6pt}){11-12} \cmidrule(l{6pt}){13-13}
-\textbf{Model} & {FPR $[95\%\text{ CI}]$ $\downarrow$} & {F1 $[95\%\text{ CI}]$ $\uparrow$} & {PR-AUC $\uparrow$} & {ER $\uparrow$} & {$\Delta t$ $\downarrow$} & {FPR $[95\%\text{ CI}]$ $\downarrow$} & {F1 $[95\%\text{ CI}]$ $\uparrow$} & {ER $\uparrow$} & {$\Delta t$ $\downarrow$} & {FPR $\downarrow$} & {F1 $\uparrow$} & {DS-Macro F1 $\uparrow$} \\
+& \multicolumn{5}{c}{\textbf{(a) Retrospective Buffered, Non-GHL (19 Streams)}} & \multicolumn{4}{c}{\textbf{(b) Strictly Causal Trailing, Non-GHL (19 Streams)}} & \multicolumn{2}{c}{\textbf{GHL Buffered (14)}} & {\textbf{Macro}} \\
+\cmidrule(lr){2-6} \cmidrule(lr){7-10} \cmidrule(lr){11-12} \cmidrule(l){13-13}
+\textbf{Architecture} & {\textbf{FPR} $\downarrow$} & {\textbf{Point-F1} $\uparrow$} & {\textbf{PR-AUC} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Point-F1} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Point-F1} $\uparrow$} & {\textbf{DS-F1} $\uparrow$} \\
 \midrule
 \multicolumn{13}{@{}l}{\textit{Latent-space predictive architectures (JEPAs)}} \\
-TS-JEPA (unconstrained)   & 0.093 $[.048, .145]$ & \underline{0.206} $[.113, .319]$ & 0.331 & 0.477 & 110.3 & \underline{0.024} $[.007, .046]$ & \underline{0.161} $[.063, .287]$ & 0.487 & 124.0 & \underline{0.004} & 0.000 & 0.115 \\
-Operator-Entropy JEPA     & 0.101 $[.043, .180]$ & \textbf{0.233} $[.131, .355]$ & \bfseries 0.351 & \underline{0.550} & \underline{79.5} & 0.028 $[.007, .063]$ & 0.153 $[.070, .247]$ & 0.517 & \underline{112.5} & 0.012 & 0.001 & \bfseries 0.125 \\
-Reynolds-Stress JEPA      & 0.190 $[.092, .304]$ & 0.148 $[.069, .239]$ & 0.285 & 0.421 & 116.5 & 0.086 $[.035, .141]$ & 0.060 $[.028, .100]$ & 0.474 & 133.9 & 0.009 & 0.002 & 0.073 \\
-\quad Reynolds ($\alpha_{\text{stress}}{=}0$) & 0.109 $[.058, .166]$ & 0.167 $[.077, .276]$ & 0.281 & 0.419 & 120.7 & \textbf{0.019} $[.006, .038]$ & 0.051 $[.020, .094]$ & 0.424 & 228.4 & {--} & {--} & \underline{0.121} \\
-\addlinespace[2.0pt]
+\quad TS-JEPA (unconstrained)          & 0.093           & \underline{0.206} & 0.331           & 0.477             & 110.3            & \underline{0.024} & \underline{0.161} & 0.487             & 124.0            & \underline{0.004} & 0.000             & 0.115 \\
+\quad Operator-Entropy JEPA            & 0.101           & \bfseries 0.233   & \bfseries 0.351 & \underline{0.550} & \underline{79.5} & 0.028             & 0.153             & 0.517             & \underline{112.5} & 0.012             & 0.001             & \bfseries 0.125 \\
+\quad Reynolds-Stress JEPA             & 0.190           & 0.148             & 0.285           & 0.421             & 116.5            & 0.086             & 0.060             & 0.474             & 133.9            & 0.009             & 0.002             & 0.073 \\
+\quad Reynolds ($\alpha_{\text{stress}}{=}0$) & 0.109    & 0.167             & 0.281           & 0.419             & 120.7            & \bfseries 0.019   & 0.051             & 0.424             & 228.4            & {--}              & {--}              & \underline{0.121} \\
+\addlinespace[2.5pt]
 \multicolumn{13}{@{}l}{\textit{Observation-space reconstructive baselines}} \\
-TimesNet                  & 0.300 $[.162, .446]$ & 0.197 $[.098, .315]$ & 0.329 & \bfseries 0.583 & \bfseries 48.5 & 0.243 $[.123, .375]$ & \textbf{0.209} $[.109, .326]$ & \bfseries 0.588 & \bfseries 62.2 & 0.061 & \bfseries 0.022 & 0.100 \\
-TranAD                    & 0.307 $[.177, .445]$ & 0.130 $[.053, .232]$ & 0.287 & 0.490 & 234.4 & 0.222 $[.119, .337]$ & 0.140 $[.058, .241]$ & \underline{0.533} & 241.0 & 0.046 & \underline{0.020} & 0.069 \\
-\addlinespace[2.0pt]
+\quad TimesNet                         & 0.300           & 0.197             & 0.329           & \bfseries 0.583   & \bfseries 48.5   & 0.243             & \bfseries 0.209   & \bfseries 0.588   & \bfseries 62.2   & 0.061             & \bfseries 0.022   & 0.100 \\
+\quad TranAD                           & 0.307           & 0.130             & 0.287           & 0.490             & 234.4            & 0.222             & 0.140             & \underline{0.533} & 241.0            & 0.046             & \underline{0.020} & 0.069 \\
+\addlinespace[2.5pt]
 \multicolumn{13}{@{}l}{\textit{Non-neural linear baseline}} \\
-Linear AR Forecaster      & \textbf{0.005} $[.001, .011]$ & 0.051 $[.012, .104]$ & 0.255 & 0.432 & 87.8 & {--} & {--} & {--} & {--} & \bfseries 0.002 & 0.000 & 0.038 \\
+\quad Linear AR Forecaster             & \bfseries 0.005 & 0.051             & 0.255           & 0.432             & 87.8             & {--}              & {--}              & {--}              & {--}             & \bfseries 0.002   & 0.000             & 0.038 \\
 \bottomrule
 \end{tabular*}
 
-\vspace{2pt}
-\setlength{\tabcolsep}{1.2pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l S[table-format=2.0] S[table-format=2.0] S[table-format=1.3] S[table-format=1.3] ccccc S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] @{}}
+\vspace{4.5pt}
+\setlength{\tabcolsep}{3.0pt}
+\begin{tabular*}{\textwidth}{
+    @{\extracolsep{\fill}}
+    l
+    S[table-format=2.0]
+    S[table-format=2.0]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    S[table-format=1.3]
+    @{}
+}
 \toprule
-& \multicolumn{4}{c}{\textbf{(c) Dataset descriptors}} & \multicolumn{5}{c}{\textbf{Buffered Point-F1 (mean $\pm$ SD)}} & \multicolumn{5}{c}{\textbf{Buffered held-out FPR}} \\
+& \multicolumn{4}{c}{\textbf{(c) Telemetry Family Descriptors}} & \multicolumn{5}{c}{\textbf{Buffered Point-F1 (Stream Mean) $\uparrow$}} & \multicolumn{5}{c}{\textbf{Buffered Held-Out Nominal FPR $\downarrow$}} \\
 \cmidrule(lr){2-5} \cmidrule(lr){6-10} \cmidrule(lr){11-15}
-\textbf{Dataset} & {$n$} & {$K$} & {$\pi$} & {$\text{F1}_{\text{all-pos}}$} & {TS-JEPA} & {OpEnt} & {Reynolds} & {TimesNet} & {TranAD} & {TS-JEPA} & {OpEnt} & {Reynolds} & {TimesNet} & {TranAD} \\
+\textbf{Dataset} & {$n$} & {$K$} & {$\pi$} & {$\text{F1}_{\text{all-pos}}$} & {\textbf{TS-JEPA}} & {\textbf{OpEnt}} & {\textbf{Reynolds}} & {\textbf{TimesNet}} & {\textbf{TranAD}} & {\textbf{TS-JEPA}} & {\textbf{OpEnt}} & {\textbf{Reynolds}} & {\textbf{TimesNet}} & {\textbf{TranAD}} \\
 \midrule
-Daphnet & 6  & 9  & 0.148 & 0.256 & $0.145{\pm}0.058$ & $0.122{\pm}0.061$ & $0.156{\pm}0.187$ & $0.229{\pm}0.232$ & $0.144{\pm}0.119$ & 0.091 & 0.059 & 0.039 & 0.313 & 0.298 \\
-GHL     & 14 & 16 & 0.013 & 0.026 & $0.000{\pm}0.000$ & $0.001{\pm}0.003$ & $0.002{\pm}0.005$ & $0.022{\pm}0.030$ & $0.020{\pm}0.025$ & 0.004 & 0.012 & 0.009 & 0.061 & 0.046 \\
-Genesis & 1  & 18 & 0.003 & 0.006 & $0.000{\pm}0.000$ & $0.008{\pm}0.017$ & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & 0.017 & 0.082 & 0.016 & 0.000 & 0.000 \\
-MSL     & 4  & 55 & 0.255 & 0.381 & $0.161{\pm}0.119$ & $0.323{\pm}0.263$ & $0.114{\pm}0.141$ & $0.158{\pm}0.146$ & $0.151{\pm}0.149$ & 0.095 & 0.177 & 0.106 & 0.133 & 0.241 \\
-SMAP    & 6  & 25 & 0.150 & 0.236 & $0.379{\pm}0.361$ & $0.396{\pm}0.329$ & $0.237{\pm}0.254$ & $0.289{\pm}0.334$ & $0.167{\pm}0.341$ & 0.135 & 0.125 & 0.486 & 0.549 & 0.513 \\
-Metro   & 1  & 5  & 0.001 & 0.003 & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & $0.001{\pm}0.001$ & $0.000{\pm}0.000$ & 0.014 & 0.026 & 0.017 & 0.000 & 0.000 \\
-SWAN    & 1  & 38 & 0.279 & 0.437 & $0.119{\pm}0.048$ & $0.024{\pm}0.031$ & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & $0.000{\pm}0.000$ & 0.000 & 0.000 & 0.000 & 0.000 & 0.000 \\
-\midrule
-\multicolumn{15}{@{}p{\linewidth}@{}}{\textbf{(d) 130-stream cross-check (Point-F1, dataset-macro / stream mean):} NCAD $0.058/0.088$; DCdetector $0.070/0.097$; Anomaly Transformer $0.091/0.082$; TimesNet $0.129/0.151$; TranAD $0.156/0.152$; TS-JEPA $0.160/0.186$.} \\
+Daphnet & 6  & 9  & 0.148 & 0.256 & 0.145 & 0.122 & \underline{0.156} & \bfseries 0.229 & 0.144 & 0.091 & \underline{0.059} & \bfseries 0.039 & 0.313 & 0.298 \\
+GHL     & 14 & 16 & 0.013 & 0.026 & 0.000 & 0.001 & 0.002             & \bfseries 0.022 & \underline{0.020} & \bfseries 0.004 & 0.012 & \underline{0.009} & 0.061 & 0.046 \\
+Genesis & 1  & 18 & 0.003 & 0.006 & 0.000 & \bfseries 0.008 & 0.000   & 0.000           & 0.000 & 0.017 & 0.082 & 0.016 & \bfseries 0.000 & \bfseries 0.000 \\
+MSL     & 4  & 55 & 0.255 & 0.381 & \underline{0.161} & \bfseries 0.323 & 0.114 & 0.158 & 0.151 & \bfseries 0.095 & 0.177 & \underline{0.106} & 0.133 & 0.241 \\
+SMAP    & 6  & 25 & 0.150 & 0.236 & \underline{0.379} & \bfseries 0.396 & 0.237 & 0.289 & 0.167 & \underline{0.135} & \bfseries 0.125 & 0.486 & 0.549 & 0.513 \\
+Metro   & 1  & 5  & 0.001 & 0.003 & 0.000 & 0.000 & 0.000             & \bfseries 0.001 & 0.000 & 0.014 & 0.026 & 0.017 & \bfseries 0.000 & \bfseries 0.000 \\
+SWAN    & 1  & 38 & 0.279 & 0.437 & \bfseries 0.119 & \underline{0.024} & 0.000 & 0.000 & 0.000 & \bfseries 0.000 & \bfseries 0.000 & \bfseries 0.000 & \bfseries 0.000 & \bfseries 0.000 \\
 \bottomrule
-\end{tabular*}\par\vspace{-8pt}
+\end{tabular*}\par\vspace{3.5pt}\noindent
+\parbox{\textwidth}{\scriptsize\emph{Note:} 95\% stream-bootstrap CIs on 19 non-GHL streams for Panel~(a) Buffered FPR / Point-F1: TS-JEPA $[.048, .145]$ / $[.113, .319]$, OpEntropy $[.043, .180]$ / $[.131, .355]$, Reynolds $[.092, .304]$ / $[.069, .239]$, Reynolds ($\alpha_{\text{stress}}{=}0$) $[.058, .166]$ / $[.077, .276]$, TimesNet $[.162, .446]$ / $[.098, .315]$, TranAD $[.177, .445]$ / $[.053, .232]$, Linear AR $[.001, .011]$ / $[.012, .104]$; for Panel~(b) Causal FPR / Point-F1: TS-JEPA $[.007, .046]$ / $[.063, .287]$, OpEntropy $[.007, .063]$ / $[.070, .247]$, Reynolds $[.035, .141]$ / $[.028, .100]$, Reynolds ($\alpha_{\text{stress}}{=}0$) $[.006, .038]$ / $[.020, .094]$, TimesNet $[.123, .375]$ / $[.109, .326]$, TranAD $[.119, .337]$ / $[.058, .241]$. In Panel~(c), within-dataset F1 SDs are $0.058\text{--}0.232$ (Daphnet), $0.119\text{--}0.263$ (MSL), and $0.254\text{--}0.361$ (SMAP). \textbf{(d) 130-Stream Single-Seed Cross-Check (Point-F1, dataset-macro / stream mean across 11 datasets):} NCAD $0.058 / 0.088$; DCdetector $0.070 / 0.097$; Anomaly Transformer $0.091 / 0.082$; TimesNet $0.129 / 0.151$; TranAD \underline{$0.156 / 0.152$}; TS-JEPA \textbf{0.160 / 0.186}.}
 \end{table*}

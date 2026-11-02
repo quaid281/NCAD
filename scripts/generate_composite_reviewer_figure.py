@@ -249,9 +249,9 @@ def main():
         cs.set_rasterized(False)
 
     iso_label_positions = [
-        (0.02, 3.60),
-        (0.05, 4.75),
-        (0.10, 5.45),
+        (0.02, 4.65),
+        (0.05, 5.75),
+        (0.10, 5.55),
         (0.15, 5.85),
         (0.20, 6.25),
     ]
@@ -265,23 +265,46 @@ def main():
                 zorder=2.5
             )
 
+    # Primary highlighted arms and direct label offsets (dx, dy, ha, text)
+    primary_arms = {
+        "TimesNet", "TranAD", "TCN-ObsPred", "TCN-ObsPred-LN",
+        "OpEntropy", "TS-JEPA", "Reynolds-alpha0", "Reynolds",
+    }
+    direct_labels = {
+        "TCN-ObsPred-LN":  (-0.15,  0.030, "left",   "TCN-ObsPred-LN"),
+        "TS-JEPA":         ( 0.10,  0.015, "left",   "TS-JEPA"),
+        "OpEntropy":       ( 0.00, -0.023, "center", "OpEntropy"),
+        "Reynolds-alpha0": ( 0.14, -0.002, "left",   "Reynolds ($\\alpha{=}0$)"),
+        "Reynolds":        ( 0.15,  0.002, "left",   "Reynolds"),
+    }
+
     for key, label, marker in arms_a:
         if key not in df_a.index:
             continue
         row = df_a.loc[key]
         x, y, fpr = row["cal_kurtosis"], row["ks_drift"], row["hold_fpr"]
-        sz = 48 if marker == "*" else 38
+        is_primary = key in primary_arms
+        sz = (56 if marker == "*" else 42) if is_primary else 22
+        alpha_pt = 1.0 if is_primary else 0.50
         ax.scatter(
-            x, y, c=[fpr], cmap=cmap, norm=norm, marker=marker, s=sz,
-            edgecolors="#111111", linewidths=0.60, zorder=4
+            x, y, c=[fpr], cmap=cmap, norm=norm, marker=marker if is_primary else "o", s=sz,
+            edgecolors="#111111", linewidths=0.65 if is_primary else 0.40, alpha=alpha_pt,
+            zorder=4.5 if is_primary else 3.2
         )
+        if key in direct_labels:
+            dx, dy, ha_align, txt_lbl = direct_labels[key]
+            ax.text(
+                x + dx, y + dy, txt_lbl,
+                fontsize=5.9, color="#1a1a1a", ha=ha_align, va="center", weight="semibold",
+                zorder=5.2
+            )
 
     # Shaded regime box for latent / bounded predictors
-    ax.axhspan(0.108, 0.278, xmin=0.0, xmax=0.55, color="#1d4e89", alpha=0.07, zorder=1.5)
+    ax.axhspan(0.108, 0.285, xmin=0.0, xmax=0.52, color="#1d4e89", alpha=0.07, zorder=1.5)
     ax.text(
-        0.45, 0.115,
-        "Latent / Bounded Predictors\n($D_{\\mathrm{KS}}\\approx 0.17$–$0.27$, FPR $0.9$–$7.3\\%$)",
-        fontsize=6.2, color="#0b4f8a", weight="bold", zorder=5
+        0.45, 0.116,
+        "Latent Predictors\n($D_{\\mathrm{KS}}\\approx 0.19$–$0.27$, FPR $1.9$–$8.6\\%$)",
+        fontsize=6.1, color="#0b4f8a", weight="bold", zorder=5
     )
 
     # Mechanism arrows
@@ -292,7 +315,7 @@ def main():
         arrowprops=dict(arrowstyle="->", color="#333333", lw=1.1, ls="--"), zorder=3
     )
     ax.text(
-        2.95, 0.445,
+        3.50, 0.462,
         "(1) LayerNorm score compression\n($\\gamma_2: 6.10\\!\\to\\!0.91$)",
         fontsize=6.0, color="#333333", ha="center", va="top",
         bbox=dict(boxstyle="round,pad=0.14", fc="white", ec="#cccccc", alpha=0.92),
@@ -314,9 +337,9 @@ def main():
 
     # Clean cluster label for reconstruction baselines
     ax.text(
-        6.00, 0.500,
-        "Reconstruction baselines\n(TimesNet, TranAD, TCN)",
-        fontsize=6.0, ha="center", va="bottom", color="#444444",
+        6.82, 0.495,
+        "Reconstruction baselines\n(TimesNet, TranAD, TCN-ObsPred)",
+        fontsize=6.0, ha="right", va="bottom", color="#444444",
         bbox=dict(boxstyle="round,pad=0.12", fc="#fafafa", ec="#dddddd", alpha=0.88),
         zorder=5
     )
@@ -346,13 +369,9 @@ def main():
         "TS-JEPA":         ("#1d4e89", "-",  "o", "TS-JEPA"),
         "OpEntropy":       ("#5c2d91", "-",  "s", "OpEntropy"),
         "Reynolds-alpha0": ("#2b7a78", "-",  "p", "Reynolds ($\\alpha{=}0$)"),
-        "Reynolds":        ("#378d94", "--", "*", "Reynolds"),
-        "JEPA-CtxRecon":   ("#00706b", ":",  "^", "JEPA-CtxRecon"),
-        "PCA-LinPred-LN":  ("#b27300", "-.", "d", "PCA-LinPred-LN"),
-        "TCN-ObsPred-LN":  ("#555555", "--", "p", "TCN-ObsPred-LN"),
+        "TCN-ObsPred-LN":  ("#555555", "--", "s", "TCN-ObsPred-LN"),
         "TimesNet":        ("#a31d3d", "--", "D", "TimesNet"),
         "TranAD":          ("#734120", "-.", "v", "TranAD"),
-        "TCN-ObsPred":     ("#995570", ":",  "h", "TCN-ObsPred"),
     }
 
     for m, (col, ls, mk, lbl) in style_specs.items():
@@ -393,9 +412,9 @@ def main():
 
     # EXTERNAL LEGEND (Strict Principle 4: never inside the axes box)
     ax.legend(
-        loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=5, frameon=False,
-        columnspacing=0.35, handlelength=1.0, handletextpad=0.18, labelspacing=0.18,
-        fontsize=5.8
+        loc="upper center", bbox_to_anchor=(0.5, -0.21), ncol=3, frameon=False,
+        columnspacing=0.90, handlelength=1.35, handletextpad=0.30, labelspacing=0.22,
+        fontsize=6.4
     )
 
     FIG_DIR.mkdir(parents=True, exist_ok=True)
