@@ -3,24 +3,24 @@
 
 \begin{table*}[t]
 \centering
-\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), (c)~Operator Regularizer Sweep ($n{=}6$, 3 Seeds), (d)~Injected Quiet-Fault Point Recall ($n{=}6$), and (e)~14-Arm Backbone Comparison ($n{=}19$, 5 Seeds). ER is event recall and MAD is median absolute deviation.\label{tab:ablations}}
+\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Regularizer Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), and (c)~14-Arm Matched-Backbone Factorial Comparison ($n{=}19$, 5 Seeds). ER is event recall.\label{tab:ablations}}
 \vspace{1pt}
-\begin{tabular}{@{}p{0.55\textwidth}@{\hspace{0.015\textwidth}}p{0.435\textwidth}@{}}
+\begin{tabular}{@{}p{0.548\textwidth}@{\hspace{0.008\textwidth}}p{0.436\textwidth}@{}}
 \toprule
 \multicolumn{1}{c}{\textbf{(a) Regularizer Control on Fixed Architecture \& TOST Equivalence}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
 \renewcommand{\arraystretch}{0.93}
-\setlength{\tabcolsep}{1.1pt}
+\setlength{\tabcolsep}{0.5pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l ccccc c@{}}
 \toprule
-\textbf{Model / Control} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%\text{ CI}]$} & \textbf{$p_{\text{TOST}}$} \\
+\textbf{Model / Control} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%]$} & \textbf{$p_{\text{TOST}}$} \\
 \midrule
 TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & {Baseline} & {--} \\
 \addlinespace[1.0pt]
 Operator-Entropy JEPA & $0.233 \pm 0.028$ & 0.351 & 0.101 & 0.550 & $-0.004$ $[-.011, +.003]$ & $0.0007^*$ \\
-\quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & {--} & $0.0088^\dagger$ \\
+\quad $\lambda_{\text{ent}}=0$ control & $0.235 \pm 0.038$ & 0.365 & 0.099 & 0.580 & {--} & {($0.0024^\dagger$)} \\
 \addlinespace[1.0pt]
 Reynolds-Stress JEPA & $0.148 \pm 0.022$ & 0.285 & 0.190 & 0.421 & $-0.009$ $[-.052, +.032]$ & $0.211^\ddagger$ \\
 \quad $\alpha_{\text{stress}}=0$ control & $0.167 \pm 0.012$ & 0.281 & 0.109 & 0.419 & {--} & {--} \\
@@ -28,16 +28,16 @@ Reynolds-Stress JEPA & $0.148 \pm 0.022$ & 0.285 & 0.190 & 0.421 & $-0.009$ $[-.
 TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & 0.583 & {--} & {--} \\
 TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \bottomrule
-\multicolumn{7}{@{}p{\linewidth}@{}}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.03$ ($p{<}0.001$); $^\dagger$to $\pm 0.010$ ($p{=}0.0088$); $^\ddagger$Wilcoxon $p{=}1.00$ (3 seeds).} \\
+\multicolumn{7}{@{}p{\linewidth}@{}}{\tiny $^*$TOST equiv.\ at $\Delta{=}\pm 0.030$ ($p{<}0.001$); $^\dagger$equiv.\ to $\Delta{=}\pm 0.015$ ($p{=}0.0024$; at $\pm 0.010$, $p{=}0.086$); $^\ddagger$TOST $p{=}0.211$ at $\Delta{=}\pm 0.030$ ($3$ matched seeds; two-sided Wilcoxon $p{=}0.758$). Matched 3-seed Reynolds mean is $0.158$ ($\Delta\text{F1}{=}-0.009$).} \\
 \end{tabular*}%
 \endgroup
 &
 \begingroup
 \scriptsize
-\setlength{\tabcolsep}{1.2pt}
+\setlength{\tabcolsep}{0.8pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
 \toprule
-\textbf{Stream (F1 / PR-AUC)} & \textbf{Std.\ Conv} & \textbf{Dyadic Shells} & \textbf{$\Delta$F1 / $\Delta$PR} \\
+\textbf{Stream (F1 / PR)} & \textbf{Std.\ Conv} & \textbf{Dyadic} & \textbf{$\Delta$F1 / $\Delta$PR} \\
 \midrule
 SMAP \texttt{P-3} & \textbf{0.301} / 0.280 & 0.115 / \textbf{0.296} & $-0.186$ / $+0.017$ \\
 MSL \texttt{M-1} & 0.014 / \textbf{0.491} & \textbf{0.016} / 0.449 & $+0.002$ / $-0.043$ \\
@@ -51,111 +51,75 @@ GECCO \texttt{water\_quality} & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} 
 \endgroup
 \\
 \midrule
-\multicolumn{2}{@{}c@{}}{\textbf{(c) Factorial and Strength Sweep of the Operator Regularizer}} \\
+\multicolumn{2}{@{}c@{}}{\textbf{(c) Controlled 14-Arm Mechanism-Discrimination Study Across 19 Non-GHL Streams (5 Seeds)}} \\
 \multicolumn{2}{@{}c@{}}{%
 \begingroup
 \scriptsize
-\setlength{\tabcolsep}{2.2pt}
-\begin{tabular*}{0.995\textwidth}{@{\extracolsep{\fill}}lcc cccc ccc ccc@{}}
+\renewcommand{\arraystretch}{0.92}
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular*}{0.992\textwidth}{@{\extracolsep{\fill}}l cc cc cc cc cccc@{}}
 \toprule
-& & & \multicolumn{4}{c}{\textbf{Operator / Representation / Stability}} & \multicolumn{3}{c}{\textbf{Buffered}} & \multicolumn{3}{c}{\textbf{Causal}} \\
-\cmidrule(lr){4-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
-\textbf{Arm} & $\lambda_{\text{ent}}$ & $\beta_{\text{norm}}$ & $\text{RankMe}(\mathbf{K})$ & $\kappa(\mathbf{K})$ & $\text{RankMe}(z_{\text{ctx}}/z_{\text{tgt}})$ & $\text{CV}_{\mathcal{L}}$ & FPR & F1 & ER & FPR & F1 & ER \\
-\midrule
-Neither & 0 & 0 & 31.53 & 1.437 & 5.16/11.57 & 0.565 & 0.071 & 0.044 & 0.250 & 0.017 & 0.009 & 0.369 \\
-Entropy only & 0.5 & 0 & 31.84 & 1.256 & 5.25/11.57 & 0.550 & 0.071 & 0.040 & 0.266 & 0.017 & 0.011 & 0.389 \\
-Barrier only & 0 & 1 & 31.54 & 1.431 & 5.37/11.58 & 0.563 & 0.074 & 0.047 & 0.266 & 0.016 & 0.011 & 0.389 \\
-Both & 0.05 & 1 & 31.61 & 1.395 & 5.16/11.57 & 0.562 & 0.074 & 0.039 & 0.250 & 0.017 & 0.008 & 0.373 \\
-Both & 0.10 & 1 & 31.67 & 1.363 & 5.19/11.58 & 0.559 & 0.073 & 0.039 & 0.250 & 0.017 & 0.008 & 0.421 \\
-Both (deployed) & 0.50 & 1 & 31.85 & 1.255 & 5.54/11.56 & 0.549 & 0.072 & 0.038 & 0.266 & 0.017 & 0.010 & 0.444 \\
-Both & 1.00 & 1 & 31.91 & 1.204 & 5.25/11.55 & 0.546 & 0.070 & 0.037 & 0.250 & 0.017 & 0.007 & 0.365 \\
-Both & 2.00 & 1 & 31.95 & 1.154 & 5.34/11.54 & 0.545 & 0.072 & 0.032 & 0.250 & 0.017 & 0.004 & 0.397 \\
-\bottomrule
-\end{tabular*}%
-\endgroup%
-}
-\\
-\midrule
-\multicolumn{2}{@{}c@{}}{%
-\begin{tabular}{@{}p{0.345\textwidth}@{\hspace{0.015\textwidth}}p{0.635\textwidth}@{}}
-\multicolumn{1}{c}{\textbf{(d) Quiet-Fault Point Recall}} & \multicolumn{1}{c}{\textbf{(e) Controlled Mechanism-Discrimination Study (19 Non-GHL Streams)}} \\
-\cmidrule(r){1-1} \cmidrule(l){2-2}
-\begingroup
-\scriptsize
-\setlength{\tabcolsep}{2.0pt}
-\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccccc@{}}
-\toprule
-\textbf{Injected fault} & Unif. & Var. & MAD & \texttt{lowvar} & \texttt{dev\_maxz} \\
-\midrule
-Flatline & 0.021 & 0.043 & 0.058 & 0.182 & 0.087 \\
-Flatline (mid-var.) & 0.024 & 0.048 & 0.068 & 0.317 & 0.087 \\
-Stuck sensor & 0.021 & 0.043 & 0.058 & 0.182 & 0.087 \\
-Dropout & 0.020 & 0.043 & 0.058 & 0.182 & 0.087 \\
-Low-amp.\ step & 0.030 & 0.049 & 0.062 & 0.182 & 0.087 \\
-$+5\sigma$ spike & 0.023 & 0.042 & 0.059 & 0.182 & 0.108 \\
-\midrule
-Mean nom.\ FPR & 0.019 & 0.069 & 0.055 & 0.149 & 0.141 \\
-\bottomrule
-\end{tabular*}%
-\endgroup
-&
-\begingroup
-\scriptsize
-\renewcommand{\arraystretch}{0.91}
-\setlength{\tabcolsep}{1.1pt}
-\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cc cc cc cc cccc@{}}
-\toprule
-& \multicolumn{2}{c}{\textbf{Tail/Drift}} & \multicolumn{2}{c}{\textbf{Held FPR}} & \multicolumn{2}{c}{\textbf{Point-F1}} & \multicolumn{2}{c}{\textbf{PR-AUC}} & \multicolumn{4}{c}{\textbf{Causal Event Recall}} \\
+& \multicolumn{2}{c}{\textbf{Tail / Drift}} & \multicolumn{2}{c}{\textbf{Held-Out FPR}} & \multicolumn{2}{c}{\textbf{Point-F1}} & \multicolumn{2}{c}{\textbf{PR-AUC}} & \multicolumn{4}{c}{\textbf{Causal Event Recall}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13}
-\textbf{Arm} & $\gamma_2$ & $D_{\text{KS}}$ & Caus. & Buf. & Caus. & Buf. & Caus. & Buf. & SPOT & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ \\
+\textbf{Architecture Arm} & $\gamma_2$ & $D_{\text{KS}}$ & Caus. & Buf. & Caus. & Buf. & Caus. & Buf. & SPOT & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ \\
 \midrule
-\texttt{TS-JEPA} & 1.33 & 0.214 & 0.024 & 0.093 & 0.161 & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
-\texttt{OpEntropy} & 0.94 & 0.209 & 0.028 & 0.101 & 0.153 & 0.233 & 0.280 & \textbf{0.351} & 0.517 & 0.752 & 0.371 & 0.573 \\
-\texttt{Reynolds} & 2.04 & 0.274 & 0.086 & 0.190 & 0.060 & 0.148 & 0.231 & 0.285 & 0.474 & 0.667 & 0.281 & 0.494 \\
-\texttt{Reynolds ($\alpha{=}0$)} & 2.41 & 0.193 & 0.019 & 0.109 & 0.051 & 0.167 & 0.220 & 0.281 & 0.424 & 0.756 & \textbf{0.457} & \textbf{0.633} \\
-\texttt{JEPA-CtxRecon} & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
-\texttt{JEPA-NoEMA} & 1.16 & \textbf{0.167} & \textbf{0.009} & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & \textbf{0.816} & 0.398 & 0.600 \\
-\texttt{TS-JEPA-NoGate} & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
-\texttt{PCA-LinPred-LN} & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & 0.624 \\
-\texttt{TCN-ObsPred-LN} & 0.91 & 0.376 & 0.117 & 0.193 & 0.084 & 0.126 & 0.235 & 0.257 & 0.421 & 0.665 & 0.329 & 0.541 \\
-\texttt{IsoForest} & \textbf{0.70} & 0.373 & 0.039 & \textbf{0.056} & 0.041 & 0.041 & 0.209 & 0.222 & 0.149 & 0.631 & 0.317 & 0.443 \\
-\texttt{TCN-ObsPred} & 6.10 & 0.463 & 0.247 & 0.313 & 0.140 & 0.145 & 0.272 & 0.310 & 0.546 & 0.629 & 0.171 & 0.383 \\
-\texttt{TCN-ObsRecon} & 6.24 & 0.445 & 0.245 & 0.304 & 0.134 & 0.135 & 0.261 & 0.301 & 0.528 & 0.619 & 0.163 & 0.379 \\
-\texttt{TimesNet} & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & \textbf{0.293} & 0.329 & \textbf{0.588} & 0.618 & 0.217 & 0.407 \\
-\texttt{TranAD} & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 0.602 & 0.149 & 0.343 \\
+\texttt{TS-JEPA} (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & 0.161 & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
+\texttt{OpEntropy JEPA} & 0.94 & 0.209 & 0.028 & 0.101 & 0.153 & 0.233 & 0.280 & \textbf{0.351} & 0.517 & 0.752 & 0.371 & 0.573 \\
+\texttt{Reynolds-Stress JEPA} & 2.04 & 0.274 & 0.086 & 0.190 & 0.060 & 0.148 & 0.231 & 0.285 & 0.474 & 0.667 & 0.281 & 0.494 \\
+\texttt{Reynolds ($\alpha_{\text{stress}}{=}0$)} & 2.41 & 0.193 & 0.019 & 0.109 & 0.051 & 0.167 & 0.220 & 0.281 & 0.424 & 0.756 & \textbf{0.457} & \textbf{0.633} \\
+\texttt{JEPA-CtxRecon} (Context Autoenc.) & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
+\texttt{JEPA-NoEMA} (Hard-Copy Target) & 1.16 & \textbf{0.167} & \textbf{0.009} & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & \textbf{0.816} & 0.398 & 0.600 \\
+\texttt{TS-JEPA-NoGate} (Plain $\ell_2$ Norm) & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
+\addlinespace[1.5pt]
+\texttt{PCA-LinPred-LN} (Linear Subspace) & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & 0.624 \\
+\texttt{TCN-ObsPred-LN} (Obs.\ + LayerNorm) & 0.91 & 0.376 & 0.117 & 0.193 & 0.084 & 0.126 & 0.235 & 0.257 & 0.421 & 0.665 & 0.329 & 0.541 \\
+\texttt{IsoForest} (Non-Parametric) & \textbf{0.70} & 0.373 & 0.039 & \textbf{0.056} & 0.041 & 0.041 & 0.209 & 0.222 & 0.149 & 0.631 & 0.317 & 0.443 \\
+\addlinespace[1.5pt]
+\texttt{TCN-ObsPred} (Unbounded Obs.\ Pred.) & 6.10 & 0.463 & 0.247 & 0.313 & 0.140 & 0.145 & 0.272 & 0.310 & 0.546 & 0.629 & 0.171 & 0.383 \\
+\texttt{TCN-ObsRecon} (Unbounded Obs.\ Recon.) & 6.24 & 0.445 & 0.245 & 0.304 & 0.134 & 0.135 & 0.261 & 0.301 & 0.528 & 0.619 & 0.163 & 0.379 \\
+\texttt{TimesNet} (Baseline) & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & \textbf{0.293} & 0.329 & \textbf{0.588} & 0.618 & 0.217 & 0.407 \\
+\texttt{TranAD} (Baseline) & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 0.602 & 0.149 & 0.343 \\
 \bottomrule
 \end{tabular*}%
 \endgroup
-\end{tabular}%
 }
 \\
 \bottomrule
 \end{tabular}\par\vspace{-8pt}
 \end{table*}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.84\textwidth]{figures/regularizer_sweep_and_quiet_faults.pdf}
+\vspace{-4pt}
+\caption{Operator regularizer conditioning sweep and quiet-fault recovery ($n{=}6$ streams, three seeds). \textbf{(a)}~Condition number $\kappa(\mathbf{K})$, target effective rank ratio $\operatorname{RankMe}(z_{\text{tgt}})/D$, event recall (ER), and false-positive rate (FPR) across $\lambda_{\text{ent}} \in [0, 2.0]$ with Bregman barrier $\beta \in \{0, 1\}$. \textbf{(b)}~Injected single-channel event recall (bars) and point recall (circles) across uniform TS-JEPA (\texttt{Unif.}), context variance (\texttt{Var.}) and median absolute deviation (\texttt{MAD}) gates, standalone rolling variance monitor (\texttt{lowvar}), and the hybrid union monitor (\texttt{TS-JEPA} $\lor$ \texttt{lowvar}; nominal FPR in parentheses).\label{fig:regularizer_and_quiet_fault}}
+\vspace{-6pt}
+\end{figure*}
+
 \subsection{Ablation 1: Operator Regularizer Control on Fixed Architecture}
 \label{subsec:controlled_ablations}
-To test whether the spectral regularizer drives anomaly detection accuracy on its fixed Koopman backbone, Table~\ref{tab:ablations}(a) compares Operator-Entropy JEPA against an unregularized control ($\lambda_{\text{ent}} = 0$) across all 19 non-GHL streams. Removing the spectral regularizer leaves buffered Point-F1 ($0.233$ vs.\ $0.235$, paired difference $-0.004$, two-sided $p=0.89$) and PR-AUC ($0.351$ vs.\ $0.365$) virtually identical. Two One-Sided Tests confirm formal equivalence within the prespecified $\Delta = \pm 0.03$ margin ($p_{\text{TOST}} = 0.0007$) and across narrow-margin sensitivity checks down to $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 0.0015$), $\Delta = \pm 0.015$ ($p_{\text{TOST}} = 0.0024$, with $90\%$ CI $[-0.0112, +0.0029]$ strictly inside $[-\Delta, +\Delta]$), and $\Delta = \pm 0.010$ ($p_{\text{TOST}} = 0.0088$), as well as within $\pm 0.010$ PR-AUC and $\pm 0.025$ event recall.
+To test whether the spectral regularizer drives anomaly detection accuracy on its fixed Koopman backbone, Table~\ref{tab:ablations}(a) compares Operator-Entropy JEPA against an unregularized control ($\lambda_{\text{ent}} = 0$) across all 19 non-GHL streams. Removing the spectral regularizer leaves buffered Point-F1 ($0.233$ vs.\ $0.235$, paired difference $-0.004$, two-sided $p=0.89$) and PR-AUC ($0.351$ vs.\ $0.365$) virtually identical. Two One-Sided Tests confirm formal equivalence within the prespecified $\Delta = \pm 0.030$ margin ($p_{\text{TOST}} = 0.0007$) and across sensitivity checks down to $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 0.0015$) and $\Delta = \pm 0.015$ ($p_{\text{TOST}} = 0.0024$), where the $90\%$ CI $[-0.0112, +0.0029]$ lies strictly inside $[-\Delta, +\Delta]$. At the tighter $\Delta = \pm 0.010$ margin, the parametric lower bound extends marginally outside the bound ($p_{\text{TOST}} = 0.086$), while equivalence holds within $\pm 0.010$ PR-AUC and $\pm 0.025$ event recall.
 
-This fixed-backbone regularizer control aligns with findings on the Reynolds-Stress JEPA architecture: isolating the base predictive residual from the quadratic stress closure discrepancy ($\alpha_{\text{stress}} = 0$) leaves buffered PR-AUC ($0.281$ vs.\ $0.285$) and Point-F1 ($0.167$ vs.\ $0.148$, paired difference $-0.009$, $90\%$ CI $[-0.052, +0.032]$) comparable to the full Reynolds model while achieving $0.019$ causal held-out FPR and leading matched-FPR event recall ($0.457$ at $f^*{=}0.01$ and $0.633$ at $f^*{=}0.05$, Table~\ref{tab:ablations}(a),(e)). Across both physics-inspired architectures, regularizer penalties condition latent representations without driving aggregate detection gains, confirming that false-alarm suppression is governed by the joint-embedding prediction framework rather than penalty additions.
+This fixed-backbone regularizer control aligns with findings on the Reynolds-Stress JEPA architecture: isolating the base predictive residual from the quadratic stress closure discrepancy ($\alpha_{\text{stress}} = 0$) leaves buffered PR-AUC ($0.281$ vs.\ $0.285$) and Point-F1 ($0.167$ vs.\ $0.148$ across all seeds; $0.167$ vs.\ $0.158$ on matched seeds, paired difference $-0.009$, $90\%$ CI $[-0.052, +0.032]$, TOST $p = 0.211$, two-sided Wilcoxon $p = 0.758$) comparable to the full Reynolds model while achieving $0.019$ causal held-out FPR and leading matched-FPR event recall ($0.457$ at $f^*{=}0.01$ and $0.633$ at $f^*{=}0.05$, Table~\ref{tab:ablations}(a),(c)). Across both physics-inspired architectures, regularizer penalties condition latent representations without driving aggregate detection gains, confirming that false-alarm suppression is governed by the joint-embedding prediction framework rather than penalty additions.
 
 \subsection{Ablation 2: Factorial Isolation of the Entropy Term and Energy Barrier}
 \label{subsec:factorial}
-Table~\ref{tab:ablations}(c) crosses the spectral-entropy term and Bregman energy barrier across $\lambda_{\text{ent}} \in [0, 2.0]$ on six streams (three seeds). To quantify spectral diversity, we report the effective rank $\operatorname{RankMe} = \exp(-\sum_i p_i \log p_i) \in [1, 32]$ (which measures how many of the $D=32$ dimensions carry active variance) and the operator condition number $\kappa = \sigma_{\max}/\sigma_{\min} \ge 1$ (the ratio of largest to smallest singular values, where $\kappa = 1$ denotes an ideal distance-preserving isometry). First, because the Koopman matrix $\mathbf{K}$ is initialized near the identity, the unregularized operator is already near full rank ($\operatorname{RankMe}(\mathbf{K}) = 31.53$ of $32$, condition number $\kappa = 1.437$); increasing $\lambda_{\text{ent}}$ tightens conditioning monotonically ($\kappa = 1.255$ at the deployed $\lambda_{\text{ent}}=0.50$, and $\kappa = 1.154$ at $\lambda_{\text{ent}}=2.00$) while lowering training loss variation ($\text{CV}_{\mathcal{L}}: 0.565 \to 0.545$). Second, because $\mathcal{L}_{\text{Lyap}}$ applies a stop-gradient to $z_{\text{ctx}}$, encoder effective ranks remain invariant across all regularizer strengths ($\operatorname{RankMe}(z_{\text{ctx}}) \in [5.16, 5.54]$, $\operatorname{RankMe}(z_{\text{tgt}}) \in [11.54, 11.58]$). Third, detection and false-alarm rates remain stable across arms, with the deployed setting ($\lambda_{\text{ent}}=0.50, \beta_{\text{norm}}=1$) attaining the highest causal event recall ($0.444$ vs.\ $0.369$ unregularized). On an eight-stream decoupling panel, pairing detached covariance alignment ($\beta_{\text{Lyap}}=0.02$) with the smooth Bregman barrier cuts causal detection delay from $127.0$ steps (TS-JEPA) and $80.2$ steps ($\beta_{\text{Lyap}}=0$) to $58.2$ steps while raising causal Point-F1 from $0.044$ to $0.094$.
+Fig.~\ref{fig:regularizer_and_quiet_fault}(a) crosses the spectral-entropy term and Bregman energy barrier across $\lambda_{\text{ent}} \in [0, 2.0]$ on six streams (three seeds), tracking effective rank $\operatorname{RankMe} = \exp(-\sum_i p_i \log p_i) \in [1, 32]$ and condition number $\kappa = \sigma_{\max}/\sigma_{\min} \ge 1$. Because $\mathbf{K}$ is initialized near the identity, the unregularized operator is already near full rank ($\operatorname{RankMe}(\mathbf{K}) = 31.53$, $\kappa = 1.437$); increasing $\lambda_{\text{ent}}$ tightens conditioning monotonically ($\kappa = 1.255$ at the deployed $\lambda_{\text{ent}}=0.50$, and $\kappa = 1.154$, $\operatorname{RankMe}(\mathbf{K}) = 31.95$ at $\lambda_{\text{ent}}=2.00$) while lowering loss variation ($\text{CV}_{\mathcal{L}}: 0.565 \to 0.545$). Because $\mathcal{L}_{\text{Lyap}}$ applies a stop-gradient to $z_{\text{ctx}}$, encoder effective ranks remain invariant across all strengths ($\operatorname{RankMe}(z_{\text{ctx}}) \in [5.16, 5.54]$, $\operatorname{RankMe}(z_{\text{tgt}}) \in [11.54, 11.58]$), as do false-alarm rates ($0.016\text{--}0.017$ causal, $0.070\text{--}0.074$ buffered; buffered ER $0.250\text{--}0.266$, F1 $0.032\text{--}0.047$; causal F1 $0.004\text{--}0.011$), while the deployed setting ($\lambda_{\text{ent}}=0.50, \beta_{\text{norm}}=1$) attains the highest causal event recall ($0.444$ vs.\ $0.369$ unregularized). On an eight-stream decoupling panel, pairing detached covariance alignment ($\beta_{\text{Lyap}}=0.02$) with the smooth Bregman barrier cuts causal detection delay from $127.0$ steps (TS-JEPA) and $80.2$ steps ($\beta_{\text{Lyap}}=0$) to $58.2$ steps while raising causal Point-F1 from $0.044$ to $0.094$.
 
-\subsection{Ablation 3: Auxiliary Input-Channel Gating and Quiet-Fault Monitors}
+\subsection{Ablation 3: Fault-Class Breakdown, Quiet-Fault Mechanism, and Hybrid Monitor}
 \label{subsec:gating_ablation}
-Comparing the auxiliary context-variance input-channel gate against uniform channel weighting on four streams confirms that uniform weighting achieves higher macro Point-F1 ($0.118$ vs.\ $0.077$), so the deployed pipeline retains uniform input encoding. In Table~\ref{tab:ablations}(d), injecting six single-channel fault types into six multivariate streams shows that quiet faults (flatlines, stuck sensors, dropouts) yield low point recall ($0.02\text{--}0.07$) across all latent gating variants because LayerNorm embeddings absorb constant single-channel offsets as nominal background. Auxiliary observation-space monitors, namely a rolling variance floor (\texttt{lowvar}) and maximum channel $z$-score (\texttt{dev\_maxz}), recover quiet-fault recall ($0.18\text{--}0.32$) at the cost of inflating nominal FPR eight-fold ($14.1\%\text{--}14.9\%$ vs.\ $1.9\%$).
+Comparing the auxiliary context-variance input-channel gate against uniform channel weighting on four streams confirms that uniform weighting achieves higher macro Point-F1 ($0.118$ vs.\ $0.077$), so the deployed pipeline retains uniform input encoding. Across six injected single-channel fault types on six multivariate streams (Fig.~\ref{fig:regularizer_and_quiet_fault}(b)), uniform latent encoding (\texttt{Unif.}) achieves $0.278$ event recall on abrupt $+5\sigma$ spikes ($0.306$ with variance gating), versus $0.194$ event recall and $0.020\text{--}0.030$ point recall on persistent quiet faults (flatlines, stuck sensors, dropouts) and low-amplitude steps ($0.043\text{--}0.068$ under variance or median absolute deviation (MAD) gating). When a single channel $k$ freezes or shifts by $\delta$ out of $K$ channels, its contribution to the pre-LayerNorm pooled vector scales as $O(1/K)$ and is rescaled onto the $\sqrt{D}$ sphere by LayerNorm along with nominal cross-channel variance. Standalone sensor monitors, namely a rolling variance-collapse detector (\texttt{lowvar}) and maximum channel $z$-score (\texttt{dev\_maxz}, $0.087\text{--}0.108$ point and $0.250\text{--}0.306$ event recall at $14.1\%$ FPR), trigger on different streams than TS-JEPA. Consequently, a hybrid union detector (\textbf{Hybrid}, triggering when either TS-JEPA or \texttt{lowvar} alarms) raises point recall to $0.202\text{--}0.318$ and event recall to $0.417\text{--}0.500$ across all six fault classes at $+15.1\%$ additional nominal FPR ($1.9\% \to 17.0\%$; or $0.333\text{--}0.472$ event recall at $16.1\%$ FPR with \texttt{dev\_maxz}).
 
 \subsection{Ablation 4: Multiscale Dyadic-Shell Front-End}
 In Table~\ref{tab:ablations}(b), replacing the standard convolutional stem with the 4-shell Fourier front-end increases macro PR-AUC from $0.213$ to $0.263$ ($+0.050$, led by SMD and GECCO) and lowers calibration residual kurtosis ($1.409 \to 1.069$), while macro Point-F1 shifts from $0.118$ to $0.078$ due to conservative threshold tightening on SMAP \texttt{P-3}. The module thus acts as a ranking-conditioning stem rather than a uniform F1 gain.
 
 \subsection{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}
 \label{subsec:controlled_backbone}
-Comparing the 14 controlled backbone arms across all 19 non-GHL streams in Table~\ref{tab:ablations}(e) separates geometric score compression from representation drift reduction:
+Comparing the 14 factorial arms across all 19 non-GHL streams under identical splits, training budgets, and comparable parameter counts in Table~\ref{tab:ablations}(c) isolates six architectural factors:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \textbf{Unnormalized observation forecasting (\texttt{TCN-ObsPred}):} Raw observation residuals exhibit heavy tail kurtosis ($\gamma_2 = 6.10$), severe calibration-to-holdout KS drift ($D_{\text{KS}} = 0.463$), and high causal false alarms ($24.7\%$).
-    \item \textbf{LayerNorm observation bottleneck (\texttt{TCN-ObsPred-LN}):} Inserting a $D=32$ LayerNorm bottleneck before decoding mechanically bounds excursions, compressing kurtosis to $\gamma_2 = 0.91$ and halving causal FPR to $11.7\%$, but leaves calibration-to-holdout drift elevated ($D_{\text{KS}} = 0.376$).
-    \item \textbf{Learned latent projection (\texttt{TS-JEPA}, \texttt{OpEntropy}, \texttt{Reynolds}):} Forecasting in learned latent coordinates halves calibration-to-holdout KS drift ($D_{\text{KS}}: 0.376 \to 0.193\text{--}0.274$, paired Wilcoxon $p \le 0.001$) and reduces causal false alarms to $1.9\%\text{--}8.6\%$ ($1.9\%\text{--}2.8\%$ without stress-closure scoring).
-    \item \textbf{Context autoencoding (\texttt{JEPA-CtxRecon}) and linear controls:} Autoencoding context embeddings without temporal foresight achieves comparable drift reduction ($D_{\text{KS}} = 0.203$, causal FPR $1.7\%$, event recall $0.542$), while linear projection (\texttt{PCA-LinPred-LN}) reaches $2.1\%$ causal FPR at lower F1 ($0.017$) and \texttt{IsoForest} collapses in recall ($0.149$). LayerNorm geometry thus bounds tail kurtosis, while learned latent projection is required to suppress temporal distribution drift.
+    \item \textbf{Prediction vs.\ reconstruction in observation space (\texttt{TCN-ObsPred} vs.\ \texttt{TCN-ObsRecon}):} Using the exact same \texttt{HybridTCNEncoder} backbone, forecasting versus reconstructing raw observations leaves kurtosis ($\gamma_2 = 6.10$ vs.\ $6.24$), calibration-to-holdout drift ($D_{\text{KS}} = 0.463$ vs.\ $0.445$), and causal FPR ($24.7\%$ vs.\ $24.5\%$) virtually unchanged.
+    \item \textbf{LayerNorm bottleneck + saliency gate in observation space (\texttt{TCN-ObsPred-LN}):} Adding the $D=32$ LayerNorm bottleneck and coordinate saliency gate to the observation forecaster ($307\text{k}$ parameters) compresses tail kurtosis to $\gamma_2 = 0.91$ and halves causal FPR to $11.7\%$, but leaves calibration-to-holdout drift high ($D_{\text{KS}} = 0.376$) and lowers causal Point-F1 to $0.084$.
+    \item \textbf{Learned latent target projection (\texttt{TS-JEPA}, \texttt{OpEntropy}, \texttt{Reynolds}):} Moving the prediction target into the learned $D=32$ latent space ($269\text{k}\text{--}282\text{k}$ online parameters) halves calibration-to-holdout drift relative to \texttt{TCN-ObsPred-LN} ($D_{\text{KS}}: 0.376 \to 0.193\text{--}0.274$, paired Wilcoxon $p \le 0.001$), cuts causal FPR to $1.9\%\text{--}2.8\%$ for base predictors, and raises causal Point-F1 from $0.084$ to $0.153\text{--}0.161$.
+    \item \textbf{Learned TCN encoder vs.\ linear subspace (\texttt{PCA-LinPred-LN}) and isolation forest:} \texttt{PCA-LinPred-LN} shares $D=32$, LayerNorm, and the saliency gate, achieving $2.1\%$ causal FPR via tail bounding, but its causal Point-F1 collapses to $0.017$ ($0.104$ buffered; \texttt{IsoForest} event recall $0.149$), proving that the learned nonlinear encoder is required for anomaly discriminability.
+    \item \textbf{Temporal foresight (\texttt{JEPA-CtxRecon}), EMA target (\texttt{JEPA-NoEMA}), and saliency gate (\texttt{TS-JEPA-NoGate}):} Autoencoding context embeddings (\texttt{JEPA-CtxRecon}) reduces drift ($D_{\text{KS}} = 0.203$, causal FPR $1.7\%$) at lower causal F1 ($0.112$ vs.\ $0.161$); hard-copy targets (\texttt{JEPA-NoEMA}) reach $0.9\%$ causal FPR and $0.146$ causal F1; and replacing the saliency gate with plain $\ell_2$ norm (\texttt{TS-JEPA-NoGate}) yields $1.8\%$ causal FPR and $0.156$ causal F1, confirming that false-alarm reduction does not depend on the saliency gate.
 \end{enumerate}

@@ -1,7 +1,7 @@
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.94\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
+\includegraphics[width=0.88\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
 \vspace{-2pt}
-\caption{Operational latency, score emission, and deployable operating trade-offs. \textbf{(a)}~Held-out false-positive rate across target horizon lengths $S \in \{1, 4, 16, 32, 64\}$ (score-emission lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, five streams): TimesNet false alarms explode nine-fold ($2.5\% \to 21.3\%$), while TS-JEPA and OpEntropy JEPA remain stable under $2\%$. At $S{=}1$ (zero emission lag), OpEntropy JEPA cuts detection delay to $\Delta t = 76.3$ steps. \textbf{(b)}~Deployable operating trade-offs at nominal calibration quantiles $q^* \in \{0.001, 0.050\}$ across 19 non-GHL streams (directed arrows indicate $q^*{=}0.001 \to 0.050$): latent predictors define a superior Pareto frontier, achieving higher causal event recall ($0.667\text{--}0.756$) at substantially fewer nuisance false alarms ($113\text{--}203$) than TimesNet and TranAD ($262\text{--}270$).\label{fig:operating_and_horizon}}
-\vspace{-3pt}
+\caption{Horizon length and deployable calibration trade-offs. \textbf{(a)}~Held-out FPR and event recall across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched score-emission latency $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps (five streams, three seeds). \textbf{(b)}~Causal event recall versus false alarms across 19 non-GHL streams as nominal calibration quantiles shift from $q^*{=}10^{-3}$ (open circles) to $q^*{=}0.05$ (filled markers).\label{fig:operating_and_horizon}}
+\vspace{-2pt}
 \end{figure*}

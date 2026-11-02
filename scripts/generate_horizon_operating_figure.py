@@ -2,7 +2,8 @@
 """Generate publication-grade true-vector figure for Target-Horizon sweep and Deployable Quantiles.
 
 Clean, spacious two-panel horizontal layout tailored for IEEE two-column full-width banner:
-figsize=(7.14, 2.25) inches with zero title/legend overlap and zero bottom-label clipping.
+figsize=(7.14, 2.28) inches with zero internal text callouts, zero title/legend overlap,
+and zero bottom-label clipping.
 """
 import sys
 from pathlib import Path
@@ -91,13 +92,6 @@ def make_figure():
     ax1.grid(True, which="major", linestyle="-", linewidth=0.5, color="#e0e0e0", alpha=0.7)
     ax1.set_axisbelow(True)
 
-    ax1.annotate("9x False-Alarm Surge\n($2.5\\% \\to 21.3\\%$)", xy=(4, 21.3), xytext=(1.55, 16.0),
-                 arrowprops=dict(arrowstyle="->", color=C_TIMESNET_CAUS, lw=0.9),
-                 fontsize=7.0, color="#911838", fontweight="semibold")
-    ax1.annotate("Stable Sub-2% Causal FPR", xy=(3.0, 1.1), xytext=(0.15, 10.2),
-                 arrowprops=dict(arrowstyle="->", color=C_OPENT_CAUS, lw=0.9),
-                 fontsize=7.0, color="#1f5d62", fontweight="semibold")
-
     ax1.set_title("(a) Latency vs. False-Alarm Explosion across $S$", fontweight="bold", pad=26)
     ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2, frameon=False, columnspacing=1.2, handletextpad=0.35, labelspacing=0.25, fontsize=6.8)
 
@@ -125,10 +119,6 @@ def make_figure():
         },
     }
 
-    ax2.axvspan(38, 210, ymin=0.42, ymax=1.0, color="#77b5b6", alpha=0.10, zorder=1)
-    ax2.text(43, 0.802, "JEPA Causal Frontier (High Recall, Low Alarms)", fontsize=6.6, color="#21575b",
-             ha="left", va="center", style="italic", weight="bold")
-
     for name, m in models_data.items():
         fa, er = m["fa"], m["er"]
         ax2.annotate("", xy=(fa[1], er[1]), xytext=(fa[0], er[0]),
@@ -137,15 +127,10 @@ def make_figure():
         ax2.scatter(fa[0], er[0], s=26, facecolors="none", edgecolors=m["color"], linewidths=1.3, zorder=4)
         ax2.scatter(fa[1], er[1], s=36, facecolors=m["color"], edgecolors="#222222", linewidths=0.65, marker=m["marker"], label=m["label"], zorder=4)
 
-    ax2.text(44.0, 0.448, "$q^*{=}10^{-3}$", fontsize=6.5, ha="left", color=C_REY0_CAUS, weight="bold")
-    ax2.text(118.0, 0.748, "$q^*{=}0.05$", fontsize=6.5, ha="left", color=C_REY0_CAUS, weight="bold")
-    ax2.text(218.0, 0.565, "$q^*{=}10^{-3}$", fontsize=6.4, ha="right", color=C_TIMESNET_CAUS)
-    ax2.text(265.0, 0.625, "$q^*{=}0.05$", fontsize=6.4, ha="left", color=C_TIMESNET_CAUS)
-
     ax2.set_xlabel("False Alarms per 1,000 Nominal Steps", labelpad=4)
     ax2.set_ylabel("Causal Event Recall (ER)", labelpad=3)
-    ax2.set_xlim(32, 305)
-    ax2.set_ylim(0.42, 0.84)
+    ax2.set_xlim(32, 290)
+    ax2.set_ylim(0.44, 0.80)
     ax2.set_yticks(np.arange(0.45, 0.85, 0.10))
 
     ax2.grid(True, which="major", linestyle="-", linewidth=0.5, color="#e0e0e0", alpha=0.7)

@@ -43,10 +43,9 @@ def build():
     lines.extend([
         "% Bibliography",
         "\\def\\IEEEbibitemsep{0pt}",
-        "\\def\\BIBdecl{\\setlength{\\itemsep}{-1.3pt plus 0.2pt minus 0.1pt}\\setlength{\\parsep}{0pt}}",
-        "{\\scriptsize",
+        "\\def\\BIBdecl{\\fontsize{7.0pt}{8.0pt}\\selectfont\\setlength{\\itemsep}{-2.0pt plus 0.2pt minus 0.1pt}\\setlength{\\parsep}{0pt}}",
         "\\bibliographystyle{IEEEtran}",
-        "\\bibliography{export}}",
+        "\\bibliography{export}",
         "",
         "\\end{document}",
         ""
