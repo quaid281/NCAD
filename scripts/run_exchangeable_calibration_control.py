@@ -19,7 +19,7 @@ Protocol:
 - Sweeps:
   - Design risk q in {0.001, 0.01, 0.05}
   - Calibration length: 1.0 * N_cal, 0.5 * N_cal
-  - Models: TS-JEPA, OpEntropy, Reynolds, PotentialFlow, TimesNet, TranAD, TCN-ObsPred-LN
+  - Models: TS-JEPA, SolitonReynolds-JEPA, SolitonReynolds-NoSoliton, TimesNet, TranAD, TCN-ObsPred-LN
   - Mappings: trailing (causal), smear (buffered)
 
 Output:
@@ -29,10 +29,8 @@ Output:
 
 from __future__ import annotations
 
-import argparse
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -41,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.scoring.evt_calibrator import fit_gpd
+from src.scoring.evt_calibrator import EVTCalibrator
 
 SCORE_DUMPS_DIR = ROOT / "reports" / "score_dumps"
 OUT_CSV = ROOT / "reports" / "exchangeable_calibration_control.csv"
@@ -55,23 +53,16 @@ RNG_SEED = 42
 
 
 def calibrate_spot(x_cal: np.ndarray, q: float, u_q: float = 0.98) -> float:
-    """Compute SPOT threshold on calibration array."""
+    """Compute SPOT threshold on calibration array using EVTCalibrator."""
     if len(x_cal) < 10:
         return float(np.quantile(x_cal, 1.0 - q))
-    u = float(np.quantile(x_cal, u_q))
-    exc = x_cal[x_cal > u] - u
-    if len(exc) < 5:
-        return float(np.quantile(x_cal, 1.0 - q))
-    fit = fit_gpd(exc)
-    sigma, xi = fit.sigma, fit.gamma
-    n = len(x_cal)
-    n_u = len(exc)
-    r = (n / n_u) * q
-    if abs(xi) > 1e-6:
-        th = u + (sigma / xi) * (r ** (-xi) - 1.0)
-    else:
-        th = u - sigma * np.log(r)
-    return float(th)
+    cal = EVTCalibrator(
+        risk_level=q,
+        init_percentile=u_q * 100.0,
+        adaptive_kurtosis=False,
+    )
+    cal.fit(x_cal)
+    return float(cal.threshold_)
 
 
 def partition_blocks(arr: np.ndarray, block_len: int, rng: np.random.Generator) -> np.ndarray:
@@ -86,62 +77,76 @@ def partition_blocks(arr: np.ndarray, block_len: int, rng: np.random.Generator) 
 
 def run_experiment() -> pd.DataFrame:
     rng = np.random.default_rng(RNG_SEED)
-    models = ["TS-JEPA", "OpEntropy", "Reynolds", "PotentialFlow", "TimesNet", "TranAD", "TCN-ObsPred-LN"]
+    models = [
+        "TS-JEPA",
+        "SolitonReynolds-JEPA",
+        "SolitonReynolds-NoSoliton",
+        "TimesNet",
+        "TranAD",
+        "TCN-ObsPred-LN",
+    ]
     mappings = ["trailing", "smear"]
-    
-    files = list(SCORE_DUMPS_DIR.glob("*.npz"))
+    streams_19 = {
+        line.strip()
+        for line in (ROOT / "reports" / "streams_19_nonghl.txt").read_text().splitlines()
+        if line.strip() and not line.startswith("#")
+    }
+
+    files = sorted(SCORE_DUMPS_DIR.glob("*.npz"))
     print(f"Total dump files in {SCORE_DUMPS_DIR}: {len(files)}")
-    
+
     rows = []
-    
+
     for f in files:
         parts = f.stem.split("__")
         if len(parts) != 5:
             continue
         dataset, channel, seed_str, model, mapping = parts
+        if f"{dataset}:{channel}" not in streams_19:
+            continue
         if model not in models or mapping not in mappings:
             continue
-        
+
         try:
             data = np.load(f)
             cal = data["cal"]
             hold = data["hold"]
         except Exception:
             continue
-        
+
         if len(cal) < 100 or len(hold) < 100:
             continue
-            
+
         n_cal = len(cal)
         n_hold = len(hold)
         pooled = np.concatenate([cal, hold])
         total_len = len(pooled)
-        
+
         for frac in CAL_FRACTIONS:
             cur_n_cal = int(round(n_cal * frac))
             if cur_n_cal < 50:
                 continue
-                
+
             for q in Q_LEVELS:
                 # 1. Chronological (Real split)
                 cal_chrono = cal[:cur_n_cal]
                 th_chrono = calibrate_spot(cal_chrono, q=q, u_q=U_QUANTILE)
                 fpr_chrono = float((hold > th_chrono).mean())
-                
+
                 # 2. Point-wise Shuffle (Exchangeable, removes drift + correlation)
                 idx_point = rng.permutation(total_len)
                 cal_point = pooled[idx_point[:cur_n_cal]]
                 hold_point = pooled[idx_point[cur_n_cal:]]
                 th_point = calibrate_spot(cal_point, q=q, u_q=U_QUANTILE)
                 fpr_point = float((hold_point > th_point).mean())
-                
+
                 # 3. Block Permutation (L=64, removes drift across blocks, keeps local autocorrelation)
                 shuffled_pooled = partition_blocks(pooled, BLOCK_LEN, rng)
                 cal_block = shuffled_pooled[:cur_n_cal]
                 hold_block = shuffled_pooled[cur_n_cal:]
                 th_block = calibrate_spot(cal_block, q=q, u_q=U_QUANTILE)
                 fpr_block = float((hold_block > th_block).mean())
-                
+
                 rows.append({
                     "dataset": dataset,
                     "channel": channel,
@@ -177,38 +182,38 @@ def generate_summary(df: pd.DataFrame) -> None:
     lines.append("- **Point Shuffle:** Calibration and evaluation sets drawn exchangeably by uniform random permutation of pooled nominal blocks (removes both temporal drift and serial autocorrelation).")
     lines.append("- **Block Shuffle ($L=64$):** Calibration and evaluation sets drawn exchangeably by permuting 64-step contiguous blocks (eliminates macro drift between blocks while preserving intra-block autocorrelation).")
     lines.append("")
-    
+
     # 1. Primary Design Point: q=1e-3, cal_fraction=1.0
     lines.append("## 1. Primary Design Point ($q = 10^{-3}$, Full Calibration Split)")
     lines.append("")
     lines.append("### Strictly Causal Mapping (Trailing)")
     lines.append("| Model | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |")
     lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
-    
+
     sub = df[(df.cal_fraction == 1.0) & (df.design_q == 0.001) & (df.mapping == "trailing")]
     for mdl, g in sub.groupby("model"):
         c_mean = g.fpr_chrono.mean()
         p_mean = g.fpr_point_shuffle.mean()
         b_mean = g.fpr_block_shuffle.mean()
         lines.append(f"| {mdl} | {c_mean:.4f} | {p_mean:.4f} | {b_mean:.4f} | {c_mean/0.001:.2f}x | {p_mean/0.001:.2f}x | {b_mean/0.001:.2f}x |")
-    
+
     lines.append("")
     lines.append("### Buffered Mapping (Smear)")
     lines.append("| Model | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |")
     lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
-    
+
     sub_smear = df[(df.cal_fraction == 1.0) & (df.design_q == 0.001) & (df.mapping == "smear")]
     for mdl, g in sub_smear.groupby("model"):
         c_mean = g.fpr_chrono.mean()
         p_mean = g.fpr_point_shuffle.mean()
         b_mean = g.fpr_block_shuffle.mean()
         lines.append(f"| {mdl} | {c_mean:.4f} | {p_mean:.4f} | {b_mean:.4f} | {c_mean/0.001:.2f}x | {p_mean/0.001:.2f}x | {b_mean/0.001:.2f}x |")
-        
+
     lines.append("")
     lines.append("## 2. Sweep across Design Risk $q \\in \\{10^{-3}, 10^{-2}, 5 \\times 10^{-2}\\}$ (Trailing, TS-JEPA)")
     lines.append("| Design $q$ | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |")
     lines.append("| :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
-    
+
     sub_q = df[(df.cal_fraction == 1.0) & (df.model == "TS-JEPA") & (df.mapping == "trailing")]
     for q, g in sub_q.groupby("design_q"):
         c_mean = g.fpr_chrono.mean()
@@ -220,7 +225,7 @@ def generate_summary(df: pd.DataFrame) -> None:
     lines.append("## 3. Calibration Horizon Sensitivity (Full vs. 50% Calibration Split, TS-JEPA, Trailing, $q=10^{-3}$)")
     lines.append("| Calibration Split | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |")
     lines.append("| :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
-    
+
     sub_h = df[(df.design_q == 0.001) & (df.model == "TS-JEPA") & (df.mapping == "trailing")]
     for frac, g in sub_h.groupby("cal_fraction"):
         lbl = "100% N_cal" if frac == 1.0 else "50% N_cal"
@@ -228,7 +233,7 @@ def generate_summary(df: pd.DataFrame) -> None:
         p_mean = g.fpr_point_shuffle.mean()
         b_mean = g.fpr_block_shuffle.mean()
         lines.append(f"| {lbl} | {c_mean:.4f} | {p_mean:.4f} | {b_mean:.4f} | {c_mean/0.001:.2f}x | {p_mean/0.001:.2f}x | {b_mean/0.001:.2f}x |")
-        
+
     summary_text = "\n".join(lines)
     OUT_SUMMARY.write_text(summary_text, encoding="utf-8")
     print(f"Saved summary report to {OUT_SUMMARY}")

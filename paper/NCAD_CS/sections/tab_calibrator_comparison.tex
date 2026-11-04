@@ -2,7 +2,7 @@
 \centering
 \scriptsize
 \setlength{\tabcolsep}{1.2pt}
-\caption{Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)~Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses, and Calibration Error $|\text{FPR}_{\text{hold}}{-}q|$), (b)~Controlled-Drift Stress Test Including Runs-Declustered SPOT ($n{=}16$), and (c)~Three-Stage Refitted Permutation Decomposition of Excess Causal FPR ($n{=}18$).\label{tab:calibrator_comparison}}
+\caption{Threshold Calibrator Comparison at Design Risk $q{=}10^{-3}$: (a)~Static Rules Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses, and Calibration Error $|\text{FPR}_{\text{hold}}{-}q|$), (b)~Pooled Buffered Controlled-Drift Stress Test Including Runs-Declustered SPOT ($n{=}16$), and (c)~Three-Stage Refitted Permutation Decomposition of Excess Causal FPR Across All 19 Non-GHL Streams.\label{tab:calibrator_comparison}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} ll c c c c @{}}
 \toprule
 \textbf{(a) Model} & \textbf{Calibrator Rule} & \textbf{Causal FPR} & \textbf{$|\text{FPR}{-}q|$ (Over.)} & \textbf{Buffered FPR} & \textbf{F1 (buf)} \\
@@ -55,11 +55,11 @@ Continuous mean ramp      & 0.075 & 0.182 & 0.186 & 0.326 & 0.385 \\
 \cmidrule(lr){2-4} \cmidrule(lr){5-7}
 \textbf{(c) Model} & {$\text{FPR}_{\text{chr}}$} & {$\text{FPR}_{\text{blk}}$} & {$\text{FPR}_{\text{pt}}$} & \textbf{Inter-Blk} & \textbf{Serial} & \textbf{i.i.d.} \\
 \midrule
-TS-JEPA      & 0.0121 & 0.0058 & 0.0019 & 56.6 & 35.3 &  8.1 \\
-Soliton-Rey. & 0.0128 & 0.0115 & 0.0083 & 11.2 & 26.7 & 62.1 \\
-TimesNet     & 0.0872 & 0.0204 & 0.0037 & 77.5 & 19.4 &  3.1 \\
-TranAD       & 0.0741 & 0.0067 & 0.0032 & 92.3 &  4.7 &  3.0 \\
+TS-JEPA      & 0.0229 & 0.0073 & 0.0033 & 71.3 & 18.1 & 10.5 \\
+Soliton-Rey. & 0.0033 & 0.0037 & 0.0025 &  0.0 & 44.8 & 55.2 \\
+TimesNet     & 0.2302 & 0.0427 & 0.0035 & 81.8 & 17.1 &  1.1 \\
+TranAD       & 0.2103 & 0.0464 & 0.0034 & 78.3 & 20.5 &  1.1 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), Over.\ is the overshoot ratio $\text{FPR}_{\text{macro}} / q$ at $q{=}10^{-3}$. In (b), causal TS-JEPA achieves $.0044$ stationary FPR under Decl.\ SPOT ($r{=}5$, vs.\ $.0072$ Stat.\ SPOT) and $.0006\text{--}.0040$ under Roll.\ emp.\ across step/variance/regime shifts (vs.\ $.008\text{--}.030$ for TimesNet). In (c), $95\%$ CIs for $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$: TS-JEPA $+.0063$ $[-.005, +.019]$, Soliton-Rey.\ $+.0013$ $[-.002, +.004]$, TimesNet $+.0668$ $[+.031, +.108]$, TranAD $+.0674$ $[+.035, +.106]$.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), Over.\ is causal $\text{FPR}_{\text{macro}} / q$ at $q{=}10^{-3}$; $S{=}64$ buffered smearing dilates single exceedances across 64 steps ($55\text{--}215\times q$). In (b), rows pool buffered scores across models ($.061$ stationary SPOT from $S{=}64$ smearing); causally on stationary data, Soliton-Reynolds achieves $.0025$ Stat.\ SPOT ($.0020$ Decl.\ SPOT) and TS-JEPA achieves $.0072$ ($.0044$ Decl.\ SPOT, $.0006\text{--}.0040$ Roll.\ emp.\ on shifts vs.\ $.008\text{--}.030$ TimesNet). In (c), $95\%$ CIs for $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$ ($n{=}19$): TS-JEPA $+.0156$ $[+.001, +.034]$, Soliton-Rey.\ $-.0004$ $[-.002, +.001]$, TimesNet $+.1874$ $[+.078, +.305]$, TranAD $+.1639$ $[+.072, +.267]$.} \\
 \end{tabular*}\par\vspace{-8pt}
 \end{table}

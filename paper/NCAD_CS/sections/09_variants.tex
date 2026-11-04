@@ -20,12 +20,12 @@
 TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & {Baseline} & {--} \\
 \addlinespace[1.5pt]
 Soliton-Reynolds JEPA & $0.188 \pm 0.052$ & \textbf{0.375} & 0.108 & 0.496 & $+0.003$ $[-.011, +.016]$ & $0.0021^*$ \\
-\quad $\alpha_{\text{sol}}=0$ control & $0.185 \pm 0.053$ & 0.374 & 0.122 & 0.515 & {--} & {($0.026^\dagger$)} \\
+\quad $\alpha_{\text{sol}}=0$ control & $0.185 \pm 0.053$ & \textbf{0.374} & 0.122 & 0.515 & {--} & {($0.026^\dagger$)} \\
 \midrule
 TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & \textbf{0.583} & {--} & {--} \\
 TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \bottomrule
-\multicolumn{7}{@{}p{\linewidth}@{}}{\tiny $^*$TOST equiv.\ between \texttt{Soliton-Reynolds JEPA} and its fixed-backbone $\alpha_{\text{sol}}{=}0$ envelope control at $\Delta{=}\pm 0.030$ ($p{=}0.0021$); $^\dagger$equiv.\ at $\Delta{=}\pm 0.020$ ($p{=}0.026$; two-sided Wilcoxon $p{=}0.327$). Soliton modulation lowers buffered held-out FPR from $0.122$ to $0.108$ and raises matched-FPR event recall at $f^*{=}0.01$ from $0.604$ to $0.621$.} \\
+\multicolumn{7}{@{}p{\linewidth}@{}}{\tiny $^*$TOST equiv.\ between \texttt{Soliton-Reynolds JEPA} and its fixed-backbone $\alpha_{\text{sol}}{=}0$ envelope control at $\Delta{=}\pm 0.030$ ($p{=}0.0021$); $^\dagger$equiv.\ at $\Delta{=}\pm 0.020$ ($p{=}0.026$; two-sided Wilcoxon $p{=}0.327$). Post-hoc soliton modulation is statistically null in Point-F1 and PR-AUC (buffered matched-FPR event recall at $f^*{=}0.01$ is $0.621$ vs.\ $0.604$; causal is $0.701$ vs.\ $0.697$ in Panel~(c)).} \\
 \end{tabular*}%
 \endgroup
 &
@@ -62,7 +62,7 @@ GECCO \texttt{water\_quality} & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} 
 \midrule
 \texttt{TS-JEPA} (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & 0.161 & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
 \texttt{Soliton-Reynolds JEPA} & 2.31 & \textbf{0.163} & \textbf{0.003} & 0.108 & 0.060 & 0.188 & \textbf{0.289} & \textbf{0.375} & 0.506 & 0.809 & \textbf{0.701} & 0.809 \\
-\texttt{Soliton-Reynolds ($\alpha_{\text{sol}}{=}0$)} & 2.24 & \textbf{0.162} & 0.004 & 0.122 & 0.061 & 0.185 & 0.288 & 0.374 & 0.498 & \textbf{0.820} & 0.697 & \textbf{0.820} \\
+\texttt{Soliton-Reynolds ($\alpha_{\text{sol}}{=}0$)} & 2.24 & \textbf{0.162} & 0.004 & 0.122 & 0.061 & 0.185 & \textbf{0.288} & \textbf{0.374} & 0.498 & \textbf{0.820} & \textbf{0.697} & \textbf{0.820} \\
 \texttt{JEPA-CtxRecon} (Context Autoenc.) & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
 \texttt{JEPA-NoEMA} (Hard-Copy Target) & 1.16 & 0.167 & 0.009 & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & 0.816 & 0.398 & 0.600 \\
 \texttt{TS-JEPA-NoGate} (Plain $\ell_2$ Norm) & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
@@ -97,7 +97,7 @@ GECCO \texttt{water\_quality} & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} 
 \label{subsec:factorial}
 To separate the contribution of the multi-horizon barycenter-whitened envelope $\mathcal{S}_{\text{env}}(t)$ from the multiplicative Lieb--Thirring soliton concentration and manifold gain on the identical trained backbone, Table~\ref{tab:ablations}(a) compares \texttt{Soliton-Reynolds JEPA} against its unmodulated control (\texttt{Soliton-Reynolds ($\alpha_{\text{sol}}{=}0$)}) across all 19 non-GHL streams (five seeds). Moving from single-horizon \texttt{TS-JEPA} to the unmodulated multi-horizon whitened envelope raises buffered PR-AUC from $0.331$ to $0.374$ ($+0.043$), cuts strictly causal held-out FPR six-fold ($0.024 \to 0.004$), lowers calibration-to-holdout drift ($D_{\text{KS}}: 0.214 \to 0.162$), and increases causal matched-FPR event recall at $f^* = 0.01$ from $0.395$ to $0.697$ (Table~\ref{tab:ablations}(c)).
 
-Adding the one-sided Lieb--Thirring soliton concentration gain ($\alpha_{\text{sol}} = 0.12$) and nominal manifold gain on top of $\mathcal{S}_{\text{env}}(t)$ further lowers buffered held-out nominal FPR from $0.122$ to $0.108$ (paired difference $-0.013$, $95\%$ CI $[-0.035, +0.009]$) and raises buffered matched-FPR event recall from $0.604$ to $0.621$ at $f^* = 0.01$ ($0.683 \to 0.701$ at $f^* = 0.05$) while leaving raw SPOT Point-F1 ($0.188$ vs.\ $0.185$, paired difference $+0.003$, $90\%$ CI $[-0.011, +0.016]$, two-sided Wilcoxon $p = 0.327$) and PR-AUC ($0.375$ vs.\ $0.374$) statistically equivalent under Two One-Sided Tests at $\Delta = \pm 0.030$ ($p_{\text{TOST}} = 0.0021$) and $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 0.026$). Thus, the primary gains in ranking and drift suppression stem from multi-depth TCN tapping, synchronized barycenter centering, and multi-horizon Mahalanobis whitening, while the Lieb--Thirring soliton ratio provides targeted false-alarm trimming and fixed-budget recall gains without distorting point-level thresholds.
+Adding the post-hoc Lieb--Thirring soliton concentration gain ($\alpha_{\text{sol}} = 0.12$) and nominal manifold gain on top of $\mathcal{S}_{\text{env}}(t)$ yields a null aggregate effect: buffered held-out FPR shifts slightly from $0.122$ to $0.108$ (paired difference $-0.013$, $95\%$ CI $[-0.035, +0.009]$; causal FPR $0.004$ vs.\ $0.003$, $D_{\text{KS}}: 0.162$ vs.\ $0.163$), buffered event recall is $0.496$ versus $0.515$ for the $\alpha_{\text{sol}}=0$ control ($0.621$ vs.\ $0.604$ buffered and $0.701$ vs.\ $0.697$ causal at $f^* = 0.01$), and both SPOT Point-F1 ($0.188$ vs.\ $0.185$, paired difference $+0.003 \ll \pm 0.052$ seed SD, $90\%$ CI $[-0.011, +0.016]$, Wilcoxon $p = 0.327$) and PR-AUC ($0.375$ vs.\ $0.374$) satisfy TOST equivalence at $\Delta = \pm 0.030$ ($p_{\text{TOST}} = 0.0021$) and $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 0.026$). All measurable gains over \texttt{TS-JEPA} in ranking, causal FPR, and drift suppression thus stem from multi-depth TCN tapping, barycenter centering, and multi-horizon Mahalanobis whitening rather than the post-hoc soliton multiplier.
 
 \subsection{Ablation 2: Fault-Class Breakdown, Quiet-Fault Mechanism, and Hybrid Monitor}
 \label{subsec:gating_ablation}

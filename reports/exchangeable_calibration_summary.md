@@ -12,34 +12,32 @@ Addresses Reviewer Concern A.2: Disentangling Inter-Block Distribution Drift fro
 ### Strictly Causal Mapping (Trailing)
 | Model | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| OpEntropy | 0.0065 | 0.0024 | 0.0046 | 6.49x | 2.36x | 4.57x |
-| PotentialFlow | 0.0075 | 0.0018 | 0.0029 | 7.52x | 1.81x | 2.90x |
-| Reynolds | 0.0022 | 0.0030 | 0.0037 | 2.24x | 2.95x | 3.72x |
-| TCN-ObsPred-LN | 0.1422 | 0.0120 | 0.0577 | 142.17x | 12.03x | 57.70x |
-| TS-JEPA | 0.0191 | 0.0017 | 0.0053 | 19.14x | 1.68x | 5.27x |
-| TimesNet | 0.0872 | 0.0032 | 0.0298 | 87.15x | 3.23x | 29.84x |
-| TranAD | 0.0741 | 0.0045 | 0.0150 | 74.12x | 4.53x | 15.05x |
+| SolitonReynolds-JEPA | 0.0033 | 0.0025 | 0.0055 | 3.31x | 2.47x | 5.55x |
+| SolitonReynolds-NoSoliton | 0.0036 | 0.0026 | 0.0034 | 3.58x | 2.62x | 3.45x |
+| TCN-ObsPred-LN | 0.1165 | 0.0032 | 0.0446 | 116.52x | 3.22x | 44.59x |
+| TS-JEPA | 0.0229 | 0.0047 | 0.0077 | 22.91x | 4.69x | 7.70x |
+| TimesNet | 0.2302 | 0.0038 | 0.0521 | 230.16x | 3.76x | 52.06x |
+| TranAD | 0.2103 | 0.0027 | 0.0529 | 210.27x | 2.67x | 52.91x |
 
 ### Buffered Mapping (Smear)
 | Model | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| OpEntropy | 0.0192 | 0.0043 | 0.0049 | 19.18x | 4.34x | 4.88x |
-| PotentialFlow | 0.0268 | 0.0034 | 0.0067 | 26.84x | 3.39x | 6.67x |
-| Reynolds | 0.0034 | 0.0041 | 0.0068 | 3.44x | 4.13x | 6.77x |
-| TCN-ObsPred-LN | 0.2065 | 0.0153 | 0.0431 | 206.55x | 15.31x | 43.06x |
-| TS-JEPA | 0.0293 | 0.0026 | 0.0361 | 29.30x | 2.60x | 36.10x |
-| TimesNet | 0.0582 | 0.0044 | 0.0232 | 58.22x | 4.40x | 23.18x |
-| TranAD | 0.1028 | 0.0042 | 0.0220 | 102.77x | 4.17x | 21.96x |
+| SolitonReynolds-JEPA | 0.1084 | 0.0020 | 0.0344 | 108.41x | 1.97x | 34.38x |
+| SolitonReynolds-NoSoliton | 0.1216 | 0.0031 | 0.0393 | 121.56x | 3.15x | 39.29x |
+| TCN-ObsPred-LN | 0.1934 | 0.0034 | 0.0595 | 193.36x | 3.44x | 59.55x |
+| TS-JEPA | 0.0932 | 0.0024 | 0.0419 | 93.18x | 2.38x | 41.93x |
+| TimesNet | 0.2994 | 0.0026 | 0.0754 | 299.44x | 2.63x | 75.37x |
+| TranAD | 0.3070 | 0.0023 | 0.0545 | 307.04x | 2.28x | 54.54x |
 
 ## 2. Sweep across Design Risk $q \in \{10^{-3}, 10^{-2}, 5 \times 10^{-2}\}$ (Trailing, TS-JEPA)
 | Design $q$ | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 0.001 | 0.0191 | 0.0017 | 0.0053 | 19.14x | 1.68x | 5.27x |
-| 0.010 | 0.0264 | 0.0043 | 0.0117 | 2.64x | 0.43x | 1.17x |
-| 0.050 | 0.6394 | 0.6052 | 0.5957 | 12.79x | 12.10x | 11.91x |
+| 0.001 | 0.0229 | 0.0047 | 0.0077 | 22.91x | 4.69x | 7.70x |
+| 0.010 | 0.0391 | 0.0117 | 0.0260 | 3.91x | 1.17x | 2.60x |
+| 0.050 | 0.0718 | 0.0470 | 0.0494 | 1.44x | 0.94x | 0.99x |
 
 ## 3. Calibration Horizon Sensitivity (Full vs. 50% Calibration Split, TS-JEPA, Trailing, $q=10^{-3}$)
 | Calibration Split | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 50% N_cal | 0.0303 | 0.0051 | 0.0156 | 30.32x | 5.14x | 15.57x |
-| 100% N_cal | 0.0191 | 0.0017 | 0.0053 | 19.14x | 1.68x | 5.27x |
+| 50% N_cal | 0.0426 | 0.0075 | 0.0208 | 42.59x | 7.53x | 20.82x |
+| 100% N_cal | 0.0229 | 0.0047 | 0.0077 | 22.91x | 4.69x | 7.70x |
