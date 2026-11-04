@@ -35,7 +35,10 @@
   facing diagnostics whitelisted in `.gitignore` (`stream_manifest.csv`,
   `evt_tail_diagnostics.csv`, `lp_filterbank_*.csv`,
   `heldout_reynolds_covmodes.csv`).
-- **Readability, Plain-English Motivation & Zero Formula/Margin Spills Invariant:** The manuscript must be easy to read and easy to follow from start to finish. Every mathematical proposition, proof, and architectural subsection must first state its plain-English physical or statistical motivation before introducing equations, and must never cram three or more multi-term formulas (`\sum`, `\frac`, `\int`) inline into a single run-on paragraph. Multi-term display equations must be broken cleanly across lines (`aligned`) so that the compiled PDF has **zero `Overfull \hbox` margin spills** (enforced automatically by `scripts/build_and_verify_manuscript.py` and `scripts/scan_ai_writing.py`).
+- **Readability, Plain-English Motivation, Anti-Clutter & Zero Formula/Margin Spills Invariant:** Readability is a top-tier priority whenever writing or editing the manuscript. The paper must be easy to read, digest, and follow from start to finish:
+  1. *Plain-English mechanism first:* Every mathematical proposition, proof, table analysis, and architectural subsection must first state its plain-English physical or statistical intuition ("what is happening and why") before introducing equations or raw numbers.
+  2. *No parenthetical number-piling or defensive table clutter:* Never stuff three or more parenthetical metric comparisons into a single clause, and never bloat tables with redundant threshold variants, legacy ablations, or pooled sub-tables when a concise 1–2 sentence summary in prose is clearer. Keep tables focused on the core scientific comparisons.
+  3. *Equation layout:* Never cram three or more multi-term formulas (`\sum`, `\frac`, `\int`) inline into a single run-on paragraph. Multi-term display equations must be broken cleanly across lines (`aligned`) so that the compiled PDF has **zero `Overfull \hbox` margin spills** (enforced automatically by `scripts/build_and_verify_manuscript.py` and `scripts/scan_ai_writing.py`).
 - **Always scan the manuscript with `docs/SKILL.md`:** Before committing any
   manuscript or documentation changes, always audit all paper sections
   against `docs/SKILL.md` (`C:/Users/andre/OneDrive/Desktop/NCAD_CS/docs/SKILL.md`)

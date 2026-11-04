@@ -82,7 +82,8 @@ Never treat a raw `\begin{tabular}{|c|c|c|}` or a `\resizebox{\textwidth}{!}{...
   - Good: `\textbf{Coverage (\%)}` with body cells `98.4`, `96.7`
 - **Consistent Decimal Precision**: Within any single column, format all measurements to the same number of decimal places (e.g., `90.0` instead of `90`, `0.120` instead of `0.12`).
 
-### Principle 5: Hierarchical Spanner Headers (`\multicolumn` + `\cmidrule(lr)`)
+### Principle 5: Hierarchical Spanner Headers (`\multicolumn` + `\cmidrule(lr)`) & Anti-Clutter Parsimony
+- **Prioritize Readability Over Exhaustive Row Dumping**: A table should answer a clear scientific question at a glance. Prune legacy model variants, redundant threshold rules (e.g., multiple near-identical quantiles or broken heuristic scalings), and confusing pooled sub-tables that can be summarized in 1–2 sentences of plain-English prose.
 - When several columns share a domain, metric family, or experimental cohort, group them under a top-level spanner header rather than repeating prefixes in every column title:
   - Bad: `DSE Pass | LIH Coverage | Total Coverage | LLM Mean Latency (ms) | LLM Med Latency (ms)`
   - Good: Group `DSE`, `LIH`, `Total` under `\multicolumn{3}{c}{\textbf{Coverage (\%)}}` with `\cmidrule(lr){4-6}`, and `Mean`, `Median` under `\multicolumn{2}{c}{\textbf{LIH Latency (ms)}}` with `\cmidrule(lr){7-8}`.
