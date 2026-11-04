@@ -12,6 +12,11 @@ import math
 import numpy as np
 import pytest
 
+from src.scoring.novel_calibrators import (
+    HalpernPrimalDualCalibrator,
+    PMIConformalCalibrator,
+    StoppingBandCalibrator,
+)
 from src.scoring.streaming_calibrator import (
     RollingSPOTCalibrator,
     StreamingQuantileCalibrator,
@@ -299,4 +304,63 @@ def test_gate_mode_and_gated_reconciliation():
     # window_size < min_periods is safely clamped
     cal_clamp = RollingSPOTCalibrator(window_size=25, min_periods=50)
     assert cal_clamp.min_periods == 25
+
+
+@pytest.mark.parametrize(
+    "cal_cls",
+    [HalpernPrimalDualCalibrator, StoppingBandCalibrator, PMIConformalCalibrator],
+)
+def test_novel_calibrators_causal_idempotency_and_quarantine(cal_cls):
+    """Verify causal evaluation, state reset idempotency, and anomaly quarantine."""
+    rng = np.random.default_rng(42)
+    cal_scores = rng.exponential(scale=0.5, size=400) + 1.0
+    hold_scores = rng.exponential(scale=0.5, size=300) + 1.0
+    # Test stream with a 150-step high-amplitude anomaly burst
+    nom_prefix = rng.exponential(scale=0.5, size=200) + 1.0
+    anom_burst = np.full(150, 12.0, dtype=np.float64)
+    nom_suffix = rng.exponential(scale=0.5, size=100) + 1.0
+    test_scores = np.concatenate([nom_prefix, anom_burst, nom_suffix])
+
+    cal = cal_cls(risk_level=1e-3, init_percentile=98.0).fit(cal_scores)
+
+    # 1. Calling predict_thresholds on hold and then on test is idempotent
+    th_test_direct = cal_cls(risk_level=1e-3, init_percentile=98.0).fit(cal_scores).predict_thresholds(test_scores)
+    _ = cal.predict_thresholds(hold_scores)
+    th_test_after_hold = cal.predict_thresholds(test_scores)
+    assert np.allclose(th_test_direct, th_test_after_hold)
+
+    # 2. Strictly causal step-0 threshold equals initial state before seeing test_scores[0]
+    cal_seq = cal_cls(risk_level=1e-3, init_percentile=98.0).fit(cal_scores)
+    seq_thrs = np.array([cal_seq.update(s) for s in test_scores])
+    assert np.allclose(seq_thrs, th_test_direct)
+
+    # 3. Anomaly burst is quarantined: threshold stays well below the 12.0 burst throughout
+    assert np.all(th_test_direct[200:350] < 8.0)
+    assert np.mean(test_scores[200:350] > th_test_direct[200:350]) == 1.0
+
+
+@pytest.mark.parametrize(
+    "cal_cls",
+    [HalpernPrimalDualCalibrator, StoppingBandCalibrator, PMIConformalCalibrator],
+)
+def test_novel_calibrators_subblock_drift_and_edge_cases(cal_cls):
+    """Verify startup-transient recovery, subblock drift allowance, and degenerate inputs."""
+    rng = np.random.default_rng(7)
+    # Calibration has a high early transient (3.0) followed by lower equilibrium (1.0)
+    cal_early = rng.normal(loc=3.0, scale=0.1, size=150)
+    cal_late = rng.normal(loc=1.0, scale=0.1, size=250)
+    cal_scores = np.concatenate([cal_early, cal_late])
+
+    cal = cal_cls(risk_level=1e-3, init_percentile=98.0).fit(cal_scores)
+    th = cal.predict_thresholds(cal_late)
+    # Should adapt below the early transient maximum (> 3.2)
+    assert float(np.mean(th)) < 3.1
+
+    # Constant / NaN inputs handled without failure
+    cal_const = cal_cls(fallback_threshold=1.5).fit(np.zeros(50))
+    assert math.isfinite(cal_const.update(float("nan")))
+    assert cal_const.current_threshold_ >= 0.5
+    diag = cal.get_diagnostics()
+    assert diag["total_points"] == len(cal_late)
+
 

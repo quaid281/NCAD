@@ -2,6 +2,7 @@
 
 This subpackage contains the statistical scoring pipeline:
 - EVT/GPD tail calibration (``evt_calibrator``)
+- Novel drift-resilient calibrators (``novel_calibrators``)
 - Window-to-point score aggregation and event-level filtering (``event_fusion``)
 """
 
@@ -27,6 +28,11 @@ from src.scoring.event_fusion import (
     successor_manifold_uncertainty_scores,
 )
 from src.scoring.evt_calibrator import EVTCalibrator, EVTThresholdResult
+from src.scoring.novel_calibrators import (
+    HalpernPrimalDualCalibrator,
+    PMIConformalCalibrator,
+    StoppingBandCalibrator,
+)
 from src.scoring.streaming_calibrator import (
     RollingSPOTCalibrator,
     StreamingQuantileCalibrator,
@@ -41,6 +47,9 @@ __all__ = [
     "SplitConformalCalibrator",
     "EVTCalibrator",
     "EVTThresholdResult",
+    "HalpernPrimalDualCalibrator",
+    "PMIConformalCalibrator",
+    "StoppingBandCalibrator",
     "RollingSPOTCalibrator",
     "StreamingQuantileCalibrator",
     "compute_rolling_spot_thresholds",

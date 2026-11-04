@@ -23,6 +23,7 @@ Output: reports/multiseed_heldout_benchmark.csv
 
 import argparse
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -39,16 +40,26 @@ if str(ROOT) not in sys.path:
 
 from src.config import CSMConfig
 from src.data.data_loader import DataLoader
-from src.engine.trainer import build_ts_jepa_model
+from src.engine.trainer import build_encoder, build_ts_jepa_model
 from src.models.baselines import TimesNet, TranAD
 from src.models.encoders.tcn_encoder import HybridTCNEncoder
 from src.models.geometric_layers import CoordinateSaliencyGate
+from src.models.jepa.alien_jepas import (
+    AlienDualTowerJEPAModel,
+    DeltaJEPAModel,
+    SpeculativeJEPAModel,
+)
 from src.scoring.event_fusion import (
     _extract_segments,
     aggregate_window_scores,
     compute_metrics,
 )
 from src.scoring.evt_calibrator import EVTCalibrator, compute_excess_kurtosis
+from src.scoring.novel_calibrators import (
+    HalpernPrimalDualCalibrator,
+    PMIConformalCalibrator,
+    StoppingBandCalibrator,
+)
 
 C, S = 256, 64
 W = C + S
@@ -58,7 +69,9 @@ STREAMS = [
     ("GECCO", "water_quality"),
 ]
 MODELS = [
-    "TS-JEPA", "OpEntropy", "OpEntropy-lambda0", "Reynolds", "Reynolds-meanscore",
+    "TS-JEPA", "Speculative-Alien-JEPA", "Speculative-JEPA", "Delta-JEPA", "Alien-DualTower-JEPA",
+    "HelmholtzSoliton-JEPA", "AnchoredStokes-JEPA", "SolitonReynolds-JEPA", "EddyDelta-JEPA",
+    "OpEntropy", "OpEntropy-lambda0", "Reynolds", "Reynolds-meanscore",
     "Reynolds-alpha0", "PotentialFlow", "TimesNet", "TranAD", "TCN-ObsPred-LN",
 ]
 
@@ -281,8 +294,8 @@ def train_model(name, tr_win, k, device, epochs):
             m.eval()
             out = []
             with torch.no_grad():
-                for i in range(0, len(w), 128):
-                    ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 128])).float().to(device)
+                for i in range(0, len(w), 512):
+                    ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 512])).float().to(device)
                     if name == "TCN-ObsRecon":
                         rec = m(ch)[:, C:]
                     else:
@@ -318,9 +331,94 @@ def train_model(name, tr_win, k, device, epochs):
             m.eval()
             out = []
             with torch.no_grad():
-                for i in range(0, len(w), 128):
-                    ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 128])).float().to(device)
+                for i in range(0, len(w), 512):
+                    ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 512])).float().to(device)
                     out.append(m.compute_anomaly_scores(ch)[:, C:].mean(dim=-1).cpu().numpy())
+            return np.concatenate(out)
+        return score
+
+    if name in ("Speculative-Alien-JEPA", "Speculative-JEPA"):
+        use_bank = name == "Speculative-Alien-JEPA"
+        cfg = CSMConfig(model_type="ts_jepa", context_size=C, suspect_size=S, latent_dim=32)
+        encoder = build_encoder(cfg, k, device)
+        m = SpeculativeJEPAModel(
+            context_encoder=encoder,
+            latent_dim=cfg.latent_dim,
+            predictor_hidden_dim=64,
+            ema_decay=0.996,
+            dropout=cfg.dropout,
+        ).to(device)
+        opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
+        for ep in range(epochs):
+            m.train()
+            for b in batches(tr_win, 16):
+                b = b.to(device)
+                loss, _ = m.compute_objective(b[:, :C], b[:, C:], cfg)
+                opt.zero_grad(set_to_none=True)
+                loss.backward()
+                opt.step()
+                m.update_target_encoder(None)
+        m.fit_alien_bank(tr_win, context_len=C)
+
+        def score(w):
+            m.eval()
+            out = []
+            with torch.inference_mode():
+                for i in range(0, len(w), 512):
+                    ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 512])).float().to(device)
+                    s = m.compute_predictive_discrepancy(ch[:, :C], ch[:, C:], use_alien_bank=use_bank)
+                    out.append(s.cpu().numpy())
+            return np.concatenate(out)
+        return score
+
+    if name == "Delta-JEPA":
+        cfg = CSMConfig(model_type="ts_jepa", context_size=C, suspect_size=S, latent_dim=32)
+        encoder = build_encoder(cfg, k, device)
+        m = DeltaJEPAModel(context_encoder=encoder, latent_dim=32, predictor_hidden_dim=64, ema_decay=0.996).to(device)
+        opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
+        for ep in range(epochs):
+            m.train()
+            for b in batches(tr_win, 16):
+                b = b.to(device)
+                loss, _ = m.compute_objective(b[:, :C], b[:, C:], cfg)
+                opt.zero_grad(set_to_none=True)
+                loss.backward()
+                opt.step()
+                m.update_target_encoder(None)
+
+        def score(w):
+            m.eval()
+            out = []
+            with torch.inference_mode():
+                for i in range(0, len(w), 512):
+                    ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 512])).float().to(device)
+                    out.append(m.compute_predictive_discrepancy(ch[:, :C], ch[:, C:]).cpu().numpy())
+            return np.concatenate(out)
+        return score
+
+    if name == "Alien-DualTower-JEPA":
+        cfg = CSMConfig(model_type="ts_jepa", context_size=C, suspect_size=S, latent_dim=32)
+        encoder = build_encoder(cfg, k, device)
+        m = AlienDualTowerJEPAModel(context_encoder=encoder, latent_dim=32, predictor_hidden_dim=64, ema_decay=0.996).to(device)
+        opt = optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)
+        for ep in range(epochs):
+            m.train()
+            for b in batches(tr_win, 16):
+                b = b.to(device)
+                loss, _ = m.compute_objective(b[:, :C], b[:, C:], cfg)
+                opt.zero_grad(set_to_none=True)
+                loss.backward()
+                opt.step()
+                m.update_target_encoder(None)
+        m.fit_alien_bank(tr_win, context_len=C)
+
+        def score(w):
+            m.eval()
+            out = []
+            with torch.inference_mode():
+                for i in range(0, len(w), 512):
+                    ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 512])).float().to(device)
+                    out.append(m.compute_predictive_discrepancy(ch[:, :C], ch[:, C:]).cpu().numpy())
             return np.concatenate(out)
         return score
 
@@ -329,7 +427,11 @@ def train_model(name, tr_win, k, device, epochs):
           "Reynolds-meanscore": "reynolds_stress_jepa", "Reynolds-alpha0": "reynolds_stress_jepa",
           "Reynolds-tempcov": "reynolds_stress_jepa", "Reynolds-batchcov": "reynolds_stress_jepa",
           "JEPA-CtxRecon": "ts_jepa", "JEPA-NoEMA": "ts_jepa", "TS-JEPA-NoGate": "ts_jepa",
-          "PotentialFlow": "potential_flow_jepa", "PotentialFlow-noregime": "potential_flow_jepa"}[name]
+          "PotentialFlow": "potential_flow_jepa", "PotentialFlow-noregime": "potential_flow_jepa",
+          "HelmholtzSoliton-JEPA": "helmholtz_soliton_jepa",
+          "AnchoredStokes-JEPA": "anchored_stokes_jepa",
+          "SolitonReynolds-JEPA": "soliton_reynolds_jepa",
+          "EddyDelta-JEPA": "eddy_delta_jepa"}[name]
     extra = {"use_regimes": False} if name == "PotentialFlow-noregime" else {}
     cfg = CSMConfig(model_type=mt, context_size=C, suspect_size=S, latent_dim=32, **extra)
     m = build_ts_jepa_model(cfg, input_dim=k, device=device)
@@ -358,6 +460,8 @@ def train_model(name, tr_win, k, device, epochs):
             # JEPA-NoEMA: online-target control (hard copy each step) isolates the
             # EMA target encoder's contribution to residual conditioning.
             m.update_target_encoder(1.0 if name == "JEPA-NoEMA" else None)
+    if hasattr(m, "fit_alien_bank"):
+        m.fit_alien_bank(tr_win, context_len=C)
 
     mean_only = (name == "Reynolds-meanscore")
     nogate = name == "TS-JEPA-NoGate"  # equalized-gating control: plain L2 discrepancy
@@ -424,6 +528,49 @@ def thresholds(cal):
     }, kurt
 
 
+def novel_calibrators(cal):
+    return {
+        "Halpern-PD": HalpernPrimalDualCalibrator(risk_level=1e-3, init_percentile=98.0).fit(cal),
+        "StoppingBand": StoppingBandCalibrator(risk_level=1e-3, init_percentile=98.0).fit(cal),
+        "PMI-Conformal": PMIConformalCalibrator(risk_level=1e-3, init_percentile=98.0).fit(cal),
+    }
+
+
+def evaluate_calibrators_on_split(ds, ch, seed, name, mapping, cal, hold, ts, tl, out_rows):
+    ths, kurt = thresholds(cal)
+    pr = float(average_precision_score(tl, ts)) if tl.sum() > 0 else float("nan")
+    for cname, th in ths.items():
+        ind = (hold > th).astype(float)
+        lo, hi = block_bootstrap_ci(ind)
+        pred = (ts > th).astype(int)
+        mt = compute_metrics(tl, pred, scores=ts, valid_mask=np.ones_like(tl, dtype=bool), use_pa=False)
+        er, dl = event_stats(tl, pred)
+        out_rows.append(dict(
+            dataset=ds, channel=ch, seed=seed, model=name, mapping=mapping, calibrator=cname,
+            threshold=th, cal_kurtosis=kurt, n_cal=len(cal), n_hold=len(hold),
+            hold_fpr=float(ind.mean()), hold_fpr_lo=lo, hold_fpr_hi=hi,
+            test_fpr=float(mt["fp"] / max((tl == 0).sum(), 1)),
+            f1=mt.get("f1", 0.0), precision=mt.get("precision", 0.0),
+            recall=mt.get("recall", 0.0), pr_auc=pr, event_recall=er, mean_delay=dl,
+        ))
+    for cname, cal_obj in novel_calibrators(cal).items():
+        th_hold = cal_obj.predict_thresholds(hold)
+        th_test = cal_obj.predict_thresholds(ts)
+        ind = (hold > th_hold).astype(float)
+        lo, hi = block_bootstrap_ci(ind)
+        pred = (ts > th_test).astype(int)
+        mt = compute_metrics(tl, pred, scores=ts, valid_mask=np.ones_like(tl, dtype=bool), use_pa=False)
+        er, dl = event_stats(tl, pred)
+        out_rows.append(dict(
+            dataset=ds, channel=ch, seed=seed, model=name, mapping=mapping, calibrator=cname,
+            threshold=float(np.mean(th_test)), cal_kurtosis=kurt, n_cal=len(cal), n_hold=len(hold),
+            hold_fpr=float(ind.mean()), hold_fpr_lo=lo, hold_fpr_hi=hi,
+            test_fpr=float(mt["fp"] / max((tl == 0).sum(), 1)),
+            f1=mt.get("f1", 0.0), precision=mt.get("precision", 0.0),
+            recall=mt.get("recall", 0.0), pr_auc=pr, event_recall=er, mean_delay=dl,
+        ))
+
+
 def run(ds, ch, seeds, device, epochs, val_frac, out_rows, dump_dir=None, overwrite_dumps=False):
     train, test, y = load_stream(ds, ch)
     n_val = int(len(train) * val_frac)
@@ -439,8 +586,12 @@ def run(ds, ch, seeds, device, epochs, val_frac, out_rows, dump_dir=None, overwr
     if len(va_w) < 50:
         print("   skip: held-out block too short", flush=True)
         return
+    done_keys = {(r["dataset"], str(r["channel"]), int(r["seed"]), r["model"]) for r in out_rows}
     for seed in seeds:
         for name in MODELS:
+            if (ds, str(ch), int(seed), name) in done_keys:
+                print(f"   seed={seed} {name} already in CSV, skipping", flush=True)
+                continue
             dump_paths = None
             if dump_dir is not None:
                 dump_paths = {
@@ -465,28 +616,13 @@ def run(ds, ch, seeds, device, epochs, val_frac, out_rows, dump_dir=None, overwr
                 cal, hold = v[:half], v[half + S:]
                 if len(cal) < 100 or len(hold) < 100:
                     continue
-                ths, kurt = thresholds(cal)
                 ts, tl = tp[tm], y[tm]
                 if dump_paths is not None:
                     np.savez_compressed(
                         dump_paths[mapping],
                         cal=cal, hold=hold, test_scores=ts, test_labels=tl,
                     )
-                pr = float(average_precision_score(tl, ts)) if tl.sum() > 0 else float("nan")
-                for cname, th in ths.items():
-                    ind = (hold > th).astype(float)
-                    lo, hi = block_bootstrap_ci(ind)
-                    pred = (ts > th).astype(int)
-                    mt = compute_metrics(tl, pred, scores=ts, valid_mask=np.ones_like(tl, dtype=bool), use_pa=False)
-                    er, dl = event_stats(tl, pred)
-                    out_rows.append(dict(
-                        dataset=ds, channel=ch, seed=seed, model=name, mapping=mapping, calibrator=cname,
-                        threshold=th, cal_kurtosis=kurt, n_cal=len(cal), n_hold=len(hold),
-                        hold_fpr=float(ind.mean()), hold_fpr_lo=lo, hold_fpr_hi=hi,
-                        test_fpr=float(mt["fp"] / max((tl == 0).sum(), 1)),
-                        f1=mt.get("f1", 0.0), precision=mt.get("precision", 0.0),
-                        recall=mt.get("recall", 0.0), pr_auc=pr, event_recall=er, mean_delay=dl,
-                    ))
+                evaluate_calibrators_on_split(ds, ch, seed, name, mapping, cal, hold, ts, tl, out_rows)
             print(f"   seed={seed} {name} done", flush=True)
 
 
@@ -517,14 +653,17 @@ def main():
     dump_dir = Path(a.dump_scores) if a.dump_scores else None
     if dump_dir is not None:
         dump_dir.mkdir(parents=True, exist_ok=True)
-    rows = []
+    out_p = Path(a.out)
+    rows = pd.read_csv(out_p).to_dict("records") if out_p.exists() else []
     for ds, ch in streams:
         try:
             run(ds, ch, a.seeds, device, a.epochs, a.val_frac, rows,
                 dump_dir=dump_dir, overwrite_dumps=a.overwrite_dumps)
         except Exception as e:  # keep going; log the failure in the output
             print(f"   FAILED {ds}:{ch}: {type(e).__name__}: {e}", flush=True)
-        pd.DataFrame(rows).to_csv(a.out, index=False)
+        tmp_out = Path(f"{a.out}.tmp.{os.getpid()}")
+        pd.DataFrame(rows).to_csv(tmp_out, index=False)
+        os.replace(tmp_out, a.out)
     print("saved", a.out)
 
 

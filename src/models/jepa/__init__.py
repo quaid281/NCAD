@@ -103,13 +103,11 @@ from src.models.jepa.multiagent_consensus_latent_jepa import (
     MultiAgentConsensusLatentJEPAModel,
     InterlatJEPA,
 )
-
 from src.models.jepa.mdl_jepa import (
     EntropyPriorHead,
     MDLCompressorJEPA,
     MDLCompressorJEPAModel,
 )
-
 from src.models.jepa.prototype_graph_jepa import (
     PrototypeGraphJEPA,
     PrototypeGraphJEPAModel,
@@ -135,15 +133,28 @@ from src.models.jepa.tangent_normal_jepa import (
     TangentNormalJEPAModel,
     TangentSubspaceHead,
 )
-
 from src.models.jepa.transfer_function_jepa import (
     SpectralTransferHead,
     TransferFunctionJEPA,
     TransferFunctionJEPAModel,
 )
+from src.models.jepa.alien_jepas import (
+    AlienDualTowerJEPA,
+    AlienDualTowerJEPAModel,
+    AnchoredStokesJEPA,
+    AnchoredStokesJEPAModel,
+    DeltaJEPA,
+    DeltaJEPAModel,
+    EddyDeltaJEPA,
+    EddyDeltaJEPAModel,
+    HelmholtzSolitonJEPA,
+    HelmholtzSolitonJEPAModel,
+    SolitonReynoldsJEPA,
+    SolitonReynoldsJEPAModel,
+    SpeculativeJEPA,
+    SpeculativeJEPAModel,
+)
 from src.models.jepa.ts_jepa import LatentPredictor, TSJEPAModel, jepa_vicreg_loss
-
-
 
 __all__ = [
     "TSJEPAModel",
@@ -192,7 +203,6 @@ __all__ = [
     "OperatorEntropyJEPAModel",
     "von_neumann_entropy",
     "PrototypeGraphJEPA",
-
     "PrototypeGraphJEPAModel",
     "PrototypeGraphModule",
     "TransferFunctionJEPA",
@@ -228,9 +238,22 @@ __all__ = [
     "MultiAgentConsensusLatentJEPAModel",
     "InterlatJEPA",
     "PatchFlowJEPA",
-
     "PatchFlowPredictor",
     "flow_matching_vicreg_loss",
     "von_neumann_operator_entropy_loss",
     "jepa_vicreg_loss",
+    "DeltaJEPAModel",
+    "DeltaJEPA",
+    "SpeculativeJEPAModel",
+    "SpeculativeJEPA",
+    "AlienDualTowerJEPAModel",
+    "AlienDualTowerJEPA",
+    "EddyDeltaJEPAModel",
+    "EddyDeltaJEPA",
+    "AnchoredStokesJEPAModel",
+    "AnchoredStokesJEPA",
+    "SolitonReynoldsJEPAModel",
+    "SolitonReynoldsJEPA",
+    "HelmholtzSolitonJEPAModel",
+    "HelmholtzSolitonJEPA",
 ]

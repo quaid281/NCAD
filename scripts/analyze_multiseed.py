@@ -81,23 +81,45 @@ for mapping in ("smear", "trailing"):
         p(f"| {mdl} | " + " | ".join(r) + " |")
     p()
 
-d0 = df[(df.mapping == "smear") & (df.calibrator == "SPOT")]
-p("### Paired differences (buffered, SPOT), stream-level, seeds averaged")
-p("| Comparison | Metric | Mean diff | 95% bootstrap CI | Wilcoxon p | Streams A>B |")
-p("|:--|:--|:-:|:-:|:-:|:-:|")
 pairs = [
+    ("SolitonReynolds-JEPA", "Reynolds"),
+    ("HelmholtzSoliton-JEPA", "Reynolds"),
+    ("EddyDelta-JEPA", "Reynolds"),
+    ("SolitonReynolds-JEPA", "OpEntropy"),
+    ("HelmholtzSoliton-JEPA", "OpEntropy"),
+    ("EddyDelta-JEPA", "OpEntropy"),
+    ("SolitonReynolds-JEPA", "Speculative-Alien-JEPA"),
+    ("HelmholtzSoliton-JEPA", "Speculative-Alien-JEPA"),
+    ("EddyDelta-JEPA", "Speculative-Alien-JEPA"),
+    ("HelmholtzSoliton-JEPA", "Alien-DualTower-JEPA"),
+    ("SolitonReynolds-JEPA", "Alien-DualTower-JEPA"),
+    ("EddyDelta-JEPA", "Alien-DualTower-JEPA"),
+    ("AnchoredStokes-JEPA", "Alien-DualTower-JEPA"),
+    ("HelmholtzSoliton-JEPA", "TS-JEPA"),
+    ("SolitonReynolds-JEPA", "TS-JEPA"),
+    ("EddyDelta-JEPA", "TS-JEPA"),
+    ("AnchoredStokes-JEPA", "TS-JEPA"),
+    ("Alien-DualTower-JEPA", "TS-JEPA"),
+    ("SolitonReynolds-JEPA", "SolitonReynolds-JEPA (v1)"),
+    ("EddyDelta-JEPA", "EddyDelta-JEPA (v1)"),
     ("TS-JEPA", "TimesNet"), ("TS-JEPA", "TranAD"),
     ("OpEntropy", "TS-JEPA"), ("OpEntropy", "OpEntropy-lambda0"),
     ("Reynolds", "TS-JEPA"), ("Reynolds", "Reynolds-meanscore"), ("Reynolds", "Reynolds-alpha0"),
     ("PotentialFlow", "TS-JEPA"), ("PotentialFlow", "PotentialFlow-noregime"),
     ("OpEntropy", "TimesNet"), ("OpEntropy", "TranAD"),
 ]
-for a, b in pairs:
-    for col in ("f1", "pr_auc", "hold_fpr"):
-        r = paired(d0, col, a, b)
-        if r:
-            p(f"| {a} vs {b} | {col} | {r[0]:+.4f} | [{r[1]:+.4f}, {r[2]:+.4f}] | {r[3]:.3f} | {r[4]}/{r[5]} |")
-p()
+for map_key, map_title in (("trailing", "strictly causal"), ("smear", "buffered")):
+    d_map = df[(df.mapping == map_key) & (df.calibrator == "SPOT")]
+    p(f"### Paired differences ({map_title}, SPOT), stream-level, seeds averaged")
+    p("| Comparison | Metric | Mean diff | 95% bootstrap CI | Wilcoxon p | Streams A>B |")
+    p("|:--|:--|:-:|:-:|:-:|:-:|")
+    for a, b in pairs:
+        for col in ("f1", "pr_auc", "event_recall", "hold_fpr"):
+            r = paired(d_map, col, a, b)
+            if r:
+                p(f"| {a} vs {b} | {col} | {r[0]:+.4f} | [{r[1]:+.4f}, {r[2]:+.4f}] | {r[3]:.3f} | {r[4]}/{r[5]} |")
+    p()
+d0 = df[(df.mapping == "smear") & (df.calibrator == "SPOT")]
 
 p("### Calibrator comparison on identical score streams (buffered)")
 p("| Model | Calibrator | Held-out nominal FPR (mean) | Share of rows whose 95% CI excludes q=1e-3 | Point-F1 |")

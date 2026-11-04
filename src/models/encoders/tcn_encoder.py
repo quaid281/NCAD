@@ -150,7 +150,7 @@ class HybridTCNEncoder(nn.Module):
         )
 
         # Row-orthonormal Stiefel basis for subgrid temporal fluctuations h'(t) -> z'(t)
-        self.fluct_basis = nn.Parameter(torch.eye(latent_dim, filters))
+        self.register_buffer("fluct_basis", torch.eye(latent_dim, filters))
 
         self.temporal_dense = nn.Sequential(
             nn.Linear(filters * 3, 128),
