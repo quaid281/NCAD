@@ -192,7 +192,7 @@ def make_figure():
             "fill": C_PURPLE_FILL, "edge": C_PURPLE_EDGE
         },
         {
-            "label": "lowvar (14.9%)",
+            "label": "Var. Monitor (14.9%)",
             "ev": [0.26, 0.26, 0.26, 0.39, 0.26, 0.26],
             "pt": [0.18, 0.18, 0.18, 0.32, 0.18, 0.18],
             "fill": C_TEAL_FILL, "edge": C_TEAL_EDGE
