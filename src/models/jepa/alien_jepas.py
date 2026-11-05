@@ -20,6 +20,13 @@ def _disable_dropout(module: nn.Module) -> None:
         if isinstance(m, (nn.Dropout, nn.Dropout1d, nn.Dropout2d)):
             m.p = 0.0
 
+def _init_jepa_encoders(model: JEPABase, context_encoder: nn.Module, latent_dim: int, ema_decay: float) -> None:
+    _disable_dropout(context_encoder)
+    model.context_encoder = context_encoder
+    model.latent_dim, model.ema_decay = latent_dim, ema_decay
+    model.target_encoder = model.init_target_encoder(context_encoder)
+    _disable_dropout(model.target_encoder)
+
 class MultiDepthTapHead(nn.Module):
     """Intermediate Layer-Wise Functional Hierarchy Probe (Alien Atoms [4, 207])."""
 
@@ -28,7 +35,7 @@ class MultiDepthTapHead(nn.Module):
         in_dim = filters * 6
         self.net = nn.Sequential(
             nn.Linear(in_dim, 2 * latent_dim, bias=False), nn.GELU(), nn.LayerNorm(2 * latent_dim, elementwise_affine=False),
-            nn.Linear(2 * latent_dim, latent_dim, bias=False), nn.LayerNorm(latent_dim, elementwise_affine=False),
+            nn.Linear(2 * latent_dim, latent_dim, bias=False),
         )
         self.gate = nn.Parameter(torch.tensor(0.35))
         self.register_buffer("running_centroid", torch.zeros(latent_dim))
@@ -40,9 +47,10 @@ class MultiDepthTapHead(nn.Module):
         return torch.cat([xc[:, :, -1], torch.sqrt(xc.pow(2).mean(dim=-1) + 1e-6)], dim=1)
 
     def forward(self, z_deep: torch.Tensor, taps: list[torch.Tensor]) -> torch.Tensor:
+        d = (z_deep.shape[-1],)
         tap_vec = torch.cat([self._tap_stats(t) for t in taps], dim=1)
         g = 0.5 * torch.sigmoid(self.gate)
-        fused = (1.0 - g) * z_deep + g * self.net(tap_vec)
+        fused = (1.0 - g) * z_deep + g * F.layer_norm(self.net(tap_vec), d)
         if self.training:
             with torch.no_grad():
                 c = fused.detach().mean(dim=0)
@@ -58,7 +66,7 @@ class MultiDepthTapHead(nn.Module):
             centered = fused - fused.mean(dim=0, keepdim=True)
         else:
             centered = fused
-        return F.layer_norm(centered, (z_deep.shape[-1],))
+        return F.layer_norm(centered, d)
 
 def _encode_with_multidepth_taps(encoder: nn.Module, x: torch.Tensor, tap_head: Optional[MultiDepthTapHead]) -> torch.Tensor:
     if tap_head is None or not hasattr(encoder, "blocks") or len(getattr(encoder, "blocks", [])) == 0:
@@ -182,7 +190,7 @@ def _fit_alien_bank_default(model: nn.Module, train_windows, context_len: int = 
         model.coreset_bank, model.unavail_med, model.unavail_mad, model.bank_fitted,
     )
 
-def _fit_multihorizon_alien_pipeline(model: nn.Module, train_windows, context_len: int = 256, batch_size: int = 256, residual_fn=None) -> None:
+def _fit_multihorizon_alien_pipeline(model: nn.Module, train_windows, context_len: int = 256, batch_size: int = 256, residual_fn=None, is_speculative: bool = False) -> None:
     model.eval()
     ctx_all, tgt_all = train_windows[:, :context_len], train_windows[:, context_len:]
     fit_covariance_batched(
@@ -190,7 +198,26 @@ def _fit_multihorizon_alien_pipeline(model: nn.Module, train_windows, context_le
         dim=model.num_horizons * model.latent_dim, batch_size=batch_size, reg=1e-3,
         precision_buffer=model.precision_matrix, residual_mean_buffer=model.residual_mean, fitted_buffer=model.precision_fitted,
     )
-    _fit_alien_bank_default(model, train_windows, context_len, batch_size)
+    J, R = _collect_alien_joints_resids(model, train_windows, context_len, batch_size, is_speculative=is_speculative)
+    _fit_coreset_and_null_projector(
+        J, R, model.coreset_size, model.top_k_prototypes, model.null_dim,
+        model.joint_center, model.null_projector, model.null_ratio_med,
+        model.coreset_bank, model.unavail_med, model.unavail_mad, model.bank_fitted,
+    )
+
+def _score_multihorizon_envelope(model: nn.Module, diffs: torch.Tensor, shear_gain: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    B, H, D = diffs.shape
+    if bool(model.precision_fitted.item()):
+        e_white = whiten_residuals(diffs.reshape(B, H * D) - model.residual_mean, model.precision_matrix).reshape(B, H, D)
+        e_eff = e_white * shear_gain if shear_gain is not None else e_white
+        s_joint = model.joint_saliency_gate(e_eff.reshape(B, H * D))
+        d_h = model.saliency_gate(e_eff.reshape(B * H, D)).reshape(B, H)
+    else:
+        e_eff = diffs * shear_gain if shear_gain is not None else diffs
+        d_h = model.saliency_gate(e_eff.reshape(B * H, D)).reshape(B, H)
+        s_joint = d_h.mean(dim=-1)
+    s_env = torch.sqrt(0.5 * (s_joint.pow(2) + d_h.pow(2).amax(dim=-1)))
+    return s_env, e_eff - e_eff.mean(dim=1, keepdim=True)
 
 def _alien_bank_gain(
     z_ctx: torch.Tensor, z_tgt: torch.Tensor, diff: torch.Tensor, joint_center: torch.Tensor,
@@ -231,7 +258,7 @@ def _encode_causal_subblocks(context_windows: torch.Tensor, num_subblocks: int, 
     return z_sub_ctx, z_sub_tgt
 
 def _rollout_solenoidal_vorticity(
-    predictor: nn.Module, z_sub_ctx: torch.Tensor, z_sub_tgt: torch.Tensor,
+    predictor: Optional[nn.Module], z_sub_ctx: torch.Tensor, z_sub_tgt: torch.Tensor,
     decay: float = 0.85, lr: float = 0.25, cs: float = 0.16, nu_0: float = 1e-3,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     B, M, D = z_sub_ctx.shape
@@ -241,7 +268,7 @@ def _rollout_solenoidal_vorticity(
     for m in range(M - 1):
         zm, zn_tgt = z_sub_ctx[:, m, :], z_sub_tgt[:, m + 1, :]
         um = zm / (zm.norm(dim=-1, keepdim=True) + 1e-6)
-        base_pred = F.layer_norm(predictor(zm), (D,))
+        base_pred = F.layer_norm(predictor(zm), (D,)) if predictor is not None else zm
         rm = zn_tgt - (base_pred + scale_d * torch.bmm(omega, um.unsqueeze(-1)).squeeze(-1))
         outer_ru = torch.bmm(rm.unsqueeze(-1), um.unsqueeze(1)) / scale_d
         omega = decay * omega + 0.5 * lr * (outer_ru - outer_ru.transpose(1, 2))
@@ -260,12 +287,8 @@ def _rollout_solenoidal_vorticity(
 class DeltaJEPAModel(JEPABase):
     def __init__(self, context_encoder: nn.Module, latent_dim: int = 32, predictor_hidden_dim: int = 64, predictor_layers: int = 2, ema_decay: float = 0.995, dropout: float = 0.10, num_subblocks: int = 4, delta_lr: float = 0.25, delta_decay: float = 0.85):
         super().__init__()
-        _disable_dropout(context_encoder)
-        self.context_encoder = context_encoder
-        self.latent_dim, self.ema_decay, self.num_subblocks = latent_dim, ema_decay, num_subblocks
-        self.delta_lr, self.delta_decay = delta_lr, delta_decay
-        self.target_encoder = self.init_target_encoder(context_encoder)
-        _disable_dropout(self.target_encoder)
+        _init_jepa_encoders(self, context_encoder, latent_dim, ema_decay)
+        self.num_subblocks, self.delta_lr, self.delta_decay = num_subblocks, delta_lr, delta_decay
         self.predictor = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=predictor_layers, dropout=0.0)
         self.fast_gate = nn.Parameter(torch.tensor(0.25))
         self.saliency_gate = CoordinateSaliencyGate(dim=latent_dim, tau=0.5, alpha=0.5)

@@ -48,9 +48,10 @@ No folder in `src/` or `tests/` may contain more than **20 files** (unlimited su
 ### SOP 6: GPU Acceleration, Tensor Batching & Vectorized Kernel Mandate
 - Execute rFFT dyadic-shell filtering, Hankel resolvent traces (`torch.linalg.eigvalsh`), and Reynolds stress covariance closures via batched `[B, T, D]` tensor kernels on `cuda` when available; never loop over time steps or channels in Python when vectorized tensor/Toeplitz operators apply.
 
-### SOP 7: The Principle of Elegance & Minimal Sufficient Complexity (`[INV-ELEGANCE]`)
+### SOP 7: The Principle of Elegance & Minimal Sufficient Complexity (`[INV-ELEGANCE]` & `[INV-NO-REDUNDANCY]`)
 1. **Root-Cause Purity**: Resolve defects strictly at their origin (pipeline, schema, or architectural layer); zero downstream `if x is None` band-aids or stream-specific hacks.
 2. **Minimal Moving Parts & Vectorized Clarity**: Reject unearned wrapper classes, duplicate forward passes, and speculative indirection; express quantitative logic via clean, self-documenting matrix/tensor idioms.
+3. **Zero Layer & Structural Redundancy (`[INV-NO-REDUNDANCY]`)**: Never stack back-to-back normalizations (`nn.LayerNorm` followed immediately by `F.layer_norm`), consecutive linear projections without a nonlinearity, or depth blocks that attenuate anomaly divergence without improving effective rank ($R_{\text{stab}}$) in `LayerActivationTracer`. Factor shared multi-horizon whitening, envelope scoring, and fast-weight rollouts into single canonical primitives with zero copy-paste duplication across classes.
 
 ---
 
