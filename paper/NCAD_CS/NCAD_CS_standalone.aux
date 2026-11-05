@@ -37,17 +37,17 @@
 \citation{bardes2021vicreg}
 \citation{zbontar2021barlow}
 \citation{ermolov2021whitening}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-A}}Contributions}{2}{subsection.1.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Key Operational and Statistical Terms.}}{2}{table.1}\protected@file@percent }
+\newlabel{tab:terms}{{I}{2}{Key Operational and Statistical Terms}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
 \citation{brunton2016discovering}
 \citation{chen2018neural}
 \citation{raissi2019physics}
 \citation{greydanus2019hamiltonian,cranmer2020lagrangian}
 \citation{wang2021understanding}
 \citation{koopman1931hamiltonian,mezic2005spectral,brunton2016koopman,lusch2018deep,liu2023koopa}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-A}}Contributions}{2}{subsection.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
-\newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Key Operational and Statistical Terms.}}{2}{table.1}\protected@file@percent }
-\newlabel{tab:terms}{{I}{2}{Key Operational and Statistical Terms}{table.1}{}}
 \citation{siffer2017anomaly}
 \citation{ferro2003inference}
 \citation{kim2022towards,wu2023flawed,schmidl2022anomaly}
@@ -70,13 +70,13 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Problem Formulation and Latent Space Prediction}{3}{subsection.4.1}\protected@file@percent }
 \newlabel{subsec:architecture}{{\mbox  {IV-A}}{3}{Problem Formulation and Latent Space Prediction}{subsection.4.1}{}}
 \citation{bardes2021vicreg}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Four-stage Soliton-Reynolds JEPA architecture. (1)\nobreakspace  {}Multiscale windowing splits telemetry at index $t$ into context ($\mathbf  {x}_{\text  {ctx}} \in \mathbb  {R}^{256 \times K}$) and target ($\mathbf  {x}_{\text  {tgt}} \in \mathbb  {R}^{64 \times K}$) blocks processed by a 4-shell dyadic real fast Fourier transform (rFFT) front-end and causal dilated temporal convolutional network (TCN). (2)\nobreakspace  {}Dual online ($E_\theta $) and exponential moving average (EMA) target ($E_\phi $) encoders tap all $L=3$ TCN stages and apply synchronized barycenter centering onto $\sqrt  {D}\mathbb  {S}^{D-1}$ ($D=32$). (3)\nobreakspace  {}Nested causal multi-horizon rollout forecasts $M=4$ sub-horizons ($S_m \in \{16, 32, 48, 64\}$) under decoupled horizon Variance-Invariance-Covariance Regularization (VICReg) and log-determinant whitening. (4)\nobreakspace  {}Mahalanobis residual whitening, Lieb--Thirring soliton concentration modulation, and coordinate-saliency-gated Streaming Peaks-Over-Threshold (SPOT) calibration under causal trailing ($\tau = t + 63$) and buffered smear mappings.}}{4}{figure.1}\protected@file@percent }
-\newlabel{fig:triad_architecture}{{1}{4}{Four-stage Soliton-Reynolds JEPA architecture. (1)~Multiscale windowing splits telemetry at index $t$ into context ($\mathbf {x}_{\text {ctx}} \in \mathbb {R}^{256 \times K}$) and target ($\mathbf {x}_{\text {tgt}} \in \mathbb {R}^{64 \times K}$) blocks processed by a 4-shell dyadic real fast Fourier transform (rFFT) front-end and causal dilated temporal convolutional network (TCN). (2)~Dual online ($E_\theta $) and exponential moving average (EMA) target ($E_\phi $) encoders tap all $L=3$ TCN stages and apply synchronized barycenter centering onto $\sqrt {D}\mathbb {S}^{D-1}$ ($D=32$). (3)~Nested causal multi-horizon rollout forecasts $M=4$ sub-horizons ($S_m \in \{16, 32, 48, 64\}$) under decoupled horizon Variance-Invariance-Covariance Regularization (VICReg) and log-determinant whitening. (4)~Mahalanobis residual whitening, Lieb--Thirring soliton concentration modulation, and coordinate-saliency-gated Streaming Peaks-Over-Threshold (SPOT) calibration under causal trailing ($\tau = t + 63$) and buffered smear mappings}{figure.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Overview of the four-stage Soliton-Reynolds JEPA pipeline: (1)\nobreakspace  {}multiscale windowing and causal encoding, (2)\nobreakspace  {}dual-encoder hierarchy tapping and barycenter centering, (3)\nobreakspace  {}nested multi-horizon latent rollout, and (4)\nobreakspace  {}whitened residual scoring and extreme-value threshold calibration.}}{4}{figure.1}\protected@file@percent }
+\newlabel{fig:triad_architecture}{{1}{4}{Overview of the four-stage Soliton-Reynolds JEPA pipeline: (1)~multiscale windowing and causal encoding, (2)~dual-encoder hierarchy tapping and barycenter centering, (3)~nested multi-horizon latent rollout, and (4)~whitened residual scoring and extreme-value threshold calibration}{figure.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Latent Predictor Architectures: TS-JEPA and Soliton-Reynolds JEPA}{4}{subsection.4.2}\protected@file@percent }
 \newlabel{subsec:triad_formulations}{{\mbox  {IV-B}}{4}{Latent Predictor Architectures: TS-JEPA and Soliton-Reynolds JEPA}{subsection.4.2}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-B}1}Unconstrained TS-JEPA Baseline}{4}{subsubsection.4.2.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-B}2}Soliton-Reynolds JEPA (Multi-Horizon Reynolds Decomposition and Lieb--Thirring Concentration)}{4}{subsubsection.4.2.2}\protected@file@percent }
-\newlabel{eq:soliton_reynolds_loss}{{1}{4}{Soliton-Reynolds JEPA (Multi-Horizon Reynolds Decomposition and Lieb--Thirring Concentration)}{equation.4.1}{}}
+\newlabel{eq:soliton_reynolds_loss}{{1}{5}{Soliton-Reynolds JEPA (Multi-Horizon Reynolds Decomposition and Lieb--Thirring Concentration)}{equation.4.1}{}}
 \newlabel{eq:lt_soliton_ratio}{{2}{5}{Soliton-Reynolds JEPA (Multi-Horizon Reynolds Decomposition and Lieb--Thirring Concentration)}{equation.4.2}{}}
 \newlabel{prop:anti_collapse}{{1}{5}{Lieb--Thirring Soliton Concentration Bounds, Centered Gram Rank Deficiency, and Scale Invariance}{proposition.1}{}}
 \newlabel{eq:lt_bounds}{{3}{5}{Lieb--Thirring Soliton Concentration Bounds, Centered Gram Rank Deficiency, and Scale Invariance}{equation.4.3}{}}
@@ -84,30 +84,30 @@
 \newlabel{subsec:scoring_function}{{\mbox  {IV-C}}{5}{Anomaly Scoring and Operational Detection Latency}{subsection.4.3}{}}
 \newlabel{eq:soliton_env}{{4}{5}{Anomaly Scoring and Operational Detection Latency}{equation.4.4}{}}
 \newlabel{eq:soliton_score}{{5}{5}{Anomaly Scoring and Operational Detection Latency}{equation.4.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Shared Architectural Components and Thresholding}{5}{subsection.4.4}\protected@file@percent }
-\newlabel{subsec:shared_inductive_biases}{{\mbox  {IV-D}}{5}{Shared Architectural Components and Thresholding}{subsection.4.4}{}}
-\newlabel{subsubsec:causal_saliency_gating}{{\mbox  {IV-D}1}{5}{Coordinate Saliency Gating and Scale Equivariance}{subsubsection.4.4.1}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}1}Coordinate Saliency Gating and Scale Equivariance}{5}{subsubsection.4.4.1}\protected@file@percent }
 \citation{siffer2017anomaly}
 \citation{grimshaw1993computing}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Shared Architectural Components and Thresholding}{6}{subsection.4.4}\protected@file@percent }
+\newlabel{subsec:shared_inductive_biases}{{\mbox  {IV-D}}{6}{Shared Architectural Components and Thresholding}{subsection.4.4}{}}
+\newlabel{subsubsec:causal_saliency_gating}{{\mbox  {IV-D}1}{6}{Coordinate Saliency Gating and Scale Equivariance}{subsubsection.4.4.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}1}Coordinate Saliency Gating and Scale Equivariance}{6}{subsubsection.4.4.1}\protected@file@percent }
 \newlabel{eq:saliency_gate}{{6}{6}{Coordinate Saliency Gating and Scale Equivariance}{equation.4.6}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}2}Multiscale Frequency Front-End}{6}{subsubsection.4.4.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}3}Extreme-Value Threshold Calibration (SPOT)}{6}{subsubsection.4.4.3}\protected@file@percent }
 \newlabel{eq:spot_threshold}{{7}{6}{Extreme-Value Threshold Calibration (SPOT)}{equation.4.7}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row\nobreakspace  {}1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text  {tr}}$. Row\nobreakspace  {}2 indexes causal held-out scores $v[0:M_{\text  {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text  {val}})$. Row\nobreakspace  {}3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text  {alm}} - t^*$).}}{6}{figure.2}\protected@file@percent }
+\newlabel{fig:protocol_and_permutation}{{2}{6}{Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row~1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text {tr}}$. Row~2 indexes causal held-out scores $v[0:M_{\text {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text {val}})$. Row~3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text {alm}} - t^*$)}{figure.2}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Protocol and Evaluation Metrics}{6}{section.5}\protected@file@percent }
 \newlabel{sec:exp}{{V}{6}{Experimental Protocol and Evaluation Metrics}{section.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Experimental Setup and Hyperparameters}{6}{subsection.5.1}\protected@file@percent }
 \newlabel{subsec:exp_setup}{{\mbox  {V-A}}{6}{Experimental Setup and Hyperparameters}{subsection.5.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row\nobreakspace  {}1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text  {tr}}$. Row\nobreakspace  {}2 indexes causal held-out scores $v[0:M_{\text  {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text  {val}})$. Row\nobreakspace  {}3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text  {alm}} - t^*$).}}{6}{figure.2}\protected@file@percent }
-\newlabel{fig:protocol_and_permutation}{{2}{6}{Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row~1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text {tr}}$. Row~2 indexes causal held-out scores $v[0:M_{\text {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text {val}})$. Row~3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text {alm}} - t^*$)}{figure.2}{}}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0a}Held-Out Calibration Protocol and Boundary Isolation}{6}{paragraph.5.1.0.1}\protected@file@percent }
 \citation{schmidl2022anomaly,kim2022towards}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0b}Independent Statistical Units, Multi-Seed Replication, and Equivalence Bounds}{7}{paragraph.5.1.0.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Baseline Architectures, Fairness Checks, and Cohort Structure}{7}{subsection.5.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Cohort Summary and Reproducibility Specifications}{7}{subsection.5.3}\protected@file@percent }
 \newlabel{subsec:cohort_repro}{{\mbox  {V-C}}{7}{Cohort Summary and Reproducibility Specifications}{subsection.5.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Multi-Tier Statistical Evaluation Metrics}{7}{subsection.5.4}\protected@file@percent }
-\newlabel{subsec:eval_metrics}{{\mbox  {V-D}}{7}{Multi-Tier Statistical Evaluation Metrics}{subsection.5.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}Multi-Tier Statistical Evaluation Metrics}{8}{subsection.5.4}\protected@file@percent }
+\newlabel{subsec:eval_metrics}{{\mbox  {V-D}}{8}{Multi-Tier Statistical Evaluation Metrics}{subsection.5.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VI}Ablation Studies and Analysis}{8}{section.6}\protected@file@percent }
 \newlabel{sec:ablations}{{VI}{8}{Ablation Studies and Analysis}{section.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Ablation 1: Multi-Horizon Whitened Envelope vs.\ Soliton Concentration Modulation}{8}{subsection.6.1}\protected@file@percent }
@@ -122,16 +122,16 @@
 \newlabel{tab:ablations}{{II}{9}{Architectural Ablation and Mechanism-Discrimination Studies ($n{=}19$ Streams, 5 Seeds; Event Recall (ER))}{table.2}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Multi-horizon soliton modulation sweep and quiet-fault recovery. \textbf  {(a)}\nobreakspace  {}Calibration-to-holdout drift ($D_{\text  {KS}}$, left axis) and buffered PR-AUC, causal ER, buffered Point-F1, buffered FPR, and causal FPR (right axis) across single-horizon TS-JEPA and Soliton-Reynolds JEPA modulation weights $\alpha _{\text  {sol}} \in [0, 0.24]$ ($n{=}19$ streams, five seeds). \textbf  {(b)}\nobreakspace  {}Injected single-channel ER (bars) and point recall (circles) across uniform TS-JEPA (Unif.), context-variance (Var.) and median absolute deviation (MAD) input gates, the standalone rolling variance-collapse monitor (Var.\ Monitor), and the hybrid union detector (Hybrid; nominal FPR in parentheses, $n{=}6$ streams, three seeds).}}{9}{figure.3}\protected@file@percent }
 \newlabel{fig:regularizer_and_quiet_fault}{{3}{9}{Multi-horizon soliton modulation sweep and quiet-fault recovery. \textbf {(a)}~Calibration-to-holdout drift ($D_{\text {KS}}$, left axis) and buffered PR-AUC, causal ER, buffered Point-F1, buffered FPR, and causal FPR (right axis) across single-horizon TS-JEPA and Soliton-Reynolds JEPA modulation weights $\alpha _{\text {sol}} \in [0, 0.24]$ ($n{=}19$ streams, five seeds). \textbf {(b)}~Injected single-channel ER (bars) and point recall (circles) across uniform TS-JEPA (Unif.), context-variance (Var.) and median absolute deviation (MAD) input gates, the standalone rolling variance-collapse monitor (Var.\ Monitor), and the hybrid union detector (Hybrid; nominal FPR in parentheses, $n{=}6$ streams, three seeds)}{figure.3}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VII}Results and Discussion}{9}{section.7}\protected@file@percent }
-\newlabel{sec:results}{{VII}{9}{Results and Discussion}{section.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Benchmark Performance on Continuous Telemetry}{9}{subsection.7.1}\protected@file@percent }
-\newlabel{subsec:core_benchmark}{{\mbox  {VII-A}}{9}{Benchmark Performance on Continuous Telemetry}{subsection.7.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Held-Out Calibration Benchmark Under SPOT ($u{=}p_{98}, q{=}10^{-3}$; Best in \textbf  {Bold}, Second \underline {Underlined}).}}{10}{table.3}\protected@file@percent }
-\newlabel{tab:core_benchmark}{{III}{10}{Held-Out Calibration Benchmark Under SPOT ($u{=}p_{98}, q{=}10^{-3}$; Best in \textbf {Bold}, Second \underline {Underlined})}{table.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Results and Discussion}{10}{section.7}\protected@file@percent }
+\newlabel{sec:results}{{VII}{10}{Results and Discussion}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Benchmark Performance on Continuous Telemetry}{10}{subsection.7.1}\protected@file@percent }
+\newlabel{subsec:core_benchmark}{{\mbox  {VII-A}}{10}{Benchmark Performance on Continuous Telemetry}{subsection.7.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Component-Level Analysis of Soliton-Reynolds JEPA}{10}{subsection.7.2}\protected@file@percent }
 \newlabel{subsec:eval_physics_priors}{{\mbox  {VII-B}}{10}{Component-Level Analysis of Soliton-Reynolds JEPA}{subsection.7.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{11}{subsection.7.3}\protected@file@percent }
-\newlabel{subsec:causal_vs_buffered}{{\mbox  {VII-C}}{11}{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{subsection.7.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{10}{subsection.7.3}\protected@file@percent }
+\newlabel{subsec:causal_vs_buffered}{{\mbox  {VII-C}}{10}{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{subsection.7.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Held-Out Calibration Benchmark Under SPOT ($u{=}p_{98}, q{=}10^{-3}$; Best in \textbf  {Bold}, Second \underline {Underlined}).}}{11}{table.3}\protected@file@percent }
+\newlabel{tab:core_benchmark}{{III}{11}{Held-Out Calibration Benchmark Under SPOT ($u{=}p_{98}, q{=}10^{-3}$; Best in \textbf {Bold}, Second \underline {Underlined})}{table.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Horizon Length, Score-Emission Latency, and False-Alarm Control}{11}{subsection.7.4}\protected@file@percent }
 \newlabel{subsec:horizon_latency}{{\mbox  {VII-D}}{11}{Horizon Length, Score-Emission Latency, and False-Alarm Control}{subsection.7.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Deployable Calibration Quantiles vs.\ Matched Realized Test-FPR Operating Points}{11}{subsection.7.5}\protected@file@percent }
