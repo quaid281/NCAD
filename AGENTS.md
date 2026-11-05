@@ -39,9 +39,9 @@
   1. *Plain-English mechanism first:* Every mathematical proposition, proof, table analysis, and architectural subsection must first state its plain-English physical or statistical intuition ("what is happening and why") before introducing equations or raw numbers.
   2. *No parenthetical number-piling or defensive table clutter:* Never stuff three or more parenthetical metric comparisons into a single clause, and never bloat tables with redundant threshold variants, legacy ablations, or pooled sub-tables when a concise 1–2 sentence summary in prose is clearer. Keep tables focused on the core scientific comparisons.
   3. *Equation layout:* Never cram three or more multi-term formulas (`\sum`, `\frac`, `\int`) inline into a single run-on paragraph. Multi-term display equations must be broken cleanly across lines (`aligned`) so that the compiled PDF has **zero `Overfull \hbox` margin spills** (enforced automatically by `scripts/build_and_verify_manuscript.py` and `scripts/scan_ai_writing.py`).
-- **Always scan the manuscript with `docs/SKILL.md`:** Before committing any
+- **Always scan the manuscript with `.agents/skills/avoid-ai-writing/SKILL.md`:** Before committing any
   manuscript or documentation changes, always audit all paper sections
-  against `docs/SKILL.md` (`C:/Users/andre/OneDrive/Desktop/NCAD_CS/docs/SKILL.md`)
+  against `.agents/skills/avoid-ai-writing/SKILL.md`
   via `C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/scan_ai_writing.py`
   (also enforced automatically by `scripts/build_and_verify_manuscript.py`).
   Zero tolerance for P0 credibility killers (including codebase relative paths in

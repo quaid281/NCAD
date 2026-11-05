@@ -14,7 +14,7 @@ from pathlib import Path
 
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 SECTIONS_DIR = WORKSPACE_ROOT / "paper" / "NCAD_CS" / "sections"
-SKILL_MD_PATH = WORKSPACE_ROOT / "docs" / "SKILL.md"
+SKILL_MD_PATH = WORKSPACE_ROOT / ".agents" / "skills" / "avoid-ai-writing" / "SKILL.md"
 
 # P0: Credibility Killers (Zero tolerance)
 P0_PATTERNS = {
