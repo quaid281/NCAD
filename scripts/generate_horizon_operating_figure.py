@@ -74,9 +74,9 @@ def make_figure():
     # Exact 5-stream, 3-seed numbers from reports/horizon_latency_sweep.csv
     # and reports/horizon_latency_soliton_reynolds.csv
     fpr_timesnet_caus = np.array([0.0248, 0.0307, 0.0607, 0.0975, 0.2127]) * 100
-    fpr_solrey_buf = np.array([0.0036, 0.0070, 0.0160, 0.0249, 0.0468]) * 100
+    fpr_solrey_buf = np.array([0.0038, 0.0050, 0.0271, 0.0440, 0.0942]) * 100
     fpr_tsjepa_caus = np.array([0.0036, 0.0055, 0.0031, 0.0026, 0.0038]) * 100
-    fpr_solrey_caus = np.array([0.0036, 0.0008, 0.0039, 0.0013, 0.0037]) * 100
+    fpr_solrey_caus = np.array([0.0038, 0.0022, 0.0021, 0.0058, 0.0026]) * 100
 
     ax1.plot(x_indices, fpr_timesnet_caus, color=C_TIMESNET_CAUS, linestyle="--", linewidth=1.6, marker="s", markersize=4.6, label="TimesNet (caus.)", zorder=3)
     ax1.plot(x_indices, fpr_solrey_buf, color=C_SOLREY_BUF, linestyle=":", linewidth=1.5, marker="^", markersize=4.3, label="Sol.-Rey. JEPA (buf.)", zorder=3)
@@ -103,10 +103,10 @@ def make_figure():
     # =========================================================================
     models_data = {
         "SolitonReynolds": {
-            "fa": [3.3, 58.9], "er": [0.506, 0.809], "color": C_SOLREY_CAUS, "marker": "*", "label": "Sol.-Rey. JEPA"
+            "fa": [5.6, 73.7], "er": [0.478, 0.752], "color": C_SOLREY_CAUS, "marker": "*", "label": "Sol.-Rey. JEPA"
         },
         "SolitonReynolds-a0": {
-            "fa": [3.6, 58.2], "er": [0.498, 0.820], "color": C_SOLREY0_CAUS, "marker": "p", "label": "Sol.-Rey. ($\\alpha_{\\mathrm{sol}}{=}0$)"
+            "fa": [6.1, 74.4], "er": [0.439, 0.755], "color": C_SOLREY0_CAUS, "marker": "p", "label": "Sol.-Rey. ($\\alpha_{\\mathrm{sol}}{=}0$)"
         },
         "TS-JEPA": {
             "fa": [24.0, 86.3], "er": [0.487, 0.730], "color": C_TSJEPA_CAUS, "marker": "D", "label": "TS-JEPA"

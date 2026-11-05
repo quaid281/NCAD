@@ -53,7 +53,7 @@ class CausalTCNBlock(nn.Module):
         deep TCN blocks (dilation 16, 32), while preserving full dilation on C=256 and
         keeping conv weight shapes identical between context_encoder and target_encoder.
         """
-        if self.kernel_size <= 1 or seq_len <= 1:
+        if self.kernel_size <= 1:
             return 1, 0
         max_dilation = max(1, seq_len // (2 * (self.kernel_size - 1)))
         eff_dilation = min(self.dilation, max_dilation)

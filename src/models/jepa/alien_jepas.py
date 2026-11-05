@@ -644,11 +644,15 @@ class SolitonReynoldsJEPAModel(JEPABase):
             z_tgt = z_sub_tgt[:, -1, :]
         return z_ctx, z_tgt, z_pred, z_sub_pred, z_sub_tgt
 
+    def _subblock_residuals_flat(self, ctx_win: torch.Tensor, tgt_win: torch.Tensor) -> torch.Tensor:
+        _, _, _, zsp, zst = self.forward(ctx_win, tgt_win)
+        return (zst - zsp).reshape(ctx_win.shape[0], -1)
+
     def compute_objective(self, ctx: torch.Tensor, tgt: torch.Tensor, config=None, **kwargs):
         z_ctx, _, _, zsp, zst = self.forward(ctx, tgt)
         M = self.num_subblocks
         w = [0.50 / max(M - 1, 1)] * (M - 1) + [0.50]
-        loss = _multihorizon_vicreg_loss(zsp, zst, z_ctx, tuple(w))
+        loss = sum(wh * jepa_vicreg_loss(zsp[:, h, :], zst[:, h, :], z_ctx if h == M - 1 else None, use_log_det=True) for h, wh in enumerate(w))
         return loss, {"loss": float(loss.item())}
 
     @torch.no_grad()
@@ -657,7 +661,7 @@ class SolitonReynoldsJEPAModel(JEPABase):
         M, D = self.num_subblocks, self.latent_dim
         ctx_all, tgt_all = train_windows[:, :context_len], train_windows[:, context_len:]
         fit_covariance_batched(
-            self, ctx_all, tgt_all, residual_fn=lambda c, t: (self.forward(c, t)[4] - self.forward(c, t)[3]).reshape(c.shape[0], -1),
+            self, ctx_all, tgt_all, residual_fn=self._subblock_residuals_flat,
             dim=M * D, batch_size=batch_size, reg=1e-3,
             precision_buffer=self.precision_matrix, residual_mean_buffer=self.residual_mean, fitted_buffer=self.precision_fitted,
         )
@@ -665,18 +669,18 @@ class SolitonReynoldsJEPAModel(JEPABase):
         r_lts = []
         for i in range(0, len(train_windows), batch_size):
             b = torch.from_numpy(train_windows[i : i + batch_size]).float().to(device)
-            ew = whiten_residuals((self.forward(b[:, :context_len], b[:, context_len:])[4] - self.forward(b[:, :context_len], b[:, context_len:])[3]).reshape(len(b), M * D) - self.residual_mean, self.precision_matrix).reshape(len(b), M, D)
+            res_flat = self._subblock_residuals_flat(b[:, :context_len], b[:, context_len:])
+            ew = whiten_residuals(res_flat - self.residual_mean, self.precision_matrix).reshape(len(b), M, D)
             r_lts.append(self.lieb_thirring_soliton_ratio(ew - ew.mean(dim=1, keepdim=True), gamma=self.lt_gamma))
         all_r = torch.cat(r_lts, dim=0)
         med = torch.median(all_r)
         self.r_lt_med.copy_(med)
         self.r_lt_mad.copy_(torch.median(torch.abs(all_r - med)).clamp(min=1e-3))
-        _fit_alien_bank_default(self, train_windows, context_len, batch_size)
 
     @torch.no_grad()
-    def compute_predictive_discrepancy(self, ctx: torch.Tensor, tgt: torch.Tensor, use_alien_bank: bool = True, **kwargs) -> torch.Tensor:
+    def compute_predictive_discrepancy(self, ctx: torch.Tensor, tgt: torch.Tensor, **kwargs) -> torch.Tensor:
         self.eval()
-        z_ctx, z_tgt, z_pred, z_sub_pred, z_sub_tgt = self.forward(ctx, tgt)
+        _, _, _, z_sub_pred, z_sub_tgt = self.forward(ctx, tgt)
         B, M, D = z_sub_pred.shape
         diffs = z_sub_tgt - z_sub_pred
         if bool(self.precision_fitted.item()):
@@ -689,15 +693,12 @@ class SolitonReynoldsJEPAModel(JEPABase):
             s_joint = d_h.mean(dim=-1)
             fluct = diffs - diffs.mean(dim=1, keepdim=True)
         s_env = torch.sqrt(0.5 * (s_joint.pow(2) + d_h.pow(2).amax(dim=-1)))
-        if not kwargs.get('use_soliton', True):
+        if not kwargs.get("use_soliton", True):
             return s_env
+        alpha_sol = float(kwargs.get("alpha_sol", 0.12))
         r_lt = self.lieb_thirring_soliton_ratio(fluct, gamma=self.lt_gamma)
         z_lt = (r_lt - self.r_lt_med) / (1.4826 * self.r_lt_mad)
-        soliton_gain = 1.0 + 0.12 * F.relu(torch.tanh(0.5 * z_lt))
-        s_sol = s_env * soliton_gain
-        if not use_alien_bank:
-            return s_sol
-        return _apply_bank_gain(self, z_ctx, z_tgt, z_tgt - z_pred, s_sol, 0.15, 0.10)
+        return s_env * (1.0 + alpha_sol * F.relu(torch.tanh(0.5 * z_lt)))
 
 # --- 7. Unified Helmholtz-Soliton JEPA: Solenoidal-Stokes + Soliton Wavepacket ---
 

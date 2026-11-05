@@ -12,8 +12,8 @@
  & Empirical p99.5 & 0.025 (0.023) & .022 (23$\times$) & 0.076 (0.066) & 0.140 \\
 \addlinespace[1.5pt]
 \multirow{2}{*}{Sol.-Rey.}
- & Standard SPOT   & \textbf{0.003 (0.003)} & \textbf{.002 (3$\times$)}  & 0.076 (0.063) & 0.130 \\
- & Empirical p99.5 & 0.007 (0.007) & .006 (7$\times$)  & 0.091 (0.077) & 0.138 \\
+ & Standard SPOT   & \textbf{0.004 (0.004)} & \textbf{.003 (4$\times$)}  & \textbf{0.055 (0.046)} & 0.102 \\
+ & Empirical p99.5 & 0.010 (0.009) & .008 (9$\times$)  & 0.064 (0.054) & 0.101 \\
 \addlinespace[1.5pt]
 \multirow{2}{*}{TimesNet}
  & Standard SPOT   & 0.180 (0.161) & .160 (161$\times$) & 0.222 (0.199) & 0.140 \\
@@ -34,10 +34,10 @@
 \textbf{(b) Model} & {$\text{FPR}_{\text{chr}}$} & {$\text{FPR}_{\text{blk}}$} & {$\text{FPR}_{\text{pt}}$} & \textbf{Inter-Blk} & \textbf{Serial} & \textbf{i.i.d.} \\
 \midrule
 TS-JEPA      & 0.0229 & 0.0073 & 0.0033 & 71.3 & 18.1 & 10.5 \\
-Soliton-Rey. & \textbf{0.0033} & \textbf{0.0037} & \textbf{0.0025} &  \textbf{0.0} & 44.8 & 55.2 \\
+Soliton-Rey. & \textbf{0.0056} & \textbf{0.0047} & \textbf{0.0020} &  \textbf{18.7} & 59.5 & 21.8 \\
 TimesNet     & 0.2302 & 0.0427 & 0.0035 & 81.8 & 17.1 &  1.1 \\
 TranAD       & 0.2103 & 0.0464 & 0.0034 & 78.3 & 20.5 &  1.1 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), cell-weighted means ($n{=}33$ streams; stream-macro in parentheses); Error is $|\text{FPR}_{\text{macro}}{-}q|$ and Over.\ is $\text{FPR}_{\text{macro}} / q$. In (b), 95\% CIs for inter-block drift $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$: TS-JEPA $+.0156$ $[+.001, +.034]$, Sol.-Rey.\ $-.0004$ $[-.002, +.001]$, TimesNet $+.1874$ $[+.078, +.305]$, TranAD $+.1639$ $[+.072, +.267]$.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), cell-weighted means ($n{=}33$ streams; stream-macro in parentheses); Error is $|\text{FPR}_{\text{macro}}{-}q|$ and Over.\ is $\text{FPR}_{\text{macro}} / q$. In (b), 95\% CIs for inter-block drift $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$: TS-JEPA $+.0156$ $[+.001, +.034]$, Sol.-Rey.\ $+.0009$ $[-.002, +.004]$, TimesNet $+.1874$ $[+.078, +.305]$, TranAD $+.1639$ $[+.072, +.267]$.} \\
 \end{tabular*}\par\vspace{-8pt}
 \end{table}

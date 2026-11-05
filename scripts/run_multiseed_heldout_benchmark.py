@@ -70,7 +70,7 @@ STREAMS = [
 ]
 MODELS = [
     "TS-JEPA", "Speculative-Alien-JEPA", "Speculative-JEPA", "Delta-JEPA", "Alien-DualTower-JEPA",
-    "HelmholtzSoliton-JEPA", "AnchoredStokes-JEPA", "SolitonReynolds-JEPA", "EddyDelta-JEPA",
+    "HelmholtzSoliton-JEPA", "AnchoredStokes-JEPA", "SolitonReynolds-JEPA", "SolitonReynolds-NoSoliton", "EddyDelta-JEPA",
     "OpEntropy", "OpEntropy-lambda0", "Reynolds", "Reynolds-meanscore",
     "Reynolds-alpha0", "PotentialFlow", "TimesNet", "TranAD", "TCN-ObsPred-LN",
 ]
@@ -392,7 +392,7 @@ def train_model(name, tr_win, k, device, epochs):
             with torch.inference_mode():
                 for i in range(0, len(w), 512):
                     ch = torch.from_numpy(np.ascontiguousarray(w[i:i + 512])).float().to(device)
-                    out.append(m.compute_predictive_discrepancy(ch[:, :C], ch[:, C:]).cpu().numpy())
+                    out.append(m.compute_predictive_discrepancy(ch[:, :C], ch[:, C:], use_soliton=(name != "SolitonReynolds-NoSoliton")).cpu().numpy())
             return np.concatenate(out)
         return score
 
@@ -430,7 +430,7 @@ def train_model(name, tr_win, k, device, epochs):
           "PotentialFlow": "potential_flow_jepa", "PotentialFlow-noregime": "potential_flow_jepa",
           "HelmholtzSoliton-JEPA": "helmholtz_soliton_jepa",
           "AnchoredStokes-JEPA": "anchored_stokes_jepa",
-          "SolitonReynolds-JEPA": "soliton_reynolds_jepa",
+          "SolitonReynolds-JEPA": "soliton_reynolds_jepa", "SolitonReynolds-NoSoliton": "soliton_reynolds_jepa",
           "EddyDelta-JEPA": "eddy_delta_jepa"}[name]
     extra = {"use_regimes": False} if name == "PotentialFlow-noregime" else {}
     cfg = CSMConfig(model_type=mt, context_size=C, suspect_size=S, latent_dim=32, **extra)

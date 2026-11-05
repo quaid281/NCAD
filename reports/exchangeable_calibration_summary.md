@@ -12,8 +12,8 @@ Addresses Reviewer Concern A.2: Disentangling Inter-Block Distribution Drift fro
 ### Strictly Causal Mapping (Trailing)
 | Model | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| SolitonReynolds-JEPA | 0.0033 | 0.0025 | 0.0055 | 3.31x | 2.47x | 5.55x |
-| SolitonReynolds-NoSoliton | 0.0036 | 0.0026 | 0.0034 | 3.58x | 2.62x | 3.45x |
+| SolitonReynolds-JEPA | 0.0056 | 0.0020 | 0.0047 | 5.59x | 2.00x | 4.73x |
+| SolitonReynolds-NoSoliton | 0.0061 | 0.0017 | 0.0041 | 6.06x | 1.71x | 4.07x |
 | TCN-ObsPred-LN | 0.1165 | 0.0032 | 0.0446 | 116.52x | 3.22x | 44.59x |
 | TS-JEPA | 0.0229 | 0.0047 | 0.0077 | 22.91x | 4.69x | 7.70x |
 | TimesNet | 0.2302 | 0.0038 | 0.0521 | 230.16x | 3.76x | 52.06x |
@@ -22,8 +22,8 @@ Addresses Reviewer Concern A.2: Disentangling Inter-Block Distribution Drift fro
 ### Buffered Mapping (Smear)
 | Model | Chrono FPR | Point-Shuffle FPR | Block-Shuffle FPR | Chrono Overshoot | Point Overshoot | Block Overshoot |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| SolitonReynolds-JEPA | 0.1084 | 0.0020 | 0.0344 | 108.41x | 1.97x | 34.38x |
-| SolitonReynolds-NoSoliton | 0.1216 | 0.0031 | 0.0393 | 121.56x | 3.15x | 39.29x |
+| SolitonReynolds-JEPA | 0.0783 | 0.0025 | 0.0432 | 78.29x | 2.50x | 43.15x |
+| SolitonReynolds-NoSoliton | 0.0830 | 0.0027 | 0.0221 | 83.04x | 2.74x | 22.15x |
 | TCN-ObsPred-LN | 0.1934 | 0.0034 | 0.0595 | 193.36x | 3.44x | 59.55x |
 | TS-JEPA | 0.0932 | 0.0024 | 0.0419 | 93.18x | 2.38x | 41.93x |
 | TimesNet | 0.2994 | 0.0026 | 0.0754 | 299.44x | 2.63x | 75.37x |
