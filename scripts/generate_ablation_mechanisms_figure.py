@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Generate publication-grade true-vector figure for Ablations 2 & 3 (formerly Table II(c) & II(d)):
-Panel (a): Factorial and Strength Sweep of the Operator Regularizer across lambda_ent in [0, 2.0].
+"""Generate publication-grade true-vector figure for Ablations 1 & 2 (Figure 3):
+Panel (a): Multi-Horizon Whitened Envelope vs. Soliton Concentration Modulation Sweep
+           across alpha_sol in [0, 0.24] (19 non-GHL streams, 5 seeds) relative to TS-JEPA.
 Panel (b): Injected Quiet-Fault Event & Point Recall across Input Gates and Hybrid Union Monitor.
 
 Follows Dr. Andrey Churkin's 8 Principles of Beautiful Figures and IEEE two-column standards:
@@ -55,11 +56,11 @@ def set_ieee_style():
         "ytick.minor.width": 0.35,
         "xtick.direction": "out",
         "ytick.direction": "out",
-        "xtick.labelsize": 8.2,
+        "xtick.labelsize": 8.0,
         "ytick.labelsize": 8.2,
         "axes.labelsize": 8.6,
         "axes.titlesize": 8.8,
-        "legend.fontsize": 8.0,
+        "legend.fontsize": 7.8,
         "figure.dpi": 300,
     })
 
@@ -67,102 +68,103 @@ def set_ieee_style():
 def make_figure():
     set_ieee_style()
     fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(7.14, 1.96),
+        1, 2, figsize=(7.14, 1.98),
         gridspec_kw={"width_ratios": [1.0, 1.08], "wspace": 0.44}
     )
     fig.subplots_adjust(top=0.70, bottom=0.24, left=0.068, right=0.988)
 
     # =========================================================================
-    # Panel (a): Operator Regularizer Strength Sweep (formerly Table II(c))
+    # Panel (a): Multi-Horizon Envelope & Soliton Modulation Sweep (n=19, 5 seeds)
     # =========================================================================
-    # 7 categorical-ordinal stations along the sweep:
-    # 0: Neither (0, 0), 1: Barrier only (0, 1), 2: (0.05, 1), 3: (0.10, 1),
-    # 4: Deployed (0.50, 1) [plus Entropy-only (0.50, 0)], 5: (1.00, 1), 6: (2.00, 1)
+    # 7 stations:
+    # 0: TS-JEPA (Single-Horizon), 1: alpha_sol = 0.00 (Unmodulated Envelope),
+    # 2: 0.03, 3: 0.06, 4: 0.12* (Deployed), 5: 0.18, 6: 0.24
     x_idx = np.arange(7)
     x_labels = [
-        "0\n($\\beta{=}0$)", "0\n($\\beta{=}1$)", "0.05",
-        "0.10", "0.50*\n(depl.)", "1.00", "2.00"
+        "TS-JEPA\n(1-Hor.)", "$0.00$\n(Env.)", "$0.03$",
+        "$0.06$", "$0.12^*$\n(depl.)", "$0.18$", "$0.24$"
     ]
 
-    kappa_k = np.array([1.437, 1.431, 1.395, 1.363, 1.255, 1.204, 1.154])
-    cv_loss = np.array([0.565, 0.563, 0.562, 0.559, 0.549, 0.546, 0.545])
-    caus_er = np.array([0.369, 0.389, 0.373, 0.421, 0.444, 0.365, 0.397])
-    buf_er = np.array([0.250, 0.266, 0.250, 0.250, 0.266, 0.250, 0.250])
-    caus_fpr = np.array([0.017, 0.016, 0.017, 0.017, 0.017, 0.017, 0.017])
-    buf_fpr = np.array([0.071, 0.074, 0.074, 0.073, 0.072, 0.070, 0.072])
-    rank_tgt_ratio = np.array([11.57, 11.58, 11.57, 11.58, 11.56, 11.55, 11.54]) / 32.0
+    # Exact 19-stream, 5-seed metrics from reports/score_dumps/
+    ks_drift = np.array([0.214, 0.162, 0.162, 0.163, 0.163, 0.162, 0.161])
+    caus_er = np.array([0.487, 0.498, 0.500, 0.497, 0.506, 0.498, 0.484])
+    pr_buf = np.array([0.331, 0.375, 0.376, 0.376, 0.375, 0.374, 0.374])
+    f1_buf = np.array([0.206, 0.185, 0.186, 0.178, 0.188, 0.184, 0.184])
+    fpr_buf = np.array([0.093, 0.122, 0.119, 0.118, 0.108, 0.109, 0.107])
+    fpr_caus = np.array([0.024, 0.004, 0.003, 0.003, 0.003, 0.003, 0.003])
 
     ax1_r = ax1.twinx()
     ax1_r.spines["right"].set_edgecolor(C_TEAL_EDGE)
     ax1_r.spines["right"].set_linewidth(0.75)
     ax1.spines["left"].set_edgecolor(C_PURPLE_EDGE)
 
-    # Vertical highlight at deployed lambda_ent = 0.50 (index 4)
+    # Vertical separator between Single-Horizon TS-JEPA and Multi-Horizon Soliton-Reynolds
+    ax1.axvline(0.5, color="#888888", linestyle=":", linewidth=0.9, alpha=0.75, zorder=1)
+    # Vertical highlight at deployed alpha_sol = 0.12 (index 4)
     ax1.axvline(4, color="#9e9e9e", linestyle="--", linewidth=0.85, alpha=0.65, zorder=1)
 
-    # Left axis: Condition number kappa(K)
+    # Left axis: KS Drift D_KS
     l1, = ax1.plot(
-        x_idx, kappa_k, color=C_PURPLE_EDGE, linestyle="-", linewidth=1.8,
+        x_idx, ks_drift, color=C_PURPLE_EDGE, linestyle="-", linewidth=1.8,
         marker="o", markersize=4.8, markerfacecolor=C_PURPLE_FILL,
-        markeredgecolor=C_PURPLE_EDGE, label="$\\kappa(\\mathbf{K})$ (left)", zorder=4
-    )
-    # Entropy-only (0.5, 0) control marker for kappa(K)=1.256 & Causal ER=0.389
-    l_ent0, = ax1_r.plot(
-        [4], [0.389], color=C_NAVY_EDGE, linestyle="none",
-        marker="D", markersize=4.6, markerfacecolor="none", markeredgewidth=1.2,
-        label="Caus. ER ($\\beta{=}0$)", zorder=5
+        markeredgecolor=C_PURPLE_EDGE, label="$D_{\\mathrm{KS}}$ Drift (left)", zorder=4
     )
 
-    # Right axis: Causal ER, Buffered ER, Target Rank ratio, Causal FPR
+    # Right axis: Causal ER, Buffered PR-AUC, Buffered F1, Buffered FPR, Causal FPR
     l2, = ax1_r.plot(
         x_idx, caus_er, color=C_TEAL_EDGE, linestyle="-", linewidth=1.7,
         marker="s", markersize=4.4, markerfacecolor=C_TEAL_FILL,
         markeredgecolor=C_TEAL_EDGE, label="Caus. ER (right)", zorder=4
     )
     l3, = ax1_r.plot(
-        x_idx, rank_tgt_ratio, color=C_GREY_EDGE, linestyle=":", linewidth=1.4,
-        marker="^", markersize=4.0, markerfacecolor=C_GREY_FILL,
-        markeredgecolor=C_GREY_EDGE, label="Target Rank / $D$", zorder=3
+        x_idx, pr_buf, color=C_NAVY_EDGE, linestyle="-", linewidth=1.5,
+        marker="D", markersize=4.1, markerfacecolor=C_NAVY_FILL,
+        markeredgecolor=C_NAVY_EDGE, label="Buf. PR-AUC", zorder=4
     )
     l4, = ax1_r.plot(
-        x_idx, buf_fpr, color=C_NAVY_EDGE, linestyle="--", linewidth=1.3,
-        marker="v", markersize=3.8, markerfacecolor=C_NAVY_FILL,
-        markeredgecolor=C_NAVY_EDGE, label="Buf. FPR", zorder=3
+        x_idx, f1_buf, color=C_GREY_EDGE, linestyle=":", linewidth=1.4,
+        marker="^", markersize=4.0, markerfacecolor=C_GREY_FILL,
+        markeredgecolor=C_GREY_EDGE, label="Buf. Point-F1", zorder=3
     )
     l5, = ax1_r.plot(
-        x_idx, caus_fpr, color=C_CORAL_EDGE, linestyle="-.", linewidth=1.35,
+        x_idx, fpr_buf, color=C_NAVY_EDGE, linestyle="--", linewidth=1.25,
+        marker="v", markersize=3.8, markerfacecolor="#ffffff",
+        markeredgecolor=C_NAVY_EDGE, label="Buf. FPR", zorder=3
+    )
+    l6, = ax1_r.plot(
+        x_idx, fpr_caus, color=C_CORAL_EDGE, linestyle="-.", linewidth=1.35,
         marker="p", markersize=4.0, markerfacecolor=C_CORAL_FILL,
         markeredgecolor=C_CORAL_EDGE, label="Caus. FPR", zorder=3
     )
 
     ax1.set_xticks(x_idx)
-    ax1.set_xticklabels(x_labels, fontsize=8.0)
-    ax1.set_xlim(-0.35, 6.35)
-    ax1.set_ylim(1.10, 1.48)
-    ax1.set_yticks([1.15, 1.25, 1.35, 1.45])
-    ax1.set_xlabel("Spectral Entropy Weight (with Barrier $\\beta$)", labelpad=2)
-    ax1.set_ylabel("Condition Number $\\kappa(\\mathbf{K})$", color=C_PURPLE_EDGE, labelpad=3)
+    ax1.set_xticklabels(x_labels, fontsize=7.8)
+    ax1.set_xlim(-0.38, 6.38)
+    ax1.set_ylim(0.152, 0.228)
+    ax1.set_yticks([0.16, 0.18, 0.20, 0.22])
+    ax1.set_xlabel("Soliton Modulation Weight $\\alpha_{\\mathrm{sol}}$ ($n{=}19$ Streams)", labelpad=2)
+    ax1.set_ylabel("Calibration Drift $D_{\\mathrm{KS}}$", color=C_PURPLE_EDGE, labelpad=3)
     ax1.tick_params(axis="y", colors=C_PURPLE_EDGE)
 
-    ax1_r.set_ylim(0.0, 0.50)
-    ax1_r.set_yticks([0.0, 0.15, 0.30, 0.45])
-    ax1_r.set_ylabel("Event Recall / FPR / Rank Ratio", color=C_TEAL_EDGE, labelpad=3)
+    ax1_r.set_ylim(-0.02, 0.56)
+    ax1_r.set_yticks([0.0, 0.18, 0.36, 0.54])
+    ax1_r.set_ylabel("PR-AUC / ER / F1 / FPR", color=C_TEAL_EDGE, labelpad=3)
     ax1_r.tick_params(axis="y", colors=C_TEAL_EDGE)
 
     ax1.grid(True, which="major", linestyle="-", linewidth=0.5, color="#e0e0e0", alpha=0.65)
     ax1.set_axisbelow(True)
 
-    ax1.set_title("(a) Operator Regularizer Conditioning & Stability Sweep", fontweight="bold", pad=27)
-    handles_a = [l1, l2, l_ent0, l3, l4, l5]
+    ax1.set_title("(a) Multi-Horizon Envelope & Soliton Gain Sweep", fontweight="bold", pad=27)
+    handles_a = [l1, l2, l3, l4, l5, l6]
     labels_a = [h.get_label() for h in handles_a]
     ax1.legend(
         handles_a, labels_a, loc="lower center", bbox_to_anchor=(0.5, 1.02),
-        ncol=3, frameon=False, columnspacing=0.60, handletextpad=0.28,
-        labelspacing=0.20, fontsize=7.8
+        ncol=3, frameon=False, columnspacing=0.55, handletextpad=0.25,
+        labelspacing=0.20, fontsize=7.6
     )
 
     # =========================================================================
-    # Panel (b): Quiet-Fault Event & Point Recall (formerly Table II(d))
+    # Panel (b): Quiet-Fault Event & Point Recall (n=6 streams, 3 seeds)
     # =========================================================================
     fault_labels = [
         "Flatline\n(const.)", "Stuck\nsensor", "Sensor\ndropout",
@@ -171,7 +173,6 @@ def make_figure():
     n_faults = len(fault_labels)
     x_f = np.arange(n_faults)
 
-    # Event recall (bars) and Point recall (overlaid markers)
     monitors = [
         {
             "label": "Unif. (1.9%)",
@@ -242,7 +243,7 @@ def make_figure():
     ax2.legend(
         handles_b, labels_b, loc="lower center", bbox_to_anchor=(0.5, 1.02),
         ncol=3, frameon=False, columnspacing=0.60, handletextpad=0.28,
-        labelspacing=0.20, fontsize=7.8
+        labelspacing=0.20, fontsize=7.6
     )
 
     saved = save_true_vector_figure(

@@ -47,7 +47,7 @@ def draw_protocol_schematic(ax: plt.Axes) -> None:
     y1, h1 = 75.5, 11.5
     # Training block [0 : N_tr)
     ax.add_patch(Rectangle((0.0, y1), 54.0, h1, fc="#d0e1f2", ec="#1d4e89", lw=0.8))
-    ax.text(27.0, y1 + h1 / 2, "Training Block ($65\\%$)\n$\\mathbf{X}[0 : N_{\\mathrm{tr}})$ (fit $E_\\theta, E_\\phi, \\mathbf{K}/\\mathcal{P}_\\psi$)",
+    ax.text(27.0, y1 + h1 / 2, "Training Block ($65\\%$)\n$\\mathbf{X}[0 : N_{\\mathrm{tr}})$ (fit $E_\\theta, E_\\phi, \\mathcal{P}_\\psi, \\hat{\\mathbf{\\Sigma}}_e^{-1}$)",
             ha="center", va="center", fontsize=5.8, color="#0b3c68")
     # Disjoint boundary line
     ax.plot([54.5, 54.5], [y1 - 1.5, y1 + h1 + 1.5], color="#a31d3d", lw=1.0, ls="--")
