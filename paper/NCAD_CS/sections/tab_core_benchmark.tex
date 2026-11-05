@@ -1,6 +1,6 @@
 \begin{table*}[!t]
 \centering
-\caption{Held-Out Calibration Benchmark (SPOT, $u{=}p_{98}, q{=}10^{-3}$): (a)~Retrospective Buffered ($S{=}64$) and (b)~Strictly Causal Trailing Attribution across 19 Non-GHL Streams and 14 GHL Streams, (c)~Per-Dataset Breakdown (including Anomaly Event Counts $E$ and Causal/Buffered Held-Out FPR) across $N{=}7$ Telemetry Families, and (d)~130-Stream Single-Seed Cross-Check. Best in \textbf{bold}, second \underline{underlined}.\label{tab:core_benchmark}}
+\caption{Held-Out Calibration Benchmark Under SPOT ($u{=}p_{98}, q{=}10^{-3}$; Best in \textbf{Bold}, Second \underline{Underlined}).\label{tab:core_benchmark}}
 \scriptsize
 \setlength{\tabcolsep}{3.5pt}
 \renewcommand{\arraystretch}{1.08}
@@ -22,9 +22,9 @@
     @{}
 }
 \toprule
-& \multicolumn{5}{c}{\textbf{(a) Retrospective Buffered, Non-GHL (19 Streams)}} & \multicolumn{4}{c}{\textbf{(b) Strictly Causal Trailing, Non-GHL (19 Streams)}} & \multicolumn{2}{c}{\textbf{GHL Buffered (14)}} & {\textbf{Macro}} \\
+& \multicolumn{5}{c}{\textbf{(a) Buffered Attribution ($n{=}19$ Non-GHL)}} & \multicolumn{4}{c}{\textbf{(b) Causal Attribution ($n{=}19$ Non-GHL)}} & \multicolumn{2}{c}{\textbf{GHL ($n{=}14$)}} & {\textbf{Macro}} \\
 \cmidrule(lr){2-6} \cmidrule(lr){7-10} \cmidrule(lr){11-12} \cmidrule(l){13-13}
-\textbf{Architecture} & {\textbf{FPR} $\downarrow$} & {\textbf{Point-F1} $\uparrow$} & {\textbf{PR-AUC} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Point-F1} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Point-F1} $\uparrow$} & {\textbf{DS-F1} $\uparrow$} \\
+\textbf{Architecture} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{PR-AUC} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{DS-F1} $\uparrow$} \\
 \midrule
 \multicolumn{13}{@{}l}{\textit{Latent-space predictive architectures (JEPAs)}} \\
 \quad TS-JEPA (unconstrained)               & \underline{0.093} & \bfseries 0.206   & 0.331             & 0.477             & 110.3            & 0.024             & \underline{0.161} & 0.487             & \underline{124.0} & 0.004             & 0.000             & \bfseries 0.115 \\
@@ -44,7 +44,7 @@
 \setlength{\tabcolsep}{2.6pt}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l rrr cc cccc cccc@{}}
 \toprule
-& \multicolumn{5}{c}{\textbf{(c) Telemetry Family Descriptors}} & \multicolumn{4}{c}{\textbf{Buffered Point-F1 (Stream Mean) $\uparrow$}} & \multicolumn{4}{c}{\textbf{Causal / Buffered Held-Out Nominal FPR $\downarrow$}} \\
+& \multicolumn{5}{c}{\textbf{(c) Dataset Summary}} & \multicolumn{4}{c}{\textbf{Buffered Point-F1 $\uparrow$}} & \multicolumn{4}{c}{\textbf{Held-Out FPR (Causal / Buffered) $\downarrow$}} \\
 \cmidrule(lr){2-6} \cmidrule(lr){7-10} \cmidrule(lr){11-14}
 \textbf{Dataset} & {$n$} & {$K$} & {$E$} & {$\pi$} & {$\text{F1}_{\text{all-pos}}$} & {\textbf{TS-JEPA}} & {\textbf{Sol.-Rey.}} & {\textbf{TimesNet}} & {\textbf{TranAD}} & {\textbf{TS-JEPA}} & {\textbf{Sol.-Rey.}} & {\textbf{TimesNet}} & {\textbf{TranAD}} \\
 \midrule
@@ -57,5 +57,5 @@ Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & 0.000            
 SWAN    & 1  & 38 & 6615 & 0.279 & 0.437 & \textbf{0.119}    & \underline{0.017} & 0.000             & 0.000             & \textbf{.000/.000}    & \textbf{.000/.000} & \textbf{.000/.000} & \textbf{.000/.000} \\
 \bottomrule
 \end{tabular*}\par\vspace{3.0pt}\noindent
-\parbox{\textwidth}{\scriptsize\emph{Note:} Calibration error $|\text{FPR}_{\text{hold}} - q|$ at $q{=}0.001$ is $\text{FPR} - 0.001$. 95\% stream-bootstrap CIs (19 streams) for (a) Buffered FPR/F1: TS-JEPA $[.048, .145]$/$[.113, .319]$, Sol.-Rey.\ $[.047, .179]$/$[.093, .291]$, ($\alpha_{\text{sol}}{=}0$) $[.060, .195]$/$[.091, .289]$, TimesNet $[.162, .446]$/$[.098, .315]$, TranAD $[.177, .445]$/$[.053, .232]$, Linear AR $[.001, .011]$/$[.012, .104]$; (b) Causal FPR/F1: TS-JEPA $[.007, .046]$/$[.063, .287]$, Sol.-Rey.\ $[.002, .004]$/$[.014, .119]$, ($\alpha_{\text{sol}}{=}0$) $[.002, .005]$/$[.014, .120]$, TimesNet $[.123, .375]$/$[.109, .326]$, TranAD $[.119, .337]$/$[.058, .241]$. In (b), causal test alert rate $\hat{p}_{\text{alert}}$/TPR/rate-matched random-alerter $\text{ER}_{\text{rand}}(p{=}\text{FPR}_{\text{hold}})$ ($\text{ER}_{\text{rand}}(p{=}\hat{p}_{\text{alert}})$) across 19 streams ($111$ events on 18 non-SWAN streams, median $L{=}139$, mean $348.1$; $6{,}615$ SWAN events): TS-JEPA $.108/.166/.283$ ($.656$), Sol.-Rey.\ $.022/.052/.288$ ($.524$, $\Delta t_{\text{rand}}{=}214.6$ at $\text{FPR}_{\text{hold}}$, $114.7$ at $\hat{p}_{\text{alert}}$), ($\alpha_{\text{sol}}{=}0$) $.021/.052/.288$ ($.509$), TimesNet $.242/.340/.600$ ($.801$), TranAD $.213/.239/.601$ ($.801$). In (c), $E$ is test events ($34, 3, 2, 5, 7, 13, 3{,}137$ in held-out half); Causal/Buffered FPR stream SDs: Daphnet $.001\text{--}.030$/$.032\text{--}.091$ vs.\ $.337\text{--}.402$/$.381\text{--}.430$ (seed SD $.002\text{--}.041$); GHL $.001\text{--}.005$/$.002\text{--}.006$ vs.\ $.041\text{--}.065$; MSL $.001\text{--}.047$/$.112\text{--}.147$ vs.\ $.228\text{--}.281$; SMAP $.003\text{--}.019$/$.125\text{--}.181$ vs.\ $.080\text{--}.150$. \textbf{(d) 130-Stream Single-Seed Cross-Check (Point-F1, dataset-macro / stream mean, 11 datasets):} NCAD $0.058 / 0.088$; DCdetector $0.070 / 0.097$; Anomaly Transformer $0.091 / 0.082$; TimesNet $0.129 / 0.151$; TranAD \underline{$0.156 / 0.152$}; TS-JEPA \textbf{0.160 / 0.186}.}\vspace{-8pt}
+\parbox{\textwidth}{\scriptsize\emph{Note:} 95\% stream-bootstrap CIs ($n{=}19$) for (a) Buffered FPR/F1: TS-JEPA $[.048, .145]$/$[.113, .319]$, Sol.-Rey.\ $[.047, .179]$/$[.093, .291]$, ($\alpha_{\text{sol}}{=}0$) $[.060, .195]$/$[.091, .289]$, TimesNet $[.162, .446]$/$[.098, .315]$, TranAD $[.177, .445]$/$[.053, .232]$, Linear AR $[.001, .011]$/$[.012, .104]$; (b) Causal FPR/F1: TS-JEPA $[.007, .046]$/$[.063, .287]$, Sol.-Rey.\ $[.002, .004]$/$[.014, .119]$, ($\alpha_{\text{sol}}{=}0$) $[.002, .005]$/$[.014, .120]$, TimesNet $[.123, .375]$/$[.109, .326]$, TranAD $[.119, .337]$/$[.058, .241]$. In (b), causal alert rate $\hat{p}_{\text{alert}}$/TPR/random-alerter $\text{ER}_{\text{rand}}(\text{FPR}_{\text{hold}})$ ($\text{ER}_{\text{rand}}(\hat{p}_{\text{alert}})$): TS-JEPA $.108/.166/.283$ ($.656$), Sol.-Rey.\ $.022/.052/.288$ ($.524$), ($\alpha_{\text{sol}}{=}0$) $.021/.052/.288$ ($.509$), TimesNet $.242/.340/.600$ ($.801$), TranAD $.213/.239/.601$ ($.801$). \textbf{(d) 130-Stream Cross-Check (Point-F1, dataset-macro / stream mean):} NCAD $0.058 / 0.088$; DCdetector $0.070 / 0.097$; Anomaly Transformer $0.091 / 0.082$; TimesNet $0.129 / 0.151$; TranAD \underline{$0.156 / 0.152$}; TS-JEPA \textbf{0.160 / 0.186}.}\vspace{-8pt}
 \end{table*}

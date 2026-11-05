@@ -2,10 +2,10 @@
 \centering
 \scriptsize
 \setlength{\tabcolsep}{1.0pt}
-\caption{Threshold Calibration Analysis at Design Risk $q{=}10^{-3}$: (a)~Parametric SPOT vs.\ Non-Parametric 99.5th Percentile Across 33 Streams (Cell-Weighted Means, Stream-Macro in Parentheses, and Causal Calibration Error $|\text{FPR}_{\text{hold}}{-}q|$), and (b)~Three-Stage Refitted Permutation Decomposition of Excess Causal FPR Across All 19 Non-GHL Streams.\label{tab:calibrator_comparison}}
+\caption{Threshold Calibration and Drift Decomposition ($q{=}10^{-3}$).\label{tab:calibrator_comparison}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} ll c c c c @{}}
 \toprule
-\textbf{(a) Model} & \textbf{Rule} & \textbf{Causal FPR} & \textbf{$|\text{FPR}{-}q|$ (Over.)} & \textbf{Buffered FPR} & \textbf{F1 (buf)} \\
+\textbf{(a) Model} & \textbf{Rule} & \textbf{Causal FPR} & \textbf{Error (Over.)} & \textbf{Buf.\ FPR} & \textbf{Buf.\ F1} \\
 \midrule
 \multirow{2}{*}{TS-JEPA}
  & Standard SPOT   & 0.017 (0.015) & .014 (15$\times$) & 0.064 (0.055) & 0.139 \\
@@ -29,7 +29,7 @@
 \setlength{\tabcolsep}{1.6pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l ccc ccc @{}}
 \toprule
-& \multicolumn{3}{c}{\textbf{Refitted Stage Causal FPR}} & \multicolumn{3}{c}{\textbf{Share of Excess (\%)}}\\
+& \multicolumn{3}{c}{\textbf{Refitted Causal FPR ($n{=}19$)}} & \multicolumn{3}{c}{\textbf{Excess Share (\%)}}\\
 \cmidrule(lr){2-4} \cmidrule(lr){5-7}
 \textbf{(b) Model} & {$\text{FPR}_{\text{chr}}$} & {$\text{FPR}_{\text{blk}}$} & {$\text{FPR}_{\text{pt}}$} & \textbf{Inter-Blk} & \textbf{Serial} & \textbf{i.i.d.} \\
 \midrule
@@ -38,6 +38,6 @@ Soliton-Rey. & \textbf{0.0033} & \textbf{0.0037} & \textbf{0.0025} &  \textbf{0.
 TimesNet     & 0.2302 & 0.0427 & 0.0035 & 81.8 & 17.1 &  1.1 \\
 TranAD       & 0.2103 & 0.0464 & 0.0034 & 78.3 & 20.5 &  1.1 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), Over.\ is the causal overshoot ratio $\text{FPR}_{\text{macro}} / q$ at $q{=}10^{-3}$; under $S{=}64$ buffered attribution, window smearing dilates single exceedances across 64 steps ($55\text{--}213\times q$). In (b), $95\%$ stream-bootstrap CIs for inter-block drift $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$ ($n{=}19$): TS-JEPA $+.0156$ $[+.001, +.034]$, Soliton-Rey.\ $-.0004$ $[-.002, +.001]$, TimesNet $+.1874$ $[+.078, +.305]$, TranAD $+.1639$ $[+.072, +.267]$.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), cell-weighted means ($n{=}33$ streams; stream-macro in parentheses); Error is $|\text{FPR}_{\text{macro}}{-}q|$ and Over.\ is $\text{FPR}_{\text{macro}} / q$. In (b), 95\% CIs for inter-block drift $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$: TS-JEPA $+.0156$ $[+.001, +.034]$, Sol.-Rey.\ $-.0004$ $[-.002, +.001]$, TimesNet $+.1874$ $[+.078, +.305]$, TranAD $+.1639$ $[+.072, +.267]$.} \\
 \end{tabular*}\par\vspace{-8pt}
 \end{table}

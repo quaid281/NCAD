@@ -3,11 +3,11 @@
 
 \begin{table*}[t]
 \centering
-\caption{Ablation and Mechanism-Discrimination Studies: (a)~Fixed-Backbone Soliton Modulation Control and TOST Equivalence ($n{=}19$, 5 Seeds), (b)~Dyadic Front-End ($n{=}5$), and (c)~12-Arm Matched-Backbone Factorial Comparison ($n{=}19$, 5 Seeds). ER is event recall.\label{tab:ablations}}
+\caption{Architectural Ablation and Mechanism-Discrimination Studies ($n{=}19$ Streams, 5 Seeds; Event Recall (ER)).\label{tab:ablations}}
 \vspace{1pt}
 \begin{tabular}{@{}p{0.548\textwidth}@{\hspace{0.008\textwidth}}p{0.436\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) Soliton Modulation Control on Fixed Backbone \& TOST Equivalence}} & \multicolumn{1}{c}{\textbf{(b) Dyadic-Shell Front-End On/Off}} \\
+\multicolumn{1}{c}{\textbf{(a) Fixed-Backbone Soliton Control ($n{=}19$)}} & \multicolumn{1}{c}{\textbf{(b) Dyadic Front-End ($n{=}5$)}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
@@ -15,17 +15,17 @@
 \setlength{\tabcolsep}{0.6pt}
 \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l ccccc c@{}}
 \toprule
-\textbf{Model / Control} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%]$} & \textbf{$p_{\text{TOST}}$} \\
+\textbf{Model} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%]$} & \textbf{$p_{\text{TOST}}$} \\
 \midrule
 TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & {Baseline} & {--} \\
 \addlinespace[1.5pt]
 Soliton-Reynolds JEPA & $0.188 \pm 0.052$ & \textbf{0.375} & 0.108 & 0.496 & $+0.003$ $[-.011, +.016]$ & $0.0021^*$ \\
 \quad $\alpha_{\text{sol}}=0$ control & $0.185 \pm 0.053$ & \textbf{0.374} & 0.122 & 0.515 & {--} & {($0.026^\dagger$)} \\
 \midrule
-TimesNet (Baseline) & $0.197 \pm 0.018$ & 0.329 & 0.300 & \textbf{0.583} & {--} & {--} \\
-TranAD (Baseline) & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
+TimesNet & $0.197 \pm 0.018$ & 0.329 & 0.300 & \textbf{0.583} & {--} & {--} \\
+TranAD & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
 \bottomrule
-\multicolumn{7}{@{}p{\linewidth}@{}}{\tiny $^*$TOST equiv.\ between \texttt{Soliton-Reynolds JEPA} and its fixed-backbone $\alpha_{\text{sol}}{=}0$ envelope control at $\Delta{=}\pm 0.030$ ($p{=}0.0021$); $^\dagger$equiv.\ at $\Delta{=}\pm 0.020$ ($p{=}0.026$; two-sided Wilcoxon $p{=}0.327$). Post-hoc soliton modulation is statistically null in Point-F1 and PR-AUC (buffered matched-FPR event recall at $f^*{=}0.01$ is $0.621$ vs.\ $0.604$; causal is $0.701$ vs.\ $0.697$ in Panel~(c)).} \\
+\multicolumn{7}{@{}p{\linewidth}@{}}{\tiny $^*$TOST equivalence vs.\ $\alpha_{\text{sol}}{=}0$ control at $\Delta{=}\pm 0.030$ ($p{=}0.0021$); $^\dagger$at $\Delta{=}\pm 0.020$ ($p{=}0.026$; Wilcoxon $p{=}0.327$). Matched-FPR ER ($f^*{=}0.01$): buffered $0.621$ vs.\ $0.604$; causal $0.701$ vs.\ $0.697$.} \\
 \end{tabular*}%
 \endgroup
 &
@@ -48,7 +48,7 @@ GECCO \texttt{water\_quality} & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} 
 \endgroup
 \\
 \midrule
-\multicolumn{2}{@{}c@{}}{\textbf{(c) Controlled 12-Arm Mechanism-Discrimination Study Across 19 Non-GHL Streams (5 Seeds)}} \\
+\multicolumn{2}{@{}c@{}}{\textbf{(c) 12-Arm Matched-Backbone Factorial Comparison ($n{=}19$ Streams, 5 Seeds)}} \\
 \multicolumn{2}{@{}c@{}}{%
 \begingroup
 \scriptsize
@@ -63,18 +63,18 @@ GECCO \texttt{water\_quality} & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} 
 \texttt{TS-JEPA} (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & 0.161 & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
 \texttt{Soliton-Reynolds JEPA} & 2.31 & \textbf{0.163} & \textbf{0.003} & 0.108 & 0.060 & 0.188 & \textbf{0.289} & \textbf{0.375} & 0.506 & 0.809 & \textbf{0.701} & 0.809 \\
 \texttt{Soliton-Reynolds ($\alpha_{\text{sol}}{=}0$)} & 2.24 & \textbf{0.162} & 0.004 & 0.122 & 0.061 & 0.185 & \textbf{0.288} & \textbf{0.374} & 0.498 & \textbf{0.820} & \textbf{0.697} & \textbf{0.820} \\
-\texttt{JEPA-CtxRecon} (Context Autoenc.) & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
-\texttt{JEPA-NoEMA} (Hard-Copy Target) & 1.16 & 0.167 & 0.009 & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & 0.816 & 0.398 & 0.600 \\
-\texttt{TS-JEPA-NoGate} (Plain $\ell_2$ Norm) & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
+\texttt{JEPA-CtxRecon} (Ctx.\ Recon.) & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
+\texttt{JEPA-NoEMA} (Hard Target) & 1.16 & 0.167 & 0.009 & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & 0.816 & 0.398 & 0.600 \\
+\texttt{TS-JEPA-NoGate} ($\ell_2$ Norm) & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
 \addlinespace[1.5pt]
-\texttt{PCA-LinPred-LN} (Linear Subspace) & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & 0.624 \\
+\texttt{PCA-LinPred-LN} (Linear) & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & 0.624 \\
 \texttt{TCN-ObsPred-LN} (Obs.\ + LayerNorm) & 0.91 & 0.376 & 0.117 & 0.193 & 0.084 & 0.126 & 0.235 & 0.257 & 0.421 & 0.665 & 0.329 & 0.541 \\
-\texttt{IsoForest} (Non-Parametric) & \textbf{0.70} & 0.373 & 0.039 & \textbf{0.056} & 0.041 & 0.041 & 0.209 & 0.222 & 0.149 & 0.631 & 0.317 & 0.443 \\
+\texttt{IsoForest} & \textbf{0.70} & 0.373 & 0.039 & \textbf{0.056} & 0.041 & 0.041 & 0.209 & 0.222 & 0.149 & 0.631 & 0.317 & 0.443 \\
 \addlinespace[1.5pt]
-\texttt{TCN-ObsPred} (Unbounded Obs.\ Pred.) & 6.10 & 0.463 & 0.247 & 0.313 & 0.140 & 0.145 & 0.272 & 0.310 & 0.546 & 0.629 & 0.171 & 0.383 \\
-\texttt{TCN-ObsRecon} (Unbounded Obs.\ Recon.) & 6.24 & 0.445 & 0.245 & 0.304 & 0.134 & 0.135 & 0.261 & 0.301 & 0.528 & 0.619 & 0.163 & 0.379 \\
-\texttt{TimesNet} (Baseline) & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & 0.281 & 0.329 & \textbf{0.588} & 0.618 & 0.217 & 0.407 \\
-\texttt{TranAD} (Baseline) & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 0.602 & 0.149 & 0.343 \\
+\texttt{TCN-ObsPred} (Obs.\ Pred.) & 6.10 & 0.463 & 0.247 & 0.313 & 0.140 & 0.145 & 0.272 & 0.310 & 0.546 & 0.629 & 0.171 & 0.383 \\
+\texttt{TCN-ObsRecon} (Obs.\ Recon.) & 6.24 & 0.445 & 0.245 & 0.304 & 0.134 & 0.135 & 0.261 & 0.301 & 0.528 & 0.619 & 0.163 & 0.379 \\
+\texttt{TimesNet} & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & 0.281 & 0.329 & \textbf{0.588} & 0.618 & 0.217 & 0.407 \\
+\texttt{TranAD} & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 0.602 & 0.149 & 0.343 \\
 \bottomrule
 \end{tabular*}%
 \endgroup
