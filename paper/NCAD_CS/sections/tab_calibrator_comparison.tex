@@ -2,12 +2,12 @@
 \centering
 \scriptsize
 \setlength{\tabcolsep}{1.2pt}
-\caption{141-Stream 224-Bit Circuit-Breaker Benchmark and Regime-Drift Decomposition.\label{tab:calibrator_comparison}}
+\caption{Archive-Wide 141-Stream Circuit-Breaker Benchmark (12 Datasets, 3 Seeds) and Per-Family Breakdown.\label{tab:calibrator_comparison}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l cc cc cc cc @{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t} \downarrow$}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
-\textbf{(a) 141-Stream Cohort} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
+\textbf{(a) All $n{=}141$ Streams} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
 TS-JEPA (1D)               & .067 & .142 & .165 & .213 & .480 & .459 & 115.4 & 117.9 \\
 Speculative-JEPA (1D)      & .071 & .155 & .183 & .256 & .497 & .565 & 123.0 & 64.8 \\
@@ -18,19 +18,21 @@ Spec.-Alien-JEPA (1D)      & .077 & .153 & .184 & .253 & .507 & .567 & 125.4 & 6
 \bottomrule
 \end{tabular*}
 
-\vspace{3pt}
-\setlength{\tabcolsep}{1.6pt}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l ccc ccc @{}}
+\vspace{2pt}
+\setlength{\tabcolsep}{1.0pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r ccc ccc ccc @{}}
 \toprule
-& \multicolumn{3}{c}{\textbf{Refitted Causal FPR ($n{=}19$)}} & \multicolumn{3}{c}{\textbf{Excess Share (\%)}}\\
-\cmidrule(lr){2-4} \cmidrule(lr){5-7}
-\textbf{(b) Model} & {$\text{FPR}_{\text{chr}}$} & {$\text{FPR}_{\text{blk}}$} & {$\text{FPR}_{\text{pt}}$} & \textbf{Inter-Blk} & \textbf{Serial} & \textbf{i.i.d.} \\
+& & \multicolumn{3}{c}{\textbf{Causal Pt-F1 $\uparrow$}} & \multicolumn{3}{c}{\textbf{Buffered Pt-F1 $\uparrow$}} & \multicolumn{3}{c}{\textbf{Causal ER $\uparrow$}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}
+\textbf{(b) Family} & {$n$} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} \\
 \midrule
-TS-JEPA      & 0.0229 & 0.0073 & 0.0033 & 71.3 & 18.1 & 10.5 \\
-Soliton-Rey. & \textbf{0.0056} & \textbf{0.0047} & \textbf{0.0020} &  \textbf{18.7} & 59.5 & 21.8 \\
-TimesNet     & 0.2302 & 0.0427 & 0.0035 & 81.8 & 17.1 &  1.1 \\
-TranAD       & 0.2103 & 0.0464 & 0.0034 & 78.3 & 20.5 &  1.1 \\
+SMAP        & 47 & \textbf{.202} & \underline{.130} & .080 & \textbf{.219} & .213 & \underline{.218} & \textbf{.857} & \underline{.709} & .595 \\
+Daphnet     & 22 & \textbf{.097} & .038 & \underline{.064} & \textbf{.155} & \underline{.123} & .098 & \textbf{.863} & .550 & \underline{.595} \\
+MSL         & 18 & \textbf{.131} & .044 & \underline{.064} & \textbf{.278} & \underline{.183} & .170 & \textbf{.787} & .574 & \underline{.586} \\
+SMD         & 18 & \textbf{.090} & .028 & \underline{.042} & \textbf{.125} & .065 & \underline{.072} & \textbf{.234} & \underline{.106} & .088 \\
+Exathlon    & 17 & \textbf{.163} & \underline{.133} & .092 & \underline{.181} & \textbf{.186} & .134 & \textbf{.821} & \underline{.632} & .472 \\
+OPPORT.     & 13 & \textbf{.075} & .017 & \underline{.045} & \textbf{.066} & \underline{.062} & .036 & \textbf{.821} & .231 & \underline{.487} \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), $n{=}141$ streams across 12 datasets (3 seeds): $^*$Wilcoxon vs.\ TS-JEPA $90/43$ wins ($p{=}3.6{\times}10^{-7}$) and vs.\ 1D Spec.-Alien $98/29$ wins ($p{=}1.8{\times}10^{-11}$); $^\dagger 97/36$ wins vs.\ TS-JEPA ($p{=}8.3{\times}10^{-11}$) and $114/18$ wins vs.\ 1D Spec.-Alien ($p{=}1.2{\times}10^{-16}$); $^\ddagger$buffered F1 $p{\le}2.6{\times}10^{-4}$ (Strict lowers buffered held-out FPR from $18.0\%$ to $16.5\%$). In (b), 95\% CIs for inter-block drift $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$: TS-JEPA $+.0156$ $[+.001, +.034]$, Sol.-Rey.\ $+.0009$ $[-.002, +.004]$, TimesNet $+.1874$ $[+.078, +.305]$, TranAD $+.1639$ $[+.072, +.267]$.} \\
-\end{tabular*}\par\vspace{-8pt}
+\multicolumn{11}{@{}p{\columnwidth}@{}}{\tiny In (a), $n{=}141$ streams across 12 datasets (423 runs): $^*$Wilcoxon vs.\ TS-JEPA $90/43$ wins ($p{=}3.6{\times}10^{-7}$) and vs.\ 1D Spec.-Alien $98/29$ wins ($p{=}1.8{\times}10^{-11}$); $^\dagger 97/36$ wins vs.\ TS-JEPA ($p{=}8.3{\times}10^{-11}$) and $114/18$ wins vs.\ 1D Spec.-Alien ($p{=}1.2{\times}10^{-16}$); $^\ddagger$buffered F1 $p{\le}2.6{\times}10^{-4}$ (Strict lowers buffered FPR from $18.0\%$ to $16.5\%$). In (b), multi-stream families ($n{=}135$; 224B = Spec.-224Bit-Breaker, 1D-Al.\ = 1D Spec.-Alien-JEPA, TS = TS-JEPA); single-stream datasets ($n{=}6$: GECCO, SWAN, Genesis, PSM, CreditCard, Metro) are reported in Section~\ref{subsec:calibration_realities}.} \\
+\end{tabular*}\par\vspace{-9pt}
 \end{table}

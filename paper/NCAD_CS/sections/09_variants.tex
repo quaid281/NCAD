@@ -3,11 +3,11 @@
 
 \begin{table*}[t]
 \centering
-\caption{Multi-Perspective Circuit-Breaker Ablation and Mechanism-Discrimination Studies ($n{=}19$ Streams; Event Recall (ER)).\label{tab:ablations}}
+\caption{Multi-Perspective Circuit-Breaker Expansion Ladder, Component Ablations, and Matched-Backbone Study ($n{=}19$ Streams).\label{tab:ablations}}
 \vspace{1pt}
-\begin{tabular}{@{}p{0.556\textwidth}@{\hspace{0.008\textwidth}}p{0.428\textwidth}@{}}
+\begin{tabular}{@{}p{0.492\textwidth}@{\hspace{0.008\textwidth}}p{0.492\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) 1D Collapse vs.\ 224-Bit Circuit-Breaker Progression ($n{=}19$)}} & \multicolumn{1}{c}{\textbf{(b) Dyadic Front-End ($n{=}5$)}} \\
+\multicolumn{1}{c}{\textbf{(a) Perspective Expansion Ladder ($1 \to 224$ Dials, $n{=}19$)}} & \multicolumn{1}{c}{\textbf{(b) Circuit-Breaker Component \& Quorum Ablation ($n{=}19$)}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
@@ -17,35 +17,37 @@
 \toprule
 & \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t} \downarrow$}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
-\textbf{Scoring / Panel Variant} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
+\textbf{Perspective Expansion Stage} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
-\textbf{Sol.-Rey.\ 224-Bit Breaker} & \textbf{.138}$^*$ & \textbf{.228}$^\dagger$ & \textbf{.312} & \textbf{.411} & \textbf{.607} & \textbf{.631} & \textbf{105.9} & \textbf{71.8} \\
-Sol.-Rey.\ 224-Bit Strict & .116$^*$ & .190 & \textbf{.312} & \textbf{.411} & .534 & .545 & 248.0 & 97.3 \\
-Sol.-Rey.\ 224-Bit + Soft Attn & \underline{.137} & \underline{.226} & .311 & .410 & \textbf{.607} & .628 & \underline{106.8} & \underline{73.4} \\
-Sol.-Rey.\ 128-Bit Sub-Block & .129 & .192 & .310 & .402 & .590 & .525 & 157.4 & 273.9 \\
-\midrule
-Sol.-Rey.\ 1D ($\alpha_{\text{sol}}{=}0.12$) & .052 & .137 & .291 & .370 & .398 & .377 & 246.6 & 402.7 \\
-Sol.-Rey.\ 1D ($\alpha_{\text{sol}}{=}0$ Env.) & .055 & .138 & .291 & .368 & .398 & .384 & 248.0 & 398.2 \\
+1D Scalar Collapse (1 Dial) & .052 & .137 & .291 & .370 & .398 & .377 & 246.6 & 402.7 \\
+32-Bit Full Horizon ($m{=}4$) & .101 & .119 & .266 & .366 & \textbf{.643} & .236 & 114.4 & 128.8 \\
+128-Bit Sub-Horizons ($m{=}1..4$) & .129 & .192 & .310 & .402 & .590 & .525 & 146.2 & 514.5 \\
+160-Bit ($+32$ Reynolds Drift) & \underline{.132} & .188 & .311 & .404 & .585 & .530 & \textbf{69.1} & 112.4 \\
+192-Bit ($+32$ Reynolds Fluc.) & .131 & \underline{.203} & \textbf{.312} & \underline{.408} & .575 & \underline{.567} & 179.0 & 217.3 \\
+\textbf{224-Bit Breaker ($+32$ Accel./Relays)} & \textbf{.138}$^*$ & \textbf{.228}$^\dagger$ & \textbf{.312} & \textbf{.411} & \underline{.607} & \textbf{.631} & \underline{105.9} & \textbf{71.8} \\
 \bottomrule
-\multicolumn{9}{@{}p{\linewidth}@{}}{\tiny $^*$Wilcoxon vs.\ 1D Sol.-Rey.: 224-Bit Breaker $17/0$ wins ($p{=}1.5{\times}10^{-5}$), 224-Bit Strict $16/1$ wins ($p{=}3.1{\times}10^{-5}$); $^\dagger$buffered F1 $p{=}0.026$. Fixed-backbone 1D $\alpha_{\text{sol}}{=}0.12$ vs.\ $\alpha_{\text{sol}}{=}0$ satisfies TOST equivalence at $\Delta{=}\pm 0.020$ ($p_{\text{TOST}}{=}2.7{\times}10^{-5}$).} \\
+\multicolumn{9}{@{}p{\linewidth}@{}}{\tiny $^*$Wilcoxon vs.\ 1D Scalar Collapse: $17/0$ wins ($p{=}1.5{\times}10^{-5}$); $^\dagger$buffered F1 $p{=}0.026$. Fixed-backbone 1D $\alpha_{\text{sol}}{=}0.12$ vs.\ $\alpha_{\text{sol}}{=}0$ ($.055 / .138$ F1) satisfies TOST at $\Delta{=}\pm 0.020$ ($p_{\text{TOST}}{=}2.7{\times}10^{-5}$).} \\
 \end{tabular*}%
 \endgroup
 &
 \begingroup
 \scriptsize
-\setlength{\tabcolsep}{0.8pt}
-\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
+\renewcommand{\arraystretch}{0.95}
+\setlength{\tabcolsep}{0.4pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cc cc cc cc@{}}
 \toprule
-\textbf{Stream (F1 / PR)} & \textbf{Std.\ Conv} & \textbf{Dyadic} & \textbf{$\Delta$F1 / $\Delta$PR} \\
+& \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t} \downarrow$}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+\textbf{Component / Quorum Variant} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
-SMAP P-3 & \textbf{0.301} / 0.280 & 0.115 / \textbf{0.296} & $-0.186$ / $+0.017$ \\
-MSL M-1 & 0.014 / \textbf{0.491} & \textbf{0.016} / 0.449 & $+0.002$ / $-0.043$ \\
-SMD machine-1-2 & 0.000 / 0.028 & \textbf{0.068} / \textbf{0.221} & $+0.068$ / $+0.193$ \\
-Daphnet S01R01E1 & \textbf{0.179} / \textbf{0.103} & 0.130 / 0.066 & $-0.048$ / $-0.037$ \\
-GECCO water-quality & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} & $-0.035$ / $+0.121$ \\
-\midrule
-\textbf{Macro Mean} & \textbf{0.118} / 0.213 & 0.078 / \textbf{0.263} & $-0.040$ / $+0.050$ \\
+\textbf{224-Bit Breaker (Full Panel)} & \textbf{.138} & \textbf{.228} & .312 & \underline{.411} & \textbf{.607} & \textbf{.631} & \underline{105.9} & \textbf{71.8} \\
+224-Bit Strict (High Quorum $K_{\text{strict}}$) & .116 & .190 & .312 & \underline{.411} & .534 & .545 & 248.0 & 97.3 \\
+224-Bit + Soft Attention & \underline{.137} & .226 & .311 & .410 & \textbf{.607} & .628 & 106.8 & 73.4 \\
+w/o 32 Right-Edge Relays & .135 & \textbf{.228} & \textbf{.313} & \textbf{.413} & .602 & \textbf{.631} & 123.7 & \underline{72.5} \\
+w/o Prefix Routing (Unif.\ Smear) & \textbf{.138} & .223 & .312 & .407 & \textbf{.607} & .584 & \underline{105.9} & 88.6 \\
+w/o Hijack Guards ($\gamma_j{=}1$) & \underline{.137} & .225 & .312 & \underline{.411} & .603 & .623 & \textbf{101.6} & 75.6 \\
 \bottomrule
+\multicolumn{9}{@{}p{\linewidth}@{}}{\tiny Leave-one-out component ablations evaluated on the identical 57 cached Soliton-Reynolds multi-horizon residual fields ($n{=}19$ streams $\times$ 3 seeds).} \\
 \end{tabular*}%
 \endgroup
 \\
@@ -92,25 +94,31 @@ TranAD & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 
 \centering
 \includegraphics[width=0.84\textwidth]{figures/regularizer_sweep_and_quiet_faults.pdf}
 \vspace{-5pt}
-\caption{Multi-perspective circuit-breaker progression and quiet-fault recovery. \textbf{(a)}~Causal ER, buffered PR-AUC, buffered Point-F1, causal Point-F1, causal held-out FPR (left axis), and causal detection delay $\Delta t$ (right axis) across 1D scalar collapse ($\alpha_{\text{sol}} \in \{0, 0.12\}$), the 128-bit sub-block panel, 224-Bit Strict, 224-Bit Breaker, and 224-Bit + Soft Attention ($n{=}19$ streams). \textbf{(b)}~Injected single-channel ER (bars) and point recall (circles) across uniform TS-JEPA (Unif.), context-variance (Var.) and MAD input gates, the standalone rolling variance-collapse monitor (Var.\ Monitor), and the hybrid union detector (Hybrid; nominal FPR in parentheses, $n{=}6$ streams, three seeds).\label{fig:regularizer_and_quiet_fault}}
+\caption{Multi-perspective circuit-breaker progression and quiet-fault recovery. \textbf{(a)}~Causal ER, buffered PR-AUC, buffered Point-F1, causal Point-F1, causal held-out FPR (left axis), and causal detection delay $\Delta t$ (right axis) across the 6-step perspective expansion ladder from 1D scalar collapse ($1$ dial) to $32$-bit ($m{=}4$), $128$-bit sub-horizons, $160$-bit ($+$drift), $192$-bit ($+$fluctuation), and $224$-Bit Breaker ($n{=}19$ streams). \textbf{(b)}~Injected single-channel ER (bars) and point recall (circles) across 1D TS-JEPA, variance input gating (Var.\ Gate), Soliton-Reynolds 224-Bit Breaker, the standalone rolling variance-collapse monitor (Var.\ Mon.), and the 224-bit hybrid union detector (Hybrid Union; nominal FPR in parentheses, $n{=}6$ streams).\label{fig:regularizer_and_quiet_fault}}
 \vspace{-7pt}
 \end{figure*}
 
-\subsection{Ablation 1: 1D Scalar Collapse vs.\ 128-Bit and 224-Bit Multi-Perspective Circuit Breakers}
+\subsection{Ablation 1: Perspective Expansion Ladder and Circuit-Breaker Component Analysis}
 \label{subsec:controlled_ablations}
 \label{subsec:factorial}
-What unlocks the accuracy and speed of Soliton-Reynolds JEPA on the identical trained backbone? Table~\ref{tab:ablations}(a) and Fig.~\ref{fig:regularizer_and_quiet_fault}(a) trace the step-by-step progression across all 19 non-GHL streams. First, under 1D scalar scoring, the unmodulated multi-horizon whitened envelope ($\alpha_{\text{sol}}{=}0$) and the Lieb--Thirring soliton-modulated score ($\alpha_{\text{sol}}{=}0.12$) achieve strong false-alarm suppression ($0.6\%\text{--}0.7\%$ causal FPR) and satisfy TOST equivalence within $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 2.7{\times}10^{-5}$), but collapsing 128 whitened coordinates into a single 1D score allows isolated drifting coordinates to inflate the scalar threshold, restricting causal Point-F1 to $0.052\text{--}0.055$ and delay to $246.6\text{--}248.0$ steps. Second, replacing 1D collapse with independent per-coordinate binary switches over the $128$ sub-block magnitudes (\emph{128-Bit Sub-Block}) immediately lifts causal Point-F1 from $0.052$ to $0.129$, buffered Point-F1 from $0.137$ to $0.192$, and causal event recall from $39.8\%$ to $59.0\%$. Third, expanding the same 32 latent coordinates into $7 \times 32 = 224$ fluid-dynamic dials (adding Reynolds mean-flow drift, turbulent fluctuation, and convective right-edge acceleration) and 32 fast right-edge onset relays in \emph{224-Bit Breaker} raises causal Point-F1 to $0.138$ ($17$ wins / $0$ losses, $p = 1.5{\times}10^{-5}$), buffered Point-F1 to $0.228$ ($p = 0.026$), buffered PR-AUC from $0.370$ to $0.411$, and event recall to $60.7\%$ causal ($63.1\%$ buffered) while cutting detection delay from $246.6$ to $105.9$ steps causally ($402.7$ to $71.8$ steps buffered). Finally, adding a soft temporal and cross-perspective attention pooling gate over the 224 dials (\emph{224-Bit + Soft Attn}) offers no further gain ($0.137$ causal and $0.226$ buffered F1), confirming that discrete Boolean switches prevent cross-coordinate dilution without requiring continuous attention weights.
+How do each of the seven fluid-dynamic perspectives and three calibration rules contribute to the 224-bit circuit-breaker panel on the identical trained backbone? Table~\ref{tab:ablations}(a),(b) and Fig.~\ref{fig:regularizer_and_quiet_fault}(a) evaluate the step-by-step perspective expansion ladder and leave-one-out component ablations across all 19 non-GHL streams (57 runs):
+\begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
+    \item \emph{From 1D scalar collapse to 32-bit and 128-bit sub-horizon switches (Table~\ref{tab:ablations}(a)):} Collapsing the 128 whitened coordinates into a single 1D score (whether modulated by $R_{\text{LT}}$ at $\alpha_{\text{sol}}=0.12$ or unmodulated at $\alpha_{\text{sol}}=0$, which satisfy TOST equivalence within $\Delta = \pm 0.020$, $p_{\text{TOST}} = 2.7{\times}10^{-5}$) allows one or two drifting coordinates to inflate the scalar threshold, restricting causal Point-F1 to $0.052$ and delay to $246.6$ steps. Replacing 1D collapse with 32 independent switches on the terminal horizon ($m=4$) nearly doubles causal Point-F1 to $0.101$, and expanding across all four nested sub-horizons (\emph{128-Bit Sub-Horizons}) lifts causal Point-F1 to $0.129$, buffered Point-F1 from $0.137$ to $0.192$, and buffered PR-AUC from $0.370$ to $0.402$.
+    \item \emph{Adding Reynolds mean-flow drift, turbulent fluctuation, and convective right-edge acceleration ($128 \to 160 \to 192 \to 224$ dials):} Appending the 32 Reynolds mean-flow drift dials (\emph{160-Bit}) cuts causal detection delay in half ($146.2 \to 69.1$ steps) and lifts causal Point-F1 to $0.132$. Adding the 32 Reynolds turbulent-fluctuation dials (\emph{192-Bit}) lifts buffered Point-F1 to $0.203$ and buffered ER to $56.7\%$. Finally, adding the 32 convective right-edge acceleration dials and 32 onset relays (\emph{224-Bit Breaker}) achieves the best overall performance: $0.138$ causal Point-F1 ($17$ wins / $0$ losses over 1D collapse, $p = 1.5{\times}10^{-5}$), $0.228$ buffered Point-F1 ($p = 0.026$), $0.411$ buffered PR-AUC, $60.7\%$ causal ER ($63.1\%$ buffered), and $71.8$-step buffered delay ($105.9$ causal).
+    \item \emph{Leave-one-out component ablations (Table~\ref{tab:ablations}(b)):} Removing the 32 fast right-edge onset relays (\emph{w/o 32 Right-Edge Relays}) slows causal detection delay from $105.9$ to $123.7$ steps and lowers causal Point-F1 from $0.138$ to $0.135$. Replacing physical prefix-horizon routing with uniform 64-step window smearing (\emph{w/o Prefix Routing}) degrades buffered ER from $63.1\%$ to $58.4\%$, buffered Point-F1 from $0.228$ to $0.223$, and buffered delay from $71.8$ to $88.6$ steps. Removing the per-dial hijack guards ($\gamma_j = 1$) lowers both causal and buffered F1 ($0.137$ and $0.225$) and buffered ER ($62.3\%$). Conversely, adding a soft temporal and cross-perspective attention pooling gate (\emph{224-Bit + Soft Attention}) provides no gain over discrete Boolean switches ($0.137$ causal and $0.226$ buffered F1).
+\end{enumerate}
 
-\subsection{Ablation 2: Single-Channel Quiet Faults, Input Gating, and Hybrid Monitoring}
+\subsection{Ablation 2: Single-Channel Quiet Faults and the 224-Bit Hybrid Variance-Collapse Monitor}
 \label{subsec:gating_ablation}
-When one sensor out of $K$ freezes at a nominal value while the remaining $K-1$ channels fluctuate normally, the frozen channel perturbs the pooled pre-LayerNorm vector by only $O(1/K)$, and LayerNorm rescales the embedding onto $\sqrt{D}\mathbb{S}^{D-1}$ using the remaining active channels. Pre-weighting input channels by context variance lowers macro Point-F1 across four multivariate streams from $0.118$ to $0.077$, so the deployed pipeline retains uniform input encoding. Across six single-channel fault classes injected into six multivariate streams (Fig.~\ref{fig:regularizer_and_quiet_fault}(b)), uniform TS-JEPA detects $27.8\%$ of abrupt $+5\sigma$ spikes, but on persistent quiet faults (flatlines, stuck sensors, and zero dropouts) event recall falls to $19.4\%$ and point recall drops below $3\%$. Simple observation-space monitors catch these complementary failures: a maximum channel deviation monitor and a rolling variance-collapse monitor (tracking how far each channel's 32-step trailing standard deviation drops below its nominal median) each recover $25\%\text{--}39\%$ of quiet-fault events at $14\%\text{--}15\%$ FPR. Taking the logical union of TS-JEPA alarms and the rolling variance-collapse monitor lifts event recall to $41.7\%\text{--}50.0\%$ across all six fault classes at $17.0\%$ nominal FPR.
+When one sensor out of $K$ freezes at a nominal level while the remaining $K-1$ channels fluctuate normally, the frozen channel perturbs the pooled pre-LayerNorm vector by only $O(1/K)$, and LayerNorm rescales the embedding onto $\sqrt{D}\mathbb{S}^{D-1}$ using the remaining active channels. Pre-weighting input channels by context variance degrades macro Point-F1 across multivariate streams ($0.118 \to 0.077$), so the deployed pipeline retains uniform input encoding. Across six single-channel fault classes injected into six multivariate streams (Fig.~\ref{fig:regularizer_and_quiet_fault}(b)), 1D TS-JEPA detects only $19.4\%$ of quiet-fault events (flatlines, stuck sensors, and dropouts) with $<3\%$ point recall. Because the 224-bit circuit-breaker panel monitors all 32 latent coordinates independently without 1D score collapse, standalone \emph{Soliton-Reynolds 224-Bit Breaker} lifts quiet-fault event recall to $25.0\%\text{--}29.2\%$ ($33.3\%$ on $+5\sigma$ spikes) and increases point recall more than seven-fold to $14.3\%\text{--}25.6\%$. Pairing the 224-bit panel in a logical union with a parameter-free observation-space rolling variance-collapse monitor (tracking how far each channel's 32-step trailing standard deviation drops below its nominal median) lifts event recall to $44.4\%\text{--}52.8\%$ and point recall to $24.3\%\text{--}35.6\%$ across all six single-channel fault classes.
 
-\subsection{Ablation 3: Multiscale Dyadic-Shell Front-End}
-Table~\ref{tab:ablations}(b) trains TS-JEPA with the identical 3-layer causal TCN encoder across five streams, comparing the 4-shell Fourier filterbank against a standard linear convolutional stem. Enabling the dyadic front-end raises macro PR-AUC from $0.213$ to $0.263$ (led by SMD and GECCO) and lowers validation residual kurtosis from $1.41$ to $1.07$, while macro Point-F1 under 1D thresholding decreases from $0.118$ to $0.078$ on SMAP P-3. Frequency-shell splitting thus improves score ranking and tail conditioning.
+\subsection{Ablation 3: Multiscale Dyadic-Shell Front-End vs.\ Standard Convolutional Stem}
+\label{subsec:dyadic_ablation}
+To isolate the effect of the 4-shell rFFT front-end under the 224-bit circuit-breaker panel, we train Soliton-Reynolds JEPA with and without dyadic frequency-shell splitting across five benchmark streams (\texttt{SMAP P-3}, \texttt{MSL M-1}, \texttt{SMD machine-1-2}, \texttt{Daphnet S01R01E1}, and \texttt{GECCO water-quality}, three seeds). On high-dimensional spacecraft telemetry with multi-frequency actuator oscillations, the dyadic front-end raises Point-F1 and PR-AUC substantially: on \texttt{MSL M-1} ($K=55$), buffered Point-F1 jumps from $0.085$ to $0.410$ (PR-AUC $0.505 \to 0.757$; causal F1 $0.027 \to 0.059$), and on \texttt{SMAP P-3} ($K=25$), causal Point-F1 rises from $0.212$ to $0.321$ (PR-AUC $0.367 \to 0.415$) while cutting mean detection delay across the five streams from $28.6$ to $26.2$ steps causally ($23.5$ to $17.9$ steps buffered) and lowering validation residual kurtosis from $1.41$ to $1.07$. Conversely, on lower-dimensional kinematic and water-quality streams (\texttt{Daphnet} $K=9$ and \texttt{GECCO} $K=9$), a plain time-domain convolutional stem achieves higher Point-F1 ($0.217$ vs.\ $0.136$ on \texttt{Daphnet}; $0.321$ vs.\ $0.158$ on \texttt{GECCO}), yielding a 5-stream macro causal Point-F1 of $0.193$ for the standard stem versus $0.156$ for the dyadic stem. Frequency-shell decomposition is thus most beneficial on high-channel telemetry with distinct spectral bands.
 
 \subsection{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}
 \label{subsec:controlled_backbone}
-Comparing the 14 model arms across all 19 non-GHL streams under identical splits, training budgets, and matched parameter counts in Table~\ref{tab:ablations}(c) isolates five architectural factors:
+Comparing all 15 model arms across the 19 non-GHL streams under identical splits, training budgets, and matched parameter counts in Table~\ref{tab:ablations}(c) isolates five architectural factors:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
     \item \emph{Forecasting vs.\ reconstructing raw observations (TCN Obs.\ Forecaster vs.\ TCN Obs.\ Autoencoder):} Pairing the same causal dilated TCN encoder with a multilayer perceptron decoder to either forecast the 64-step target window or reconstruct the 320-step window in raw sensor space leaves tail kurtosis ($\gamma_2 \approx 6.2$), calibration drift ($D_{\text{KS}} \approx 0.45$), and causal FPR ($\approx 25\%$) nearly identical.
     \item \emph{LayerNorm bottleneck in observation space (TCN Obs.\ Forecaster (LN)):} Adding a $D=32$ LayerNorm bottleneck and target-window LayerNorm to the observation forecaster compresses tail kurtosis six-fold ($\gamma_2 = 0.91$) and halves causal FPR to $11.7\%$, but targeting raw sensor waveforms leaves calibration drift high ($D_{\text{KS}} = 0.376$) and drops causal Point-F1 to $0.084$.

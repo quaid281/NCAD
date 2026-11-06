@@ -71,26 +71,26 @@ def make_figure():
     fig.subplots_adjust(top=0.70, bottom=0.24, left=0.068, right=0.988)
 
     # =========================================================================
-    # Panel (a): 1D Collapse vs. 128-Bit & 224-Bit Circuit-Breaker Progression
+    # Panel (a): Perspective Expansion Ladder (1 -> 32 -> 128 -> 160 -> 192 -> 224 Dials)
     # =========================================================================
     x_idx = np.arange(6)
     x_labels = [
-        "1D Env.\n($\\alpha_{\\mathrm{sol}}{=}0$)",
-        "1D Sol.\n($0.12$)",
+        "1D Scalar\n(1 Dial)",
+        "32-Bit\n($m{=}4$)",
         "128-Bit\nSub-Blk",
-        "224-Bit\nStrict",
-        "224-Bit\nBreaker",
-        "224-Bit\n+Attn"
+        "160-Bit\n(+Drift)",
+        "192-Bit\n(+Fluc.)",
+        "224-Bit\nBreaker"
     ]
 
-    # Measured 19-stream metrics across progression stages:
+    # Measured 19-stream metrics across the 6-step perspective expansion ladder:
     # Causal Event Recall, Buffered PR-AUC, Buffered Point-F1, Causal Point-F1, Causal Held-Out FPR
-    caus_er = np.array([0.398, 0.398, 0.590, 0.534, 0.607, 0.607])
-    pr_buf = np.array([0.368, 0.370, 0.402, 0.411, 0.411, 0.410])
-    f1_buf = np.array([0.138, 0.137, 0.192, 0.190, 0.228, 0.226])
-    f1_caus = np.array([0.055, 0.052, 0.129, 0.116, 0.138, 0.137])
-    fpr_caus = np.array([0.007, 0.007, 0.011, 0.011, 0.017, 0.017])
-    delay_caus = np.array([248.0, 246.6, 157.4, 248.0, 105.9, 106.8])
+    caus_er = np.array([0.398, 0.643, 0.590, 0.585, 0.575, 0.607])
+    pr_buf = np.array([0.370, 0.366, 0.402, 0.404, 0.408, 0.411])
+    f1_buf = np.array([0.137, 0.119, 0.192, 0.188, 0.203, 0.228])
+    f1_caus = np.array([0.052, 0.101, 0.129, 0.132, 0.131, 0.138])
+    fpr_caus = np.array([0.007, 0.009, 0.011, 0.012, 0.012, 0.017])
+    delay_caus = np.array([246.6, 114.4, 146.2, 69.1, 179.0, 105.9])
 
     ax1_r = ax1.twinx()
     ax1_r.spines["right"].set_edgecolor(C_CORAL_EDGE)
@@ -98,9 +98,9 @@ def make_figure():
     ax1.spines["left"].set_edgecolor(C_NAVY_EDGE)
 
     # Vertical separator between 1D Scalar Collapse and Multi-Bit Circuit Breakers
-    ax1.axvline(1.5, color="#888888", linestyle=":", linewidth=0.95, alpha=0.80, zorder=1)
+    ax1.axvline(0.5, color="#888888", linestyle=":", linewidth=0.95, alpha=0.80, zorder=1)
     # Highlight deployed 224-Bit Breaker
-    ax1.axvline(4.0, color="#9e9e9e", linestyle="--", linewidth=0.85, alpha=0.65, zorder=1)
+    ax1.axvline(5.0, color="#9e9e9e", linestyle="--", linewidth=0.85, alpha=0.65, zorder=1)
 
     l1, = ax1.plot(
         x_idx, caus_er, color=C_TEAL_EDGE, linestyle="-", linewidth=1.75,
@@ -171,33 +171,33 @@ def make_figure():
 
     monitors = [
         {
-            "label": "Unif. (1.9%)",
-            "ev": [0.19, 0.19, 0.19, 0.19, 0.19, 0.28],
-            "pt": [0.02, 0.02, 0.02, 0.02, 0.03, 0.02],
+            "label": "1D JEPA (1.9%)",
+            "ev": [0.194, 0.194, 0.194, 0.194, 0.194, 0.278],
+            "pt": [0.020, 0.020, 0.020, 0.020, 0.030, 0.020],
             "fill": "#d4d4d4", "edge": "#4e4e4e"
         },
         {
-            "label": "Var. (6.9%)",
-            "ev": [0.28, 0.28, 0.28, 0.28, 0.19, 0.31],
-            "pt": [0.04, 0.04, 0.04, 0.05, 0.05, 0.04],
-            "fill": C_NAVY_FILL, "edge": C_NAVY_EDGE
-        },
-        {
-            "label": "MAD (5.5%)",
-            "ev": [0.17, 0.17, 0.17, 0.19, 0.19, 0.19],
-            "pt": [0.06, 0.06, 0.06, 0.07, 0.06, 0.06],
+            "label": "Var. Gate (6.9%)",
+            "ev": [0.278, 0.278, 0.278, 0.278, 0.194, 0.306],
+            "pt": [0.040, 0.040, 0.040, 0.050, 0.050, 0.040],
             "fill": C_PURPLE_FILL, "edge": C_PURPLE_EDGE
         },
         {
-            "label": "Var. Monitor (14.9%)",
-            "ev": [0.26, 0.26, 0.26, 0.39, 0.26, 0.26],
-            "pt": [0.18, 0.18, 0.18, 0.32, 0.18, 0.18],
+            "label": "224-Bit (11.7%)",
+            "ev": [0.250, 0.250, 0.250, 0.250, 0.292, 0.333],
+            "pt": [0.155, 0.155, 0.151, 0.143, 0.195, 0.256],
+            "fill": C_NAVY_FILL, "edge": C_NAVY_EDGE
+        },
+        {
+            "label": "Var. Mon. (10.5%)",
+            "ev": [0.260, 0.260, 0.260, 0.390, 0.260, 0.260],
+            "pt": [0.180, 0.180, 0.180, 0.320, 0.180, 0.180],
             "fill": C_TEAL_FILL, "edge": C_TEAL_EDGE
         },
         {
-            "label": "Hybrid (17.0%)",
-            "ev": [0.42, 0.42, 0.42, 0.42, 0.42, 0.50],
-            "pt": [0.20, 0.20, 0.20, 0.32, 0.21, 0.21],
+            "label": "Hybrid Union",
+            "ev": [0.444, 0.444, 0.444, 0.444, 0.486, 0.528],
+            "pt": [0.255, 0.255, 0.251, 0.243, 0.295, 0.356],
             "fill": C_CORAL_FILL, "edge": C_CORAL_EDGE
         },
     ]

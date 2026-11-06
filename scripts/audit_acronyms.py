@@ -27,7 +27,7 @@ COMMON = {
 }
 # Dataset / model proper names, not acronyms to expand.
 PROPER = {
-    "SMAP", "MSL", "SMD", "GHL", "GECCO", "SWAN", "TimesNet", "TranAD",
+    "SMAP", "MSL", "SMD", "GHL", "GECCO", "SWAN", "OPPORTUNITY", "CreditCard", "PSM", "TimesNet", "TranAD",
     "JEPA", "VICReg", "NCAD", "NCADCS", "OpEntropy", "TS", "CICIDS", "DCdetector",
     "TimeEval", "SF", "PyTorch", "CUDA", "NVIDIA", "RTX", "BFGS",
     # Page headers, address and keyword macros that survive tag stripping.
