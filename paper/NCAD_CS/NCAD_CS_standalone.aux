@@ -66,20 +66,21 @@
 \citation{schmidl2022anomaly}
 \citation{zhou2026mtsbench}
 \citation{angryk2020multivariate}
+\citation{Hundman2018b}
 \citation{bachlin2010wearable}
 \citation{candanedo2016accurate}
 \citation{asuncion2007uci}
 \citation{Hundman2018b,schmidl2022anomaly}
 \citation{wu2023flawed}
 \citation{bai2018empirical}
-\citation{lecun2022path}
-\citation{grill2020bootstrap,assran2023self}
 \@writefile{toc}{\contentsline {section}{\numberline {III}Multi-Sensor Internet-of-Things and Remote Sensing Benchmark Suite}{3}{section.3}\protected@file@percent }
 \newlabel{sec:dataset}{{III}{3}{Multi-Sensor Internet-of-Things and Remote Sensing Benchmark Suite}{section.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {IV}Methodology: Joint-Embedding Predictive Architectures and Soliton-Reynolds Decomposition}{3}{section.4}\protected@file@percent }
 \newlabel{sec:proposed_method}{{IV}{3}{Methodology: Joint-Embedding Predictive Architectures and Soliton-Reynolds Decomposition}{section.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Problem Formulation and Latent Space Prediction}{3}{subsection.4.1}\protected@file@percent }
 \newlabel{subsec:architecture}{{\mbox  {IV-A}}{3}{Problem Formulation and Latent Space Prediction}{subsection.4.1}{}}
+\citation{lecun2022path}
+\citation{grill2020bootstrap,assran2023self}
 \citation{bardes2021vicreg}
 \citation{ba2016layernormalization}
 \citation{reynolds1895dynamical}
@@ -113,8 +114,8 @@
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}2}Multiscale Frequency Front-End}{6}{subsubsection.4.4.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {IV-D}3}Extreme-Value Threshold Calibration (SPOT)}{6}{subsubsection.4.4.3}\protected@file@percent }
 \newlabel{eq:spot_threshold}{{7}{6}{Extreme-Value Threshold Calibration (SPOT)}{equation.4.7}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row\nobreakspace  {}1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text  {tr}}$. Row\nobreakspace  {}2 indexes causal held-out scores $v[0:M_{\text  {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text  {val}})$. Row\nobreakspace  {}3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text  {alm}} - t^*$).}}{6}{figure.2}\protected@file@percent }
-\newlabel{fig:protocol_and_permutation}{{2}{6}{Chronological split, boundary window indexing, and online causality protocol ($C{=}256, S{=}64, W{=}320$). Row~1 separates raw training ($65\%$) and held-out nominal ($35\%$) observations with zero window overlap across $N_{\text {tr}}$. Row~2 indexes causal held-out scores $v[0:M_{\text {val}})$ into context warm-up ($W{-}1{=}319$), calibration $v[0:H)$, isolation gap $S{=}64$ (or full-window $W{=}320$), and held-out evaluation $v[H{+}S:M_{\text {val}})$. Row~3 distinguishes structural score-emission lag ($S{-}1{=}63$) from empirical fault-detection delay ($\Delta t = t_{\text {alm}} - t^*$)}{figure.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Held-out evaluation protocol ($C{=}256, S{=}64, W{=}320$): (Row\nobreakspace  {}1)\nobreakspace  {}chronological train/validation split, (Row\nobreakspace  {}2)\nobreakspace  {}boundary-isolated calibration and evaluation blocks, and (Row\nobreakspace  {}3)\nobreakspace  {}score-emission lag versus fault-detection delay.}}{6}{figure.2}\protected@file@percent }
+\newlabel{fig:protocol_and_permutation}{{2}{6}{Held-out evaluation protocol ($C{=}256, S{=}64, W{=}320$): (Row~1)~chronological train/validation split, (Row~2)~boundary-isolated calibration and evaluation blocks, and (Row~3)~score-emission lag versus fault-detection delay}{figure.2}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Protocol and Evaluation Metrics}{6}{section.5}\protected@file@percent }
 \newlabel{sec:exp}{{V}{6}{Experimental Protocol and Evaluation Metrics}{section.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Experimental Setup and Hyperparameters}{6}{subsection.5.1}\protected@file@percent }
@@ -152,15 +153,23 @@
 \newlabel{subsec:eval_physics_priors}{{\mbox  {VII-B}}{10}{Component-Level Analysis of Soliton-Reynolds JEPA}{subsection.7.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{10}{subsection.7.3}\protected@file@percent }
 \newlabel{subsec:causal_vs_buffered}{{\mbox  {VII-C}}{10}{Operational Incident Evaluation and Causal-vs-Buffered Trade-offs}{subsection.7.3}{}}
+\citation{Hundman2018b}
+\citation{Hundman2018b}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Contextual vs.\ Point Anomaly Detection (5 Seeds; Event Recall (ER)).}}{11}{table.4}\protected@file@percent }
+\newlabel{tab:point_vs_contextual}{{IV}{11}{Contextual vs.\ Point Anomaly Detection (5 Seeds; Event Recall (ER))}{table.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Horizon Length, Score-Emission Latency, and False-Alarm Control}{11}{subsection.7.4}\protected@file@percent }
 \newlabel{subsec:horizon_latency}{{\mbox  {VII-D}}{11}{Horizon Length, Score-Emission Latency, and False-Alarm Control}{subsection.7.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Deployable Calibration Quantiles vs.\ Matched Realized Test-FPR Operating Points}{11}{subsection.7.5}\protected@file@percent }
-\newlabel{subsec:matched_operating}{{\mbox  {VII-E}}{11}{Deployable Calibration Quantiles vs.\ Matched Realized Test-FPR Operating Points}{subsection.7.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Threshold Calibration and Drift Decomposition ($q{=}10^{-3}$).}}{11}{table.4}\protected@file@percent }
-\newlabel{tab:calibrator_comparison}{{IV}{11}{Threshold Calibration and Drift Decomposition ($q{=}10^{-3}$)}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Operating Budgets and Contextual vs.\ Point Anomalies}{11}{subsection.7.5}\protected@file@percent }
+\newlabel{subsec:matched_operating}{{\mbox  {VII-E}}{11}{Operating Budgets and Contextual vs.\ Point Anomalies}{subsection.7.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-F}}Automated Threshold Calibration Realities on Non-Stationary Telemetry}{11}{subsection.7.6}\protected@file@percent }
 \newlabel{subsec:calibration_realities}{{\mbox  {VII-F}}{11}{Automated Threshold Calibration Realities on Non-Stationary Telemetry}{subsection.7.6}{}}
 \citation{ferro2003inference}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Horizon length and operating trade-offs. \textbf  {(a)}\nobreakspace  {}Held-out FPR across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched score-emission latency $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps (five streams, three seeds). \textbf  {(b)}\nobreakspace  {}Causal event recall versus false alarms across 19 non-GHL streams at equalized test-FPR budgets $f^* \in \{1\%, 5\%\}$ (vertical dotted guides) and deployable calibration quantiles from SPOT $q^*{=}10^{-3}$ (open circles) to $q^*{=}0.05$ (filled markers), plotted against a rate-matched Bernoulli random alerter.}}{12}{figure.4}\protected@file@percent }
+\newlabel{fig:operating_and_horizon}{{4}{12}{Horizon length and operating trade-offs. \textbf {(a)}~Held-out FPR across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched score-emission latency $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps (five streams, three seeds). \textbf {(b)}~Causal event recall versus false alarms across 19 non-GHL streams at equalized test-FPR budgets $f^* \in \{1\%, 5\%\}$ (vertical dotted guides) and deployable calibration quantiles from SPOT $q^*{=}10^{-3}$ (open circles) to $q^*{=}0.05$ (filled markers), plotted against a rate-matched Bernoulli random alerter}{figure.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Threshold Calibration and Drift Decomposition ($q{=}10^{-3}$).}}{12}{table.5}\protected@file@percent }
+\newlabel{tab:calibrator_comparison}{{V}{12}{Threshold Calibration and Drift Decomposition ($q{=}10^{-3}$)}{table.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{12}{section.8}\protected@file@percent }
+\newlabel{sec:conclusion}{{VIII}{12}{Conclusion and Future Work}{section.8}{}}
 \bibstyle{IEEEtran}
 \bibdata{export}
 \bibcite{meng2019spacecraft}{1}
@@ -179,11 +188,6 @@
 \bibcite{ba2016layernormalization}{14}
 \bibcite{schuirmann1987comparison}{15}
 \bibcite{schmidl2022anomaly}{16}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Horizon length and operating trade-offs. \textbf  {(a)}\nobreakspace  {}Held-out FPR across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched score-emission latency $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps (five streams, three seeds). \textbf  {(b)}\nobreakspace  {}Causal event recall versus false alarms across 19 non-GHL streams at equalized test-FPR budgets $f^* \in \{1\%, 5\%\}$ (vertical dotted guides) and deployable calibration quantiles from SPOT $q^*{=}10^{-3}$ (open circles) to $q^*{=}0.05$ (filled markers), plotted against a rate-matched Bernoulli random alerter.}}{12}{figure.4}\protected@file@percent }
-\newlabel{fig:operating_and_horizon}{{4}{12}{Horizon length and operating trade-offs. \textbf {(a)}~Held-out FPR across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched score-emission latency $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps (five streams, three seeds). \textbf {(b)}~Causal event recall versus false alarms across 19 non-GHL streams at equalized test-FPR budgets $f^* \in \{1\%, 5\%\}$ (vertical dotted guides) and deployable calibration quantiles from SPOT $q^*{=}10^{-3}$ (open circles) to $q^*{=}0.05$ (filled markers), plotted against a rate-matched Bernoulli random alerter}{figure.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{12}{section.8}\protected@file@percent }
-\newlabel{sec:conclusion}{{VIII}{12}{Conclusion and Future Work}{section.8}{}}
-\@writefile{toc}{\contentsline {section}{References}{12}{section*.1}\protected@file@percent }
 \bibcite{zhang2023self}{17}
 \bibcite{eldele2021time}{18}
 \bibcite{yue2022ts2vec}{19}
@@ -219,4 +223,5 @@
 \bibcite{grimshaw1993computing}{49}
 \bibcite{loshchilov2017decoupled}{50}
 \bibcite{benjamini1995controlling}{51}
+\@writefile{toc}{\contentsline {section}{References}{13}{section*.1}\protected@file@percent }
 \gdef \@abspage@last{13}

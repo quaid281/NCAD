@@ -1,11 +1,21 @@
 """Core scoring, calibration, and event-level fusion logic.
 
 This subpackage contains the statistical scoring pipeline:
+- 224-Bit Multi-Perspective Circuit-Breaker Panel (``circuit_breaker_panel``)
 - EVT/GPD tail calibration (``evt_calibrator``)
 - Novel drift-resilient calibrators (``novel_calibrators``)
 - Window-to-point score aggregation and event-level filtering (``event_fusion``)
 """
 
+from src.scoring.circuit_breaker_panel import (
+    CircuitBreakerStreamDecision,
+    MultiPerspectiveCircuitBreakerPanel,
+    aggregate_prefix_224_stream,
+    aggregate_vector_stream,
+    build_224_perspective_dials,
+    extract_multihorizon_4subblocks,
+    stabilize_whitened_subblocks,
+)
 from src.scoring.conformal_calibrator import ConformalThresholdResult, SplitConformalCalibrator
 from src.scoring.event_fusion import (
     AdaptiveScoreFloor,
@@ -41,6 +51,13 @@ from src.scoring.streaming_calibrator import (
 )
 
 __all__ = [
+    "CircuitBreakerStreamDecision",
+    "MultiPerspectiveCircuitBreakerPanel",
+    "aggregate_prefix_224_stream",
+    "aggregate_vector_stream",
+    "build_224_perspective_dials",
+    "extract_multihorizon_4subblocks",
+    "stabilize_whitened_subblocks",
     "AdaptiveScoreFloor",
     "RobustStats",
     "ConformalThresholdResult",

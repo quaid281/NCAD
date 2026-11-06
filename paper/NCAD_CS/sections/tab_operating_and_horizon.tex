@@ -5,3 +5,46 @@
 \caption{Horizon length and operating trade-offs. \textbf{(a)}~Held-out FPR across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched score-emission latency $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps (five streams, three seeds). \textbf{(b)}~Causal event recall versus false alarms across 19 non-GHL streams at equalized test-FPR budgets $f^* \in \{1\%, 5\%\}$ (vertical dotted guides) and deployable calibration quantiles from SPOT $q^*{=}10^{-3}$ (open circles) to $q^*{=}0.05$ (filled markers), plotted against a rate-matched Bernoulli random alerter.\label{fig:operating_and_horizon}}
 \vspace{-2pt}
 \end{figure*}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{0pt}
+\caption{Contextual vs.\ Point Anomaly Detection (5 Seeds; Event Recall (ER)).\label{tab:point_vs_contextual}}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l ccccc cc @{}}
+\toprule
+& \multicolumn{5}{c}{\textbf{NASA Contextual ($n{=}5$ seqs)}} & \multicolumn{2}{c}{\textbf{NASA Point ($n{=}8$)}}\\
+\cmidrule(lr){2-6} \cmidrule(lr){7-8}
+\textbf{(a) Model} & \textbf{Buf.\ PR} & \textbf{SPOT ER} & \textbf{FPR} & $f^*{=}.01$ & $f^*{=}.05$ & $f^*{=}.01$ & $f^*{=}.05$ \\
+\midrule
+Soliton-Rey.\ JEPA & \textbf{0.652} & \textbf{0.750} & \textbf{0.006} & \textbf{0.820} & \textbf{0.920} & 0.683 & \underline{0.867} \\
+Sol.-Rey.\ ($\alpha_{\text{sol}}{=}0$) & \underline{0.641} & 0.625 & \textbf{0.006} & \textbf{0.820} & \textbf{0.920} & 0.683 & \underline{0.867} \\
+TS-JEPA            & 0.644 & \underline{0.675} & 0.045 & \underline{0.720} & \underline{0.840} & \underline{0.833} & \underline{0.867} \\
+\addlinespace[1.5pt]
+TimesNet           & 0.317 & 0.625 & 0.415 & 0.560 & 0.560 & 0.750 & 0.767 \\
+TranAD             & 0.162 & 0.400 & 0.392 & 0.400 & 0.400 & 0.767 & 0.800 \\
+TCN Obs.\ Recon.   & 0.161 & 0.375 & 0.387 & 0.400 & 0.400 & 0.800 & 0.800 \\
+ZScoreMax          & 0.198 & 0.375 & 0.558 & 0.300 & 0.300 & \textbf{1.000} & \textbf{1.000} \\
+\bottomrule
+\end{tabular*}
+
+\vspace{2.5pt}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l ccc ccc @{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{19-Stream Contextual ($|z|{\le}5$)}} & \multicolumn{3}{c}{\textbf{19-Stream Point ($|z|{>}5$)}}\\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+\textbf{(b) Model} & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ \\
+\midrule
+Soliton-Rey.\ JEPA & \underline{0.628} & 0.498 & 0.590 & \underline{0.782} & \underline{0.683} & \underline{0.781} \\
+Sol.-Rey.\ ($\alpha_{\text{sol}}{=}0$) & \textbf{0.640} & \textbf{0.540} & \textbf{0.603} & \textbf{0.785} & 0.671 & \textbf{0.785} \\
+TS-JEPA            & 0.614 & \underline{0.520} & \underline{0.594} & 0.776 & \textbf{0.694} & 0.765 \\
+\addlinespace[1.5pt]
+TimesNet           & 0.382 & 0.290 & 0.301 & 0.668 & 0.549 & 0.567 \\
+TranAD             & 0.402 & 0.235 & 0.300 & 0.640 & 0.564 & 0.611 \\
+TCN Obs.\ Recon.   & 0.472 & 0.273 & 0.297 & 0.639 & 0.553 & 0.563 \\
+ZScoreMax          & 0.376 & 0.288 & 0.289 & 0.673 & 0.594 & 0.605 \\
+\bottomrule
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Panel (a) stratifies the 10 primary SMAP/MSL streams by NASA's ground-truth taxonomy \cite{Hundman2018b} (contextual: SMAP E-1, A-2, A-7, MSL M-1, and C-1 $[2100,2210]$; point: SMAP A-1, P-3, D-3, MSL D-14, D-15, and C-1 $[550,750]$). Panel (b) stratifies all $n{=}19$ non-GHL streams into in-range contextual ($\max|z| \le 5\sigma$) vs.\ out-of-range point ($\max|z| > 5\sigma$) causal events.} \\
+\end{tabular*}\par\vspace{-8pt}
+\end{table}

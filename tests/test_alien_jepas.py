@@ -297,3 +297,53 @@ def test_helmholtz_soliton_jepa_forward_and_discrepancy():
     disc_bank = model.compute_predictive_discrepancy(ctx, tgt, use_alien_bank=True)
     assert disc_bank.shape == (B,)
     assert torch.all(disc_bank >= 0.0)
+
+
+
+def test_multi_perspective_224bit_circuit_breaker_panel():
+    from src.scoring.circuit_breaker_panel import (
+        MultiPerspectiveCircuitBreakerPanel,
+        build_224_perspective_dials,
+        extract_multihorizon_4subblocks,
+        stabilize_whitened_subblocks,
+    )
+
+    torch.manual_seed(42)
+    np.random.seed(42)
+    C_len, S_len, K, D = 32, 16, 3, 8
+    enc = HybridTCNEncoder(input_dim=K, latent_dim=D, filters=8, tcn_layers=1)
+    model = SpeculativeJEPAModel(
+        context_encoder=enc,
+        latent_dim=D,
+        predictor_hidden_dim=16,
+        coreset_size=6,
+        top_k_prototypes=3,
+        null_dim=2,
+    )
+    train_wins = np.random.randn(24, C_len + S_len, K).astype(np.float32)
+    va_wins = np.random.randn(40, C_len + S_len, K).astype(np.float32)
+    te_wins = np.random.randn(40, C_len + S_len, K).astype(np.float32)
+    te_wins[20:30] += 6.0  # Inject synthetic fault burst
+
+    model.fit_alien_bank(train_wins, context_len=C_len, batch_size=8)
+    va_raw4, va_white4 = extract_multihorizon_4subblocks(model, va_wins, C_len, torch.device("cpu"))
+    te_raw4, te_white4 = extract_multihorizon_4subblocks(model, te_wins, C_len, torch.device("cpu"))
+    assert va_raw4.shape == (40, 4, D)
+    assert te_white4.shape == (40, 4, D)
+
+    va_ew, te_ew = stabilize_whitened_subblocks(va_white4, te_white4, va_raw4, te_raw4, n_cal_w=20)
+    dials_va = build_224_perspective_dials(va_ew)
+    assert dials_va.shape == (40, 7 * D)
+    # Degree-1 scale homogeneity of perspective dial construction: D(c * e) == c * D(e)
+    dials_scaled = build_224_perspective_dials(3.5 * va_ew)
+    assert np.allclose(dials_scaled, 3.5 * dials_va, atol=1e-5)
+
+    panel = MultiPerspectiveCircuitBreakerPanel(context_size=C_len, suspect_size=S_len)
+    bits = panel.calibrate_and_trip_windows(va_ew, te_ew, n_cal_w=20)
+    assert set(np.unique(bits["bits224_te"])).issubset({0.0, 1.0})
+
+    for mapping in ("trailing", "smear"):
+        dec = panel.evaluate_stream_decisions(bits, len_va=40 + C_len + S_len - 1, len_test=40 + C_len + S_len - 1, mapping=mapping)
+        assert dec.test_pred_balanced.shape == dec.test_switch_counts.shape
+        assert set(np.unique(dec.test_pred_balanced)).issubset({0, 1})
+        assert dec.test_switch_counts[20:30].mean() > dec.cal_switch_counts.mean()

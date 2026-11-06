@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase, fit_covariance_batched, whiten_residuals
 from src.models.geometric_layers import CoordinateSaliencyGate
-from src.models.jepa.ts_jepa import LatentPredictor, jepa_vicreg_loss, log_det_whitening_loss
+from src.models.jepa.ts_jepa import LatentPredictor, _vicreg_branch_loss, jepa_vicreg_loss, log_det_whitening_loss
 
 def _disable_dropout(module: nn.Module) -> None:
     for m in module.modules():
@@ -104,19 +104,24 @@ def _verify_3horizons(model: nn.Module, tgt_win: torch.Tensor) -> torch.Tensor:
     S_len = tgt_win.shape[1]
     h0, h1 = max(S_len // 4, 2), max(S_len // 2, 4)
     model.target_encoder.eval()
-    model.target_tap_head.eval()
+    tap_head = getattr(model, "target_tap_head", None)
+    if tap_head is not None:
+        tap_head.eval()
     with torch.no_grad():
-        t0 = _encode_with_multidepth_taps(model.target_encoder, tgt_win[:, :h0, :], model.target_tap_head)
-        t1 = _encode_with_multidepth_taps(model.target_encoder, tgt_win[:, :h1, :], model.target_tap_head)
-        t2 = _encode_with_multidepth_taps(model.target_encoder, tgt_win, model.target_tap_head)
+        t0 = _encode_with_multidepth_taps(model.target_encoder, tgt_win[:, :h0, :], tap_head)
+        t1 = _encode_with_multidepth_taps(model.target_encoder, tgt_win[:, :h1, :], tap_head)
+        t2 = _encode_with_multidepth_taps(model.target_encoder, tgt_win, tap_head)
     return torch.stack([t0, t1, t2], dim=1)
+
+def _whitening_defect_loss(z: torch.Tensor, gamma: float = 0.75, eps: float = 1e-4) -> torch.Tensor:
+    var_l, cov_l = _vicreg_branch_loss(z, gamma=gamma, eps=eps)
+    return var_l + 0.5 * cov_l
 
 def _multihorizon_vicreg_loss(z_drafts: torch.Tensor, z_targets: torch.Tensor, z_ctx: Optional[torch.Tensor] = None, weights: Tuple[float, ...] = (0.20, 0.25, 0.55)) -> torch.Tensor:
     total = torch.tensor(0.0, device=z_drafts.device)
     for h, w in enumerate(weights):
         ctx_ref = z_ctx if h == len(weights) - 1 else None
-        lh = jepa_vicreg_loss(z_drafts[:, h, :], z_targets[:, h, :], ctx_ref, sim_weight=1.0, var_weight=1.0, cov_weight=0.5, gamma=0.75, use_log_det=False)
-        total = total + w * (lh + log_det_whitening_loss(z_drafts[:, h, :], beta=0.05))
+        total = total + w * jepa_vicreg_loss(z_drafts[:, h, :], z_targets[:, h, :], ctx_ref, use_log_det=True)
     return total
 
 def _register_alien_bank(module: nn.Module, latent_dim: int, coreset_size: int = 64, top_k: int = 5, null_dim: int = 8) -> None:
@@ -337,32 +342,23 @@ class DeltaJEPAModel(JEPABase):
 class SpeculativeJEPAModel(JEPABase):
     def __init__(self, context_encoder: nn.Module, latent_dim: int = 32, predictor_hidden_dim: int = 64, ema_decay: float = 0.995, dropout: float = 0.10, coreset_size: int = 64, top_k_prototypes: int = 5, null_dim: int = 8):
         super().__init__()
-        _disable_dropout(context_encoder)
         self.context_encoder = context_encoder
         self.latent_dim, self.ema_decay = latent_dim, ema_decay
-        self.num_horizons = 3
         self.target_encoder = self.init_target_encoder(context_encoder)
-        _disable_dropout(self.target_encoder)
-        _init_tap_heads(self, context_encoder, latent_dim)
-        self.base_predictor = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=2, dropout=0.0)
-        self.draft_step = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=2, dropout=0.0)
+        self.num_horizons = 3
+        self.base_predictor = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=2, dropout=dropout)
+        self.draft_step = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=2, dropout=dropout)
         self.horizon_embeddings = nn.Parameter(torch.randn(self.num_horizons, latent_dim) * 0.02)
         _init_multihorizon_alien_gates_and_buffers(self, latent_dim, self.num_horizons, coreset_size, top_k_prototypes, null_dim)
 
-    @torch.no_grad()
-    def update_target_encoder(self, momentum: Optional[float] = None) -> None:
-        super().update_target_encoder(momentum)
-        _update_tap_ema(self, momentum)
-
     def _draft_horizons(self, z_ctx: torch.Tensor) -> torch.Tensor:
-        d = (self.latent_dim,)
-        z_full = F.layer_norm(self.base_predictor(z_ctx + self.horizon_embeddings[2].unsqueeze(0)), d)
-        z_h0 = F.layer_norm(self.draft_step(z_ctx + self.horizon_embeddings[0].unsqueeze(0)), d)
-        z_h1 = F.layer_norm(self.draft_step(z_h0 + self.horizon_embeddings[1].unsqueeze(0)), d)
+        z_full = self.base_predictor(z_ctx + self.horizon_embeddings[2].unsqueeze(0))
+        z_h0 = self.draft_step(z_ctx + self.horizon_embeddings[0].unsqueeze(0))
+        z_h1 = self.draft_step(z_h0 + self.horizon_embeddings[1].unsqueeze(0))
         return torch.stack([z_h0, z_h1, z_full], dim=1)
 
     def forward(self, ctx_win: torch.Tensor, tgt_win: Optional[torch.Tensor] = None):
-        z_ctx = _encode_with_multidepth_taps(self.context_encoder, ctx_win, self.context_tap_head)
+        z_ctx = self.context_encoder(ctx_win)
         z_drafts = self._draft_horizons(z_ctx)
         z_targets = _verify_3horizons(self, tgt_win) if tgt_win is not None else None
         return z_ctx, z_targets, z_drafts
@@ -374,25 +370,16 @@ class SpeculativeJEPAModel(JEPABase):
 
     @torch.no_grad()
     def fit_alien_bank(self, train_windows, context_len: int = 256, batch_size: int = 256) -> None:
-        self.eval()
-        fit_covariance_batched(self, train_windows[:, :context_len], train_windows[:, context_len:], residual_fn=lambda c, t: (self.forward(c, t)[1] - self.forward(c, t)[2]).reshape(c.shape[0], -1), dim=self.num_horizons * self.latent_dim, batch_size=batch_size, reg=1e-3, precision_buffer=self.precision_matrix, residual_mean_buffer=self.residual_mean, fitted_buffer=self.precision_fitted)
-        J, R = _collect_alien_joints_resids(self, train_windows, context_len, batch_size, is_speculative=True)
-        _fit_coreset_and_null_projector(J, R, self.coreset_size, self.top_k_prototypes, self.null_dim, self.joint_center, self.null_projector, self.null_ratio_med, self.coreset_bank, self.unavail_med, self.unavail_mad, self.bank_fitted)
+        def resid_fn(c, t):
+            zt, zp = self.forward(c, t)[1:3]
+            return (zt - zp).reshape(c.shape[0], -1)
+        _fit_multihorizon_alien_pipeline(self, train_windows, context_len, batch_size, residual_fn=resid_fn, is_speculative=True)
 
     @torch.no_grad()
     def compute_predictive_discrepancy(self, ctx: torch.Tensor, tgt: torch.Tensor, use_alien_bank: bool = True, **kwargs) -> torch.Tensor:
         self.eval()
         z_ctx, z_targets, z_drafts = self.forward(ctx, tgt)
-        B, H, D = z_drafts.shape
-        diffs = z_targets - z_drafts
-        if bool(self.precision_fitted.item()):
-            e_white = whiten_residuals(diffs.reshape(B, H * D) - self.residual_mean, self.precision_matrix)
-            s_joint = self.joint_saliency_gate(e_white)
-            d_h = self.saliency_gate(e_white.reshape(B * H, D)).reshape(B, H)
-        else:
-            d_h = self.saliency_gate(diffs.reshape(B * H, D)).reshape(B, H)
-            s_joint = d_h.mean(dim=-1)
-        s_spec = torch.sqrt(0.5 * (s_joint.pow(2) + d_h.pow(2).amax(dim=-1)))
+        s_spec, _ = _score_multihorizon_envelope(self, z_targets - z_drafts)
         if not use_alien_bank:
             return s_spec
         return _apply_bank_gain(self, z_ctx, z_targets[:, 2, :], z_targets[:, 2, :] - z_drafts[:, 2, :], s_spec, 0.15, 0.10)
@@ -402,11 +389,7 @@ class SpeculativeJEPAModel(JEPABase):
 class AlienDualTowerJEPAModel(JEPABase):
     def __init__(self, context_encoder: nn.Module, latent_dim: int = 32, predictor_hidden_dim: int = 64, predictor_layers: int = 2, ema_decay: float = 0.995, dropout: float = 0.10, coreset_size: int = 64, top_k_prototypes: int = 5, null_dim: int = 8):
         super().__init__()
-        _disable_dropout(context_encoder)
-        self.context_encoder = context_encoder
-        self.latent_dim, self.ema_decay = latent_dim, ema_decay
-        self.target_encoder = self.init_target_encoder(context_encoder)
-        _disable_dropout(self.target_encoder)
+        _init_jepa_encoders(self, context_encoder, latent_dim, ema_decay)
         self.predictor = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=predictor_layers, dropout=0.0)
         self.saliency_gate = CoordinateSaliencyGate(dim=latent_dim, tau=0.5, alpha=0.5)
         _register_alien_bank(self, latent_dim, coreset_size, top_k_prototypes, null_dim)
@@ -442,13 +425,9 @@ class AlienDualTowerJEPAModel(JEPABase):
 class EddyDeltaJEPAModel(JEPABase):
     def __init__(self, context_encoder: nn.Module, latent_dim: int = 32, predictor_hidden_dim: int = 64, predictor_layers: int = 2, ema_decay: float = 0.995, dropout: float = 0.10, num_subblocks: int = 4, vorticity_lr: float = 0.25, vorticity_decay: float = 0.85, smagorinsky_cs: float = 0.16, nu_0: float = 1e-3, coreset_size: int = 64, top_k_prototypes: int = 5, null_dim: int = 8):
         super().__init__()
-        _disable_dropout(context_encoder)
-        self.context_encoder = context_encoder
-        self.latent_dim, self.ema_decay, self.num_subblocks = latent_dim, ema_decay, num_subblocks
-        self.num_horizons = 3
+        _init_jepa_encoders(self, context_encoder, latent_dim, ema_decay)
+        self.num_subblocks, self.num_horizons = num_subblocks, 3
         self.vorticity_lr, self.vorticity_decay, self.smagorinsky_cs, self.nu_0 = vorticity_lr, vorticity_decay, smagorinsky_cs, nu_0
-        self.target_encoder = self.init_target_encoder(context_encoder)
-        _disable_dropout(self.target_encoder)
         _init_tap_heads(self, context_encoder, latent_dim)
         self.predictor = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=predictor_layers, dropout=0.0)
         self.draft_step = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=predictor_layers, dropout=0.0)
@@ -461,33 +440,11 @@ class EddyDeltaJEPAModel(JEPABase):
         super().update_target_encoder(momentum)
         _update_tap_ema(self, momentum)
 
-    @staticmethod
-    def _pure_solenoidal_vorticity(z_sub: torch.Tensor, decay: float, lr: float, cs: float, nu_0: float):
-        B, M, D = z_sub.shape
-        scale_d = math.sqrt(float(D))
-        omega = torch.zeros(B, D, D, device=z_sub.device, dtype=z_sub.dtype)
-        strains = []
-        for m in range(M - 1):
-            zm, zn = z_sub[:, m, :], z_sub[:, m + 1, :].detach()
-            um = zm / (zm.norm(dim=-1, keepdim=True) + 1e-6)
-            rm = zn - (zm + scale_d * torch.bmm(omega, um.unsqueeze(-1)).squeeze(-1))
-            outer = torch.bmm(rm.unsqueeze(-1), um.unsqueeze(1)) / scale_d
-            omega = decay * omega + 0.5 * lr * (outer - outer.transpose(1, 2))
-            strain = 0.5 * (outer + outer.transpose(1, 2))
-            strains.append((scale_d ** 2) * strain.detach().pow(2).sum(dim=-1))
-        u_last = z_sub[:, -1, :] / (z_sub[:, -1, :].norm(dim=-1, keepdim=True) + 1e-6)
-        vort_final = scale_d * torch.bmm(omega, u_last.unsqueeze(-1)).squeeze(-1)
-        s_var = torch.stack(strains, dim=0).mean(dim=0)
-        nu_eddy = nu_0 + (cs ** 2) * torch.sqrt(s_var + 1e-8)
-        nu_mean = nu_eddy.mean(dim=-1, keepdim=True) + 1e-6
-        eddy_unit = torch.sqrt((nu_eddy + 0.8 * nu_mean) / (1.8 * nu_mean))
-        return vort_final, eddy_unit / (eddy_unit.mean(dim=-1, keepdim=True) + 1e-6), omega
-
     def _forward_multihorizon(self, ctx_win: torch.Tensor, tgt_win: Optional[torch.Tensor] = None):
         d = (self.latent_dim,)
         z_ctx = _encode_with_multidepth_taps(self.context_encoder, ctx_win, self.context_tap_head)
         z_sub_ctx, _ = _encode_causal_subblocks(ctx_win, self.num_subblocks, self.latent_dim, self.context_encoder, self.target_encoder)
-        vort_final, eddy_unit, omega = self._pure_solenoidal_vorticity(z_sub_ctx, self.vorticity_decay, self.vorticity_lr, self.smagorinsky_cs, self.nu_0)
+        vort_final, eddy_unit, omega = _rollout_solenoidal_vorticity(None, z_sub_ctx, z_sub_ctx, self.vorticity_decay, self.vorticity_lr, self.smagorinsky_cs, self.nu_0)
         v_g = 0.20 * torch.tanh(self.vorticity_gate)
         z_h0 = F.layer_norm(self.draft_step(z_ctx + self.horizon_embeddings[0].unsqueeze(0)) + 0.5 * v_g * vort_final, d)
         z_h1 = F.layer_norm(self.draft_step(z_h0 + self.horizon_embeddings[1].unsqueeze(0)) + 0.75 * v_g * vort_final, d)
@@ -508,27 +465,19 @@ class EddyDeltaJEPAModel(JEPABase):
 
     @torch.no_grad()
     def fit_alien_bank(self, train_windows, context_len: int = 256, batch_size: int = 256) -> None:
-        _fit_multihorizon_alien_pipeline(self, train_windows, context_len, batch_size, residual_fn=lambda c, t: (self._forward_multihorizon(c, t)[1] - self._forward_multihorizon(c, t)[2]).reshape(c.shape[0], -1))
+        def resid_fn(c, t):
+            zt, zp = self._forward_multihorizon(c, t)[1:3]
+            return (zt - zp).reshape(c.shape[0], -1)
+        _fit_multihorizon_alien_pipeline(self, train_windows, context_len, batch_size, residual_fn=resid_fn)
 
     @torch.no_grad()
     def compute_predictive_discrepancy(self, ctx: torch.Tensor, tgt: torch.Tensor, use_alien_bank: bool = True, **kwargs) -> torch.Tensor:
         self.eval()
         z_ctx, z_targets, z_drafts, eddy_unit, _ = self._forward_multihorizon(ctx, tgt)
-        B, H, D = z_drafts.shape
-        diffs = z_targets - z_drafts
-        shear_gain = torch.sqrt(eddy_unit).unsqueeze(1)
-        if bool(self.precision_fitted.item()):
-            e_white = whiten_residuals(diffs.reshape(B, H * D) - self.residual_mean, self.precision_matrix)
-            e_sc = (e_white.reshape(B, H, D) * shear_gain).reshape(B, H * D)
-            s_joint = self.joint_saliency_gate(e_sc)
-            d_h = self.saliency_gate(e_sc.reshape(B * H, D)).reshape(B, H)
-        else:
-            d_h = self.saliency_gate((diffs * shear_gain).reshape(B * H, D)).reshape(B, H)
-            s_joint = d_h.mean(dim=-1)
-        s_eddy = torch.sqrt(0.5 * (s_joint.pow(2) + d_h.pow(2).amax(dim=-1)))
+        s_eddy, _ = _score_multihorizon_envelope(self, z_targets - z_drafts, shear_gain=torch.sqrt(eddy_unit).unsqueeze(1))
         if not use_alien_bank:
             return s_eddy
-        return _apply_bank_gain(self, z_ctx, z_targets[:, 2, :], diffs[:, 2, :], s_eddy, 0.15, 0.10)
+        return _apply_bank_gain(self, z_ctx, z_targets[:, 2, :], z_targets[:, 2, :] - z_drafts[:, 2, :], s_eddy, 0.15, 0.10)
 
 # --- 5. Anchored-Stokes JEPA: Halpern Monotone Advection-Diffusion on S^{D-1} ---
 
@@ -565,11 +514,8 @@ class MonotoneStokesOperator(nn.Module):
 class AnchoredStokesJEPAModel(JEPABase):
     def __init__(self, context_encoder: nn.Module, latent_dim: int = 32, predictor_hidden_dim: int = 64, ema_decay: float = 0.995, dropout: float = 0.10, rollout_steps: int = 4, anchor_gamma: float = 2.0, nu_0: float = 1e-2, coreset_size: int = 64, top_k_prototypes: int = 5, null_dim: int = 8):
         super().__init__()
-        _disable_dropout(context_encoder)
-        self.context_encoder = context_encoder
-        self.latent_dim, self.ema_decay, self.rollout_steps, self.anchor_gamma, self.nu_0 = latent_dim, ema_decay, rollout_steps, anchor_gamma, nu_0
-        self.target_encoder = self.init_target_encoder(context_encoder)
-        _disable_dropout(self.target_encoder)
+        _init_jepa_encoders(self, context_encoder, latent_dim, ema_decay)
+        self.rollout_steps, self.anchor_gamma, self.nu_0 = rollout_steps, anchor_gamma, nu_0
         self.equilibrium_head = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=2, dropout=0.0)
         self.stokes_op = MonotoneStokesOperator(latent_dim=latent_dim, nu_0=nu_0)
         self.rollout_gate = nn.Parameter(torch.tensor(0.65))
@@ -619,11 +565,8 @@ class AnchoredStokesJEPAModel(JEPABase):
 class SolitonReynoldsJEPAModel(JEPABase):
     def __init__(self, context_encoder: nn.Module, latent_dim: int = 32, predictor_hidden_dim: int = 64, predictor_layers: int = 2, ema_decay: float = 0.995, dropout: float = 0.10, lt_gamma: float = 1.0, num_subblocks: int = 4, coreset_size: int = 64, top_k_prototypes: int = 5, null_dim: int = 8):
         super().__init__()
-        _disable_dropout(context_encoder)
-        self.context_encoder = context_encoder
-        self.latent_dim, self.ema_decay, self.lt_gamma, self.num_subblocks = latent_dim, ema_decay, lt_gamma, num_subblocks
-        self.target_encoder = self.init_target_encoder(context_encoder)
-        _disable_dropout(self.target_encoder)
+        _init_jepa_encoders(self, context_encoder, latent_dim, ema_decay)
+        self.lt_gamma, self.num_subblocks = lt_gamma, num_subblocks
         _init_tap_heads(self, context_encoder, latent_dim)
         self.predictor = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=predictor_layers, dropout=0.0)
         self.sub_predictor = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=predictor_layers, dropout=0.0)
@@ -672,10 +615,10 @@ class SolitonReynoldsJEPAModel(JEPABase):
         return (zst - zsp).reshape(ctx_win.shape[0], -1)
 
     def compute_objective(self, ctx: torch.Tensor, tgt: torch.Tensor, config=None, **kwargs):
-        z_ctx, _, _, zsp, zst = self.forward(ctx, tgt)
+        _, _, _, zsp, zst = self.forward(ctx, tgt)
         M = self.num_subblocks
         w = [0.50 / max(M - 1, 1)] * (M - 1) + [0.50]
-        loss = sum(wh * jepa_vicreg_loss(zsp[:, h, :], zst[:, h, :], z_ctx if h == M - 1 else None, use_log_det=True) for h, wh in enumerate(w))
+        loss = sum(wh * (F.mse_loss(zsp[:, h, :], zst[:, h, :]) + _whitening_defect_loss(zsp[:, h, :], gamma=0.75)) for h, wh in enumerate(w))
         return loss, {"loss": float(loss.item())}
 
     @torch.no_grad()
@@ -704,18 +647,7 @@ class SolitonReynoldsJEPAModel(JEPABase):
     def compute_predictive_discrepancy(self, ctx: torch.Tensor, tgt: torch.Tensor, **kwargs) -> torch.Tensor:
         self.eval()
         _, _, _, z_sub_pred, z_sub_tgt = self.forward(ctx, tgt)
-        B, M, D = z_sub_pred.shape
-        diffs = z_sub_tgt - z_sub_pred
-        if bool(self.precision_fitted.item()):
-            e_white = whiten_residuals(diffs.reshape(B, M * D) - self.residual_mean, self.precision_matrix)
-            s_joint = self.joint_saliency_gate(e_white)
-            d_h = self.saliency_gate(e_white.reshape(B * M, D)).reshape(B, M)
-            fluct = e_white.reshape(B, M, D) - e_white.reshape(B, M, D).mean(dim=1, keepdim=True)
-        else:
-            d_h = self.saliency_gate(diffs.reshape(B * M, D)).reshape(B, M)
-            s_joint = d_h.mean(dim=-1)
-            fluct = diffs - diffs.mean(dim=1, keepdim=True)
-        s_env = torch.sqrt(0.5 * (s_joint.pow(2) + d_h.pow(2).amax(dim=-1)))
+        s_env, fluct = _score_multihorizon_envelope(self, z_sub_tgt - z_sub_pred)
         if not kwargs.get("use_soliton", True):
             return s_env
         alpha_sol = float(kwargs.get("alpha_sol", 0.12))
@@ -730,14 +662,10 @@ class HelmholtzSolitonJEPAModel(JEPABase):
 
     def __init__(self, context_encoder: nn.Module, latent_dim: int = 32, predictor_hidden_dim: int = 64, predictor_layers: int = 2, ema_decay: float = 0.995, dropout: float = 0.10, num_subblocks: int = 4, rollout_steps: int = 4, anchor_gamma: float = 2.0, vorticity_lr: float = 0.25, vorticity_decay: float = 0.85, smagorinsky_cs: float = 0.16, nu_0: float = 1e-2, lt_gamma: float = 1.0, coreset_size: int = 64, top_k_prototypes: int = 5, null_dim: int = 8):
         super().__init__()
-        _disable_dropout(context_encoder)
-        self.context_encoder = context_encoder
-        self.latent_dim, self.ema_decay, self.num_subblocks = latent_dim, ema_decay, num_subblocks
-        self.num_horizons = 3
+        _init_jepa_encoders(self, context_encoder, latent_dim, ema_decay)
+        self.num_subblocks, self.num_horizons = num_subblocks, 3
         self.rollout_steps, self.anchor_gamma = rollout_steps, anchor_gamma
         self.vorticity_lr, self.vorticity_decay, self.smagorinsky_cs, self.nu_0, self.lt_gamma = vorticity_lr, vorticity_decay, smagorinsky_cs, nu_0, lt_gamma
-        self.target_encoder = self.init_target_encoder(context_encoder)
-        _disable_dropout(self.target_encoder)
         _init_tap_heads(self, context_encoder, latent_dim)
         self.equilibrium_head = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=predictor_layers, dropout=0.0)
         self.sub_predictor = LatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim, num_layers=predictor_layers, dropout=0.0)
@@ -783,29 +711,18 @@ class HelmholtzSolitonJEPAModel(JEPABase):
 
     @torch.no_grad()
     def fit_alien_bank(self, train_windows, context_len: int = 256, batch_size: int = 256) -> None:
-        self.eval()
-        fit_covariance_batched(self, train_windows[:, :context_len], train_windows[:, context_len:], residual_fn=lambda c, t: (self.forward(c, t)[5] - self.forward(c, t)[4]).reshape(c.shape[0], -1), dim=self.num_horizons * self.latent_dim, batch_size=batch_size, reg=1e-3, precision_buffer=self.precision_matrix, residual_mean_buffer=self.residual_mean, fitted_buffer=self.precision_fitted)
-        J, R = _collect_alien_joints_resids(self, train_windows, context_len, batch_size, is_speculative=False)
-        _fit_coreset_and_null_projector(J, R, self.coreset_size, self.top_k_prototypes, self.null_dim, self.joint_center, self.null_projector, self.null_ratio_med, self.coreset_bank, self.unavail_med, self.unavail_mad, self.bank_fitted)
+        def resid_fn(c, t):
+            out = self.forward(c, t)
+            return (out[5] - out[4]).reshape(c.shape[0], -1)
+        _fit_multihorizon_alien_pipeline(self, train_windows, context_len, batch_size, residual_fn=resid_fn, is_speculative=False)
 
     @torch.no_grad()
     def compute_predictive_discrepancy(self, ctx: torch.Tensor, tgt: torch.Tensor, use_alien_bank: bool = True, **kwargs) -> torch.Tensor:
         self.eval()
         z_ctx, z_tgt, z_pred, _, z_sub_pred, z_sub_tgt = self.forward(ctx, tgt)
-        B, H, D = z_sub_pred.shape
-        diffs = z_sub_tgt - z_sub_pred
-        if bool(self.precision_fitted.item()):
-            e_white = whiten_residuals(diffs.reshape(B, H * D) - self.residual_mean, self.precision_matrix)
-            s_joint = self.joint_saliency_gate(e_white)
-            d_h = self.saliency_gate(e_white.reshape(B * H, D)).reshape(B, H)
-            fluct = e_white.reshape(B, H, D) - e_white.reshape(B, H, D).mean(dim=1, keepdim=True)
-        else:
-            d_h = self.saliency_gate(diffs.reshape(B * H, D)).reshape(B, H)
-            s_joint = d_h.mean(dim=-1)
-            fluct = diffs - diffs.mean(dim=1, keepdim=True)
-        s_env = torch.sqrt(0.5 * (s_joint.pow(2) + d_h.pow(2).amax(dim=-1)))
+        s_env, fluct = _score_multihorizon_envelope(self, z_sub_tgt - z_sub_pred)
         r_lt = SolitonReynoldsJEPAModel.lieb_thirring_soliton_ratio(fluct, gamma=self.lt_gamma)
-        soliton_gain = 1.0 + 0.08 * F.relu(r_lt - (1.0 / float(H)))
+        soliton_gain = 1.0 + 0.08 * F.relu(r_lt - (1.0 / float(self.num_horizons)))
         s_fluid = s_env * soliton_gain
         if not use_alien_bank:
             return s_fluid
