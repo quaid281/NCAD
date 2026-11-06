@@ -3,29 +3,31 @@
 
 \begin{table*}[t]
 \centering
-\caption{Architectural Ablation and Mechanism-Discrimination Studies ($n{=}19$ Streams, 5 Seeds; Event Recall (ER)).\label{tab:ablations}}
+\caption{Multi-Perspective Circuit-Breaker Ablation and Mechanism-Discrimination Studies ($n{=}19$ Streams; Event Recall (ER)).\label{tab:ablations}}
 \vspace{1pt}
-\begin{tabular}{@{}p{0.548\textwidth}@{\hspace{0.008\textwidth}}p{0.436\textwidth}@{}}
+\begin{tabular}{@{}p{0.556\textwidth}@{\hspace{0.008\textwidth}}p{0.428\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) Fixed-Backbone Soliton Control ($n{=}19$)}} & \multicolumn{1}{c}{\textbf{(b) Dyadic Front-End ($n{=}5$)}} \\
+\multicolumn{1}{c}{\textbf{(a) 1D Collapse vs.\ 224-Bit Circuit-Breaker Progression ($n{=}19$)}} & \multicolumn{1}{c}{\textbf{(b) Dyadic Front-End ($n{=}5$)}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
 \renewcommand{\arraystretch}{0.95}
-\setlength{\tabcolsep}{0.2pt}
-\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l ccccc c@{}}
+\setlength{\tabcolsep}{0.4pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l cc cc cc cc@{}}
 \toprule
-\textbf{Model} & \textbf{Pt-F1} & \textbf{PR} & \textbf{FPR} & \textbf{ER} & \textbf{$\Delta$F1 $[90\%]$} & \textbf{$p_{\text{TOST}}$} \\
+& \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t} \downarrow$}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+\textbf{Scoring / Panel Variant} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
-TS-JEPA (Unconstrained) & $0.206 \pm 0.025$ & 0.331 & 0.093 & 0.477 & {Baseline} & {--} \\
-\addlinespace[1.5pt]
-Soliton-Reynolds JEPA & $0.148 \pm 0.039$ & \textbf{0.331} & \textbf{0.078} & 0.430 & $-0.001$ $[-.007, +.005]$ & $<10^{-6*}$ \\
-\quad $\alpha_{\text{sol}}=0$ control & $0.149 \pm 0.038$ & 0.330 & 0.083 & 0.462 & {--} & {($<10^{-4\dagger}$)} \\
+\textbf{Sol.-Rey.\ 224-Bit Breaker} & \textbf{.138}$^*$ & \textbf{.228}$^\dagger$ & \textbf{.312} & \textbf{.411} & \textbf{.607} & \textbf{.631} & \textbf{105.9} & \textbf{71.8} \\
+Sol.-Rey.\ 224-Bit Strict & .116$^*$ & .190 & \textbf{.312} & \textbf{.411} & .534 & .545 & 248.0 & 97.3 \\
+Sol.-Rey.\ 224-Bit + Soft Attn & \underline{.137} & \underline{.226} & .311 & .410 & \textbf{.607} & .628 & \underline{106.8} & \underline{73.4} \\
+Sol.-Rey.\ 128-Bit Sub-Block & .129 & .192 & .310 & .402 & .590 & .525 & 157.4 & 273.9 \\
 \midrule
-TimesNet & $0.197 \pm 0.018$ & 0.329 & 0.300 & \textbf{0.583} & {--} & {--} \\
-TranAD & $0.130 \pm 0.004$ & 0.287 & 0.307 & 0.490 & {--} & {--} \\
+Sol.-Rey.\ 1D ($\alpha_{\text{sol}}{=}0.12$) & .052 & .137 & .291 & .370 & .398 & .377 & 246.6 & 402.7 \\
+Sol.-Rey.\ 1D ($\alpha_{\text{sol}}{=}0$ Env.) & .055 & .138 & .291 & .368 & .398 & .384 & 248.0 & 398.2 \\
 \bottomrule
-\multicolumn{7}{@{}p{\linewidth}@{}}{\tiny $^*$TOST equivalence vs.\ $\alpha_{\text{sol}}{=}0$ control at $\Delta{=}\pm 0.030$ ($p{=}1.1{\times}10^{-7}$); $^\dagger$at $\Delta{=}\pm 0.020$ ($p{=}2.7{\times}10^{-5}$; Wilcoxon $p{=}0.472$). Matched-FPR ER ($f^*{=}0.01$): causal $0.562$ vs.\ $0.578$; at $f^*{=}0.05$: $0.698$ vs.\ $0.711$.} \\
+\multicolumn{9}{@{}p{\linewidth}@{}}{\tiny $^*$Wilcoxon vs.\ 1D Sol.-Rey.: 224-Bit Breaker $17/0$ wins ($p{=}1.5{\times}10^{-5}$), 224-Bit Strict $16/1$ wins ($p{=}3.1{\times}10^{-5}$); $^\dagger$buffered F1 $p{=}0.026$. Fixed-backbone 1D $\alpha_{\text{sol}}{=}0.12$ vs.\ $\alpha_{\text{sol}}{=}0$ satisfies TOST equivalence at $\Delta{=}\pm 0.020$ ($p_{\text{TOST}}{=}2.7{\times}10^{-5}$).} \\
 \end{tabular*}%
 \endgroup
 &
@@ -48,7 +50,7 @@ GECCO water-quality & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} & $-0.035$
 \endgroup
 \\
 \midrule
-\multicolumn{2}{@{}c@{}}{\textbf{(c) 12-Arm Matched-Backbone Factorial Comparison ($n{=}19$ Streams, 5 Seeds)}} \\
+\multicolumn{2}{@{}c@{}}{\textbf{(c) Matched-Backbone Architectural Comparison ($n{=}19$ Streams)}} \\
 \multicolumn{2}{@{}c@{}}{%
 \begingroup
 \scriptsize
@@ -58,13 +60,15 @@ GECCO water-quality & \textbf{0.097} / 0.161 & 0.062 / \textbf{0.282} & $-0.035$
 \toprule
 & \multicolumn{2}{c}{\textbf{Tail / Drift}} & \multicolumn{2}{c}{\textbf{Held-Out FPR}} & \multicolumn{2}{c}{\textbf{Point-F1}} & \multicolumn{2}{c}{\textbf{PR-AUC}} & \multicolumn{4}{c}{\textbf{Causal Event Recall}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13}
-\textbf{Architecture Arm} & $\gamma_2$ & $D_{\text{KS}}$ & Caus. & Buf. & Caus. & Buf. & Caus. & Buf. & SPOT & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ \\
+\textbf{Architecture Arm} & $\gamma_2$ & $D_{\text{KS}}$ & Caus. & Buf. & Caus. & Buf. & Caus. & Buf. & Auto. & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ \\
 \midrule
-TS-JEPA (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & 0.161 & 0.206 & 0.278 & \textbf{0.331} & 0.487 & 0.730 & 0.395 & 0.584 \\
-Soliton-Reynolds JEPA & 2.30 & 0.179 & \textbf{0.006} & 0.078 & 0.050 & 0.148 & 0.259 & \textbf{0.331} & 0.478 & 0.752 & \textbf{0.562} & \textbf{0.698} \\
-Soliton-Reynolds ($\alpha_{\text{sol}}{=}0$) & 2.19 & 0.183 & \textbf{0.006} & 0.083 & 0.055 & 0.149 & 0.261 & 0.330 & 0.439 & 0.755 & \textbf{0.578} & \textbf{0.711} \\
+\textbf{Soliton-Reynolds 224-Bit Breaker} & 2.30 & 0.179 & 0.017 & 0.132 & 0.138 & \underline{0.228} & \textbf{0.312} & \textbf{0.411} & \textbf{0.607} & \underline{0.774} & \textbf{0.584} & \textbf{0.728} \\
+\textbf{Soliton-Reynolds 224-Bit Strict} & 2.30 & 0.179 & 0.011 & 0.098 & 0.116 & 0.190 & \textbf{0.312} & \textbf{0.411} & 0.534 & \underline{0.774} & \textbf{0.584} & \textbf{0.728} \\
+TS-JEPA (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & \underline{0.161} & 0.206 & 0.278 & \underline{0.331} & 0.487 & 0.730 & 0.395 & 0.584 \\
+Soliton-Reynolds (1D Scalar) & 2.30 & 0.179 & \textbf{0.006} & 0.078 & 0.050 & 0.148 & 0.259 & \underline{0.331} & 0.478 & 0.752 & 0.562 & 0.698 \\
+Soliton-Reynolds ($\alpha_{\text{sol}}{=}0$, 1D) & 2.19 & 0.183 & \textbf{0.006} & 0.083 & 0.055 & 0.149 & 0.261 & 0.330 & 0.439 & 0.755 & \underline{0.578} & \underline{0.711} \\
 JEPA Context Autoencoder & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
-JEPA Hard-Target Copy & 1.16 & 0.167 & 0.009 & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & 0.816 & 0.398 & 0.600 \\
+JEPA Hard-Target Copy & 1.16 & \textbf{0.167} & 0.009 & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & \textbf{0.816} & 0.398 & 0.600 \\
 TS-JEPA ($\ell_2$ Scoring) & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
 \addlinespace[1.5pt]
 PCA Linear Forecaster (LN) & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & 0.624 \\
@@ -73,7 +77,7 @@ Isolation Forest & \textbf{0.70} & 0.373 & 0.039 & \textbf{0.056} & 0.041 & 0.04
 \addlinespace[1.5pt]
 TCN Obs.\ Forecaster & 6.10 & 0.463 & 0.247 & 0.313 & 0.140 & 0.145 & 0.272 & 0.310 & 0.546 & 0.629 & 0.171 & 0.383 \\
 TCN Obs.\ Autoencoder & 6.24 & 0.445 & 0.245 & 0.304 & 0.134 & 0.135 & 0.261 & 0.301 & 0.528 & 0.619 & 0.163 & 0.379 \\
-TimesNet & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & 0.281 & 0.329 & \textbf{0.588} & 0.618 & 0.217 & 0.407 \\
+TimesNet & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & 0.281 & 0.329 & \underline{0.588} & 0.618 & 0.217 & 0.407 \\
 TranAD & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 0.602 & 0.149 & 0.343 \\
 \bottomrule
 \end{tabular*}%
@@ -86,31 +90,31 @@ TranAD & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.82\textwidth]{figures/regularizer_sweep_and_quiet_faults.pdf}
+\includegraphics[width=0.84\textwidth]{figures/regularizer_sweep_and_quiet_faults.pdf}
 \vspace{-5pt}
-\caption{Multi-horizon soliton modulation sweep and quiet-fault recovery. \textbf{(a)}~Calibration-to-holdout drift ($D_{\text{KS}}$, left axis) and buffered PR-AUC, causal ER, buffered Point-F1, buffered FPR, and causal FPR (right axis) across single-horizon TS-JEPA and Soliton-Reynolds JEPA modulation weights $\alpha_{\text{sol}} \in [0, 0.24]$ ($n{=}19$ streams, five seeds). \textbf{(b)}~Injected single-channel ER (bars) and point recall (circles) across uniform TS-JEPA (Unif.), context-variance (Var.) and median absolute deviation (MAD) input gates, the standalone rolling variance-collapse monitor (Var.\ Monitor), and the hybrid union detector (Hybrid; nominal FPR in parentheses, $n{=}6$ streams, three seeds).\label{fig:regularizer_and_quiet_fault}}
+\caption{Multi-perspective circuit-breaker progression and quiet-fault recovery. \textbf{(a)}~Causal ER, buffered PR-AUC, buffered Point-F1, causal Point-F1, causal held-out FPR (left axis), and causal detection delay $\Delta t$ (right axis) across 1D scalar collapse ($\alpha_{\text{sol}} \in \{0, 0.12\}$), the 128-bit sub-block panel, 224-Bit Strict, 224-Bit Breaker, and 224-Bit + Soft Attention ($n{=}19$ streams). \textbf{(b)}~Injected single-channel ER (bars) and point recall (circles) across uniform TS-JEPA (Unif.), context-variance (Var.) and MAD input gates, the standalone rolling variance-collapse monitor (Var.\ Monitor), and the hybrid union detector (Hybrid; nominal FPR in parentheses, $n{=}6$ streams, three seeds).\label{fig:regularizer_and_quiet_fault}}
 \vspace{-7pt}
 \end{figure*}
 
-\subsection{Ablation 1: Multi-Horizon Whitened Envelope vs.\ Soliton Concentration Modulation}
+\subsection{Ablation 1: 1D Scalar Collapse vs.\ 128-Bit and 224-Bit Multi-Perspective Circuit Breakers}
 \label{subsec:controlled_ablations}
 \label{subsec:factorial}
-To separate the multi-horizon representation from post-hoc scoring multipliers on the identical trained network, Table~\ref{tab:ablations}(a) and Fig.~\ref{fig:regularizer_and_quiet_fault}(a) compare single-horizon TS-JEPA against the unmodulated multi-horizon envelope control ($\alpha_{\text{sol}}{=}0$, outputting $\mathcal{S}_{\text{env}}(t)$ directly) and a sweep across $\alpha_{\text{sol}} \in [0.03, 0.24]$ on all 19 non-GHL streams. Replacing single-horizon TS-JEPA with the unmodulated multi-horizon whitened envelope $\mathcal{S}_{\text{env}}(t)$ drives the core improvements in false-alarm control and low-FPR sensitivity (Table~\ref{tab:ablations}(a),(c)): causal held-out FPR drops four-fold from $2.4\%$ to $0.6\%$, calibration drift decreases, and causal event recall at a $1\%$ false-alarm budget rises from $0.395$ to $0.578$ without loss of buffered PR-AUC. Across $\alpha_{\text{sol}} \in [0, 0.24]$, adding the post-hoc Lieb--Thirring soliton concentration gain yields a modest buffered FPR reduction ($8.3\%$ to $7.8\%$ at $\alpha_{\text{sol}} = 0.12$, Wilcoxon $p = 0.026$) and nudges causal event recall from $0.439$ to $0.478$, while buffered Point-F1 and PR-AUC satisfy TOST equivalence within $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 2.7{\times}10^{-5}$, Table~\ref{tab:ablations}(a)). Auxiliary spectral regularizers during training similarly leave downstream recall and FPR flat; the primary gains come from multi-depth TCN tapping, barycenter centering, and multi-horizon Mahalanobis whitening.
+What unlocks the accuracy and speed of Soliton-Reynolds JEPA on the identical trained backbone? Table~\ref{tab:ablations}(a) and Fig.~\ref{fig:regularizer_and_quiet_fault}(a) trace the step-by-step progression across all 19 non-GHL streams. First, under 1D scalar scoring, the unmodulated multi-horizon whitened envelope ($\alpha_{\text{sol}}{=}0$) and the Lieb--Thirring soliton-modulated score ($\alpha_{\text{sol}}{=}0.12$) achieve strong false-alarm suppression ($0.6\%\text{--}0.7\%$ causal FPR) and satisfy TOST equivalence within $\Delta = \pm 0.020$ ($p_{\text{TOST}} = 2.7{\times}10^{-5}$), but collapsing 128 whitened coordinates into a single 1D score allows isolated drifting coordinates to inflate the scalar threshold, restricting causal Point-F1 to $0.052\text{--}0.055$ and delay to $246.6\text{--}248.0$ steps. Second, replacing 1D collapse with independent per-coordinate binary switches over the $128$ sub-block magnitudes (\emph{128-Bit Sub-Block}) immediately lifts causal Point-F1 from $0.052$ to $0.129$, buffered Point-F1 from $0.137$ to $0.192$, and causal event recall from $39.8\%$ to $59.0\%$. Third, expanding the same 32 latent coordinates into $7 \times 32 = 224$ fluid-dynamic dials (adding Reynolds mean-flow drift, turbulent fluctuation, and convective right-edge acceleration) and 32 fast right-edge onset relays in \emph{224-Bit Breaker} raises causal Point-F1 to $0.138$ ($17$ wins / $0$ losses, $p = 1.5{\times}10^{-5}$), buffered Point-F1 to $0.228$ ($p = 0.026$), buffered PR-AUC from $0.370$ to $0.411$, and event recall to $60.7\%$ causal ($63.1\%$ buffered) while cutting detection delay from $246.6$ to $105.9$ steps causally ($402.7$ to $71.8$ steps buffered). Finally, adding a soft temporal and cross-perspective attention pooling gate over the 224 dials (\emph{224-Bit + Soft Attn}) offers no further gain ($0.137$ causal and $0.226$ buffered F1), confirming that discrete Boolean switches prevent cross-coordinate dilution without requiring continuous attention weights.
 
 \subsection{Ablation 2: Single-Channel Quiet Faults, Input Gating, and Hybrid Monitoring}
 \label{subsec:gating_ablation}
 When one sensor out of $K$ freezes at a nominal value while the remaining $K-1$ channels fluctuate normally, the frozen channel perturbs the pooled pre-LayerNorm vector by only $O(1/K)$, and LayerNorm rescales the embedding onto $\sqrt{D}\mathbb{S}^{D-1}$ using the remaining active channels. Pre-weighting input channels by context variance lowers macro Point-F1 across four multivariate streams from $0.118$ to $0.077$, so the deployed pipeline retains uniform input encoding. Across six single-channel fault classes injected into six multivariate streams (Fig.~\ref{fig:regularizer_and_quiet_fault}(b)), uniform TS-JEPA detects $27.8\%$ of abrupt $+5\sigma$ spikes, but on persistent quiet faults (flatlines, stuck sensors, and zero dropouts) event recall falls to $19.4\%$ and point recall drops below $3\%$. Simple observation-space monitors catch these complementary failures: a maximum channel deviation monitor and a rolling variance-collapse monitor (tracking how far each channel's 32-step trailing standard deviation drops below its nominal median) each recover $25\%\text{--}39\%$ of quiet-fault events at $14\%\text{--}15\%$ FPR. Taking the logical union of TS-JEPA alarms and the rolling variance-collapse monitor lifts event recall to $41.7\%\text{--}50.0\%$ across all six fault classes at $17.0\%$ nominal FPR.
 
 \subsection{Ablation 3: Multiscale Dyadic-Shell Front-End}
-Table~\ref{tab:ablations}(b) trains TS-JEPA with the identical 3-layer causal TCN encoder across five streams, comparing the 4-shell Fourier filterbank against a standard linear convolutional stem. Enabling the dyadic front-end raises macro PR-AUC from $0.213$ to $0.263$ (led by SMD and GECCO) and lowers validation residual kurtosis from $1.41$ to $1.07$, while macro Point-F1 decreases from $0.118$ to $0.078$ due to a more conservative SPOT threshold on SMAP P-3. Frequency-shell splitting thus improves score ranking and tail conditioning rather than uniformly raising thresholded F1.
+Table~\ref{tab:ablations}(b) trains TS-JEPA with the identical 3-layer causal TCN encoder across five streams, comparing the 4-shell Fourier filterbank against a standard linear convolutional stem. Enabling the dyadic front-end raises macro PR-AUC from $0.213$ to $0.263$ (led by SMD and GECCO) and lowers validation residual kurtosis from $1.41$ to $1.07$, while macro Point-F1 under 1D thresholding decreases from $0.118$ to $0.078$ on SMAP P-3. Frequency-shell splitting thus improves score ranking and tail conditioning.
 
 \subsection{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}
 \label{subsec:controlled_backbone}
-Comparing the 12 model arms across all 19 non-GHL streams under identical splits, training budgets, and matched parameter counts in Table~\ref{tab:ablations}(c) isolates five architectural factors:
+Comparing the 14 model arms across all 19 non-GHL streams under identical splits, training budgets, and matched parameter counts in Table~\ref{tab:ablations}(c) isolates five architectural factors:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
     \item \emph{Forecasting vs.\ reconstructing raw observations (TCN Obs.\ Forecaster vs.\ TCN Obs.\ Autoencoder):} Pairing the same causal dilated TCN encoder with a multilayer perceptron decoder to either forecast the 64-step target window or reconstruct the 320-step window in raw sensor space leaves tail kurtosis ($\gamma_2 \approx 6.2$), calibration drift ($D_{\text{KS}} \approx 0.45$), and causal FPR ($\approx 25\%$) nearly identical.
-    \item \emph{LayerNorm bottleneck and saliency gating in observation space (TCN Obs.\ Forecaster (LN)):} Adding a $D=32$ LayerNorm bottleneck, target-window LayerNorm, and coordinate saliency gating to the observation forecaster compresses tail kurtosis six-fold ($\gamma_2 = 0.91$) and halves causal FPR to $11.7\%$, but targeting raw sensor waveforms leaves calibration drift high ($D_{\text{KS}} = 0.376$) and drops causal Point-F1 to $0.084$.
-    \item \emph{Learned latent target projection and multi-horizon whitening (TS-JEPA and Soliton-Reynolds JEPA):} Moving the prediction target into the learned $D=32$ latent space cuts calibration drift nearly in half ($D_{\text{KS}} = 0.214$ in TS-JEPA and $0.179$ in Soliton-Reynolds JEPA, paired Wilcoxon $p \le 0.001$), lowering causal FPR to $2.4\%$ and $0.6\%$ while lifting buffered PR-AUC from $0.257$ to $0.331$.
+    \item \emph{LayerNorm bottleneck in observation space (TCN Obs.\ Forecaster (LN)):} Adding a $D=32$ LayerNorm bottleneck and target-window LayerNorm to the observation forecaster compresses tail kurtosis six-fold ($\gamma_2 = 0.91$) and halves causal FPR to $11.7\%$, but targeting raw sensor waveforms leaves calibration drift high ($D_{\text{KS}} = 0.376$) and drops causal Point-F1 to $0.084$.
+    \item \emph{Learned latent target projection, multi-horizon whitening, and 224-bit circuit breakers (TS-JEPA and Soliton-Reynolds 224-Bit):} Moving the prediction target into the learned $D=32$ latent space cuts calibration drift nearly in half ($D_{\text{KS}} = 0.214$ in TS-JEPA and $0.179$ in Soliton-Reynolds JEPA, paired Wilcoxon $p \le 0.001$), while the 224-bit circuit-breaker panel lifts buffered PR-AUC to $0.411$, buffered Point-F1 to $0.228$, and causal event recall to $0.607$ at $1.7\%$ held-out FPR.
     \item \emph{Nonlinear TCN encoding vs.\ linear PCA and tree isolation (PCA Linear Forecaster (LN) and Isolation Forest):} Replacing the nonlinear TCN with 32 principal components and ridge regression bounds causal FPR to $2.1\%$ through LayerNorm, but causal Point-F1 collapses to $0.017$ (and Isolation Forest reaches only $0.149$ causal event recall), confirming the need for learned nonlinear temporal features.
-    \item \emph{Future prediction vs.\ context autoencoding, EMA stability, and $\ell_2$ scoring (JEPA Context Autoencoder, JEPA Hard-Target Copy, and TS-JEPA ($\ell_2$ Scoring)):} Context autoencoding in latent space keeps causal FPR low ($1.7\%$) but drops causal Point-F1 from $0.161$ to $0.112$ and PR-AUC from $0.278$ to $0.235$. Direct weight copying ($\zeta = 0$) or replacing the saliency gate with a Euclidean norm still holds causal FPR below $2\%$ ($0.9\%$ and $1.8\%$), confirming that false-alarm reduction stems from the normalized latent representation.
+    \item \emph{Future prediction vs.\ context autoencoding, EMA stability, and $\ell_2$ scoring (JEPA Context Autoencoder, JEPA Hard-Target Copy, and TS-JEPA ($\ell_2$ Scoring)):} Context autoencoding in latent space keeps causal FPR low ($1.7\%$) but drops causal Point-F1 from $0.161$ to $0.112$ and PR-AUC from $0.278$ to $0.235$. Direct weight copying ($\zeta = 0$) or Euclidean $\ell_2$ scoring still holds causal FPR below $2\%$ ($0.9\%$ and $1.8\%$), confirming that false-alarm reduction stems from the normalized latent representation.
 \end{enumerate}

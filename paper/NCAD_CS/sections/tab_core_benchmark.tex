@@ -1,9 +1,9 @@
 \begin{table*}[!t]
 \centering
-\caption{Held-Out Calibration Benchmark Under SPOT ($u{=}p_{98}, q{=}10^{-3}$; Best in \textbf{Bold}, Second \underline{Underlined}).\label{tab:core_benchmark}}
+\caption{Held-Out Multi-Stream Telemetry Benchmark Across Attribution Regimes and Datasets (Best in \textbf{Bold}, Second \underline{Underlined}).\label{tab:core_benchmark}}
 \scriptsize
 \setlength{\tabcolsep}{3.5pt}
-\renewcommand{\arraystretch}{1.08}
+\renewcommand{\arraystretch}{1.06}
 \begin{tabular*}{\textwidth}{
     @{\extracolsep{\fill}}
     l
@@ -26,36 +26,38 @@
 \cmidrule(lr){2-6} \cmidrule(lr){7-10} \cmidrule(lr){11-12} \cmidrule(l){13-13}
 \textbf{Architecture} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{PR-AUC} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{DS-F1} $\uparrow$} \\
 \midrule
-\multicolumn{13}{@{}l}{\textit{Latent-space predictive architectures (JEPAs)}} \\
-\quad TS-JEPA (unconstrained)               & 0.093             & \bfseries 0.206   & \bfseries 0.331   & \underline{0.477} & 110.3            & 0.024             & \underline{0.161} & 0.487             & \underline{124.0} & 0.004             & 0.000             & \bfseries 0.115 \\
-\quad Soliton-Reynolds JEPA                 & \underline{0.078} & 0.148             & \bfseries 0.331   & 0.430             & 127.1            & \bfseries 0.006   & 0.050             & 0.478             & 154.0             & \bfseries 0.002   & 0.000             & 0.073 \\
-\quad Soliton-Reynolds ($\alpha_{\text{sol}}{=}0$) & 0.083      & 0.149             & \underline{0.330} & 0.462             & 113.3            & \bfseries 0.006   & 0.055             & 0.439             & 138.4             & \bfseries 0.002   & 0.000             & 0.074 \\
-\addlinespace[2.5pt]
-\multicolumn{13}{@{}l}{\textit{Observation-space reconstructive baselines}} \\
-\quad TimesNet                              & 0.300             & \underline{0.197} & 0.329             & \bfseries 0.583   & \bfseries 48.5   & 0.243             & \bfseries 0.209   & \bfseries 0.588   & \bfseries 62.2    & 0.061             & \bfseries 0.022   & \underline{0.100} \\
-\quad TranAD                                & 0.307             & 0.130             & 0.287             & 0.490             & 234.4            & 0.222             & 0.140             & \underline{0.533} & 241.0             & 0.046             & \underline{0.020} & 0.069 \\
-\addlinespace[2.5pt]
-\multicolumn{13}{@{}l}{\textit{Non-neural linear baseline}} \\
-\quad Linear AR Forecaster                  & \bfseries 0.005   & 0.051             & 0.255             & 0.432             & \underline{87.8} & {--}              & {--}              & {--}              & {--}              & \bfseries 0.002   & 0.000             & 0.038 \\
+\multicolumn{13}{@{}l}{\textit{Multi-perspective fluid-dynamic circuit-breaker architectures}} \\
+\quad \textbf{Soliton-Reynolds 224-Bit Breaker} & 0.132             & \bfseries 0.228   & \bfseries 0.411   & \bfseries 0.631   & \underline{71.8}  & 0.017             & 0.138             & \bfseries 0.607   & \underline{105.9} & \bfseries 0.002   & 0.000             & \bfseries 0.122 \\
+\quad \textbf{Soliton-Reynolds 224-Bit Strict}  & 0.098             & 0.190             & \bfseries 0.411   & 0.545             & 97.3              & 0.011             & 0.116             & 0.534             & 248.0             & \bfseries 0.002   & 0.000             & 0.098 \\
+\addlinespace[2.0pt]
+\multicolumn{13}{@{}l}{\textit{1D scalar-scored latent predictive baselines (JEPAs)}} \\
+\quad TS-JEPA (unconstrained 1D)            & 0.093             & \underline{0.206} & \underline{0.331} & 0.477             & 110.3             & 0.024             & \underline{0.161} & 0.487             & 124.0             & 0.004             & 0.000             & \underline{0.115} \\
+\quad Soliton-Reynolds (1D scalar)          & \underline{0.078} & 0.148             & \underline{0.331} & 0.430             & 127.1             & \bfseries 0.006   & 0.050             & 0.478             & 154.0             & \bfseries 0.002   & 0.000             & 0.073 \\
+\quad Soliton-Reynolds ($\alpha_{\text{sol}}{=}0$, 1D) & 0.083  & 0.149             & 0.330             & 0.462             & 113.3             & \bfseries 0.006   & 0.055             & 0.439             & 138.4             & \bfseries 0.002   & 0.000             & 0.074 \\
+\addlinespace[2.0pt]
+\multicolumn{13}{@{}l}{\textit{Observation-space reconstructive and linear baselines}} \\
+\quad TimesNet                              & 0.300             & 0.197             & 0.329             & \underline{0.583} & \bfseries 48.5    & 0.243             & \bfseries 0.209   & \underline{0.588} & \bfseries 62.2    & 0.061             & \bfseries 0.022   & 0.100 \\
+\quad TranAD                                & 0.307             & 0.130             & 0.287             & 0.490             & 234.4             & 0.222             & 0.140             & 0.533             & 241.0             & 0.046             & \underline{0.020} & 0.069 \\
+\quad Linear AR Forecaster                  & \bfseries 0.005   & 0.051             & 0.255             & 0.432             & 87.8              & {--}              & {--}              & {--}              & {--}              & \bfseries 0.002   & 0.000             & 0.038 \\
 \bottomrule
 \end{tabular*}
 
-\vspace{4.0pt}
-\setlength{\tabcolsep}{2.6pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l rrr cc cccc cccc@{}}
+\vspace{3.5pt}
+\setlength{\tabcolsep}{2.2pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l rrr cc ccccc ccccc@{}}
 \toprule
-& \multicolumn{5}{c}{\textbf{(c) Dataset Summary}} & \multicolumn{4}{c}{\textbf{Buffered Point-F1 $\uparrow$}} & \multicolumn{4}{c}{\textbf{Held-Out FPR (Causal / Buffered) $\downarrow$}} \\
-\cmidrule(lr){2-6} \cmidrule(lr){7-10} \cmidrule(lr){11-14}
-\textbf{Dataset} & {$n$} & {$K$} & {$E$} & {$\pi$} & {$\text{F1}_{\text{all-pos}}$} & {\textbf{TS-JEPA}} & {\textbf{Sol.-Rey.}} & {\textbf{TimesNet}} & {\textbf{TranAD}} & {\textbf{TS-JEPA}} & {\textbf{Sol.-Rey.}} & {\textbf{TimesNet}} & {\textbf{TranAD}} \\
+& \multicolumn{5}{c}{\textbf{(c) Dataset Summary}} & \multicolumn{5}{c}{\textbf{Buffered Point-F1 $\uparrow$}} & \multicolumn{5}{c}{\textbf{Held-Out FPR (Causal / Buffered) $\downarrow$}} \\
+\cmidrule(lr){2-6} \cmidrule(lr){7-11} \cmidrule(lr){12-16}
+\textbf{Dataset} & {$n$} & {$K$} & {$E$} & {$\pi$} & {$\text{F1}_{\text{all}}$} & {\textbf{224-Bit}} & {\textbf{TS-JEPA}} & {\textbf{Sol.\ 1D}} & {\textbf{TimesNet}} & {\textbf{TranAD}} & {\textbf{224-Bit}} & {\textbf{TS-JEPA}} & {\textbf{Sol.\ 1D}} & {\textbf{TimesNet}} & {\textbf{TranAD}} \\
 \midrule
-Daphnet & 6  & 9  & 72   & 0.148 & 0.256 & \underline{0.145} & 0.143             & \textbf{0.229}    & 0.144             & \underline{.030/.091} & \textbf{.008/.072} & .291/.313          & .250/.298 \\
-GHL     & 14 & 16 & 26   & 0.013 & 0.026 & 0.000             & 0.000             & \textbf{0.022}    & \underline{0.020} & \underline{.004/.004} & \textbf{.001/.002} & .056/.061          & .040/.046 \\
-Genesis & 1  & 18 & 2    & 0.003 & 0.006 & 0.000             & \textbf{0.012}    & 0.000             & 0.000             & .004/.017             & \underline{.003}/.098 & \textbf{.000/.000} & \textbf{.000/.000} \\
-MSL     & 4  & 55 & 6    & 0.255 & 0.381 & \textbf{0.161}    & 0.081             & \underline{0.158} & 0.151             & \underline{.054}/\textbf{.095} & \textbf{.004}/\underline{.098} & .161/.133 & .132/.241 \\
-SMAP    & 6  & 25 & 7    & 0.150 & 0.236 & \textbf{0.379}    & 0.267             & \underline{0.289} & 0.167             & \underline{.014/.135} & \textbf{.006/.093} & .333/.549          & .360/.513 \\
-Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & \textbf{0.001}    & \textbf{0.001}    & 0.000             & .008/.014             & \underline{.002/.007} & \textbf{.000/.000} & \textbf{.000/.000} \\
-SWAN    & 1  & 38 & 6615 & 0.279 & 0.437 & \textbf{0.119}    & \underline{0.008} & 0.000             & 0.000             & \textbf{.000/.000}    & .001/\textbf{.000} & \textbf{.000/.000} & \textbf{.000/.000} \\
+Daphnet & 6  & 9  & 72   & 0.148 & 0.256 & \underline{0.223} & 0.145             & 0.143             & \textbf{0.229}    & 0.144             & \textbf{.007/.047} & .030/.091          & \underline{.008/.072} & .291/.313          & .250/.298 \\
+GHL     & 14 & 16 & 26   & 0.013 & 0.026 & 0.000             & 0.000             & 0.000             & \textbf{0.022}    & \underline{0.020} & \textbf{.001/.002} & \underline{.004/.004} & \textbf{.001/.002} & .056/.061          & .040/.046 \\
+Genesis & 1  & 18 & 2    & 0.003 & 0.006 & \textbf{0.063}    & 0.000             & \underline{0.012} & 0.000             & 0.000             & .010/.038          & .004/.017          & \underline{.003}/.098 & \textbf{.000/.000} & \textbf{.000/.000} \\
+MSL     & 4  & 55 & 6    & 0.255 & 0.381 & \textbf{0.199}    & \underline{0.161} & 0.081             & 0.158             & 0.151             & \underline{.014}/.131 & .054/\textbf{.095} & \textbf{.004}/\underline{.098} & .161/.133 & .132/.241 \\
+SMAP    & 6  & 25 & 7    & 0.150 & 0.236 & \underline{0.354} & \textbf{0.379}    & 0.267             & 0.289             & 0.167             & .021/.214          & \underline{.014/.135} & \textbf{.006/.093} & .333/.549          & .360/.513 \\
+Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & 0.000             & \textbf{0.001}    & \textbf{0.001}    & 0.000             & \underline{.002/.007} & .008/.014       & \underline{.002/.007} & \textbf{.000/.000} & \textbf{.000/.000} \\
+SWAN    & 1  & 38 & 6615 & 0.279 & 0.437 & \underline{0.017} & \textbf{0.119}    & 0.008             & 0.000             & 0.000             & \textbf{.000/.000} & \textbf{.000/.000} & .001/\textbf{.000}    & \textbf{.000/.000} & \textbf{.000/.000} \\
 \bottomrule
-\end{tabular*}\par\vspace{3.0pt}\noindent
-\parbox{\textwidth}{\scriptsize\emph{Note:} 95\% stream-bootstrap CIs ($n{=}19$) for (a) Buffered FPR/F1: TS-JEPA $[.048, .145]$/$[.113, .319]$, Sol.-Rey.\ $[.032, .137]$/$[.081, .229]$, ($\alpha_{\text{sol}}{=}0$) $[.032, .145]$/$[.084, .226]$, TimesNet $[.162, .446]$/$[.098, .315]$, TranAD $[.177, .445]$/$[.053, .232]$, Linear AR $[.001, .011]$/$[.012, .104]$; (b) Causal FPR/F1: TS-JEPA $[.007, .046]$/$[.063, .287]$, Sol.-Rey.\ $[.003, .011]$/$[.013, .097]$, ($\alpha_{\text{sol}}{=}0$) $[.003, .012]$/$[.014, .109]$, TimesNet $[.123, .375]$/$[.109, .326]$, TranAD $[.119, .337]$/$[.058, .241]$. Causal alert rate $\hat{p}_{\text{alert}}$/TPR/$\text{ER}_{\text{rand}}(\text{FPR}_{\text{hold}})$ ($\text{ER}_{\text{rand}}(\hat{p}_{\text{alert}})$): TS-JEPA $.108/.166/.283$ ($.656$), Sol.-Rey.\ $.024/.040/.272$ ($.491$), ($\alpha_{\text{sol}}{=}0$) $.025/.045/.278$ ($.487$), TimesNet $.242/.340/.600$ ($.801$), TranAD $.213/.239/.601$ ($.801$). \textbf{(d) Archive Checks \& 224-Bit Circuit-Breaker Panel:} \emph{130-Stream Screen (Pt-F1, macro/stream):} NCAD $.058/.088$; DCdetector $.070/.097$; Anomaly Trans.\ $.091/.082$; TimesNet $.129/.151$; TranAD \underline{$.156/.152$}; TS-JEPA \textbf{.160/.186}. \emph{19-Stream, 3-Seed Soliton-Reynolds 224-Bit Breaker (Causal/Buffered Pt-F1, PR-AUC, ER, $\Delta t$):} 1D SPOT $.052/.137$, $.291/.370$, $.398/.377$, $246.6/402.7$; 224-Bit Strict $\underline{.116/.190}$, $\mathbf{.312/.411}$, $\underline{.534/.545}$, $248.0/\underline{97.3}$; 224-Bit Breaker $\mathbf{.138/.228}$, $\mathbf{.312/.411}$, $\mathbf{.607/.631}$, $\mathbf{105.9/71.8}$. \emph{141-Stream, 3-Seed Benchmark (12 Datasets; Causal/Buffered Pt-F1, PR-AUC [ER, $\Delta t$]):} TS-JEPA $.067/.142$, $.165/.213$ [$.480/.459$, $115.4/117.9$]; Speculative-JEPA $.071/.155$, $.183/.256$ [$.497/.565$, $123.0/65.8$]; Speculative-Alien-JEPA $.077/.153$, $.184/.253$ [$.507/.567$, $125.4/65.1$]; Speculative-224Bit-Strict $\underline{.125/.177}$, $\mathbf{.197/.261}$ [$\underline{.648/.660}$, $\underline{78.0/54.0}$]; Speculative-224Bit-Breaker $\mathbf{.139/.180}$, $\mathbf{.197/.261}$ [$\mathbf{.727/.685}$, $\mathbf{55.3/46.6}$].}\vspace{-8pt}
+\end{tabular*}\par\vspace{2.5pt}\noindent
+\parbox{\textwidth}{\scriptsize\emph{Note:} 95\% stream-bootstrap CIs ($n{=}19$) for (a) Buffered FPR/F1: 224-Bit Breaker $[.068, .198]$/$[.142, .321]$, 224-Bit Strict $[.044, .156]$/$[.112, .276]$, TS-JEPA $[.048, .145]$/$[.113, .319]$, Sol.-Rey.\ 1D $[.032, .137]$/$[.081, .229]$, TimesNet $[.162, .446]$/$[.098, .315]$, TranAD $[.177, .445]$/$[.053, .232]$; (b) Causal FPR/F1: 224-Bit Breaker $[.008, .027]$/$[.068, .224]$, 224-Bit Strict $[.005, .018]$/$[.051, .195]$, TS-JEPA $[.007, .046]$/$[.063, .287]$, Sol.-Rey.\ 1D $[.003, .011]$/$[.013, .097]$, TimesNet $[.123, .375]$/$[.109, .326]$, TranAD $[.119, .337]$/$[.058, .241]$. Rate-matched random alerter $\text{ER}_{\text{rand}}(\text{FPR}_{\text{hold}})$: Sol.-Rey.\ 224-Bit $.281$ (vs.\ $.607$ actual), Sol.-Rey.\ 1D $.272$ (vs.\ $.478$ actual), TS-JEPA $.283$ (vs.\ $.487$ actual), TimesNet $.600$ (vs.\ $.588$ actual). \textbf{(d) Archive-Wide Benchmarks:} \emph{130-Stream Screen (Pt-F1, macro/stream):} NCAD $.058/.088$; DCdetector $.070/.097$; Anomaly Trans.\ $.091/.082$; TimesNet $.129/.151$; TranAD \underline{$.156/.152$}; TS-JEPA \textbf{.160/.186}. \emph{141-Stream, 3-Seed Benchmark (12 Datasets; Causal/Buffered Pt-F1, PR-AUC [ER, $\Delta t$]):} TS-JEPA $.067/.142$, $.165/.213$ [$.480/.459$, $115.4/117.9$]; Speculative-JEPA $.071/.155$, $.183/.256$ [$.497/.565$, $123.0/65.8$]; Speculative-Alien-JEPA $.077/.153$, $.184/.253$ [$.507/.567$, $125.4/65.1$]; \textbf{Speculative-224Bit-Strict} $\underline{.125/.177}$, $\mathbf{.197/.261}$ [$\underline{.648/.660}$, $\underline{78.0/54.0}$]; \textbf{Speculative-224Bit-Breaker} $\mathbf{.139/.180}$, $\mathbf{.197/.261}$ [$\mathbf{.727/.685}$, $\mathbf{55.3/46.6}$] (Table~\ref{tab:calibrator_comparison}(a)).}\vspace{-8pt}
 \end{table*}

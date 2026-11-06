@@ -1,220 +1,211 @@
 #!/usr/bin/env python3
-"""
-Generate Publication-Grade IEEE TNNLS Architectural Diagram: Operator-Entropy JEPA
------------------------------------------------------------------------------------
-Generates a crisp, publication-ready vector diagram depicting the complete
-Operator-Entropy JEPA architecture:
-(A) Multiscale Input & Asymmetric Encoders (Context TCN vs. Target Momentum EMA with Stop-Grad)
-(B) Geometric Latent Filtering & Koopman Transition Operator K \in R^{D x D}
-(C) Dual Spectral Entropy Anti-Collapse Objective (Von Neumann entropy + Bregman barrier)
-(D) Latent Coordinate Saliency & Inductive Tail Calibration (Streaming SPOT / EVT)
+"""Generate Figure 1: Four-Stage Soliton-Reynolds JEPA & 224-Bit Circuit-Breaker Architecture.
+
+100% true-vector diagram (.svg, .pdf, .png) illustrating:
+  (A) Multiscale Windowing, 3-Depth TCN Hierarchy Taps & Barycenter Centering
+  (B) Nested Multi-Horizon Rollout (S_m in {16,32,48,64}) & Two-Term Whitening Defect Loss
+  (C) Fluid-Dynamic 7x32 = 224-Perspective Dial Expansion & Calibration-Stabilized Whitening
+  (D) Zero-Collapse 224-Bit Boolean Circuit-Breaker Panel & 32 Fast Right-Edge Onset Relays
 """
 
+from __future__ import annotations
+
+import sys
 from pathlib import Path
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 ROOT = Path(__file__).resolve().parent.parent
+SKILL_SCRIPTS = ROOT / ".agents" / "skills" / "beautiful-research-figures" / "scripts"
+if str(SKILL_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SKILL_SCRIPTS))
+
+from ieee_vector_style import save_true_vector_figure  # noqa: E402
+
 OUT_FIG_DIR = ROOT / "paper" / "NCAD_CS" / "figures"
 OUT_FIG_DIR.mkdir(parents=True, exist_ok=True)
 
-# Publication Typography
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Times New Roman', 'DejaVu Serif', 'Computer Modern Roman']
-plt.rcParams['mathtext.fontset'] = 'cm'
 
-fig, ax = plt.subplots(figsize=(15.8, 7.2), dpi=300)
-ax.set_xlim(0, 15.8)
-ax.set_ylim(0, 7.2)
-ax.axis('off')
+def make_figure() -> None:
+    plt.rcParams.update({
+        "font.family": "Times New Roman",
+        "mathtext.fontset": "stix",
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+        "svg.fonttype": "none",
+    })
 
-# IEEE Academic Color Palette (Flat, High-Contrast, Professional)
-c_slate_dark  = '#0F172A'  # Slate-900 (Main text & dark borders)
-c_slate_muted = '#475569'  # Slate-600 (Subtext & annotations)
-c_slate_bdr   = '#CBD5E1'  # Slate-300 (Card borders)
+    fig, ax = plt.subplots(figsize=(13.6, 4.9), dpi=300)
+    fig.subplots_adjust(left=0.006, right=0.994, top=0.99, bottom=0.01)
+    ax.set_xlim(0.0, 16.0)
+    ax.set_ylim(0.0, 5.8)
+    ax.axis("off")
 
-c_ctx_bg      = '#EFF6FF'  # Blue-50 (Context pipeline)
-c_ctx_bdr     = '#2563EB'  # Blue-600
-c_ctx_txt     = '#1E3A8A'  # Blue-900
+    c_dark = "#1e293b"
+    c_muted = "#475569"
+    c_bdr = "#cbd5e1"
 
-c_tgt_bg      = '#FFFBEB'  # Amber-50 (Target EMA pipeline)
-c_tgt_bdr     = '#D97706'  # Amber-600
-c_tgt_txt     = '#92400E'  # Amber-900
+    c_ctx_bg, c_ctx_bdr, c_ctx_txt = "#eff6ff", "#1d4e89", "#0b3c68"
+    c_tgt_bg, c_tgt_bdr, c_tgt_txt = "#f4f0fa", "#6a408d", "#4a256b"
+    c_hor_bg, c_hor_bdr, c_hor_txt = "#e8f6f6", "#378d94", "#1b5e63"
+    c_brk_bg, c_brk_bdr, c_brk_txt = "#fdf2f4", "#a31d3d", "#7a122b"
 
-c_koop_bg     = '#F0FDF4'  # Emerald-50 (Operator Dynamics)
-c_koop_bdr    = '#059669'  # Emerald-600
-c_koop_txt    = '#065F46'  # Emerald-900
+    def draw_card(x, y, w, h, title="", subtitle="", fc="#ffffff", ec=c_bdr, lw=1.0, rx=0.10, title_color=c_dark):
+        box = patches.FancyBboxPatch(
+            (x, y), w, h, boxstyle=f"round,pad=0.0,rounding_size={rx}",
+            facecolor=fc, edgecolor=ec, linewidth=lw, zorder=2
+        )
+        ax.add_patch(box)
+        if title and subtitle:
+            ax.text(x + w / 2, y + h * 0.67, title, ha="center", va="center", fontsize=8.0, fontweight="bold", color=title_color, zorder=3)
+            ax.text(x + w / 2, y + h * 0.30, subtitle, ha="center", va="center", fontsize=7.2, color=c_muted, zorder=3)
+        elif title:
+            ax.text(x + w / 2, y + h * 0.50, title, ha="center", va="center", fontsize=8.0, fontweight="bold", color=title_color, zorder=3)
+        return box
 
-c_loss_bg     = '#FAF5FF'  # Purple-50 (Dual Spectral Entropy Loss)
-c_loss_bdr    = '#9333EA'  # Purple-600
-c_loss_txt    = '#581C87'  # Purple-900
+    def draw_arrow(x1, y1, x2, y2, color="#334155", lw=1.2, ls="-"):
+        ax.annotate(
+            "", xy=(x2, y2), xytext=(x1, y1),
+            arrowprops=dict(arrowstyle="-|>", lw=lw, color=color, linestyle=ls, mutation_scale=9.0, shrinkA=0, shrinkB=0),
+            zorder=5
+        )
 
-c_tail_bg     = '#FFF7ED'  # Orange-50 (SPOT Tail Calibration)
-c_tail_bdr    = '#EA580C'  # Orange-600
-c_tail_txt    = '#9A3412'  # Orange-900
+    outer = patches.FancyBboxPatch(
+        (0.08, 0.08), 15.84, 5.64, boxstyle="round,pad=0.0,rounding_size=0.14",
+        facecolor="#fafafa", edgecolor="#cbd5e1", linewidth=1.1, zorder=1
+    )
+    ax.add_patch(outer)
 
+    # =========================================================================
+    # STAGE 1: Multiscale Windowing & Dual Hierarchy Encoders
+    # =========================================================================
+    draw_card(0.22, 0.22, 3.65, 5.36, fc="#ffffff", ec=c_bdr, lw=1.0)
+    ax.text(2.04, 5.32, "(1) Multiscale Encoding & Barycenter", ha="center", va="center", fontsize=8.8, fontweight="bold", color=c_ctx_txt)
 
-def draw_card(x, y, w, h, title="", subtitle="", facecolor='#FFFFFF', edgecolor=c_slate_bdr, lw=1.0, rx=0.12):
-    box = patches.FancyBboxPatch((x, y), w, h, boxstyle=f"round,pad=0.0,rounding_size={rx}",
-                                facecolor=facecolor, edgecolor=edgecolor, linewidth=lw, zorder=2)
-    ax.add_patch(box)
-    if title and subtitle:
-        ax.text(x + w / 2, y + h * 0.68, title, ha='center', va='center', fontsize=8.6, fontweight='bold', color=c_slate_dark, zorder=3)
-        ax.text(x + w / 2, y + h * 0.32, subtitle, ha='center', va='center', fontsize=7.4, color=c_slate_muted, zorder=3)
-    elif title:
-        ax.text(x + w / 2, y + h * 0.50, title, ha='center', va='center', fontsize=8.6, fontweight='bold', color=c_slate_dark, zorder=3)
-    return box
+    draw_card(0.38, 4.02, 1.48, 0.96, "Context Window", "$\\mathbf{x}_{\\mathrm{ctx}} \\in \\mathbb{R}^{256 \\times K}$", fc=c_ctx_bg, ec=c_ctx_bdr)
+    draw_card(2.14, 4.02, 1.56, 0.96, "Online Encoder $E_\\theta$", "4-Shell rFFT + TCN", fc=c_ctx_bg, ec=c_ctx_bdr)
+    draw_arrow(1.86, 4.50, 2.14, 4.50, color=c_ctx_bdr)
 
+    draw_card(0.38, 2.28, 3.32, 1.38, fc="#f8fafc", ec="#cbd5e1", lw=0.9)
+    ax.text(2.04, 3.38, "3-Depth TCN Taps & Barycenter Shift", ha="center", va="center", fontsize=7.8, fontweight="bold", color=c_dark)
+    ax.text(
+        2.04, 2.74,
+        "Shallow, mid & deep TCN taps ($L_{\\mathrm{tap}}{=}3$)\n"
+        "Subtract context barycenter $\\bar{\\boldsymbol{\\mu}}_{\\mathrm{ctx}}$\n"
+        "Project onto sphere $\\sqrt{D}\\mathbb{S}^{D-1}$ ($D{=}32$)",
+        ha="center", va="center", fontsize=7.0, color=c_muted
+    )
 
-def draw_arrow(x1, y1, x2, y2, color='#334155', lw=1.2, ls='-', style="-|>", rad=0.0):
-    conn = f"arc3,rad={rad}" if rad != 0.0 else "arc3,rad=0"
-    ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
-                arrowprops=dict(arrowstyle=style, lw=lw, color=color, linestyle=ls,
-                                mutation_scale=9, shrinkA=0, shrinkB=0, connectionstyle=conn), zorder=5)
+    draw_card(0.38, 0.42, 1.48, 0.96, "4 Target Prefixes", "$\\mathbf{x}_{\\mathrm{tgt}}^{(m)} \\in \\mathbb{R}^{S_m \\times K}$", fc=c_tgt_bg, ec=c_tgt_bdr)
+    draw_card(2.14, 0.42, 1.56, 0.96, "EMA Target $E_\\phi$", "$\\phi \\leftarrow m\\phi{+}(1{-}m)\\theta$", fc=c_tgt_bg, ec=c_tgt_bdr)
+    draw_arrow(1.86, 0.90, 2.14, 0.90, color=c_tgt_bdr)
+    draw_arrow(2.92, 4.02, 2.92, 3.68, color=c_ctx_bdr, ls="--")
+    draw_arrow(2.92, 2.26, 2.92, 1.40, color=c_tgt_bdr, ls="--")
 
+    # =========================================================================
+    # STAGE 2: Nested Multi-Horizon Rollout & Two-Term Loss
+    # =========================================================================
+    draw_card(4.02, 0.22, 3.75, 5.36, fc="#ffffff", ec=c_bdr, lw=1.0)
+    ax.text(5.90, 5.32, "(2) Nested 4-Horizon Latent Rollout", ha="center", va="center", fontsize=8.8, fontweight="bold", color=c_hor_txt)
 
-# Canvas Outer Boundary
-main_box = patches.FancyBboxPatch((0.2, 0.2), 15.4, 6.8, boxstyle="round,pad=0.0,rounding_size=0.20",
-                                 facecolor='#FAFAFA', edgecolor='#E2E8F0', linewidth=1.2, zorder=1)
-ax.add_patch(main_box)
+    draw_card(4.20, 4.02, 1.45, 0.96, "Context Latent", "$z_{\\mathrm{ctx}} \\in \\sqrt{D}\\mathbb{S}^{D-1}$", fc=c_ctx_bg, ec=c_ctx_bdr)
+    draw_arrow(3.70, 4.50, 4.20, 4.50, color=c_ctx_bdr)
 
-# Header Banner
-ax.text(0.5, 6.70, "Operator-Entropy JEPA: Latent Dynamical Predictive Architecture",
-        fontsize=12.5, fontweight='bold', color=c_slate_dark, ha='left', va='center')
-ax.text(0.5, 6.40, r"Spectral Koopman Operator $\mathbf{K} \in \mathbb{R}^{D \times D}$ with Non-Contrastive Dual Von Neumann Entropy & Logarithmic Bregman Barrier",
-        fontsize=8.5, color=c_slate_muted, ha='left', va='center')
+    draw_card(5.92, 4.02, 1.68, 0.96, "Rollout $P_{\\mathrm{sub}}, P_\\theta$", "$S_m \\in \\{16, 32, 48, 64\\}$", fc=c_hor_bg, ec=c_hor_bdr)
+    draw_arrow(5.65, 4.50, 5.92, 4.50, color=c_hor_bdr)
 
+    draw_card(4.20, 2.28, 3.40, 1.38, fc=c_hor_bg, ec=c_hor_bdr, lw=0.9)
+    ax.text(5.90, 3.38, "Two-Term Objective ($\\mathcal{L}_{\\mathrm{Sol-Rey}}$)", ha="center", va="center", fontsize=7.8, fontweight="bold", color=c_hor_txt)
+    ax.text(
+        5.90, 2.74,
+        "$\\sum_{m=1}^{4} \\frac{w_m}{D}\\left(\\|\\hat{z}_{\\mathrm{tgt}}^{(m)} - \\mathrm{sg}(z_{\\mathrm{tgt}}^{(m)})\\|_2^2 + \\|\\boldsymbol{\\Delta}_\\gamma(\\hat{z}_{\\mathrm{tgt}}^{(m)})\\|_F^2\\right)$\n"
+        "Frobenius whitening defect ($\\mathrm{RankMe}{=}19.8$)",
+        ha="center", va="center", fontsize=7.0, color=c_dark
+    )
 
-# =========================================================================
-# PANEL A: Asymmetric Dual-Stream Encoders
-# =========================================================================
-draw_card(0.5, 0.5, 3.8, 5.65, facecolor='#FFFFFF', edgecolor=c_slate_bdr, lw=1.0)
-ax.text(2.4, 5.85, "(A) Multiscale Input & Encoders", ha='center', va='center', fontsize=9.2, fontweight='bold', color=c_ctx_txt)
+    draw_card(4.20, 0.42, 1.45, 0.96, "Target Latents", "$z_{\\mathrm{tgt}}^{(1..4)} \\in \\mathbb{R}^{4 \\times 32}$", fc=c_tgt_bg, ec=c_tgt_bdr)
+    draw_arrow(3.70, 0.90, 4.20, 0.90, color=c_tgt_bdr)
 
-# Context Stream (Top)
-draw_card(0.8, 4.4, 1.4, 1.05, "Context Window", r"$\mathbf{x}_{\mathrm{ctx}} \in \mathbb{R}^{C \times K}$", facecolor=c_ctx_bg, edgecolor=c_ctx_bdr)
-draw_card(2.6, 4.4, 1.5, 1.05, "Online Encoder $E_\\theta$", "Dyadic LP + TCN", facecolor=c_ctx_bg, edgecolor=c_ctx_bdr)
-draw_arrow(2.2, 4.92, 2.6, 4.92, color=c_ctx_bdr, lw=1.4)
+    draw_card(5.92, 0.42, 1.68, 0.96, "Residuals $\\mathbf{E}$", "$\\mathbf{e}_m = z_{\\mathrm{tgt}}^{(m)} - \\hat{z}_{\\mathrm{tgt}}^{(m)}$", fc="#ffffff", ec=c_hor_bdr)
+    draw_arrow(5.65, 0.90, 5.92, 0.90, color=c_tgt_bdr)
+    draw_arrow(6.76, 4.02, 6.76, 3.68, color=c_hor_bdr)
+    draw_arrow(6.76, 2.26, 6.76, 1.40, color=c_hor_bdr)
 
-# Target Stream (Bottom)
-draw_card(0.8, 0.8, 1.4, 1.05, "Suspect Horizon", r"$\mathbf{x}_{\mathrm{tgt}} \in \mathbb{R}^{S \times K}$", facecolor=c_tgt_bg, edgecolor=c_tgt_bdr)
-draw_card(2.6, 0.8, 1.5, 1.05, "Target Encoder $E_\\phi$", "EMA Replica (Stop-Grad)", facecolor=c_tgt_bg, edgecolor=c_tgt_bdr)
-draw_arrow(2.2, 1.32, 2.6, 1.32, color=c_tgt_bdr, lw=1.4)
+    # =========================================================================
+    # STAGE 3: Fluid-Dynamic 224-Perspective Dial Expansion
+    # =========================================================================
+    draw_card(7.92, 0.22, 3.95, 5.36, fc="#ffffff", ec=c_bdr, lw=1.0)
+    ax.text(9.90, 5.32, "(3) Fluid-Dynamic 224-Dial Expansion", ha="center", va="center", fontsize=8.8, fontweight="bold", color=c_tgt_txt)
 
-# Stop-gradient symbol on target stream
-ax.text(2.68, 2.05, r"$\perp$ (Stop-Gradient)", fontsize=7.2, color='#B45309', fontweight='bold')
+    draw_card(
+        8.10, 4.02, 3.58, 0.96,
+        "Calibration-Stabilized Whitening ($\\tilde{\\mathbf{E}} \\in \\mathbb{R}^{4 \\times 32}$)",
+        "$\\tilde{\\mathbf{e}} = \\mathbf{\\Omega}(\\mathrm{vec}(\\mathbf{E}) - \\bar{\\boldsymbol{\\mu}}_{\\mathrm{res}})$ blended via $\\lambda_{m,c}$",
+        fc=c_tgt_bg, ec=c_tgt_bdr
+    )
+    draw_arrow(7.60, 0.90, 8.10, 4.46, color=c_hor_bdr)
 
-# EMA Momentum parameter transfer arrow
-draw_arrow(3.35, 4.4, 3.35, 1.9, color='#9333EA', lw=1.3, ls='--')
-ax.text(3.30, 3.15, r"$\phi \leftarrow m\phi + (1-m)\theta$" "\n" r"($m \in [0.996, 0.9995]$)",
-        fontsize=6.8, color='#7E22CE', ha='right', va='center')
+    draw_card(8.10, 2.88, 1.72, 0.90, "1. Sub-Block (128)", "$|\\tilde{e}_{m,c}(t)|,\\; m \\in \\{1..4\\}$", fc="#f8fafc", ec=c_ctx_bdr)
+    draw_card(9.96, 2.88, 1.72, 0.90, "2. Mean Drift (32)", "$|\\bar{e}_c(t)| = |\\frac{1}{4}\\sum_{m=1}^4 \\tilde{e}_{m,c}|$", fc="#f8fafc", ec=c_ctx_bdr)
+    draw_card(8.10, 1.78, 1.72, 0.90, "3. Fluctuation (32)", "$\\sigma'_c(t) = \\sqrt{\\frac{1}{4}\\sum (\\tilde{e}_{m,c}{-}\\bar{e}_c)^2}$", fc="#f8fafc", ec=c_hor_bdr)
+    draw_card(9.96, 1.78, 1.72, 0.90, "4. Right Accel. (32)", "$|\\tilde{e}_{4,c}(t) - \\tilde{e}_{1,c}(t)|$", fc="#f8fafc", ec=c_brk_bdr)
 
-# Multi-scale filterbank explanation card
-draw_card(0.8, 2.3, 2.0, 1.65, facecolor='#F8FAFC', edgecolor='#E2E8F0', lw=0.8)
-ax.text(1.8, 3.70, "Multiscale Dyadic Split", ha='center', va='center', fontsize=7.8, fontweight='bold', color=c_slate_dark)
-ax.text(1.8, 3.10, "• $C=256$, $S=64$, $K$ channels\n• rFFT dyadic partition of unity\n• Smooth partition: $\\sum_j \\Psi_j(\\omega) = 1$\n• Causal receptive field $\\geq C$",
-        ha='center', va='center', fontsize=6.8, color=c_slate_muted)
+    draw_arrow(8.96, 4.02, 8.96, 3.78, color=c_tgt_bdr)
+    draw_arrow(10.82, 4.02, 10.82, 3.78, color=c_tgt_bdr)
 
+    draw_card(
+        8.10, 0.42, 3.58, 1.14,
+        "Lieb-Thirring Concentration Bounds",
+        "$\\mathbf{G} = \\mathbf{E}'{\\mathbf{E}'}^\\top \\succeq \\mathbf{0},\\; \\frac{1}{M-1} \\leq R_{\\mathrm{LT}}(\\mathbf{E}') \\leq 1$ (Prop. 1)",
+        fc="#f8fafc", ec="#94a3b8"
+    )
 
-# =========================================================================
-# PANEL B: Latent Geometric Filtering & Koopman Operator
-# =========================================================================
-draw_card(4.5, 0.5, 4.4, 5.65, facecolor='#FFFFFF', edgecolor=c_slate_bdr, lw=1.0)
-ax.text(6.7, 5.85, "(B) Geometric Filters & Koopman Transition", ha='center', va='center', fontsize=9.2, fontweight='bold', color=c_koop_txt)
+    # =========================================================================
+    # STAGE 4: 224-Bit Circuit-Breaker Panel & 32 Onset Relays
+    # =========================================================================
+    draw_card(12.02, 0.22, 3.74, 5.36, fc="#ffffff", ec=c_bdr, lw=1.0)
+    ax.text(13.89, 5.32, "(4) 224-Bit Circuit-Breaker Panel", ha="center", va="center", fontsize=8.8, fontweight="bold", color=c_brk_txt)
 
-# Latent representation cards
-draw_card(4.7, 4.4, 1.2, 1.05, r"$\mathbf{z}_{\mathrm{ctx}} \in \mathbb{R}^D$", "$D=32$", facecolor='#FFFFFF', edgecolor=c_ctx_bdr)
-draw_arrow(4.1, 4.92, 4.7, 4.92, color=c_ctx_bdr, lw=1.4)
+    draw_card(
+        12.20, 3.92, 3.38, 1.06,
+        "Hijack Guards & 224 Binary Switches",
+        "$b_j(t) = \\mathbb{I}\\left(z_j(t) > q_{1-\\alpha}(z_{j,\\mathrm{cal}})\\,\\gamma_j^{\\mathrm{cal}}\\,\\gamma_j^{\\mathrm{tr}\\to\\mathrm{cal}}\\right)$",
+        fc=c_brk_bg, ec=c_brk_bdr
+    )
+    draw_arrow(11.68, 3.33, 12.20, 4.45, color=c_brk_bdr)
+    draw_arrow(11.68, 2.23, 12.20, 4.25, color=c_brk_bdr)
 
-# Geometric filter blocks
-draw_card(6.1, 4.4, 1.2, 1.05, "Filters", "Radial Heat\n+ Cohn-Elkies", facecolor='#F8FAFC', edgecolor=c_slate_bdr)
-draw_arrow(5.9, 4.92, 6.1, 4.92, color=c_ctx_bdr, lw=1.2)
+    draw_card(
+        12.20, 2.56, 3.38, 1.08,
+        "32 Fast Right-Edge Onset Relays",
+        "$r_c(t) = b_{4,c}(t) \\wedge \\left(b_{\\mathrm{accel},c}(t) \\vee b_{\\mathrm{fluc},c}(t) \\vee b_{3,c}(t)\\right)$",
+        fc="#fff8f1", ec="#c2410c"
+    )
+    draw_arrow(13.89, 3.92, 13.89, 3.64, color=c_brk_bdr)
 
-# Koopman transition operator card
-draw_card(7.5, 4.4, 1.2, 1.05, "Koopman", r"$\mathbf{K} \in \mathbb{R}^{D \times D}$", facecolor=c_koop_bg, edgecolor=c_koop_bdr, lw=1.4)
-draw_arrow(7.3, 4.92, 7.5, 4.92, color=c_koop_bdr, lw=1.4)
+    draw_card(12.20, 0.42, 3.38, 1.86, fc=c_brk_bg, ec=c_brk_bdr, lw=1.1)
+    ax.text(13.89, 2.02, "Zero-Collapse Boolean Trip Decision", ha="center", va="center", fontsize=7.8, fontweight="bold", color=c_brk_txt)
+    ax.text(
+        13.89, 1.16,
+        "• Switch count: $N_{\\mathrm{trip}}(t) = \\sum_{j=1}^{224} b_j(t)$\n"
+        "• 224-Bit Strict: $N_{\\mathrm{trip}}(t) \\geq K_{\\mathrm{strict}}$ ($p_{99.3}$ cal.)\n"
+        "• 224-Bit Breaker: $N_{\\mathrm{trip}}(t) \\geq K_{\\mathrm{bal}}$ $\\vee \\bigvee_{c=1}^{32} r_c(t)$\n"
+        "• Causal ($\\tau{=}t{+}63$) & prefix-routed buffered",
+        ha="center", va="center", fontsize=6.8, color=c_dark
+    )
+    draw_arrow(13.89, 2.56, 13.89, 2.28, color=c_brk_bdr)
 
-# Latent prediction card
-draw_card(7.5, 2.7, 1.2, 1.05, r"$\hat{\mathbf{z}}_{\mathrm{tgt}} \in \mathbb{R}^D$", r"$\mathbf{K} \mathbf{z}_{\mathrm{ctx}}$", facecolor='#FFFFFF', edgecolor=c_koop_bdr)
-draw_arrow(8.1, 4.4, 8.1, 3.75, color=c_koop_bdr, lw=1.4)
-
-# Target latent card
-draw_card(4.7, 0.8, 1.2, 1.05, r"$\mathbf{z}_{\mathrm{tgt}} \in \mathbb{R}^D$", "$D=32$", facecolor='#FFFFFF', edgecolor=c_tgt_bdr)
-draw_arrow(4.1, 1.32, 4.7, 1.32, color=c_tgt_bdr, lw=1.4)
-
-# Target filters card
-draw_card(6.1, 0.8, 1.2, 1.05, "Filters", "Radial Heat\n+ Cohn-Elkies", facecolor='#F8FAFC', edgecolor=c_slate_bdr)
-draw_arrow(5.9, 1.32, 6.1, 1.32, color=c_tgt_bdr, lw=1.2)
-
-# Target Latent Clean
-draw_card(7.5, 0.8, 1.2, 1.05, r"$\mathbf{z}_{\mathrm{tgt}} \in \mathbb{R}^D$", "Target Latent", facecolor='#FFFFFF', edgecolor=c_tgt_bdr)
-draw_arrow(7.3, 1.32, 7.5, 1.32, color=c_tgt_bdr, lw=1.2)
-
-# Structural note on Koopman operator
-draw_card(4.7, 2.1, 2.5, 1.95, facecolor='#F0FDF4', edgecolor='#A7F3D0', lw=0.8)
-ax.text(5.95, 3.80, "Koopman Operator Priors", ha='center', va='center', fontsize=7.6, fontweight='bold', color=c_koop_txt)
-ax.text(5.95, 3.00, "• $\\hat{\\mathbf{z}}_{\\mathrm{tgt}} = \\mathbf{K} \\mathbf{z}_{\\mathrm{ctx}}$ (1,024 params)\n• Initialized: $\\mathbf{K} \\sim \\mathbf{I} + 0.01\\mathcal{N}(\\mathbf{0},\\mathbf{I})$\n• Singular values: $\\sigma_1 \\geq \\dots \\geq \\sigma_D$\n• Prevents dynamic collapse\n• Optional: Cayley unitary transform",
-        ha='center', va='center', fontsize=6.8, color=c_slate_dark)
-
-
-# =========================================================================
-# PANEL C: Dual Spectral Entropy & Anti-Collapse Objective
-# =========================================================================
-draw_card(9.1, 0.5, 3.5, 5.65, facecolor='#FFFFFF', edgecolor=c_slate_bdr, lw=1.0)
-ax.text(10.85, 5.85, "(C) Dual Spectral Entropy Objective", ha='center', va='center', fontsize=9.2, fontweight='bold', color=c_loss_txt)
-
-# Discrepancy node
-circ = patches.Circle((9.7, 2.35), 0.28, facecolor='#FFFFFF', edgecolor=c_slate_dark, lw=1.3, zorder=4)
-ax.add_patch(circ)
-ax.text(9.7, 2.35, r"$\mathcal{D}$", ha='center', va='center', fontsize=10.0, fontweight='bold', color=c_slate_dark, zorder=5)
-
-draw_arrow(8.7, 3.0, 9.45, 2.45, color=c_koop_bdr, lw=1.3)
-draw_arrow(8.7, 1.5, 9.45, 2.25, color=c_tgt_bdr, lw=1.3)
-
-# Composite Loss Breakdown Card
-draw_card(9.3, 3.2, 3.1, 2.35, facecolor=c_loss_bg, edgecolor=c_loss_bdr, lw=1.0)
-ax.text(10.85, 5.25, "Composite Objective Function", ha='center', va='center', fontsize=8.2, fontweight='bold', color=c_loss_txt)
-ax.text(10.85, 4.88, r"$\mathcal{L} = \|\hat{\mathbf{z}}_{\mathrm{tgt}} - \mathbf{z}_{\mathrm{tgt}}\|_2^2 + \alpha_K \mathcal{R}_K + \alpha_Z \mathcal{R}_Z$",
-        ha='center', va='center', fontsize=7.6, color=c_slate_dark)
-ax.text(10.85, 4.15, "1. Operator Entropy Deficiency:\n" r"   $\Delta\mathcal{H}(\mathbf{K}) = \ln D - \mathcal{H}_{\mathrm{spectral}}(\mathbf{K})$" "\n"
-                      "2. Itakura-Saito Energy Barrier:\n" r"   $\Phi(r) = r - 1 - \ln r \geq 0$" "\n"
-                      "3. Representation Covariance Entropy:\n" r"   $\mathcal{R}_Z = \Delta\mathcal{H}(\mathbf{\Sigma}_Z)$ on $\frac{1}{2}(\mathbf{\Sigma}_{\mathrm{ctx}}+\mathbf{\Sigma}_{\mathrm{tgt}})$",
-        ha='center', va='center', fontsize=6.8, color=c_slate_dark)
-
-# Anti-collapse theorem box
-draw_card(9.3, 0.8, 3.1, 1.25, facecolor='#FFFFFF', edgecolor='#DDD6FE', lw=0.8)
-ax.text(10.85, 1.25, "Floored barrier (" r"$\epsilon=10^{-6}$" ") guarantees " r"$\mathbf{K}=\mathbf{0}$" "\nis strictly non-minimizing without divergence.\nOperator maintains full rank (" r"$\mathrm{RankMe} \approx 32$" ").",
-        ha='center', va='center', fontsize=6.7, color=c_slate_muted)
-
-
-# =========================================================================
-# PANEL D: Saliency Gating & Tail Calibration
-# =========================================================================
-draw_card(12.8, 0.5, 2.8, 5.65, facecolor='#FFFFFF', edgecolor=c_slate_bdr, lw=1.0)
-ax.text(14.2, 5.85, "(D) Gating & Tail Calibration", ha='center', va='center', fontsize=9.2, fontweight='bold', color=c_tail_txt)
-
-# Arrow from discrepancy to saliency
-draw_arrow(9.98, 2.35, 13.0, 4.6, color=c_slate_dark, lw=1.4)
-
-# Coordinate Saliency Gate
-draw_card(13.0, 4.1, 2.4, 1.15, "Coordinate Saliency", r"$\mathbf{s} = \text{Softmax}(\mathbf{z}/\tau) \odot \mathbf{z}$", facecolor='#FFFFFF', edgecolor='#EA580C')
-ax.text(14.2, 4.30, "Weights informative coordinates", ha='center', va='center', fontsize=6.8, color=c_slate_muted)
-
-draw_arrow(14.2, 4.1, 14.2, 3.4, color='#EA580C', lw=1.3)
-
-# Bilateral Anomaly Score
-draw_card(13.0, 2.5, 2.4, 0.9, "Anomaly Score $S_t$", r"$S_t = (\mathbf{e}^\top \boldsymbol{\Sigma}_{\text{res}}^{-1} \mathbf{e})^{1/2} + \lambda_{\text{leak}}$", facecolor='#FFFFFF', edgecolor='#EA580C')
-
-draw_arrow(14.2, 2.5, 14.2, 1.8, color='#EA580C', lw=1.3)
-
-# Streaming SPOT EVT Calibration
-draw_card(13.0, 0.8, 2.4, 1.0, "Streaming SPOT (EVT)", r"$\tau_q = u + \frac{\hat{\sigma}}{\hat{\xi}}\left[\left(\frac{q N_u}{N}\right)^{-\hat{\xi}} - 1\right]$", facecolor=c_tail_bg, edgecolor=c_tail_bdr, lw=1.2)
-ax.text(14.2, 1.00, "Strict Causal Held-Out SPOT", ha='center', va='center', fontsize=6.8, color=c_tail_txt)
+    out_stem = OUT_FIG_DIR / "opentropy_jepa_architecture"
+    saved = save_true_vector_figure(
+        fig, out_stem, formats=("svg", "pdf", "png"),
+        png_dpi=300, inkscape_postprocess_pdf=True,
+        ensure_pure_vector=True, ensure_outside_legend=True
+    )
+    plt.close(fig)
+    print("Saved Figure 1:", saved)
 
 
-plt.tight_layout()
-plt.savefig(OUT_FIG_DIR / "opentropy_jepa_architecture.png", dpi=300)
-plt.savefig(OUT_FIG_DIR / "opentropy_jepa_architecture.pdf")
-plt.close()
-print(f"[OK] Generated {OUT_FIG_DIR / 'opentropy_jepa_architecture.png'}")
-print(f"[OK] Generated {OUT_FIG_DIR / 'opentropy_jepa_architecture.pdf'}")
+if __name__ == "__main__":
+    make_figure()

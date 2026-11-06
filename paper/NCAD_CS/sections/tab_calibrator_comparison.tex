@@ -1,27 +1,20 @@
 \begin{table}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{1.0pt}
-\caption{Threshold Calibration and Drift Decomposition ($q{=}10^{-3}$).\label{tab:calibrator_comparison}}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} ll c c c c @{}}
+\setlength{\tabcolsep}{1.2pt}
+\caption{141-Stream 224-Bit Circuit-Breaker Benchmark and Regime-Drift Decomposition.\label{tab:calibrator_comparison}}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l cc cc cc cc @{}}
 \toprule
-\textbf{(a) Model} & \textbf{Rule} & \textbf{Causal FPR} & \textbf{Error (Over.)} & \textbf{Buf.\ FPR} & \textbf{Buf.\ F1} \\
+& \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t} \downarrow$}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+\textbf{(a) 141-Stream Cohort} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
-\multirow{2}{*}{TS-JEPA}
- & Standard SPOT   & 0.017 (0.015) & .014 (15$\times$) & 0.064 (0.055) & 0.139 \\
- & Empirical p99.5 & 0.025 (0.023) & .022 (23$\times$) & 0.076 (0.066) & 0.140 \\
+TS-JEPA (1D)               & .067 & .142 & .165 & .213 & .480 & .459 & 115.4 & 117.9 \\
+Speculative-JEPA (1D)      & .071 & .155 & .183 & .256 & .497 & .565 & 123.0 & 64.8 \\
+Spec.-Alien-JEPA (1D)      & .077 & .153 & .184 & .253 & .507 & .567 & 125.4 & 65.1 \\
 \addlinespace[1.5pt]
-\multirow{2}{*}{Sol.-Rey.}
- & Standard SPOT   & \textbf{0.004 (0.004)} & \textbf{.003 (4$\times$)}  & \textbf{0.055 (0.046)} & 0.102 \\
- & Empirical p99.5 & 0.010 (0.009) & .008 (9$\times$)  & 0.064 (0.054) & 0.101 \\
-\addlinespace[1.5pt]
-\multirow{2}{*}{TimesNet}
- & Standard SPOT   & 0.180 (0.161) & .160 (161$\times$) & 0.222 (0.199) & 0.140 \\
- & Empirical p99.5 & 0.191 (0.175) & .174 (175$\times$) & 0.234 (0.213) & 0.141 \\
-\addlinespace[1.5pt]
-\multirow{2}{*}{TranAD}
- & Standard SPOT   & 0.160 (0.142) & .141 (142$\times$) & 0.222 (0.196) & 0.094 \\
- & Empirical p99.5 & 0.171 (0.154) & .153 (154$\times$) & 0.234 (0.209) & 0.096 \\
+\textbf{Spec.-224Bit-Strict}  & \underline{.125}$^*$ & \underline{.177}$^\ddagger$ & \textbf{.197} & \textbf{.261} & \underline{.648} & \underline{.660} & \underline{78.0} & \underline{54.0} \\
+\textbf{Spec.-224Bit-Breaker} & \textbf{.139}$^\dagger$ & \textbf{.180}$^\ddagger$ & \textbf{.197} & \textbf{.261} & \textbf{.727} & \textbf{.685} & \textbf{55.3} & \textbf{46.6} \\
 \bottomrule
 \end{tabular*}
 
@@ -38,6 +31,6 @@ Soliton-Rey. & \textbf{0.0056} & \textbf{0.0047} & \textbf{0.0020} &  \textbf{18
 TimesNet     & 0.2302 & 0.0427 & 0.0035 & 81.8 & 17.1 &  1.1 \\
 TranAD       & 0.2103 & 0.0464 & 0.0034 & 78.3 & 20.5 &  1.1 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), cell-weighted means ($n{=}33$ streams; stream-macro in parentheses); Error is $|\text{FPR}_{\text{macro}}{-}q|$ and Over.\ is $\text{FPR}_{\text{macro}} / q$. In (b), 95\% CIs for inter-block drift $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$: TS-JEPA $+.0156$ $[+.001, +.034]$, Sol.-Rey.\ $+.0009$ $[-.002, +.004]$, TimesNet $+.1874$ $[+.078, +.305]$, TranAD $+.1639$ $[+.072, +.267]$.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny In (a), $n{=}141$ streams across 12 datasets (3 seeds): $^*$Wilcoxon vs.\ TS-JEPA $90/43$ wins ($p{=}3.6{\times}10^{-7}$) and vs.\ 1D Spec.-Alien $98/29$ wins ($p{=}1.8{\times}10^{-11}$); $^\dagger 97/36$ wins vs.\ TS-JEPA ($p{=}8.3{\times}10^{-11}$) and $114/18$ wins vs.\ 1D Spec.-Alien ($p{=}1.2{\times}10^{-16}$); $^\ddagger$buffered F1 $p{\le}2.6{\times}10^{-4}$ (Strict lowers buffered held-out FPR from $18.0\%$ to $16.5\%$). In (b), 95\% CIs for inter-block drift $\text{FPR}_{\text{chr}} - \text{FPR}_{\text{blk}}$: TS-JEPA $+.0156$ $[+.001, +.034]$, Sol.-Rey.\ $+.0009$ $[-.002, +.004]$, TimesNet $+.1874$ $[+.078, +.305]$, TranAD $+.1639$ $[+.072, +.267]$.} \\
 \end{tabular*}\par\vspace{-8pt}
 \end{table}
