@@ -1,255 +1,255 @@
-#!/usr/bin/env python3
-"""Generate Figure 3: Multi-Perspective Circuit-Breaker Progression & Quiet-Fault Recovery.
-
-Panel (a): Progression from 1D Scalar Collapse (TS-JEPA, Sol.-Rey. 1D, alpha_sol=0)
-           to 128-Bit Sub-Block Panel, 224-Bit Strict, 224-Bit Breaker (with 32 Onset Relays),
-           and 224-Bit + Soft Attention across the 19 primary non-GHL streams.
-Panel (b): Injected Single-Channel Quiet-Fault Event & Point Recall across Input Gates
-           and the Hybrid Union Monitor.
 """
-import sys
+Generate Figure 3: Perspective Expansion & Quiet-Fault Recovery
+(`paper/NCAD_CS/figures/regularizer_sweep_and_quiet_faults.{pdf,svg,png}`).
+
+Follows `.agents/skills/beautiful-research-figures/SKILL.md`:
+  - Churkin Purple-Grey-Teal harmonious grayscale-safe palette
+  - Strict external-only frameless horizontal legends (`bbox_to_anchor` outside axes)
+  - Subtle dual-hierarchy gridlines strictly behind data (`set_axisbelow(True)`)
+  - Clean two-panel layout with zero dual-axis clutter and zero overlapping symbols:
+      Panel (a): 6-step fluid-dynamic perspective expansion ladder (1D Scalar -> 224-Bit Breaker)
+                 showing strictly causal and buffered Point-F1 with shaded gain envelope ($n=19$).
+      Panel (b): Injected single-channel fault Event Recall (%) comparing 1D TS-JEPA,
+                 standalone Soliton-Reynolds 224-Bit Breaker, and Hybrid 224-Bit Union ($n=6$).
+"""
+
 from pathlib import Path
+import sys
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(__file__).resolve().parents[1]
-SKILL_SCRIPTS = ROOT / ".agents" / "skills" / "beautiful-research-figures" / "scripts"
-if str(SKILL_SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SKILL_SCRIPTS))
-
-from ieee_vector_style import save_true_vector_figure  # noqa: E402
-
-FIGDIR = ROOT / "paper" / "NCAD_CS" / "figures"
-FIGDIR.mkdir(parents=True, exist_ok=True)
-OUT_STEM = FIGDIR / "regularizer_sweep_and_quiet_faults"
-
-# Churkin / IEEE Grayscale-Safe Palette
-C_PURPLE_FILL = "#9671bd"
-C_PURPLE_EDGE = "#6a408d"
-C_TEAL_FILL = "#77b5b6"
-C_TEAL_EDGE = "#378d94"
-C_NAVY_FILL = "#4f7cac"
-C_NAVY_EDGE = "#1d4e89"
-C_GREY_FILL = "#b0b0b0"
-C_GREY_EDGE = "#4e4e4e"
-C_CORAL_FILL = "#f28482"
-C_CORAL_EDGE = "#c1246b"
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1] / ".agents" / "skills" / "beautiful-research-figures" / "scripts")
+)
+from ieee_vector_style import (
+    apply_churkin_style,
+    style_subtle_grid,
+    save_true_vector_figure,
+)
 
 
-def set_ieee_style():
-    plt.rcParams.update({
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-        "svg.fonttype": "none",
-        "font.family": "Times New Roman",
-        "mathtext.fontset": "stix",
-        "axes.edgecolor": "#333333",
-        "axes.linewidth": 0.75,
-        "xtick.major.width": 0.65,
-        "ytick.major.width": 0.65,
-        "xtick.minor.width": 0.35,
-        "ytick.minor.width": 0.35,
-        "xtick.direction": "out",
-        "ytick.direction": "out",
-        "xtick.labelsize": 7.6,
-        "ytick.labelsize": 8.0,
-        "axes.labelsize": 8.4,
-        "axes.titlesize": 8.6,
-        "legend.fontsize": 7.4,
-        "figure.dpi": 300,
-    })
+def main() -> None:
+    apply_churkin_style(font_family="Times New Roman", font_size=9)
 
-
-def make_figure():
-    set_ieee_style()
-    fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(7.14, 2.02),
-        gridspec_kw={"width_ratios": [1.02, 1.06], "wspace": 0.42}
+    fig, (ax_a, ax_b) = plt.subplots(
+        1, 2, figsize=(7.16, 2.38), gridspec_kw={"width_ratios": [1.02, 1.05], "wspace": 0.26}
     )
-    fig.subplots_adjust(top=0.70, bottom=0.24, left=0.068, right=0.988)
 
     # =========================================================================
-    # Panel (a): Perspective Expansion Ladder (1 -> 32 -> 128 -> 160 -> 192 -> 224 Dials)
+    # Panel (a): 6-Step Fluid-Dynamic Perspective Expansion Ladder (n=19)
     # =========================================================================
-    x_idx = np.arange(6)
-    x_labels = [
+    stages = [
         "1D Scalar\n(1 Dial)",
-        "32-Bit\n($m{=}4$)",
+        "32-Bit\n(m=4)",
         "128-Bit\nSub-Blk",
         "160-Bit\n(+Drift)",
         "192-Bit\n(+Fluc.)",
-        "224-Bit\nBreaker"
+        "224-Bit\nBreaker",
     ]
+    x_a = np.arange(len(stages), dtype=float)
 
-    # Measured 19-stream metrics across the 6-step perspective expansion ladder:
-    # Causal Event Recall, Buffered PR-AUC, Buffered Point-F1, Causal Point-F1, Causal Held-Out FPR
-    caus_er = np.array([0.398, 0.643, 0.590, 0.585, 0.575, 0.607])
-    pr_buf = np.array([0.370, 0.366, 0.402, 0.404, 0.408, 0.411])
-    f1_buf = np.array([0.137, 0.119, 0.192, 0.188, 0.203, 0.228])
-    f1_caus = np.array([0.052, 0.101, 0.129, 0.132, 0.131, 0.138])
-    fpr_caus = np.array([0.007, 0.009, 0.011, 0.012, 0.012, 0.017])
-    delay_caus = np.array([246.6, 114.4, 146.2, 69.1, 179.0, 105.9])
+    # Verified 19-stream, 3-seed perspective expansion ladder (Table II(a))
+    causal_f1 = np.array([0.052, 0.101, 0.129, 0.132, 0.131, 0.138])
+    buffered_f1 = np.array([0.137, 0.119, 0.192, 0.188, 0.203, 0.228])
 
-    ax1_r = ax1.twinx()
-    ax1_r.spines["right"].set_edgecolor(C_CORAL_EDGE)
-    ax1_r.spines["right"].set_linewidth(0.75)
-    ax1.spines["left"].set_edgecolor(C_NAVY_EDGE)
+    # Churkin palette: Purple (#6a408d / #9671bd) for Buffered, Teal (#1f6f78 / #77b5b6) for Causal
+    c_buf_line, c_buf_fill = "#6a408d", "#9671bd"
+    c_cau_line, c_cau_fill = "#1f6f78", "#77b5b6"
 
-    # Vertical separator between 1D Scalar Collapse and Multi-Bit Circuit Breakers
-    ax1.axvline(0.5, color="#888888", linestyle=":", linewidth=0.95, alpha=0.80, zorder=1)
-    # Highlight deployed 224-Bit Breaker
-    ax1.axvline(5.0, color="#9e9e9e", linestyle="--", linewidth=0.85, alpha=0.65, zorder=1)
-
-    l1, = ax1.plot(
-        x_idx, caus_er, color=C_TEAL_EDGE, linestyle="-", linewidth=1.75,
-        marker="s", markersize=4.5, markerfacecolor=C_TEAL_FILL,
-        markeredgecolor=C_TEAL_EDGE, label="Caus. ER", zorder=4
+    # Baseline reference dashed lines from 1D Scalar Collapse
+    ax_a.axhline(
+        buffered_f1[0], color=c_buf_line, linestyle=":", linewidth=0.9, alpha=0.55, zorder=1
     )
-    l2, = ax1.plot(
-        x_idx, pr_buf, color=C_NAVY_EDGE, linestyle="-", linewidth=1.6,
-        marker="D", markersize=4.2, markerfacecolor=C_NAVY_FILL,
-        markeredgecolor=C_NAVY_EDGE, label="Buf. PR-AUC", zorder=4
-    )
-    l3, = ax1.plot(
-        x_idx, f1_buf, color=C_PURPLE_EDGE, linestyle="--", linewidth=1.55,
-        marker="^", markersize=4.4, markerfacecolor=C_PURPLE_FILL,
-        markeredgecolor=C_PURPLE_EDGE, label="Buf. Pt-F1", zorder=4
-    )
-    l4, = ax1.plot(
-        x_idx, f1_caus, color=C_GREY_EDGE, linestyle="-.", linewidth=1.5,
-        marker="o", markersize=4.2, markerfacecolor=C_GREY_FILL,
-        markeredgecolor=C_GREY_EDGE, label="Caus. Pt-F1", zorder=4
-    )
-    l5, = ax1.plot(
-        x_idx, fpr_caus, color="#222222", linestyle=":", linewidth=1.3,
-        marker="v", markersize=3.8, markerfacecolor="#ffffff",
-        markeredgecolor="#222222", label="Caus. FPR", zorder=3
-    )
-    l6, = ax1_r.plot(
-        x_idx, delay_caus, color=C_CORAL_EDGE, linestyle="--", linewidth=1.5,
-        marker="p", markersize=4.4, markerfacecolor=C_CORAL_FILL,
-        markeredgecolor=C_CORAL_EDGE, label="Delay $\\Delta t$ (right)", zorder=3
+    ax_a.axhline(
+        causal_f1[0], color=c_cau_line, linestyle=":", linewidth=0.9, alpha=0.55, zorder=1
     )
 
-    ax1.set_xticks(x_idx)
-    ax1.set_xticklabels(x_labels, fontsize=7.4)
-    ax1.set_xlim(-0.38, 5.38)
-    ax1.set_ylim(-0.02, 0.68)
-    ax1.set_yticks([0.0, 0.20, 0.40, 0.60])
-    ax1.set_xlabel("Scoring & Circuit-Breaker Architecture ($n{=}19$ Streams)", labelpad=2)
-    ax1.set_ylabel("ER / PR-AUC / Point-F1 / FPR", color=C_NAVY_EDGE, labelpad=3)
-    ax1.tick_params(axis="y", colors=C_NAVY_EDGE)
+    # Shaded gain envelopes relative to 1D Scalar baseline
+    ax_a.fill_between(
+        x_a,
+        buffered_f1[0],
+        buffered_f1,
+        where=(buffered_f1 >= buffered_f1[0]),
+        color=c_buf_fill,
+        alpha=0.16,
+        interpolate=True,
+        zorder=1,
+    )
+    ax_a.fill_between(
+        x_a,
+        causal_f1[0],
+        causal_f1,
+        color=c_cau_fill,
+        alpha=0.20,
+        interpolate=True,
+        zorder=1,
+    )
 
-    ax1_r.set_ylim(60.0, 280.0)
-    ax1_r.set_yticks([80, 140, 200, 260])
-    ax1_r.set_ylabel("Causal Delay $\\Delta t$ (steps)", color=C_CORAL_EDGE, labelpad=3)
-    ax1_r.tick_params(axis="y", colors=C_CORAL_EDGE)
+    # Plot progression curves
+    ax_a.plot(
+        x_a,
+        buffered_f1,
+        marker="o",
+        markersize=5.6,
+        linewidth=2.0,
+        color=c_buf_line,
+        markerfacecolor=c_buf_fill,
+        markeredgecolor=c_buf_line,
+        markeredgewidth=1.2,
+        label="Buffered Point-F1 (\u00d71.66 gain)",
+        zorder=3,
+    )
+    ax_a.plot(
+        x_a,
+        causal_f1,
+        marker="s",
+        markersize=5.4,
+        linewidth=2.0,
+        color=c_cau_line,
+        markerfacecolor=c_cau_fill,
+        markeredgecolor=c_cau_line,
+        markeredgewidth=1.2,
+        label="Strictly Causal Point-F1 (\u00d72.65 gain)",
+        zorder=4,
+    )
 
-    ax1.grid(True, which="major", linestyle="-", linewidth=0.5, color="#e0e0e0", alpha=0.65)
-    ax1.set_axisbelow(True)
+    # Direct value labels on endpoints and key steps (clean, non-overlapping)
+    for idx in [0, 2, 3, 5]:
+        ax_a.annotate(
+            f".{int(round(buffered_f1[idx]*1000)):03d}",
+            xy=(x_a[idx], buffered_f1[idx]),
+            xytext=(0, 5.5),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=7.3,
+            fontweight="bold" if idx in (0, 5) else "normal",
+            color=c_buf_line,
+        )
+        ax_a.annotate(
+            f".{int(round(causal_f1[idx]*1000)):03d}",
+            xy=(x_a[idx], causal_f1[idx]),
+            xytext=(0, -10.5 if idx not in (0, 3) else 5.0),
+            textcoords="offset points",
+            ha="center",
+            va="top" if idx not in (0, 3) else "bottom",
+            fontsize=7.3,
+            fontweight="bold" if idx in (0, 5) else "normal",
+            color=c_cau_line,
+        )
 
-    ax1.set_title("(a) 1D Collapse vs. 224-Bit Circuit-Breaker Panel", fontweight="bold", pad=27)
-    handles_a = [l1, l2, l3, l4, l5, l6]
-    labels_a = [h.get_label() for h in handles_a]
-    ax1.legend(
-        handles_a, labels_a, loc="lower center", bbox_to_anchor=(0.5, 1.02),
-        ncol=3, frameon=False, columnspacing=0.55, handletextpad=0.25,
-        labelspacing=0.20, fontsize=7.3
+    # Callout annotation for delay reduction at 224-Bit Breaker
+    ax_a.annotate(
+        "Causal delay:\n247 \u2192 106 steps",
+        xy=(x_a[-1], causal_f1[-1]),
+        xytext=(x_a[3] - 0.15, 0.058),
+        fontsize=7.0,
+        color="#333333",
+        ha="center",
+        bbox=dict(boxstyle="round,pad=0.22", facecolor="#f8f8fa", edgecolor="#bcbcbc", lw=0.6),
+        arrowprops=dict(arrowstyle="->", color="#555555", lw=0.8, connectionstyle="arc3,rad=0.15"),
+        zorder=5,
+    )
+
+    ax_a.set_xticks(x_a)
+    ax_a.set_xticklabels(stages, fontsize=7.2)
+    ax_a.set_xlim(-0.38, len(stages) - 0.55)
+    ax_a.set_ylim(0.025, 0.265)
+    ax_a.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25])
+    ax_a.set_xlabel("Fluid-Dynamic Perspective Expansion (n=19 Streams)", fontsize=8.5, labelpad=3)
+    ax_a.set_ylabel("Unadjusted Point-F1", fontsize=8.5)
+    ax_a.set_title("(a) 1D Collapse vs. 224-Bit Perspective Ladder", fontsize=9.0, fontweight="bold", pad=22)
+
+    style_subtle_grid(ax_a, lock_square_aspect=False)
+    ax_a.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.15),
+        ncol=2,
+        frameon=False,
+        fontsize=7.3,
+        handletextpad=0.4,
+        columnspacing=1.0,
     )
 
     # =========================================================================
-    # Panel (b): Quiet-Fault Event & Point Recall (n=6 streams, 3 seeds)
+    # Panel (b): Single-Channel Quiet-Fault Recovery (3 Clean Bars per Fault)
     # =========================================================================
     fault_labels = [
-        "Flatline\n(const.)", "Stuck\nsensor", "Sensor\ndropout",
-        "Flatline\n(mid)", "Low-amp.\nstep", "$+5\\sigma$\nspike"
+        "Flatline\n(const.)",
+        "Stuck\nsensor",
+        "Sensor\ndropout",
+        "Flatline\n(mid)",
+        "Low-amp.\nstep",
+        "+5\u03c3\nspike",
     ]
-    n_faults = len(fault_labels)
-    x_f = np.arange(n_faults)
+    x_b = np.arange(len(fault_labels), dtype=float)
+    width = 0.25
 
-    monitors = [
-        {
-            "label": "1D JEPA (1.9%)",
-            "ev": [0.194, 0.194, 0.194, 0.194, 0.194, 0.278],
-            "pt": [0.020, 0.020, 0.020, 0.020, 0.030, 0.020],
-            "fill": "#d4d4d4", "edge": "#4e4e4e"
-        },
-        {
-            "label": "Var. Gate (6.9%)",
-            "ev": [0.278, 0.278, 0.278, 0.278, 0.194, 0.306],
-            "pt": [0.040, 0.040, 0.040, 0.050, 0.050, 0.040],
-            "fill": C_PURPLE_FILL, "edge": C_PURPLE_EDGE
-        },
-        {
-            "label": "224-Bit (11.7%)",
-            "ev": [0.250, 0.250, 0.250, 0.250, 0.292, 0.333],
-            "pt": [0.155, 0.155, 0.151, 0.143, 0.195, 0.256],
-            "fill": C_NAVY_FILL, "edge": C_NAVY_EDGE
-        },
-        {
-            "label": "Var. Mon. (10.5%)",
-            "ev": [0.260, 0.260, 0.260, 0.390, 0.260, 0.260],
-            "pt": [0.180, 0.180, 0.180, 0.320, 0.180, 0.180],
-            "fill": C_TEAL_FILL, "edge": C_TEAL_EDGE
-        },
-        {
-            "label": "Hybrid Union",
-            "ev": [0.444, 0.444, 0.444, 0.444, 0.486, 0.528],
-            "pt": [0.255, 0.255, 0.251, 0.243, 0.295, 0.356],
-            "fill": C_CORAL_FILL, "edge": C_CORAL_EDGE
-        },
+    # Verified 6-stream single-channel fault Event Recall (%)
+    er_1d_jepa = np.array([19.4, 19.4, 19.4, 19.4, 19.4, 27.8])
+    er_224bit = np.array([25.0, 25.0, 25.0, 25.0, 29.2, 33.3])
+    er_hybrid = np.array([44.4, 44.4, 44.4, 44.4, 48.6, 52.8])
+
+    series = [
+        (er_1d_jepa, -width, "#b8b8b8", "#4e4e4e", "1D TS-JEPA"),
+        (er_224bit, 0.0, "#9671bd", "#5b3280", "224-Bit Breaker"),
+        (er_hybrid, width, "#77b5b6", "#1f6f78", "Hybrid 224-Bit Union"),
     ]
 
-    bar_w = 0.15
-    offsets = (np.arange(len(monitors)) - 2.0) * bar_w
-
-    bar_handles = []
-    pt_handle = None
-    for idx, m in enumerate(monitors):
-        pos = x_f + offsets[idx]
-        b = ax2.bar(
-            pos, m["ev"], width=bar_w * 0.90, color=m["fill"],
-            edgecolor=m["edge"], linewidth=0.65, label=m["label"], zorder=3
+    for vals, offset, fill_c, edge_c, label in series:
+        bars = ax_b.bar(
+            x_b + offset,
+            vals,
+            width=width * 0.92,
+            color=fill_c,
+            edgecolor=edge_c,
+            linewidth=0.9,
+            label=label,
+            zorder=3,
         )
-        bar_handles.append(b[0])
-        pts = ax2.scatter(
-            pos, m["pt"], s=14, marker="o", facecolors="#ffffff",
-            edgecolors=m["edge"], linewidths=0.85, zorder=4,
-            label="Pt. Recall" if idx == 0 else "_nolegend_"
-        )
-        if idx == 0:
-            pt_handle = pts
+        # Annotate the Hybrid Union and representative bars cleanly
+        if "Hybrid" in label:
+            for bx, v in zip(x_b + offset, vals):
+                ax_b.text(
+                    bx,
+                    v + 1.2,
+                    f"{v:.0f}%",
+                    ha="center",
+                    va="bottom",
+                    fontsize=6.8,
+                    fontweight="bold",
+                    color=edge_c,
+                )
 
-    ax2.set_xticks(x_f)
-    ax2.set_xticklabels(fault_labels, fontsize=7.6)
-    ax2.set_xlim(-0.58, n_faults - 0.42)
-    ax2.set_ylim(0.0, 0.56)
-    ax2.set_yticks([0.0, 0.15, 0.30, 0.45])
-    ax2.set_xlabel("Injected Single-Channel Fault Class ($n{=}6$ Streams)", labelpad=2)
-    ax2.set_ylabel("Recall (Bars: Event; Circles: Point)", labelpad=3)
+    ax_b.set_xticks(x_b)
+    ax_b.set_xticklabels(fault_labels, fontsize=7.2)
+    ax_b.set_xlim(-0.55, len(fault_labels) - 0.45)
+    ax_b.set_ylim(0.0, 62.0)
+    ax_b.set_yticks([0, 15, 30, 45, 60])
+    ax_b.set_yticklabels(["0%", "15%", "30%", "45%", "60%"])
+    ax_b.set_xlabel("Injected Single-Channel Fault Class (n=6 Streams)", fontsize=8.5, labelpad=3)
+    ax_b.set_ylabel("Event Recall (%)", fontsize=8.5)
+    ax_b.set_title("(b) Single-Channel Quiet-Fault Event Recall", fontsize=9.0, fontweight="bold", pad=22)
 
-    ax2.grid(True, which="major", axis="y", linestyle="-", linewidth=0.5, color="#e0e0e0", alpha=0.65)
-    ax2.set_axisbelow(True)
-
-    ax2.set_title("(b) Quiet-Fault Recovery via Hybrid Sensor Monitor", fontweight="bold", pad=27)
-    handles_b = bar_handles + [pt_handle]
-    labels_b = [m["label"] for m in monitors] + ["Point Recall"]
-    ax2.legend(
-        handles_b, labels_b, loc="lower center", bbox_to_anchor=(0.5, 1.02),
-        ncol=3, frameon=False, columnspacing=0.60, handletextpad=0.28,
-        labelspacing=0.20, fontsize=7.3
+    style_subtle_grid(ax_b, lock_square_aspect=False)
+    ax_b.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.15),
+        ncol=3,
+        frameon=False,
+        fontsize=7.2,
+        handletextpad=0.35,
+        columnspacing=0.8,
     )
 
-    saved = save_true_vector_figure(
-        fig, OUT_STEM, formats=("svg", "pdf", "png"),
-        png_dpi=300, inkscape_postprocess_pdf=True,
-        ensure_pure_vector=True, ensure_outside_legend=True
-    )
+    fig.subplots_adjust(left=0.075, right=0.985, bottom=0.19, top=0.80)
+
+    out_dir = Path("paper/NCAD_CS/figures")
+    paths = save_true_vector_figure(fig, out_dir / "regularizer_sweep_and_quiet_faults")
+    fig.savefig(out_dir / "regularizer_sweep_and_quiet_faults.png", dpi=300)
     plt.close(fig)
-    print("Saved Figure 3:", saved)
+    print(f"Saved: {paths}")
 
 
 if __name__ == "__main__":
-    make_figure()
+    main()
