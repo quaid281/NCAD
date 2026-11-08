@@ -10,7 +10,7 @@ Follows `.agents/skills/beautiful-research-figures/SKILL.md`:
       Panel (a): 6-step fluid-dynamic perspective expansion ladder (1D Scalar -> 224-Bit Breaker)
                  showing strictly causal and buffered Point-F1 with shaded gain envelope ($n=19$).
       Panel (b): Injected single-channel fault Event Recall (%) comparing 1D TS-JEPA,
-                 standalone Soliton-Reynolds 224-Bit Breaker, and Hybrid 224-Bit Union ($n=6$).
+                 standalone Multi-Horizon Reynolds 224-Bit Breaker, and Hybrid 224-Bit Union ($n=6$).
 """
 
 from pathlib import Path

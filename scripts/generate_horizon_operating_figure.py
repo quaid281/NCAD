@@ -26,9 +26,9 @@ FIGDIR.mkdir(parents=True, exist_ok=True)
 OUT_STEM = FIGDIR / "operating_and_horizon_tradeoffs"
 
 # Palette definitions (Churkin / IEEE grayscale-safe high-contrast)
-C_BREAKER = "#a31d3d"       # Deep Crimson-Burgundy (Sol.-Rey. 224-Bit Breaker)
-C_SOLREY_CAUS = "#1d4e89"   # Deep Navy (Soliton-Reynolds JEPA causal)
-C_SOLREY_BUF = "#77b5b6"    # Muted Teal (Soliton-Reynolds JEPA buffered)
+C_BREAKER = "#a31d3d"       # Deep Crimson-Burgundy (Reynolds 224-Bit Breaker)
+C_SOLREY_CAUS = "#1d4e89"   # Deep Navy (Multi-Horizon Reynolds JEPA causal)
+C_SOLREY_BUF = "#77b5b6"    # Muted Teal (Multi-Horizon Reynolds JEPA buffered)
 C_TSJEPA_CAUS = "#6a408d"   # Churkin Deep Purple (TS-JEPA causal)
 C_TCNLN_CAUS = "#8c6d31"    # Warm Ochre (TCN Obs. Forecaster LN)
 C_TIMESNET_CAUS = "#e13661" # Vibrant Coral (TimesNet)
@@ -80,9 +80,9 @@ def make_figure():
     fpr_solrey_caus = np.array([0.0038, 0.0022, 0.0021, 0.0058, 0.0026]) * 100
 
     ax1.plot(x_indices, fpr_timesnet_caus, color=C_TIMESNET_CAUS, linestyle="--", linewidth=1.6, marker="s", markersize=4.6, label="TimesNet (caus.)", zorder=3)
-    ax1.plot(x_indices, fpr_solrey_buf, color=C_SOLREY_BUF, linestyle=":", linewidth=1.5, marker="^", markersize=4.3, label="Sol.-Rey. JEPA (buf.)", zorder=3)
+    ax1.plot(x_indices, fpr_solrey_buf, color=C_SOLREY_BUF, linestyle=":", linewidth=1.5, marker="^", markersize=4.3, label="Reynolds JEPA (buf.)", zorder=3)
     ax1.plot(x_indices, fpr_tsjepa_caus, color=C_TSJEPA_CAUS, linestyle="-.", linewidth=1.5, marker="D", markersize=4.2, label="TS-JEPA (caus.)", zorder=4)
-    ax1.plot(x_indices, fpr_solrey_caus, color=C_SOLREY_CAUS, linestyle="-", linewidth=1.8, marker="o", markersize=4.8, label="Sol.-Rey. JEPA (caus.)", zorder=5)
+    ax1.plot(x_indices, fpr_solrey_caus, color=C_SOLREY_CAUS, linestyle="-", linewidth=1.8, marker="o", markersize=4.8, label="Reynolds JEPA (caus.)", zorder=5)
 
     ax1.set_xticks(x_indices)
     ax1.set_xticklabels(x_labels, fontsize=7.3)
@@ -113,13 +113,13 @@ def make_figure():
     cb_pts = [(10.6, 0.534), (16.7, 0.607), (50.0, 0.728), (72.0, 0.774)]
     ax2.plot([p[0] for p in cb_pts], [p[1] for p in cb_pts], color=C_BREAKER, linestyle="-", linewidth=1.7, zorder=5)
     ax2.scatter([10.6], [0.534], s=32, facecolors="#ffffff", edgecolors=C_BREAKER, linewidths=1.4, zorder=6)
-    ax2.scatter([16.7], [0.607], s=54, facecolors=C_BREAKER, edgecolors="#222222", linewidths=0.7, marker="*", label="Sol.-Rey. 224-Bit", zorder=7)
+    ax2.scatter([16.7], [0.607], s=54, facecolors=C_BREAKER, edgecolors="#222222", linewidths=0.7, marker="*", label="Reynolds 224-Bit", zorder=7)
 
     models_data = {
         "SolitonReynolds": {
             "pts": [(5.6, 0.478), (10.0, 0.562), (50.0, 0.698), (73.7, 0.752)],
             "op": (5.6, 0.478), "q05": (73.7, 0.752),
-            "color": C_SOLREY_CAUS, "ls": "--", "marker": "p", "label": "Sol.-Rey. (1D)"
+            "color": C_SOLREY_CAUS, "ls": "--", "marker": "p", "label": "Reynolds (1D)"
         },
         "TS-JEPA": {
             "pts": [(10.0, 0.395), (24.0, 0.487), (50.0, 0.584), (86.3, 0.730)],

@@ -2,19 +2,23 @@
 \centering
 \scriptsize
 \setlength{\tabcolsep}{1.2pt}
-\caption{Archive-Wide 141-Stream Circuit-Breaker Benchmark (12 Datasets, 3 Seeds) and Per-Family Breakdown.\label{tab:calibrator_comparison}}
+\caption{Archive-Wide Circuit-Breaker Benchmark (3 Seeds): 118 Held-Out Streams Never Used in Development, Full 141-Stream Aggregate, and Per-Dataset Breakdown.\label{tab:calibrator_comparison}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l cc cc cc cc @{}}
 \toprule
-& \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t} \downarrow$}} \\
+& \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{FPR$_{\text{hold}}$ $\downarrow$}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
-\textbf{(a) All $n{=}141$ Streams} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
+\textbf{(a) Held-Out $n{=}118$} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
-TS-JEPA (1D)               & .067 & .142 & .165 & .213 & .480 & .459 & 115.4 & 117.9 \\
-Speculative-JEPA (1D)      & .071 & .155 & .183 & .256 & .497 & .565 & 123.0 & 64.8 \\
-Spec.-Alien-JEPA (1D)      & .077 & .153 & .184 & .253 & .507 & .567 & 125.4 & 65.1 \\
+TS-JEPA (1D)               & .072 & .142 & .154 & .202 & .484 & .458 & \textbf{.051} & \textbf{.104} \\
+Speculative-JEPA (1D)      & .076 & .148 & .172 & .245 & .509 & .577 & \underline{.054} & .194 \\
+Spec.-Alien-JEPA (1D)      & .083 & .146 & .174 & .242 & .512 & .573 & .059 & .199 \\
 \addlinespace[1.5pt]
-\textbf{Spec.-224Bit-Strict}  & \underline{.125}$^*$ & \underline{.177}$^\ddagger$ & \textbf{.197} & \textbf{.261} & \underline{.648} & \underline{.660} & \underline{78.0} & \underline{54.0} \\
-\textbf{Spec.-224Bit-Breaker} & \textbf{.139}$^\dagger$ & \textbf{.180}$^\ddagger$ & \textbf{.197} & \textbf{.261} & \textbf{.727} & \textbf{.685} & \textbf{55.3} & \textbf{46.6} \\
+\textbf{Spec.-224Bit-Strict}  & \underline{.134} & \underline{.166} & \textbf{.183} & \textbf{.247} & \underline{.662} & \underline{.673} & .073 & \underline{.181} \\
+\textbf{Spec.-224Bit-Breaker} & \textbf{.143}$^\dagger$ & \textbf{.168}$^\ddagger$ & \textbf{.183} & \textbf{.247} & \textbf{.728} & \textbf{.691} & .083 & .210 \\
+\midrule
+\textbf{All $n{=}141$ (incl.\ 23 dev.)} & & & & & & & & \\
+Spec.-Alien-JEPA (1D)      & .077 & .153 & .184 & .253 & .507 & .567 & .051 & .180 \\
+Spec.-224Bit-Breaker       & .139 & .180 & .197 & .261 & .727 & .685 & .072 & .196 \\
 \bottomrule
 \end{tabular*}
 
@@ -22,17 +26,17 @@ Spec.-Alien-JEPA (1D)      & .077 & .153 & .184 & .253 & .507 & .567 & 125.4 & 6
 \setlength{\tabcolsep}{1.0pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r ccc ccc ccc @{}}
 \toprule
-& & \multicolumn{3}{c}{\textbf{Causal Pt-F1 $\uparrow$}} & \multicolumn{3}{c}{\textbf{Buffered Pt-F1 $\uparrow$}} & \multicolumn{3}{c}{\textbf{Causal ER $\uparrow$}} \\
+& & \multicolumn{3}{c}{\textbf{Causal Pt-F1 $\uparrow$}} & \multicolumn{3}{c}{\textbf{Buffered Pt-F1 $\uparrow$}} & \multicolumn{3}{c}{\textbf{Causal FPR$_{\text{hold}}$ $\downarrow$}} \\
 \cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}
-\textbf{(b) Family} & {$n$} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} \\
+\textbf{(b) Held-out} & {$n$} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} \\
 \midrule
-SMAP        & 47 & \textbf{.202} & \underline{.130} & .080 & \textbf{.219} & .213 & \underline{.218} & \textbf{.857} & \underline{.709} & .595 \\
-Daphnet     & 22 & \textbf{.097} & .038 & \underline{.064} & \textbf{.155} & \underline{.123} & .098 & \textbf{.863} & .550 & \underline{.595} \\
-MSL         & 18 & \textbf{.131} & .044 & \underline{.064} & \textbf{.278} & \underline{.183} & .170 & \textbf{.787} & .574 & \underline{.586} \\
-SMD         & 18 & \textbf{.090} & .028 & \underline{.042} & \textbf{.125} & .065 & \underline{.072} & \textbf{.234} & \underline{.106} & .088 \\
-Exathlon    & 17 & \textbf{.163} & \underline{.133} & .092 & \underline{.181} & \textbf{.186} & .134 & \textbf{.821} & \underline{.632} & .472 \\
-OPPORT.     & 13 & \textbf{.075} & .017 & \underline{.045} & \textbf{.066} & \underline{.062} & .036 & \textbf{.821} & .231 & \underline{.487} \\
+SMAP        & 40 & \textbf{.194} & \underline{.129} & .091 & \underline{.201} & .193 & \textbf{.214} & .088 & .086 & \textbf{.065} \\
+SMD         & 18 & \textbf{.090} & .028 & \underline{.042} & \textbf{.125} & .065 & \underline{.072} & .019 & \textbf{.006} & .009 \\
+Exathlon    & 17 & \textbf{.163} & \underline{.133} & .092 & \underline{.181} & \textbf{.186} & .134 & .235 & .137 & \textbf{.119} \\
+Daphnet     & 15 & \textbf{.125} & .053 & \underline{.075} & \textbf{.153} & \underline{.125} & .105 & .085 & \textbf{.063} & \textbf{.063} \\
+MSL         & 13 & \textbf{.133} & .051 & \underline{.074} & \textbf{.239} & .176 & \underline{.191} & .023 & \textbf{.007} & .011 \\
+OPPORT.     & 12 & \textbf{.075} & .018 & \underline{.024} & \underline{.066} & \textbf{.067} & .030 & .027 & \textbf{.003} & .008 \\
 \bottomrule
-\multicolumn{11}{@{}p{\columnwidth}@{}}{\tiny $^*$Wilcoxon vs.\ 1D Spec.-Alien $98/29$ wins ($p{=}1.8{\times}10^{-11}$); $^\dagger 114/18$ wins ($p{=}1.2{\times}10^{-16}$) and $97/36$ vs.\ TS-JEPA ($p{=}8.3{\times}10^{-11}$); $^\ddagger$buffered F1 $p{\le}2.6{\times}10^{-4}$. In (b), 224B = Spec.-224Bit-Breaker, 1D-Al.\ = 1D Spec.-Alien, TS = TS-JEPA ($n{=}135$ multi-stream; 6 single-stream datasets in text).} \\
+\multicolumn{11}{@{}p{\columnwidth}@{}}{\tiny $^\dagger$vs.\ 1D Spec.-Alien: $\Delta{=}{+}0.060$ ($95\%$ CI $[{+}0.042, {+}0.079]$), $95/15$ wins, $p{=}1.6{\times}10^{-13}$, positive in $8$ of $9$ datasets (sign-flip $p{=}0.008$); vs.\ TS-JEPA $85/28$, $p{=}6.4{\times}10^{-11}$. $^\ddagger$vs.\ 1D Spec.-Alien: $\Delta{=}{+}0.021$ ($[{+}0.010, {+}0.034]$), $p{=}1.7{\times}10^{-4}$, dataset-level $p{=}0.27$. In (b), 224B = Spec.-224Bit-Breaker, 1D-Al.\ = 1D Spec.-Alien, TS = TS-JEPA ($115$ of $118$ streams; three single-stream datasets in text).} \\
 \end{tabular*}\par\vspace{-9pt}
 \end{table}
