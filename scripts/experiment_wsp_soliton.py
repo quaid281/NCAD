@@ -216,17 +216,20 @@ def print_paired_uncertainty_summary(df: pd.DataFrame) -> None:
         ds_arr = sub["ds"].to_numpy()
         print(f"\n=== SUMMARY ({mapping.upper()}, n={len(sub)} streams, {len(np.unique(ds_arr))} datasets) ===")
         for metric in ("hold_fpr", "test_fpr", "f1", "event_recall"):
-            base_v = sub[f"base_{metric}"].to_numpy(float)
+            valid_mask = sub[f"base_{metric}"].notna()
+            sub_m = sub[valid_mask]
+            ds_m = sub_m["ds"].to_numpy()
+            base_v = sub_m[f"base_{metric}"].to_numpy(float)
             lo_b, hi_b = boot_ci(base_v, None, rng)
             print(f"  [Base]                  {metric:12s}: mean={base_v.mean():.4f} (95% CI [{lo_b:.4f}, {hi_b:.4f}])")
             for prefix, label in methods:
-                m_v = sub[f"{prefix}_{metric}"].to_numpy(float)
+                m_v = sub_m[f"{prefix}_{metric}"].to_numpy(float)
                 diff = m_v - base_v
                 lo_s, hi_s = boot_ci(diff, None, rng)
-                lo_d, hi_d = boot_ci(diff, ds_arr, rng)
+                lo_d, hi_d = boot_ci(diff, ds_m, rng)
                 nonzero = np.abs(diff) > 1e-12
-                p_wilc = float(wilcoxon(diff).pvalue) if np.sum(nonzero) >= 2 else 1.0
-                ds_means = pd.Series(diff).groupby(ds_arr).mean().to_numpy()
+                p_wilc = float(wilcoxon(diff[nonzero]).pvalue) if np.sum(nonzero) >= 2 else 1.0
+                ds_means = pd.Series(diff).groupby(ds_m).mean().to_numpy()
                 p_sf = sign_flip_p(ds_means) if len(ds_means) >= 2 else 1.0
                 print(
                     f"  [{label:21s}] {metric:12s}: mean={m_v.mean():.4f} | d={diff.mean():+.4f} "
