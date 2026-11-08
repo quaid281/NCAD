@@ -27,16 +27,17 @@
 \textbf{Architecture} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{PR-AUC} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{DS-F1} $\uparrow$} \\
 \midrule
 \multicolumn{13}{@{}l}{\textit{Multi-perspective fluid-dynamic circuit-breaker architectures}} \\
-\quad \textbf{Reynolds 224-Bit Breaker} & 0.132             & \bfseries 0.228   & \bfseries 0.411   & \bfseries 0.631   & \underline{71.8}  & 0.017             & 0.138             & \bfseries 0.607   & \underline{105.9} & \bfseries 0.002   & 0.000             & \bfseries 0.122 \\
+\quad \textbf{Reynolds WSP-224Bit}      & 0.107             & \bfseries 0.262   & \underline{0.406} & \bfseries 0.664   & 89.9              & 0.016             & 0.100             & \bfseries 0.625   & \bfseries 59.6    & \bfseries 0.002   & 0.000             & \bfseries 0.139 \\
+\quad \textbf{Reynolds 224-Bit Breaker} & 0.132             & \underline{0.228} & \bfseries 0.411   & \underline{0.631} & \underline{71.8}  & 0.017             & 0.138             & \underline{0.607} & 105.9             & \bfseries 0.002   & 0.000             & \underline{0.122} \\
 \quad \textbf{Reynolds 224-Bit Strict}  & 0.098             & 0.190             & \bfseries 0.411   & 0.545             & 97.3              & 0.011             & 0.116             & 0.534             & 248.0             & \bfseries 0.002   & 0.000             & 0.098 \\
 \addlinespace[2.0pt]
 \multicolumn{13}{@{}l}{\textit{1D scalar-scored latent predictive baselines (JEPAs)}} \\
-\quad TS-JEPA (unconstrained 1D)            & 0.093             & \underline{0.206} & \underline{0.331} & 0.477             & 110.3             & 0.024             & \underline{0.161} & 0.487             & 124.0             & 0.004             & 0.000             & \underline{0.115} \\
-\quad Reynolds (1D scalar)          & \underline{0.078} & 0.148             & \underline{0.331} & 0.430             & 127.1             & \bfseries 0.006   & 0.050             & 0.478             & 154.0             & \bfseries 0.002   & 0.000             & 0.073 \\
+\quad TS-JEPA (unconstrained 1D)            & 0.093             & 0.206             & 0.331             & 0.477             & 110.3             & 0.024             & \underline{0.161} & 0.487             & 124.0             & 0.004             & 0.000             & 0.115 \\
+\quad Reynolds (1D scalar)          & \underline{0.078} & 0.148             & 0.331             & 0.430             & 127.1             & \bfseries 0.006   & 0.050             & 0.478             & 154.0             & \bfseries 0.002   & 0.000             & 0.073 \\
 \quad Reynolds ($\alpha_{\text{LT}}{=}0$, 1D) & 0.083  & 0.149             & 0.330             & 0.462             & 113.3             & \bfseries 0.006   & 0.055             & 0.439             & 138.4             & \bfseries 0.002   & 0.000             & 0.074 \\
 \addlinespace[2.0pt]
 \multicolumn{13}{@{}l}{\textit{Observation-space reconstructive and linear baselines}} \\
-\quad TimesNet                              & 0.300             & 0.197             & 0.329             & \underline{0.583} & \bfseries 48.5    & 0.243             & \bfseries 0.209   & \underline{0.588} & \bfseries 62.2    & 0.061             & \bfseries 0.022   & 0.100 \\
+\quad TimesNet                              & 0.300             & 0.197             & 0.329             & 0.583             & \bfseries 48.5    & 0.243             & \bfseries 0.209   & 0.588             & \underline{62.2}  & 0.061             & \bfseries 0.022   & 0.100 \\
 \quad TranAD                                & 0.307             & 0.130             & 0.287             & 0.490             & 234.4             & 0.222             & 0.140             & 0.533             & 241.0             & 0.046             & \underline{0.020} & 0.069 \\
 \quad Linear AR Forecaster                  & \bfseries 0.005   & 0.051             & 0.255             & 0.432             & 87.8              & {--}              & {--}              & {--}              & {--}              & \bfseries 0.002   & 0.000             & 0.038 \\
 \bottomrule
