@@ -48,11 +48,9 @@ def fit_spot(cal_1d: np.ndarray) -> float:
     """Standard SPOT threshold (q=1e-3, u=p98) with a p99.5 fallback."""
     try:
         th = float(EVTCalibrator(risk_level=1e-3, init_percentile=98.0, adaptive_kurtosis=False).fit(cal_1d).threshold_)
-        if np.isfinite(th) and th > 0:
-            return th
-    except Exception:  # noqa: BLE001 - EVT fit may fail on degenerate tails
-        pass
-    return float(np.percentile(cal_1d, 99.5))
+    except Exception:  # noqa: BLE001 - GPD MLE can fail on degenerate tails; use the documented fallback
+        th = float("nan")
+    return th if np.isfinite(th) and th > 0 else float(np.percentile(cal_1d, 99.5))
 
 
 def cache_path(ds: str, ch: str, seed: int) -> Path:
