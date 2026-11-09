@@ -7,10 +7,10 @@ Follows `.agents/skills/beautiful-research-figures/SKILL.md`:
   - Strict external-only frameless horizontal legends (`bbox_to_anchor` outside axes)
   - Subtle dual-hierarchy gridlines strictly behind data (`set_axisbelow(True)`)
   - Clean two-panel layout with zero dual-axis clutter and zero overlapping symbols:
-      Panel (a): 6-step fluid-dynamic perspective expansion ladder (1D Scalar -> 224-Bit Breaker)
+      Panel (a): 6-step fluid-dynamic perspective expansion ladder (1D Scalar -> Laminar-JEPA (224B))
                  showing strictly causal and buffered Point-F1 with shaded gain envelope ($n=19$).
       Panel (b): Injected single-channel fault Event Recall (%) comparing 1D TS-JEPA,
-                 standalone Multi-Horizon Reynolds 224-Bit Breaker, and Hybrid 224-Bit Union ($n=6$).
+                 standalone Multi-Horizon Reynolds Laminar-JEPA (224B), and Hybrid 224-Bit Union ($n=6$).
 """
 
 from pathlib import Path
@@ -44,13 +44,13 @@ def main() -> None:
         "128-Bit\nSub-Blk",
         "160-Bit\n(+Drift)",
         "192-Bit\n(+Fluc.)",
-        "224-Bit\nBreaker",
+        "Laminar\n224-Bit",
     ]
     x_a = np.arange(len(stages), dtype=float)
 
     # Verified 19-stream, 3-seed perspective expansion ladder (Table II(a))
-    causal_f1 = np.array([0.052, 0.101, 0.129, 0.132, 0.131, 0.138])
-    buffered_f1 = np.array([0.137, 0.119, 0.192, 0.188, 0.203, 0.228])
+    causal_f1 = np.array([0.052, 0.101, 0.129, 0.132, 0.131, 0.100])
+    buffered_f1 = np.array([0.137, 0.119, 0.192, 0.188, 0.203, 0.262])
 
     # Churkin palette: Purple (#6a408d / #9671bd) for Buffered, Teal (#1f6f78 / #77b5b6) for Causal
     c_buf_line, c_buf_fill = "#6a408d", "#9671bd"
@@ -96,7 +96,7 @@ def main() -> None:
         markerfacecolor=c_buf_fill,
         markeredgecolor=c_buf_line,
         markeredgewidth=1.2,
-        label="Buffered Point-F1 (\u00d71.66 gain)",
+        label="Buffered Point-F1 (\u00d71.91 gain)",
         zorder=3,
     )
     ax_a.plot(
@@ -109,7 +109,7 @@ def main() -> None:
         markerfacecolor=c_cau_fill,
         markeredgecolor=c_cau_line,
         markeredgewidth=1.2,
-        label="Strictly Causal Point-F1 (\u00d72.65 gain)",
+        label="Strictly Causal Point-F1 (\u00d71.92 gain)",
         zorder=4,
     )
 
@@ -138,9 +138,9 @@ def main() -> None:
             color=c_cau_line,
         )
 
-    # Callout annotation for delay reduction at 224-Bit Breaker
+    # Callout annotation for delay reduction at Laminar-JEPA (224B)
     ax_a.annotate(
-        "Causal delay:\n247 \u2192 106 steps",
+        "Causal delay:\n247 \u2192 60 steps",
         xy=(x_a[-1], causal_f1[-1]),
         xytext=(x_a[3] - 0.15, 0.058),
         fontsize=7.0,
@@ -154,11 +154,11 @@ def main() -> None:
     ax_a.set_xticks(x_a)
     ax_a.set_xticklabels(stages, fontsize=7.2)
     ax_a.set_xlim(-0.38, len(stages) - 0.55)
-    ax_a.set_ylim(0.025, 0.265)
+    ax_a.set_ylim(0.025, 0.290)
     ax_a.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25])
     ax_a.set_xlabel("Fluid-Dynamic Perspective Expansion (n=19 Streams)", fontsize=8.5, labelpad=3)
     ax_a.set_ylabel("Unadjusted Point-F1", fontsize=8.5)
-    ax_a.set_title("(a) 1D Collapse vs. 224-Bit Perspective Ladder", fontsize=9.0, fontweight="bold", pad=22)
+    ax_a.set_title("(a) 1D Collapse vs. Laminar 224-Bit Ladder", fontsize=9.0, fontweight="bold", pad=22)
 
     style_subtle_grid(ax_a, lock_square_aspect=False)
     ax_a.legend(
@@ -192,7 +192,7 @@ def main() -> None:
 
     series = [
         (er_1d_jepa, -width, "#b8b8b8", "#4e4e4e", "1D TS-JEPA"),
-        (er_224bit, 0.0, "#9671bd", "#5b3280", "224-Bit Breaker"),
+        (er_224bit, 0.0, "#9671bd", "#5b3280", "Laminar-JEPA (224B)"),
         (er_hybrid, width, "#77b5b6", "#1f6f78", "Hybrid 224-Bit Union"),
     ]
 

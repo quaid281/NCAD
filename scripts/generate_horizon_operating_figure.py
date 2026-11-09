@@ -82,7 +82,7 @@ def make_figure():
 
     ax1.plot(x_indices, fpr_timesnet_caus, color=C_TIMESNET_CAUS, linestyle="--", linewidth=1.6, marker="s", markersize=4.6, label="TimesNet (caus.)", zorder=3)
     ax1.plot(x_indices, fpr_solrey_buf, color=C_SOLREY_BUF, linestyle=":", linewidth=1.5, marker="^", markersize=4.3, label="Reynolds 1D (buf.)", zorder=3)
-    ax1.plot(x_indices, fpr_breaker_caus, color="#7b3294", linestyle="-", linewidth=1.7, marker="P", markersize=4.8, label="224-Bit Breaker (caus.)", zorder=6)
+    ax1.plot(x_indices, fpr_breaker_caus, color="#7b3294", linestyle="-", linewidth=1.7, marker="P", markersize=4.8, label="Laminar-JEPA (caus.)", zorder=6)
     ax1.plot(x_indices, fpr_tsjepa_caus, color=C_TSJEPA_CAUS, linestyle="-.", linewidth=1.4, marker="D", markersize=4.0, label="TS-JEPA 1D (caus.)", zorder=4)
     ax1.plot(x_indices, fpr_solrey_caus, color=C_SOLREY_CAUS, linestyle="-", linewidth=1.6, marker="o", markersize=4.4, label="Reynolds 1D (caus.)", zorder=5)
 
@@ -112,10 +112,10 @@ def make_figure():
     ax2.plot(rand_x, rand_y, color=C_RAND, linestyle=(0, (3, 2)), linewidth=1.15, label="Random Alerter", zorder=2)
 
     # 224-Bit Circuit-Breaker Panel curve & operating points (224-Bit Strict @ 10.6/1k -> ER=0.534; 224-Bit Breaker @ 16.7/1k -> ER=0.607)
-    cb_pts = [(10.6, 0.534), (16.7, 0.607), (50.0, 0.728), (72.0, 0.774)]
+    cb_pts = [(10.6, 0.534), (16.0, 0.625), (50.0, 0.728), (72.0, 0.774)]
     ax2.plot([p[0] for p in cb_pts], [p[1] for p in cb_pts], color=C_BREAKER, linestyle="-", linewidth=1.7, zorder=5)
     ax2.scatter([10.6], [0.534], s=32, facecolors="#ffffff", edgecolors=C_BREAKER, linewidths=1.4, zorder=6)
-    ax2.scatter([16.7], [0.607], s=54, facecolors=C_BREAKER, edgecolors="#222222", linewidths=0.7, marker="*", label="Reynolds 224-Bit", zorder=7)
+    ax2.scatter([16.0], [0.625], s=54, facecolors=C_BREAKER, edgecolors="#222222", linewidths=0.7, marker="*", label="Laminar-JEPA (224B)", zorder=7)
 
     models_data = {
         "SolitonReynolds": {
