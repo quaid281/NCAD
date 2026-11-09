@@ -1,8 +1,8 @@
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.76\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
+\includegraphics[width=0.82\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
 \vspace{-5pt}
-\caption{Horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and operating trade-offs ($n{=}19$ streams). \textbf{(a)}~Causal Point-F1 across $S$ comparing \emph{Laminar-JEPA (224B)}, \emph{Reynolds 224B}, and 1D SPOT. \textbf{(b)}~Held-out FPR across $S$. \textbf{(c)}~Causal event recall vs.\ false alarms ($\sqrt{\cdot}$ scale) at diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph{Laminar-JEPA} star, \emph{Reynolds 224B} cross, \emph{224-Bit Strict} and 1D points open circles), and quantiles $q^*{\le}0.05$.\label{fig:operating_and_horizon}}
+\caption{Multi-horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, causal reporting lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and causal operating frontier ($n{=}19$ streams). \textbf{(a)}~Causal Point-F1 and event recall (ER) across $S$ comparing \emph{Laminar-JEPA (224B)}, \emph{Reynolds 224B}, and 1D scalar SPOT (held-out FPR $\le 3.6\%$ across all $S$, vs.\ $2.5\% \to 21.3\%$ for TimesNet). \textbf{(b)}~Causal ER vs.\ realized false alarms ($\sqrt{\cdot}$ scale) across diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph{Laminar-JEPA} star, \emph{Reynolds 224B} cross, \emph{224-Bit Strict} and 1D points open circles), and quantiles $q^*{\le}0.05$.\label{fig:operating_and_horizon}}
 \vspace{-7pt}
 \end{figure*}
 
