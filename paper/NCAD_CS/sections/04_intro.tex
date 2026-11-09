@@ -18,7 +18,7 @@ We evaluate the approach on 141 telemetry streams from 12 public datasets spanni
     \item \emph{Limits, theory, and latency:} A sensor that freezes silently barely moves the latent summary, so the panel alone catches only $25.0\%\text{--}29.2\%$ of such events and a rolling variance monitor is needed to reach $44.4\%\text{--}52.8\%$ (Fig.~\ref{fig:regularizer_and_quiet_fault}); slow process ramps remain undetected. Proposition~\ref{prop:anti_collapse} bounds a spectral concentration ratio of the horizon fluctuations to $[\frac{1}{M-1}, 1]$, reweighting a scalar score by it gives no measurable benefit, the per-dial quantiles need about $10^3$ calibration steps, and short horizons ($S \in \{1, 4\}$) remove the 63-step reporting lag for 1D latent scoring (Fig.~\ref{fig:operating_and_horizon}(a)).
 \end{enumerate}
 
-\noindent\emph{Roadmap.} Section~\ref{sec:related} reviews related work, Section~\ref{sec:dataset} details the 141-stream benchmark, Section~\ref{sec:proposed_method} formulates the architecture and 224-bit circuit-breaker panel, Section~\ref{sec:exp} defines the protocol, Sections~\ref{sec:ablations}--\ref{sec:results} report ablations and results, and Section~\ref{sec:conclusion} concludes.
+\noindent\emph{Roadmap.} Section~\ref{sec:related} reviews related work, Section~\ref{sec:dataset} details the benchmark, Section~\ref{sec:proposed_method} formulates the model and panel, Section~\ref{sec:exp} defines the protocol, Sections~\ref{sec:ablations}--\ref{sec:results} report results, and Section~\ref{sec:conclusion} concludes.
 \begin{table}[t]
 \centering
 \caption{Key Terms.\label{tab:terms}}
@@ -40,5 +40,5 @@ Excess kurtosis & Tail heaviness $\gamma_2$ of residuals; large values indicate 
 Concentration ratio & Bounded ratio $R_{\text{LT}} \in [\frac{1}{M-1}, 1]$: share of horizon-fluctuation energy in the leading eigenmode. \\
 \bottomrule
 \end{tabular*}
-\vspace{-10pt}
+\vspace{-2pt}
 \end{table}
