@@ -1,9 +1,9 @@
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.78\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
-\vspace{-4pt}
-\caption{Horizon length and operating trade-offs. \textbf{(a)}~Held-out FPR across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched emission lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps comparing Laminar-JEPA (224-Bit), 1D latent JEPAs, and observation-space baselines ($n{=}5$ streams). \textbf{(b)}~Causal event recall vs.\ false alarms across $n{=}19$ development streams at post-hoc diagnostic test-FPR budgets $f^* \in \{1\%, 5\%\}$ (vertical dotted guides), autonomous Strict (open circle) and Laminar-JEPA (224-Bit) (filled star) operating points, and calibration quantiles $q^*{\le}0.05$.\label{fig:operating_and_horizon}}
-\vspace{-6pt}
+\includegraphics[width=0.76\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
+\vspace{-5pt}
+\caption{Horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and operating trade-offs ($n{=}19$ streams). \textbf{(a)}~Causal Point-F1 across $S$ comparing \emph{Laminar-JEPA (224B)}, \emph{Reynolds 224B}, and 1D SPOT. \textbf{(b)}~Held-out FPR across $S$. \textbf{(c)}~Causal event recall vs.\ false alarms ($\sqrt{\cdot}$ scale) at diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph{Laminar-JEPA} star, \emph{Reynolds 224B} cross, \emph{224-Bit Strict} and 1D points open circles), and quantiles $q^*{\le}0.05$.\label{fig:operating_and_horizon}}
+\vspace{-7pt}
 \end{figure*}
 
 \begin{table}[t]
@@ -17,7 +17,7 @@
 \cmidrule(lr){2-6} \cmidrule(lr){7-8}
 \textbf{(a) Model} & \textbf{Buf.\ PR} & \textbf{Auto.\ ER} & \textbf{FPR} & $f^*{=}.01$ & $f^*{=}.05$ & $f^*{=}.01$ & $f^*{=}.05$ \\
 \midrule
-\textbf{Laminar-JEPA (224B)} & \textbf{0.658} & \textbf{0.750} & \underline{0.018} & \textbf{0.820} & \textbf{0.920} & 0.683 & \underline{0.944} \\
+\textbf{Reynolds 224-Bit} & \textbf{0.658} & \textbf{0.750} & \underline{0.018} & \textbf{0.820} & \textbf{0.920} & 0.683 & \underline{0.944} \\
 Reynolds (1D) & \underline{0.652} & \textbf{0.750} & \textbf{0.006} & \textbf{0.820} & \textbf{0.920} & 0.683 & 0.867 \\
 Reynolds ($\alpha_{\text{LT}}{=}0$) & 0.641 & 0.625 & \textbf{0.006} & \textbf{0.820} & \textbf{0.920} & 0.683 & 0.867 \\
 TS-JEPA            & 0.644 & \underline{0.675} & 0.045 & \underline{0.720} & \underline{0.840} & \underline{0.833} & 0.867 \\
@@ -37,7 +37,7 @@ ZScoreMax          & 0.198 & 0.375 & 0.558 & 0.300 & 0.300 & \textbf{1.000} & \t
 \cmidrule(lr){2-4} \cmidrule(lr){5-7}
 \textbf{(b) Model} & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ \\
 \midrule
-\textbf{Laminar-JEPA (224B)} & \textbf{0.654} & \textbf{0.552} & \textbf{0.618} & \textbf{0.796} & \underline{0.688} & \textbf{0.792} \\
+\textbf{Reynolds 224-Bit} & \textbf{0.654} & \textbf{0.552} & \textbf{0.618} & \textbf{0.796} & \underline{0.688} & \textbf{0.792} \\
 Reynolds (1D) & 0.628 & 0.498 & 0.590 & 0.782 & 0.683 & 0.781 \\
 Reynolds ($\alpha_{\text{LT}}{=}0$) & \underline{0.640} & \underline{0.540} & \underline{0.603} & \underline{0.785} & 0.671 & \underline{0.785} \\
 TS-JEPA            & 0.614 & 0.520 & 0.594 & 0.776 & \textbf{0.694} & 0.765 \\
