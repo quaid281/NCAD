@@ -76,13 +76,15 @@ def make_figure():
 
     fpr_timesnet_caus = np.array([0.0248, 0.0307, 0.0607, 0.0975, 0.2127]) * 100
     fpr_solrey_buf = np.array([0.0038, 0.0050, 0.0271, 0.0440, 0.0942]) * 100
+    fpr_breaker_caus = np.array([0.0206, 0.0240, 0.0150, 0.0163, 0.0291]) * 100
     fpr_tsjepa_caus = np.array([0.0036, 0.0055, 0.0031, 0.0026, 0.0038]) * 100
     fpr_solrey_caus = np.array([0.0038, 0.0022, 0.0021, 0.0058, 0.0026]) * 100
 
     ax1.plot(x_indices, fpr_timesnet_caus, color=C_TIMESNET_CAUS, linestyle="--", linewidth=1.6, marker="s", markersize=4.6, label="TimesNet (caus.)", zorder=3)
-    ax1.plot(x_indices, fpr_solrey_buf, color=C_SOLREY_BUF, linestyle=":", linewidth=1.5, marker="^", markersize=4.3, label="Reynolds JEPA (buf.)", zorder=3)
-    ax1.plot(x_indices, fpr_tsjepa_caus, color=C_TSJEPA_CAUS, linestyle="-.", linewidth=1.5, marker="D", markersize=4.2, label="TS-JEPA (caus.)", zorder=4)
-    ax1.plot(x_indices, fpr_solrey_caus, color=C_SOLREY_CAUS, linestyle="-", linewidth=1.8, marker="o", markersize=4.8, label="Reynolds JEPA (caus.)", zorder=5)
+    ax1.plot(x_indices, fpr_solrey_buf, color=C_SOLREY_BUF, linestyle=":", linewidth=1.5, marker="^", markersize=4.3, label="Reynolds 1D (buf.)", zorder=3)
+    ax1.plot(x_indices, fpr_breaker_caus, color="#7b3294", linestyle="-", linewidth=1.7, marker="P", markersize=4.8, label="224-Bit Breaker (caus.)", zorder=6)
+    ax1.plot(x_indices, fpr_tsjepa_caus, color=C_TSJEPA_CAUS, linestyle="-.", linewidth=1.4, marker="D", markersize=4.0, label="TS-JEPA 1D (caus.)", zorder=4)
+    ax1.plot(x_indices, fpr_solrey_caus, color=C_SOLREY_CAUS, linestyle="-", linewidth=1.6, marker="o", markersize=4.4, label="Reynolds 1D (caus.)", zorder=5)
 
     ax1.set_xticks(x_indices)
     ax1.set_xticklabels(x_labels, fontsize=7.3)
@@ -96,7 +98,7 @@ def make_figure():
     ax1.set_axisbelow(True)
 
     ax1.set_title("(a) Latency vs. False-Alarm Explosion across $S$", fontweight="bold", pad=26)
-    ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2, frameon=False, columnspacing=1.0, handletextpad=0.35, labelspacing=0.25, fontsize=6.8)
+    ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=3, frameon=False, columnspacing=0.65, handletextpad=0.3, labelspacing=0.2, fontsize=6.3)
 
     # =========================================================================
     # Panel (b): Event Recall vs False Alarm Rate across Equalized Budgets

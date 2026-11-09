@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
 
 from src.config import CSMConfig  # noqa: E402
 from src.data.data_loader import DataLoader  # noqa: E402
-from src.engine.trainer import build_ts_jepa_model  # noqa: E402
+from src.engine.builder import build_ts_jepa_model  # noqa: E402
 from src.models._jepa_utils import whiten_residuals  # noqa: E402
 from src.scoring.evt_calibrator import EVTCalibrator  # noqa: E402
 from scripts.run_multiseed_heldout_benchmark import batches, load_stream  # noqa: E402
@@ -126,7 +126,11 @@ def train_and_cache(ds: str, ch: str, seed: int, device: torch.device, epochs: i
 
 def load_cached(ds: str, ch: str, seed: int) -> dict:
     """Load cached residuals, clipped and NaN-cleaned exactly as in the reported runs."""
-    data = np.load(cache_path(ds, ch, seed))
+    p = cache_path(ds, ch, seed)
+    if not p.exists():
+        dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        train_and_cache(ds, ch, seed, dev)
+    data = np.load(p)
     clean = lambda a: np.clip(np.nan_to_num(a.astype(np.float64), nan=0.0), -100.0, 100.0)  # noqa: E731
     return {
         "len_va": int(data["len_va"]),

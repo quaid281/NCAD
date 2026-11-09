@@ -1,9 +1,9 @@
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.88\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
-\vspace{-2pt}
-\caption{Horizon length and operating trade-offs. \textbf{(a)}~Held-out FPR across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched emission lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps ($n{=}5$ streams). \textbf{(b)}~Causal event recall vs.\ false alarms across $n{=}19$ streams at matched test-FPR budgets $f^* \in \{1\%, 5\%\}$ (vertical dotted guides), autonomous 224-Bit Strict (open circle) and 224-Bit Breaker (filled star) operating points, and calibration quantiles $q^*{\le}0.05$.\label{fig:operating_and_horizon}}
-\vspace{-2pt}
+\includegraphics[width=0.78\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
+\vspace{-4pt}
+\caption{Horizon length and operating trade-offs. \textbf{(a)}~Held-out FPR across target horizons $S \in \{1, 4, 16, 32, 64\}$ at matched emission lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps comparing the 224-Bit Breaker, 1D latent JEPAs, and observation-space baselines ($n{=}5$ streams). \textbf{(b)}~Causal event recall vs.\ false alarms across $n{=}19$ development streams at post-hoc diagnostic test-FPR budgets $f^* \in \{1\%, 5\%\}$ (vertical dotted guides), autonomous 224-Bit Strict (open circle) and 224-Bit Breaker (filled star) operating points, and calibration quantiles $q^*{\le}0.05$.\label{fig:operating_and_horizon}}
+\vspace{-6pt}
 \end{figure*}
 
 \begin{table}[t]
@@ -47,6 +47,6 @@ TranAD             & 0.402 & 0.235 & 0.300 & 0.640 & 0.564 & 0.611 \\
 TCN Obs.\ Recon.   & 0.472 & 0.273 & 0.297 & 0.639 & 0.553 & 0.563 \\
 ZScoreMax          & 0.376 & 0.288 & 0.289 & 0.673 & 0.594 & 0.605 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Panel (a) stratifies the 10 primary SMAP/MSL streams by NASA's ground-truth taxonomy \cite{Hundman2018b} (contextual: SMAP E-1, A-2, A-7, MSL M-1, and C-1 $[2100,2210]$; point: SMAP A-1, P-3, D-3, MSL D-14, D-15, and C-1 $[550,750]$). Panel (b) stratifies all $n{=}19$ non-GHL streams into in-range contextual ($\max|z| \le 5\sigma$) vs.\ out-of-range point ($\max|z| > 5\sigma$) causal events.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Panel (a) stratifies the 10 development SMAP/MSL streams by NASA's ground-truth taxonomy \cite{Hundman2018b} (contextual: SMAP E-1, A-2, A-7, MSL M-1, and C-1 $[2100,2210]$; point: SMAP A-1, P-3, D-3, MSL D-14, D-15, and C-1 $[550,750]$). Panel (b) stratifies all $n{=}19$ non-GHL development streams into in-range contextual ($\max|z| \le 5\sigma$) vs.\ out-of-range point ($\max|z| > 5\sigma$) causal events ($f^*$ columns are post-hoc diagnostic controls).} \\
 \end{tabular*}\par\vspace{-4pt}
 \end{table}
