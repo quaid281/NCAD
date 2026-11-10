@@ -1,0 +1,22 @@
+
+=== 19-STREAM 224-BIT COMPONENT ABLATION (TRAILING) ===
+                            f1  pr_auc      er     delay  hold_fpr  test_fpr
+variant                                                                     
+1_224Bit_Breaker_Full   0.0709  0.2987  0.5645   90.1077    0.0076    0.0150
+2_224Bit_Strict         0.0468  0.2987  0.4942  207.6021    0.0037    0.0088
+3_wo_Onset_Relays       0.0682  0.2985  0.5645   90.7149    0.0064    0.0101
+4_wo_Prefix_Routing     0.0709  0.2987  0.5645   90.1077    0.0076    0.0150
+5_wo_Hijack_Guards      0.0726  0.2992  0.5645   70.0899    0.0073    0.0131
+6_128Bit_SubBlock_Only  0.0629  0.2938  0.5557  110.6435    0.0048    0.0082
+7_1D_Scalar_Collapse    0.0135  0.3148  0.4591  166.2341    0.0026    0.0035
+
+=== 19-STREAM 224-BIT COMPONENT ABLATION (SMEAR) ===
+                            f1  pr_auc      er     delay  hold_fpr  test_fpr
+variant                                                                     
+1_224Bit_Breaker_Full   0.2242  0.4484  0.5058   83.6608    0.0998    0.1742
+2_224Bit_Strict         0.1676  0.4484  0.4392   54.2963    0.0718    0.1476
+3_wo_Onset_Relays       0.2248  0.4516  0.5058   83.6608    0.0998    0.1737
+4_wo_Prefix_Routing     0.2217  0.4401  0.4971  115.4044    0.0959    0.1678
+5_wo_Hijack_Guards      0.2264  0.4477  0.5058   83.3132    0.0947    0.1687
+6_128Bit_SubBlock_Only  0.2163  0.4491  0.4620   38.8257    0.0910    0.1633
+7_1D_Scalar_Collapse    0.1910  0.4132  0.5497  143.0740    0.0893    0.1479

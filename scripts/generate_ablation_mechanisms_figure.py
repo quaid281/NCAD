@@ -7,15 +7,16 @@ Follows `.agents/skills/beautiful-research-figures/SKILL.md`:
   - Strict external-only frameless horizontal legends (`bbox_to_anchor` outside axes)
   - Subtle dual-hierarchy gridlines strictly behind data (`set_axisbelow(True)`)
   - Clean two-panel layout with zero dual-axis clutter and zero overlapping symbols:
-      Panel (a): 6-step fluid-dynamic perspective expansion ladder (1D Scalar -> Laminar-JEPA (224B))
+      Panel (a): 6-step fluid-dynamic perspective expansion ladder (1D Scalar -> Reynolds 224B)
                  showing strictly causal and buffered Point-F1 with shaded gain envelope ($n=19$).
       Panel (b): Injected single-channel fault Event Recall (%) comparing 1D TS-JEPA,
-                 standalone Multi-Horizon Reynolds Laminar-JEPA (224B), and Hybrid 224-Bit Union ($n=6$).
+                 standalone Reynolds 224B, and Hybrid 224-Bit Union ($n=6$).
 """
 
 from pathlib import Path
 import sys
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 sys.path.insert(
@@ -44,13 +45,20 @@ def main() -> None:
         "128-Bit\nSub-Blk",
         "160-Bit\n(+Drift)",
         "192-Bit\n(+Fluc.)",
-        "Laminar\n224-Bit",
+        "Reynolds\n224-Bit",
     ]
     x_a = np.arange(len(stages), dtype=float)
 
-    # Verified 19-stream, 3-seed perspective expansion ladder (Table II(a))
-    causal_f1 = np.array([0.052, 0.101, 0.129, 0.132, 0.131, 0.100])
-    buffered_f1 = np.array([0.137, 0.119, 0.192, 0.188, 0.203, 0.262])
+    # Current 19-stream, 3-seed perspective ladder, averaged by stream before cohort mean
+    ladder = pd.read_csv(Path(__file__).resolve().parents[1] / "reports" / "perspective_ladder_19stream_recheck.csv")
+    variants = [
+        "0_1D_Scalar_Collapse", "1_32Bit_SingleHorizon", "2_128Bit_SubHorizons",
+        "3_160Bit_Plus_MeanDrift", "4_192Bit_Plus_Fluctuation", "6_224Bit_Breaker_Full",
+    ]
+    stream_means = ladder.groupby(["mapping", "variant", "stream"], as_index=False)["f1"].mean()
+    cohort_means = stream_means.groupby(["mapping", "variant"])["f1"].mean()
+    causal_f1 = cohort_means.loc[[("trailing", v) for v in variants]].to_numpy()
+    buffered_f1 = cohort_means.loc[[("smear", v) for v in variants]].to_numpy()
 
     # Churkin palette: Purple (#6a408d / #9671bd) for Buffered, Teal (#1f6f78 / #77b5b6) for Causal
     c_buf_line, c_buf_fill = "#6a408d", "#9671bd"
@@ -96,7 +104,7 @@ def main() -> None:
         markerfacecolor=c_buf_fill,
         markeredgecolor=c_buf_line,
         markeredgewidth=1.2,
-        label="Buffered Point-F1 (\u00d71.91 gain)",
+        label=f"Buffered Point-F1 (\u00d7{buffered_f1[-1]/buffered_f1[0]:.2f} gain)",
         zorder=3,
     )
     ax_a.plot(
@@ -109,7 +117,7 @@ def main() -> None:
         markerfacecolor=c_cau_fill,
         markeredgecolor=c_cau_line,
         markeredgewidth=1.2,
-        label="Strictly Causal Point-F1 (\u00d71.92 gain)",
+        label=f"Strictly Causal Point-F1 (\u00d7{causal_f1[-1]/causal_f1[0]:.2f} gain)",
         zorder=4,
     )
 
@@ -122,7 +130,7 @@ def main() -> None:
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=7.3,
+            fontsize=7.5,
             fontweight="bold" if idx in (0, 5) else "normal",
             color=c_buf_line,
         )
@@ -133,17 +141,17 @@ def main() -> None:
             textcoords="offset points",
             ha="center",
             va="top" if idx not in (0, 3) else "bottom",
-            fontsize=7.3,
+            fontsize=7.5,
             fontweight="bold" if idx in (0, 5) else "normal",
             color=c_cau_line,
         )
 
-    # Callout annotation for delay reduction at Laminar-JEPA (224B)
+    # Callout annotation for delay reduction at the unquenched 224-bit panel
     ax_a.annotate(
-        "Causal delay:\n247 \u2192 60 steps",
+        "Causal delay:\n166 \u2192 90 steps",
         xy=(x_a[-1], causal_f1[-1]),
-        xytext=(x_a[3] - 0.15, 0.058),
-        fontsize=7.0,
+        xytext=(x_a[3] - 0.15, 0.116),
+        fontsize=7.5,
         color="#333333",
         ha="center",
         bbox=dict(boxstyle="round,pad=0.22", facecolor="#f8f8fa", edgecolor="#bcbcbc", lw=0.6),
@@ -152,13 +160,13 @@ def main() -> None:
     )
 
     ax_a.set_xticks(x_a)
-    ax_a.set_xticklabels(stages, fontsize=7.2)
+    ax_a.set_xticklabels(stages, fontsize=7.5)
     ax_a.set_xlim(-0.38, len(stages) - 0.55)
-    ax_a.set_ylim(0.025, 0.290)
-    ax_a.set_yticks([0.05, 0.10, 0.15, 0.20, 0.25])
+    ax_a.set_ylim(0.0, 0.270)
+    ax_a.set_yticks([0.0, 0.05, 0.10, 0.15, 0.20, 0.25])
     ax_a.set_xlabel("Fluid-Dynamic Perspective Expansion (n=19 Streams)", fontsize=8.5, labelpad=3)
     ax_a.set_ylabel("Unadjusted Point-F1", fontsize=8.5)
-    ax_a.set_title("(a) 1D Collapse vs. Laminar 224-Bit Ladder", fontsize=9.0, fontweight="bold", pad=22)
+    ax_a.set_title("(a) 1D Collapse vs. 224-Bit Panel", fontsize=9.0, fontweight="bold", pad=22)
 
     style_subtle_grid(ax_a, lock_square_aspect=False)
     ax_a.legend(
@@ -166,7 +174,7 @@ def main() -> None:
         bbox_to_anchor=(0.5, 1.15),
         ncol=2,
         frameon=False,
-        fontsize=7.3,
+        fontsize=7.5,
         handletextpad=0.4,
         columnspacing=1.0,
     )
@@ -192,7 +200,7 @@ def main() -> None:
 
     series = [
         (er_1d_jepa, -width, "#b8b8b8", "#4e4e4e", "1D TS-JEPA"),
-        (er_224bit, 0.0, "#9671bd", "#5b3280", "Laminar-JEPA (224B)"),
+        (er_224bit, 0.0, "#9671bd", "#5b3280", "Reynolds 224B"),
         (er_hybrid, width, "#77b5b6", "#1f6f78", "Hybrid 224-Bit Union"),
     ]
 
@@ -216,13 +224,13 @@ def main() -> None:
                     f"{v:.0f}%",
                     ha="center",
                     va="bottom",
-                    fontsize=6.8,
+                    fontsize=7.5,
                     fontweight="bold",
                     color=edge_c,
                 )
 
     ax_b.set_xticks(x_b)
-    ax_b.set_xticklabels(fault_labels, fontsize=7.2)
+    ax_b.set_xticklabels(fault_labels, fontsize=7.5)
     ax_b.set_xlim(-0.55, len(fault_labels) - 0.45)
     ax_b.set_ylim(0.0, 62.0)
     ax_b.set_yticks([0, 15, 30, 45, 60])
@@ -237,7 +245,7 @@ def main() -> None:
         bbox_to_anchor=(0.5, 1.15),
         ncol=3,
         frameon=False,
-        fontsize=7.2,
+        fontsize=7.5,
         handletextpad=0.35,
         columnspacing=0.8,
     )
@@ -246,6 +254,11 @@ def main() -> None:
 
     out_dir = Path("paper/NCAD_CS/figures")
     paths = save_true_vector_figure(fig, out_dir / "regularizer_sweep_and_quiet_faults")
+    svg_path = Path(paths["svg"])
+    svg_path.write_text(
+        "\n".join(line.rstrip() for line in svg_path.read_text(encoding="utf-8").splitlines()) + "\n",
+        encoding="utf-8",
+    )
     fig.savefig(out_dir / "regularizer_sweep_and_quiet_faults.png", dpi=300)
     plt.close(fig)
     print(f"Saved: {paths}")

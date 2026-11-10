@@ -1,0 +1,40 @@
+C:\Users\andre\OneDrive\Desktop\NCAD_CS\scripts\reviewer_analyses\calibration_quantile_reliability.py:277: RuntimeWarning: All-NaN slice encountered
+  var_ratio_iid_over_L=float(np.nanmedian(ratio)),
+C:\Users\andre\OneDrive\Desktop\NCAD_CS\scripts\reviewer_analyses\calibration_quantile_reliability.py:278: RuntimeWarning: All-NaN slice encountered
+  n_eff_bootstrap=float(h * np.nanmedian(ratio)),
+C:\Users\andre\OneDrive\Desktop\NCAD_CS\scripts\reviewer_analyses\calibration_quantile_reliability.py:277: RuntimeWarning: All-NaN slice encountered
+  var_ratio_iid_over_L=float(np.nanmedian(ratio)),
+C:\Users\andre\OneDrive\Desktop\NCAD_CS\scripts\reviewer_analyses\calibration_quantile_reliability.py:278: RuntimeWarning: All-NaN slice encountered
+  n_eff_bootstrap=float(h * np.nanmedian(ratio)),
+done Daphnet:S02R01E0 seed 42
+done Daphnet:S02R01E0 seed 123
+done Daphnet:S02R01E0 seed 456
+done Daphnet:S02R02E0 seed 42
+done Daphnet:S02R02E0 seed 123
+done Daphnet:S01R01E1 seed 456
+done Daphnet:S01R01E1 seed 123
+done Daphnet:S01R01E1 seed 42
+C:\Users\andre\OneDrive\Desktop\NCAD_CS\scripts\reviewer_analyses\calibration_quantile_reliability.py:277: RuntimeWarning: All-NaN slice encountered
+  var_ratio_iid_over_L=float(np.nanmedian(ratio)),
+C:\Users\andre\OneDrive\Desktop\NCAD_CS\scripts\reviewer_analyses\calibration_quantile_reliability.py:278: RuntimeWarning: All-NaN slice encountered
+  n_eff_bootstrap=float(h * np.nanmedian(ratio)),
+done Daphnet:S03R02E0 seed 42
+done Daphnet:S03R01E1 seed 42
+done Daphnet:S03R01E1 seed 123
+done Daphnet:S03R01E1 seed 456
+done Daphnet:S02R02E0 seed 456
+done Daphnet:S03R01E0 seed 123
+done Daphnet:S03R01E0 seed 42
+done Daphnet:S03R01E0 seed 456
+C:\Users\andre\OneDrive\Desktop\NCAD_CS\scripts\reviewer_analyses\calibration_quantile_reliability.py:277: RuntimeWarning: All-NaN slice encountered
+  var_ratio_iid_over_L=float(np.nanmedian(ratio)),
+C:\Users\andre\OneDrive\Desktop\NCAD_CS\scripts\reviewer_analyses\calibration_quantile_reliability.py:278: RuntimeWarning: All-NaN slice encountered
+  n_eff_bootstrap=float(h * np.nanmedian(ratio)),
+done Daphnet:S03R02E0 seed 123
+done Daphnet:S03R02E0 seed 456
+done Genesis:default seed 42
+done Genesis:default seed 123
+done Genesis:default seed 456
+done MSL:C-1 seed 42
+done MSL:C-1 seed 123
+done MSL:C-1 seed 456
