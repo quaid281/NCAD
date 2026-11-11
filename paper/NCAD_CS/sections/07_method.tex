@@ -3,7 +3,7 @@
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/opentropy_jepa_architecture.pdf}
+\includegraphics[width=0.77\textwidth]{figures/opentropy_jepa_architecture.pdf}
 \vspace{-6pt}
 \caption{Overview of the four-stage \emph{Laminar-JEPA} and distilled \emph{Laminar-JEPA-Lite} pipeline: \textbf{(1)}~sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta, E_\phi$) with conditional rFFT splitting ($K{\ge}25$ in Lite), barycenter centering, and LayerNorm; \textbf{(2)}~multi-horizon rollout ($M{=}4$ sequential in full \emph{Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph{Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde{\mathbf{E}} \in \mathbb{R}^{M \times 32}$; \textbf{(3)}~horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph{Lite}); and \textbf{(4)}~per-dial Boolean circuit breakers emitting causal ($\tau{=}t{+}S{-}1$) or prefix-buffered alarms.\label{fig:triad_architecture}}
 \vspace{-5pt}
