@@ -105,31 +105,48 @@ def analyze_dev33() -> dict[str, Any]:
     out["headline"] = dev_rows
     out["per_dataset"] = per_ds.round(4).to_dict("records")
     out["dataset_macro_7ds"] = ds_macro.round(4).to_dict("records")
+
+    dev4_p = ROOT / "reports" / "laminar_dev19_4block.csv"
+    if dev4_p.exists():
+        d4 = pd.read_csv(dev4_p)
+        d4_cols = [c for c in ("hold_fpr", "test_fpr", "f1", "pr_auc", "pr_auc_unw224", "event_recall", "mean_delay") if c in d4.columns]
+        d4_sm = d4.groupby(["model", "mapping", "dataset", "channel"], as_index=False)[d4_cols].mean()
+        out["dev19_4block"] = d4_sm.groupby(["model", "mapping"], as_index=False)[d4_cols].mean().round(4).to_dict("records")
     return out
 
 
-def analyze_tier2_141() -> dict[str, Any]:
-    """Paired analysis on 118 untouched held-out and 141 archive streams under disjoint selection."""
-    lam_path = ROOT / "reports" / "laminar_tier2_141stream_disjoint.csv"
-    base_path = ROOT / "reports" / "heldout_tier2_141stream_independent_select.csv"
-    if not lam_path.exists() or not base_path.exists():
-        return {}
+def analyze_tier2_141(csv_5block: Path | None = None) -> dict[str, Any]:
+    """Paired analysis on 118 untouched held-out and 141 archive streams."""
+    if csv_5block is not None:
+        if not csv_5block.exists():
+            return {}
+        comb = pd.read_csv(csv_5block)
+    else:
+        lam_path = ROOT / "reports" / "laminar_tier2_141stream_disjoint.csv"
+        base_path = ROOT / "reports" / "heldout_tier2_141stream_independent_select.csv"
+        if not lam_path.exists() or not base_path.exists():
+            return {}
+        lam = pd.read_csv(lam_path)
+        base = pd.read_csv(base_path)
+        base = base[base["model"].isin(["TS-JEPA", "Speculative-Alien-JEPA"]) & (base["calibrator"] == "SPOT")].copy()
+        base["model"] = base["model"].replace({
+            "Speculative-Alien-JEPA": "Multi-Horizon-JEPA-1D",
+            "TS-JEPA": "TS-JEPA-1D",
+        })
+        metrics_0 = ["f1", "pr_auc", "event_recall", "mean_delay", "hold_fpr", "test_fpr", "n_cal"]
+        common_cols = ["dataset", "channel", "seed", "model", "mapping"] + [
+            m for m in metrics_0 if m in lam.columns and m in base.columns
+        ]
+        comb = pd.concat([lam[common_cols], base[common_cols]], ignore_index=True)
 
-    lam = pd.read_csv(lam_path)
-    base = pd.read_csv(base_path)
-    base = base[base["model"].isin(["TS-JEPA", "Speculative-Alien-JEPA"]) & (base["calibrator"] == "SPOT")].copy()
-    base["model"] = base["model"].replace({
-        "Speculative-Alien-JEPA": "Multi-Horizon-JEPA-1D",
-        "TS-JEPA": "TS-JEPA-1D",
-    })
-
-    metrics = ["f1", "pr_auc", "event_recall", "mean_delay", "hold_fpr", "test_fpr", "n_cal"]
-    common_cols = ["dataset", "channel", "seed", "model", "mapping"] + [m for m in metrics if m in lam.columns and m in base.columns]
-    comb = pd.concat([lam[common_cols], base[common_cols]], ignore_index=True)
+    metrics = [
+        m for m in ("f1", "pr_auc", "pr_auc_unw224", "pr_auc_unw224_edge", "event_recall", "mean_delay", "hold_fpr", "test_fpr", "n_cal", "t_nom")
+        if m in comb.columns
+    ]
     comb["ds"] = comb["dataset"].str.lower()
     comb["ch"] = comb["channel"].astype(str)
 
-    sm = comb.groupby(["mapping", "model", "ds", "ch"], as_index=False)[[m for m in metrics if m in comb.columns]].mean()
+    sm = comb.groupby(["mapping", "model", "ds", "ch"], as_index=False)[metrics].mean()
     dev_keys = {(d.lower(), str(c)) for d, c in DEVELOPMENT_STREAMS}
     sm["is_untouched"] = [((d, c) not in dev_keys) for d, c in zip(sm["ds"], sm["ch"])]
 
@@ -141,6 +158,9 @@ def analyze_tier2_141() -> dict[str, Any]:
         "non_exathlon101": lambda d: d["is_untouched"].to_numpy(bool) & (d["ds"] != "exathlon").to_numpy(bool),
         "all141": lambda d: np.ones(len(d), dtype=bool),
     }
+    if "t_nom" in sm.columns:
+        cohorts["short_tnom_lt2500"] = lambda d: (d["t_nom"] < 2500).to_numpy(bool)
+        cohorts["untouched_short_lt2500"] = lambda d: d["is_untouched"].to_numpy(bool) & (d["t_nom"] < 2500).to_numpy(bool)
 
     for mapping in ("trailing", "smear"):
         sub = sm[sm["mapping"] == mapping].copy()
@@ -154,11 +174,13 @@ def analyze_tier2_141() -> dict[str, Any]:
                     "n_streams": len(g),
                     "n_datasets": int(g["ds"].nunique()),
                 }
-                for m in ("f1", "pr_auc", "event_recall", "mean_delay", "hold_fpr", "test_fpr"):
+                for m in ("f1", "pr_auc", "pr_auc_unw224", "pr_auc_unw224_edge", "event_recall", "mean_delay", "hold_fpr", "test_fpr"):
                     if m not in g.columns:
                         continue
                     v = g[m].to_numpy(float)
                     ok = np.isfinite(v)
+                    if not ok.any():
+                        continue
                     lo_s, hi_s = boot_ci(v[ok], None, rng)
                     lo_d, hi_d = boot_ci(v[ok], g["ds"].to_numpy()[ok], rng)
                     rec[m] = float(v[ok].mean())
@@ -167,7 +189,7 @@ def analyze_tier2_141() -> dict[str, Any]:
                     rec[f"{m}_cluster_ci"] = [float(lo_d), float(hi_d)]
                 head_rows.append(rec)
 
-        for metric_name in ("f1", "event_recall", "hold_fpr"):
+        for metric_name in ("f1", "event_recall", "hold_fpr", "pr_auc"):
             wide = sub.pivot_table(index=["ds", "ch"], columns="model", values=metric_name)
             wide_untouched = np.array([(idx not in dev_keys) for idx in wide.index], dtype=bool)
             wide_nonex = wide_untouched & (wide.index.get_level_values("ds") != "exathlon")
@@ -178,6 +200,9 @@ def analyze_tier2_141() -> dict[str, Any]:
                 ("Laminar-JEPA", "TS-JEPA-1D"),
                 ("Laminar-JEPA", "Laminar-JEPA-Unq"),
                 ("Laminar-JEPA-Lite", "Laminar-JEPA"),
+                ("Laminar-JEPA-Lite", "Lite-MaxCoordZ"),
+                ("Laminar-JEPA-Lite", "Lite-RawTopK"),
+                ("Laminar-JEPA-Lite", "Lite-ConformalL2"),
             ]
             for m_a, m_b in comparisons:
                 if m_a not in wide.columns or m_b not in wide.columns:
@@ -232,15 +257,27 @@ def analyze_tier2_141() -> dict[str, Any]:
     pairs_df = pd.DataFrame(pair_rows)
     if len(pairs_df):
         for arm in ("Laminar-JEPA-Lite", "Laminar-JEPA"):
-            focal = (
-                (pairs_df["metric"] == "f1")
-                & (pairs_df["mapping"] == "trailing")
-                & (pairs_df["cohort"] == "untouched118")
-                & (pairs_df["comparison"].isin([f"{arm} - Multi-Horizon-JEPA-1D", f"{arm} - TS-JEPA-1D"]))
-            )
-            if focal.any():
-                pairs_df.loc[focal, "p_signflip_bh"] = bh_adjust(pairs_df.loc[focal, "p_signflip"].to_numpy())
-                pairs_df.loc[focal, "p_wilcoxon_bh"] = bh_adjust(pairs_df.loc[focal, "p_wilcoxon"].to_numpy())
+            for m_focal in ("f1", "event_recall"):
+                focal = (
+                    (pairs_df["metric"] == m_focal)
+                    & (pairs_df["mapping"] == "trailing")
+                    & (pairs_df["cohort"] == "untouched118")
+                    & (pairs_df["comparison"].isin([f"{arm} - Multi-Horizon-JEPA-1D", f"{arm} - TS-JEPA-1D"]))
+                )
+                if focal.any():
+                    pairs_df.loc[focal, "p_signflip_bh"] = bh_adjust(pairs_df.loc[focal, "p_signflip"].to_numpy())
+                    pairs_df.loc[focal, "p_wilcoxon_bh"] = bh_adjust(pairs_df.loc[focal, "p_wilcoxon"].to_numpy())
+
+    # 12-fold LODO model-selection rule on all141 trailing
+    sub_tr = sm[sm["mapping"] == "trailing"]
+    cand_models = [m for m in ("TS-JEPA-1D", "Multi-Horizon-JEPA-1D", "Laminar-JEPA", "Laminar-JEPA-Lite") if m in sub_tr["model"].unique()]
+    lodo_winners = {}
+    for drop_ds in sorted(sub_tr["ds"].unique()):
+        keep_df = sub_tr[(sub_tr["ds"] != drop_ds) & (sub_tr["model"].isin(cand_models))]
+        agg_m = keep_df.groupby("model")[["f1", "hold_fpr"]].mean()
+        feas = agg_m[agg_m["hold_fpr"] <= 0.06]
+        winner = str((feas if len(feas) else agg_m)["f1"].idxmax())
+        lodo_winners[drop_ds] = winner
 
     # Per-dataset table on the 6 multi-stream untouched cohorts
     unt = sm[sm["is_untouched"]]
@@ -276,6 +313,7 @@ def analyze_tier2_141() -> dict[str, Any]:
         "paired_tests": pairs_df.round(6).to_dict("records"),
         "per_dataset_untouched": per_ds_unt.round(4).to_dict("records"),
         "ncal_bins": ncal_bins,
+        "lodo_winners": lodo_winners,
     }
 
 
@@ -306,25 +344,34 @@ def analyze_horizon_and_contextual() -> dict[str, Any]:
 
 
 def main() -> None:
+    p5 = ROOT / "reports" / "laminar_tier2_141stream_5block.csv"
     summary = {
         "dev33": analyze_dev33(),
-        "tier2_141": analyze_tier2_141(),
+        "tier2_141_4block": analyze_tier2_141(None),
+        "tier2_141_5block": analyze_tier2_141(p5) if p5.exists() else {},
         "supplementary": analyze_horizon_and_contextual(),
     }
+    summary["tier2_141"] = summary["tier2_141_5block"] or summary["tier2_141_4block"]
     out_json = ROOT / "reports" / "laminar_manuscript_summary.json"
     _atomic_json(summary, out_json)
     print(f"Wrote comprehensive summary -> {out_json}")
 
-    if summary["tier2_141"]:
-        h = pd.DataFrame(summary["tier2_141"]["headline"])
-        cols = ["cohort", "mapping", "model", "n_streams", "f1", "pr_auc", "event_recall", "hold_fpr", "hold_fpr_med", "mean_delay"]
-        print("\n=== TIER-2 118/141 HEADLINE ===")
+    for label, key in (("5-BLOCK", "tier2_141_5block"), ("4-BLOCK", "tier2_141_4block")):
+        if not summary[key]:
+            continue
+        h = pd.DataFrame(summary[key]["headline"])
+        cols = ["cohort", "mapping", "model", "n_streams", "f1", "pr_auc", "pr_auc_unw224", "event_recall", "hold_fpr", "hold_fpr_med", "test_fpr", "mean_delay"]
+        print(f"\n=== TIER-2 118/141 HEADLINE ({label}) ===")
         print(h[[c for c in cols if c in h.columns]].round(4).to_string(index=False))
 
-        p = pd.DataFrame(summary["tier2_141"]["paired_tests"])
-        f1p = p[(p["metric"] == "f1") & (p["cohort"].isin(["untouched118", "all141"]))]
-        print("\n=== TIER-2 PAIRED F1 TESTS ===")
-        print(f1p[["mapping", "cohort", "comparison", "mean_diff", "wins", "losses", "p_wilcoxon", "datasets_pos", "n_datasets", "p_signflip", "p_signflip_bh"]].round(5).to_string(index=False))
+        p = pd.DataFrame(summary[key]["paired_tests"])
+        f1p = p[(p["metric"].isin(["f1", "event_recall", "hold_fpr"])) & (p["cohort"].isin(["untouched118", "all141"]))]
+        print(f"\n=== TIER-2 PAIRED TESTS ({label}) ===")
+        print(f1p[["metric", "mapping", "cohort", "comparison", "mean_diff", "wins", "losses", "p_wilcoxon", "datasets_pos", "n_datasets", "p_signflip", "p_signflip_bh"]].round(5).to_string(index=False))
+
+    if "dev19_4block" in summary["dev33"]:
+        print("\n=== DEV-19 4-BLOCK DISJOINT ADAPTATION SENSITIVITY ===")
+        print(pd.DataFrame(summary["dev33"]["dev19_4block"]).to_string(index=False))
 
 
 if __name__ == "__main__":

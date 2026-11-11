@@ -35,15 +35,15 @@ where $\operatorname{sg}(\cdot)$ stops gradients through $E_\phi$. Unlike log-de
 \label{subsec:reynolds_expansion}
 Collapsing a multi-horizon residual tensor into a single scalar score creates a bottleneck: if nominal drift inflates even a few coordinates between training and calibration, those coordinates dominate the scalar norm. Stacking the $M=4$ signed residuals $\mathbf{e}_m(t)=z_{\text{tgt}}^{(m)}(t)-\hat{z}_{\text{tgt}}^{(m)}(t)$ forms $\mathbf{E}(t)\in\mathbb{R}^{M\times D}$ ($M\!D=128$ entries). On nominal training windows, eigendecomposing the residual covariance $\hat{\mathbf{\Sigma}}_{\text{res}}=\mathbf{U}\operatorname{diag}(\lambda_k)\mathbf{U}^{\top}$ defines a damped resolvent precision matrix $\mathbf{\Omega} = \mathbf{U}\operatorname{diag}\bigl(\lambda_k / (\lambda_k + 10^{-3})^2\bigr)\mathbf{U}^{\top}$. Multiplying centered residuals by $\mathbf{\Omega}^{1/2}$ yields whitened errors $e_{m,c}^{\text{white}}(t)$ while suppressing near-null eigenmodes instead of amplifying them. Stage~3 then insulates coordinates against nominal calibration drift and expands the horizon trajectory:
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
-    \item \emph{Calibration-stabilized whitening and optional quenching:} If a coordinate's whitened RMS on nominal calibration windows exceeds $1.10$, it blends smoothly toward its RMS-standardized raw residual $\hat{e}_{m,c}^{\text{raw}}(t)$ so no drifting eigenmode can blow up downstream tripwires:
+    \item \emph{Disjoint nominal stabilization and optional quenching on $\mathbf{X}_q$:} Estimating blending weights or weight edits on the same block $\mathbf{X}_{\text{cal}}$ that sets final alarm thresholds would couple model adaptation to threshold calibration. Under our disjoint adaptation protocol ($\mathbf{X}_q \perp \mathbf{X}_{\text{cal}}$, Section~\ref{subsec:exp_setup}), a separate nominal block $\mathbf{X}_q$ fits raw residual RMS scales and smoothly blends any coordinate whose whitened RMS exceeds $1.10$ toward its standardized raw residual $\hat{e}_{m,c}^{\text{raw}}(t)$, freezing all weights before $\mathbf{X}_{\text{cal}}$ is touched:
     \begin{equation}
     \begin{aligned}
         \tilde{e}_{m,c}(t) &= w_{m,c}\,e_{m,c}^{\text{white}}(t) + (1 - w_{m,c})\,\hat{e}_{m,c}^{\text{raw}}(t), \\
-        w_{m,c} &= \frac{1}{1 + 2\max\bigl(0, \text{RMS}_{\text{cal}}^{\text{white}}(m,c) - 1.10\bigr)^2}.
+        w_{m,c} &= \frac{1}{1 + 2\max\bigl(0, \text{RMS}_{q}^{\text{white}}(m,c) - 1.10\bigr)^2}.
     \end{aligned}
     \label{eq:stabilized_whitening}
     \end{equation}
-    Full \emph{Laminar-JEPA} also includes an optional zero-gradient post-training \emph{weight-space quench} fit strictly on nominal training and calibration windows. Coordinates are ranked by an instability score standardized via the median and median absolute deviation (MAD), combining train-to-calibration mean/scale shifts, calibration half-split drift, residual autocorrelation, and a negative guard for isolated nominal spikes. For candidate top-$k$ drifting coordinates ($k\in\{4,2\}$), four steps run sequentially: \emph{(Q1)}~damping the selected predictor output rows/LayerNorm gains and shifting $\mathbf{p}_m$ toward calibration means (which induces unselected spillover through 32D LayerNorm, audited in Section~\ref{subsec:controlled_ablations}); \emph{(Q2)}~blending residual centers $75\%$ toward post-edit calibration means; \emph{(Q3)}~attenuating off-diagonal precision couplings by $0.15$ and rescaling whitened calibration RMS; and \emph{(Q4)}~retaining the edit (preferring $k=2$ on ties) only if nominal half-split FPR improves while preserving at least $92\%$ of pre-edit quorum thresholds, reverting otherwise.
+    Full \emph{Laminar-JEPA} also runs an optional zero-gradient \emph{weight-space quench} strictly on $(\mathbf{X}_{\text{fit}}, \mathbf{X}_q)$ prior to $\mathbf{X}_{\text{cal}}$ (legacy fixed-epoch development runs without $\mathbf{X}_q$ estimate both on $\mathbf{X}_{\text{cal}}$, Table~\ref{tab:protocol_matrix}). Coordinates are ranked by a median/median-absolute-deviation (MAD) standardized instability score combining $\mathbf{X}_{\text{fit}}\to\mathbf{X}_q$ mean/scale shifts, $\mathbf{X}_q$ half-split drift, residual autocorrelation, and a negative guard for isolated spikes. For candidate top-$k$ drifting coordinates ($k\in\{4,2\}$), four steps run sequentially: \emph{(Q1)}~damping selected predictor output rows/LayerNorm gains and shifting $\mathbf{p}_m$ toward $\mathbf{X}_q$ means (inducing unselected spillover through 32D LayerNorm, audited in Section~\ref{subsec:controlled_ablations}); \emph{(Q2)}~blending residual centers $75\%$ toward post-edit $\mathbf{X}_q$ means; \emph{(Q3)}~attenuating off-diagonal precision couplings by $0.15$ and rescaling whitened $\mathbf{X}_q$ RMS; and \emph{(Q4)}~retaining the edit (preferring $k=2$ on ties) iff $\mathbf{X}_q$ half-split FPR improves while preserving $\ge 92\%$ of pre-edit quorum thresholds, freezing all parameters thereafter.
     \item \emph{Multi-horizon expansion into $7D = 224$ dials:} Inspired algebraically by the mean-plus-fluctuation split of Reynolds averaging \cite{reynolds1895dynamical} across the $M=4$ horizons of each coordinate $c \in \{1,\dots,32\}$, we separate $\tilde{\mathbf{E}}(t) \in \mathbb{R}^{4 \times 32}$ into its horizon mean $\bar{e}_c(t) = M^{-1}\sum_{m=1}^M \tilde{e}_{m,c}(t)$ and zero-mean fluctuation $F_{m,c}(t) = \tilde{e}_{m,c}(t) - \bar{e}_c(t)$. Taking magnitudes yields $7D = 224$ nonnegative dials $\mathbf{d}(t) \in \mathbb{R}_{\ge 0}^{224}$:
     (a)~$4D = 128$ \emph{sub-horizon positions} $|\tilde{e}_{m,c}(t)|$;
     (b)~$D = 32$ \emph{horizon-mean drifts} $|\bar{e}_c(t)|$;
@@ -57,7 +57,7 @@ Removing the horizon mean splits each coordinate's squared error orthogonally in
 \label{prop:anti_collapse}
 For $\tilde{\mathbf{E}}(t) \in \mathbb{R}^{M \times D}$ ($M \ge 2$) with horizon mean $\bar{\mathbf{e}}(t)$ and fluctuation matrix $\mathbf{F}(t) = \tilde{\mathbf{E}}(t) - \mathbf{1}_M \bar{\mathbf{e}}(t)^\top \neq \mathbf{0}$:
 (i)~for every coordinate $c$, $M^{-1}\sum_{m=1}^M |\tilde{e}_{m,c}(t)|^2 = |\bar{e}_c(t)|^2 + d_{\text{fluc},c}^2(t)$ and $d_{\text{accel},c}(t) \le \sqrt{2M}\,d_{\text{fluc},c}(t)$; and
-(ii)~the $M\times M$ horizon Gram matrix $\mathbf{G}(t) = \mathbf{F}(t)\mathbf{F}(t)^\top \in \mathcal{S}_+^M$ has ordered eigenvalues $0 = \lambda_1 \le \lambda_2 \le \dots \le \lambda_M$ whose scale-invariant concentration ratio for any $p > 0$ \cite{lieb1976inequalities} satisfies
+(ii)~the $M\times M$ horizon Gram matrix $\mathbf{G}(t) = \mathbf{F}(t)\mathbf{F}(t)^\top \in \mathcal{S}_+^M$ has ordered eigenvalues $0 = \lambda_1 \le \lambda_2 \le \dots \le \lambda_M$ whose scale-invariant dominant-mode share for any $p > 0$ \cite{lieb1976inequalities} satisfies
 \begin{equation}
     R_{\text{LT}}\bigl(\mathbf{F}(t)\bigr) = \frac{\lambda_M^p}{\sum_{m=1}^M \lambda_m^p} \in \Bigl[\frac{1}{M - 1},\, 1\Bigr],
     \label{eq:lt_bounds}
@@ -80,7 +80,7 @@ Instead of adding all 224 dials into one global score, Stage~4 (Fig.~\ref{fig:tr
         \label{eq:dial_tripwire}
     \end{equation}
     \item \emph{32 right-edge onset relays:} When an abrupt fault first enters the right edge of the $S$-step target window, earlier prefixes ($m \in \{1, 2\}$) still cover nominal data. To catch these transitions promptly, each coordinate $c \in \{1,\dots,32\}$ defines stricter $99.3$rd-percentile edge switches ($\gamma^{1.25}$ guard) and fires a binary onset relay $r_c(t) \in \{0, 1\}$ whenever a terminal-prefix trip ($m=4$) coincides with an acceleration, fluctuation, or $m=3$ trip on the same coordinate.
-    \item \emph{Causal vs.\ buffered attribution and quorum voting:} Under \emph{causal trailing attribution}, active breakers on window $[t,t+S)$ emit a real-time decision strictly at its right endpoint $\tau=t+S-1$ (structural lag $S-1$, empirical delay $\Delta t=t_{\text{alm}}-t^*$). Under \emph{retrospective buffered attribution}, position votes route to their corresponding prefixes $[t,t+S_m)$, drift and fluctuation votes span $[t,t+S)$, and endpoint-difference votes route to $[t+S_3,t+S)$ (empty at $S=1$). Summing active trips yields $N_{224}(\tau)$, position sub-panel count $N_{128}(\tau)$, and relay count $N_{\text{edge}}(\tau)$ (summed as $N_{\text{tot}} = N_{224} + N_{128} + 2N_{\text{edge}}$ for continuous PR-AUC), triggering a binary alarm whenever any counter exceeds its nominal quorum:
+    \item \emph{Causal vs.\ buffered attribution, score weighting, and quorum voting:} Under \emph{causal trailing attribution}, active breakers on window $[t,t+S)$ emit a real-time decision strictly at its right endpoint $\tau=t+S-1$ (structural lag $S-1$, empirical delay $\Delta t=t_{\text{alm}}-t^*$). Under \emph{retrospective buffered attribution}, position votes route to their corresponding prefixes $[t,t+S_m)$, drift and fluctuation votes span $[t,t+S)$, and endpoint-difference votes route to $[t+S_3,t+S)$ (empty at $S=1$). Summing active trips yields $N_{224}(\tau)$, position sub-panel count $N_{128}(\tau) \subset N_{224}(\tau)$, and relay count $N_{\text{edge}}(\tau)$. Because $N_{128}$ is contained in $N_{224}$, the continuous ranking score $N_{\text{tot}}(\tau) = N_{224}(\tau) + N_{128}(\tau) + 2N_{\text{edge}}(\tau)$ gives sub-horizon position trips and onset relays $2\times$ weight (fixed on development streams before held-out testing; unweighted $N_{224}$ shifts PR-AUC by $\le 0.003$, Section~\ref{subsec:controlled_ablations}), whereas binary alarms fire whenever any counter exceeds its nominal quorum:
     \begin{equation}
     \begin{aligned}
         \hat{y}(\tau) = \mathbb{I}\bigl(&N_{224}(\tau) > K_{224} \;\vee\; N_{128}(\tau) > K_{128} \\
@@ -97,7 +97,7 @@ Layer-by-layer activation tracing and component ablations of \emph{Laminar-JEPA}
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
     \item \emph{Four-block TCN and $K \ge 25$ spectral gating:} Because a fifth dilated block damps short-prefix anomaly divergence without improving effective rank, \emph{Laminar-JEPA-Lite} uses four TCN blocks ($d \in \{1, 2, 4, 8\}$), $64\text{D}$ pooling heads, and activates the four-shell rFFT front-end only on high-channel streams ($K \ge 25$), using a direct causal projection when $K < 25$.
     \item \emph{Parallel three-horizon single-LayerNorm predictor:} Instead of sequential four-horizon unrolling and stacked predictor normalizations, a single residual two-layer GELU MLP predicts $M=3$ nested prefixes ($S_m \in \{16, 32, 64\}$ at $S=64$; $96\times 96$ precision $\mathbf{\Omega}$) in parallel from $z_{\text{ctx}} + \mathbf{p}_m$ with one terminal LayerNorm, avoiding sequential lag and LayerNorm cross-coupling.
-    \item \emph{128-dial position-plus-drift panel and single quorum:} Retaining only the $96$ sub-horizon magnitudes $|\tilde{e}_{m,c}(t)|$ and $32$ horizon-mean drift dials $|\bar{e}_c(t)|$ ($4D=128$ breakers calibrated via (\ref{eq:dial_tripwire})) removes fluctuation/endpoint dials, onset relays, and weight quenching, firing under one quorum $K_{\text{Lite}} = \max\bigl(1.12\,q_{0.995}(N_{128,\text{cal}}),\,4.0\bigr)$.
+    \item \emph{128-dial position-plus-drift panel and single quorum:} Retaining only the $96$ sub-horizon magnitudes $|\tilde{e}_{m,c}(t)|$ and $32$ horizon-mean drift dials $|\bar{e}_c(t)|$ ($4D=128$ breakers calibrated via (\ref{eq:dial_tripwire})) removes fluctuation/endpoint dials, onset relays, and weight quenching, ranking steps by unweighted $N_{128}(\tau)$ and firing under one quorum $K_{\text{Lite}} = \max\bigl(1.12\,q_{0.995}(N_{128,\text{cal}}),\,3.5\bigr)$.
 \end{enumerate}
 
 \begin{algorithm}[t]
@@ -106,8 +106,8 @@ Layer-by-layer activation tracing and component ablations of \emph{Laminar-JEPA}
 \begin{algorithmic}[1]
 \Require Nominal history $\mathbf{X}_{\text{nom}}$, test stream $\mathbf{X}_{\text{test}}$, tier $\in\{\text{Full},\text{Lite}\}$, attribution mode $\in\{\text{causal},\text{buffered}\}$.
 \Ensure Per-timestep binary alarms $\hat{y}(\tau)\in\{0,1\}$ and continuous score $N_{\text{tot}}(\tau)$.
-\Statex \vspace{1.5pt}\textbf{Phase 1: Disjoint Training \& Resolvent Whitening}
-\State Split $\mathbf{X}_{\text{nom}}$ chronologically into $(\mathbf{X}_{\text{fit}}, \mathbf{X}_{\text{sel}}, \mathbf{X}_{\text{cal}}, \text{gap}_S, \mathbf{X}_{\text{hold}})$ and standardize channels using $\mathbf{X}_{\text{fit}}$ alone.
+\Statex \vspace{1.5pt}\textbf{Phase 1: Disjoint Training, Whitening \& Adaptation ($\mathbf{X}_{\text{fit}}, \mathbf{X}_{\text{sel}}, \mathbf{X}_q$)}
+\State Split $\mathbf{X}_{\text{nom}}$ chronologically into $S$-isolated $(\mathbf{X}_{\text{fit}}, \mathbf{X}_{\text{sel}}, \mathbf{X}_q, \mathbf{X}_{\text{cal}}, \mathbf{X}_{\text{hold}})$ and standardize channels using $\mathbf{X}_{\text{fit}}$ alone.
 \State Set nested prefixes $S_{1:4}=\{16,32,48,64\}$ (Full) or $S_{1:3}=\{16,32,64\}$ with $K\ge 25$ rFFT gate (Lite).
 \For{stride-$16$ training batches in $\mathbf{X}_{\text{fit}}$}
     \State Encode $z_{\text{ctx}} = E_\theta(\mathbf{x}_{\text{ctx}})$ and targets $z_{\text{tgt}}^{(m)} = E_\phi(\mathbf{x}_{\text{tgt}}^{(m)})$ with barycenter shift $-\bar{\bm{\mu}}_{\text{ctx}}$.
@@ -115,15 +115,16 @@ Layer-by-layer activation tracing and component ablations of \emph{Laminar-JEPA}
 \EndFor
 \State Select checkpoint on $\mathbf{X}_{\text{sel}}$ (or fixed epochs) and fit $(\bar{\bm{\mu}}_{\text{res}}, \mathbf{\Omega}\in\mathcal{S}_+^{MD})$ on $\mathbf{X}_{\text{fit}}$.
 \If{tier $=$ Full and $q_{\text{wsp}} = 1$}
-    \State Rank drifting coordinates on $(\mathbf{X}_{\text{fit}},\mathbf{X}_{\text{cal}})$; run Steps Q1--Q4 for $k\in\{4,2\}$ and keep edit iff nominal split and $0.92$-quorum gates pass.
+    \State Rank drifting coordinates on $(\mathbf{X}_{\text{fit}},\mathbf{X}_q)$; run Steps Q1--Q4 for $k\in\{4,2\}$ and keep edit iff $\mathbf{X}_q$ split and $0.92$-quorum gates pass.
 \EndIf
-\Statex \vspace{1.5pt}\textbf{Phase 2: Nominal Circuit-Breaker Calibration on $\mathbf{X}_{\text{cal}}$}
-\State Extract stabilized whitened residuals $\tilde{\mathbf{E}}_{\text{cal}}$ via (\ref{eq:stabilized_whitening}).
+\State Fit and freeze stabilization scales and blending weights $w_{m,c}$ (\ref{eq:stabilized_whitening}) on $\mathbf{X}_q$.
+\Statex \vspace{1.5pt}\textbf{Phase 2: Untouched Circuit-Breaker Calibration on $\mathbf{X}_{\text{cal}}$}
+\State Compute frozen stabilized residuals $\tilde{\mathbf{E}}_{\text{cal}}$ on untouched $\mathbf{X}_{\text{cal}}$ via (\ref{eq:stabilized_whitening}).
 \If{tier $=$ Full}
     \State Expand $\tilde{\mathbf{E}}_{\text{cal}}$ into $7D=224$ dials (position, drift, fluctuation, endpoint) and $32$ right-edge onset relays.
     \State Fit MAD scales $(m_j,s_j)$, hijack guards $\gamma_j$, tripwires $\tau_j$ (\ref{eq:dial_tripwire}), and quorums $(K_{224}, K_{128}, K_{\text{edge}})$ (\ref{eq:panel_quorum}).
-\Else \Comment{Distilled Laminar-JEPA-Lite}
-    \State Extract $4D=128$ position-plus-drift dials $(|\tilde{e}_{m,c}|, |\bar{e}_c|)$, fit $\tau_j$ (\ref{eq:dial_tripwire}), and set single quorum $K_{\text{Lite}}=\max(1.12\,q_{0.995},4.0)$.
+\Else \Comment{Preferred Deployment Tier: Laminar-JEPA-Lite}
+    \State Extract $4D=128$ position-plus-drift dials $(|\tilde{e}_{m,c}|, |\bar{e}_c|)$, fit $\tau_j$ (\ref{eq:dial_tripwire}), and set single quorum $K_{\text{Lite}}=\max(1.12\,q_{0.995},3.5)$.
 \EndIf
 \Statex \vspace{1.5pt}\textbf{Phase 3: Online Inference on $\mathbf{X}_{\text{hold}}$ or $\mathbf{X}_{\text{test}}$}
 \For{each stride-$1$ window $[t-C,\,t+S)$}

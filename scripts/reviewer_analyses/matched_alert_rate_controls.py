@@ -25,7 +25,7 @@ from scripts.reviewer_analyses.ensemble_and_redundancy_baselines import (
     summarize,
     window_arms,
 )
-from scripts.reviewer_analyses.ensemble_baseline_arms import conformal_pvalues, hotelling_t2
+from scripts.reviewer_analyses.ensemble_baseline_arms import conformal_pvalues, hotelling_t2, robust_z
 from src.scoring.circuit_breaker_panel import MultiPerspectiveCircuitBreakerPanel, build_224_perspective_dials
 
 CONTROLS = {
@@ -120,7 +120,10 @@ def evaluate_run(ds: str, ch: str, seed: int, panel: MultiPerspectiveCircuitBrea
              actual_cal_rate=cal_rate, **score_row(tl, dec.hold_pred_balanced, dec.test_pred_balanced,
                                                    dec.test_switch_counts))
     ]
+    bh224_pair: tuple[np.ndarray, np.ndarray] | None = None
     for arm, family, s_va, s_te, _ in window_arms(d, bits, va_224, te_224, n_cal):
+        if arm == "B3_conformal_bh":
+            bh224_pair = (s_va, s_te)
         if arm not in CONTROLS:
             continue
         v, _ = map_stat(s_va, d["len_va"], "trailing")
@@ -132,9 +135,39 @@ def evaluate_run(ds: str, ch: str, seed: int, panel: MultiPerspectiveCircuitBrea
                          actual_cal_rate=float(np.mean(v[:n_cal] > threshold)),
                          **score_row(tl, v[n_cal + S :] > threshold, t > threshold, t)))
 
-    # 1. Per-coordinate split-conformal on 128 whitened coordinates (|e_{m,c}|)
+    # 1. Marginal per-coordinate calibration (no quorum; union across 128 coordinates)
     abs_va = np.abs(va.reshape(len(va), -1))
     abs_te = np.abs(te.reshape(len(te), -1))
+    z128_va, z128_te = robust_z(abs_va, abs_te, n_cal)
+    q985_128 = np.percentile(z128_va[:n_cal], 98.5, axis=0, keepdims=True) + 1e-4
+    u985_va, _ = map_stat((z128_va > q985_128).any(axis=1).astype(float), d["len_va"], "trailing")
+    u985_te, _ = map_stat((z128_te > q985_128).any(axis=1).astype(float), d["len_test"], "trailing")
+    max128_va, _ = map_stat(z128_va.max(axis=1), d["len_va"], "trailing")
+    max128_te, _ = map_stat(z128_te.max(axis=1), d["len_test"], "trailing")
+    rows.append(dict(**shared, arm="M1_marginal_coord_q985_union", family="M", threshold=0.985,
+                     actual_cal_rate=float(np.mean(u985_va[:n_cal] >= 0.5)),
+                     **score_row(tl, u985_va[n_cal + S :] >= 0.5, u985_te >= 0.5, max128_te)))
+    marg_q = float(np.clip(1.0 - max(cal_rate, 1.0 / max(n_cal, 1)), 0.5, 1.0))
+    qm_128 = np.quantile(z128_va[:n_cal], marg_q, axis=0, keepdims=True) + 1e-6
+    um_va, _ = map_stat((z128_va > qm_128).any(axis=1).astype(float), d["len_va"], "trailing")
+    um_te, _ = map_stat((z128_te > qm_128).any(axis=1).astype(float), d["len_test"], "trailing")
+    rows.append(dict(**shared, arm="M2_marginal_coord_matched_union", family="M", threshold=marg_q,
+                     actual_cal_rate=float(np.mean(um_va[:n_cal] >= 0.5)),
+                     **score_row(tl, um_va[n_cal + S :] >= 0.5, um_te >= 0.5, max128_te)))
+
+    # 1b. System-level matched 128-coord continuous max-z & raw top-k coordinate voting (no drift/guards)
+    sys_max128_thr = threshold_for_calibration_rate(max128_va[:n_cal], cal_rate)
+    rows.append(dict(**shared, arm="S1_coord128_maxz_system_matched", family="S", threshold=sys_max128_thr,
+                     actual_cal_rate=float(np.mean(max128_va[:n_cal] > sys_max128_thr)),
+                     **score_row(tl, max128_va[n_cal + S :] > sys_max128_thr, max128_te > sys_max128_thr, max128_te)))
+    cnt128_raw_va, _ = map_stat((z128_va > q985_128).sum(axis=1).astype(float), d["len_va"], "trailing")
+    cnt128_raw_te, _ = map_stat((z128_te > q985_128).sum(axis=1).astype(float), d["len_test"], "trailing")
+    sys_topk128_thr = threshold_for_calibration_rate(cnt128_raw_va[:n_cal], cal_rate)
+    rows.append(dict(**shared, arm="S2_coord128_topk_system_matched", family="S", threshold=sys_topk128_thr,
+                     actual_cal_rate=float(np.mean(cnt128_raw_va[:n_cal] > sys_topk128_thr)),
+                     **score_row(tl, cnt128_raw_va[n_cal + S :] > sys_topk128_thr, cnt128_raw_te > sys_topk128_thr, cnt128_raw_te)))
+
+    # 1c. Per-coordinate & 224-dial FWER / FDR and discrete conformal union
     p_va = conformal_pvalues(abs_va[:n_cal], abs_va)
     p_te = conformal_pvalues(abs_va[:n_cal], abs_te)
     s_coord_va = -np.log10(np.maximum(p_va.min(axis=1), 1e-12))
@@ -143,6 +176,13 @@ def evaluate_run(ds: str, ch: str, seed: int, panel: MultiPerspectiveCircuitBrea
     rows.append(dict(**shared, arm="D1_per_coord_conformal_sidak005", family="D", threshold=sidak_thr,
                      actual_cal_rate=float(np.mean(s_coord_va[:n_cal] >= sidak_thr)),
                      **score_row(tl, s_coord_va[n_cal + S :] >= sidak_thr, s_coord_te >= sidak_thr, s_coord_te)))
+    assert bh224_pair is not None
+    bh_thr = -math.log10(0.005)
+    bh_va, _ = map_stat(bh224_pair[0], d["len_va"], "trailing")
+    bh_te, _ = map_stat(bh224_pair[1], d["len_test"], "trailing")
+    rows.append(dict(**shared, arm="D1b_224dial_conformal_bh005", family="D", threshold=bh_thr,
+                     actual_cal_rate=float(np.mean(bh_va[:n_cal] >= bh_thr)),
+                     **score_row(tl, bh_va[n_cal + S :] >= bh_thr, bh_te >= bh_thr, bh_te)))
     coord_m_thr = threshold_for_calibration_rate(s_coord_va[:n_cal], cal_rate)
     rows.append(dict(**shared, arm="D1_per_coord_conformal_matched", family="D", threshold=coord_m_thr,
                      actual_cal_rate=float(np.mean(s_coord_va[:n_cal] > coord_m_thr)),
@@ -172,6 +212,17 @@ def evaluate_run(ds: str, ch: str, seed: int, panel: MultiPerspectiveCircuitBrea
                      actual_cal_rate=np.nan, **score_row(tl, hp_160, tp_160, cnt_160)))
     rows.append(dict(**shared, arm="A_224dial_no_relay_single_quorum", family="A", threshold=np.nan,
                      actual_cal_rate=np.nan, **score_row(tl, hp_224nr, tp_224nr, cnt_224nr)))
+    # 4. Continuous PR-AUC score weighting ablation (Critique 3C: weighted vs unweighted)
+    for mp in ("trailing", "smear"):
+        for smode in ("weighted", "unweighted_224_edge", "unweighted_224"):
+            dec_s = panel.evaluate_stream_decisions(bits, d["len_va"], d["len_test"], mp, score_mode=smode)
+            tl_s = y[dec_s.valid_mask]
+            rows.append(dict(
+                stream=f"{ds}:{ch}", dataset=ds, seed=seed, mapping=mp, n_cal=n_cal,
+                target_cal_rate=cal_rate, arm=f"SCORE_{smode}", family="SCORE",
+                threshold=dec_s.k_gate_balanced, actual_cal_rate=cal_rate,
+                **score_row(tl_s, dec_s.hold_pred_balanced, dec_s.test_pred_balanced, dec_s.test_switch_counts),
+            ))
     return rows
 
 
@@ -193,14 +244,19 @@ def main() -> None:
             cf_rows.extend(evaluate_crossfit_run(ds, ch, seed, panel))
         print(f"{ds}:{ch} matched-conformal & cross-fit controls done", flush=True)
     df = pd.DataFrame(rows)
-    summ = summarize(df)
-    actual = df.groupby(["stream", "arm"], as_index=False)[["target_cal_rate", "actual_cal_rate"]].mean()
+    df_tr = df[df["mapping"] == "trailing"].copy()
+    summ = summarize(df_tr[df_tr["family"] != "SCORE"])
+    actual = df_tr.groupby(["stream", "arm"], as_index=False)[["target_cal_rate", "actual_cal_rate"]].mean()
     cal = actual.groupby("arm")[["target_cal_rate", "actual_cal_rate"]].mean().reset_index()
     summ = summ.merge(cal, on="arm", validate="many_to_one")
     atomic_csv(df, str(out_path))
     atomic_csv(summ, str(out_path.with_name(out_path.stem + "_summary.csv")))
     print("\n=== CONFORMAL, DETECTOR-BANK & REDUCED-PANEL SUMMARY ===")
-    print(summ[["arm", "f1", "er", "hold_fpr", "test_fpr", "target_cal_rate", "actual_cal_rate"]].to_string(index=False))
+    print(summ[["arm", "f1", "pr_auc", "er", "hold_fpr", "test_fpr", "target_cal_rate", "actual_cal_rate"]].to_string(index=False))
+
+    sc_df = df[df["family"] == "SCORE"].groupby(["stream", "mapping", "arm"], as_index=False)[["pr_auc", "f1"]].mean()
+    print("\n=== CONTINUOUS PR-AUC WEIGHTING ABLATION (19 STREAMS x 3 SEEDS) ===")
+    print(sc_df.groupby(["mapping", "arm"])[["pr_auc", "f1"]].mean().to_string())
 
     cf_df = pd.DataFrame(cf_rows)
     cf_stream = cf_df.groupby(["stream", "mode"], as_index=False)[["f1", "er", "hold_fpr", "test_fpr", "pr_auc"]].mean()

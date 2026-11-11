@@ -103,39 +103,51 @@ TranAD & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 
 \label{subsec:factorial}
 Table~\ref{tab:ablations}(a),(b) and Fig.~\ref{fig:regularizer_and_quiet_fault}(a) evaluate perspective expansion and panel components on the 19-stream residual cache (not paired to the separately trained run in Panel~(c)):
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \emph{Operational trade-off between 160 and 224 dials:} While the 224-dial panel lifts causal Point-F1 from $0.013$ to $0.071$ over 1D scoring ($p=0.0023$; buffered $+0.033$, $p=0.53$), more dials are not automatically better: the 160-dial position-plus-drift subset ($128$ sub-horizons $+$ $32$ horizon means, single quorum, no relays) achieves higher causal Point-F1 ($0.098$), higher causal ER ($59.1\%$ vs.\ $56.5\%$), shorter causal delay ($74.8$ vs.\ $90.1$ steps), and lower nominal FPR ($0.55\%$ held-out, $0.87\%$ test vs.\ $0.76\%$, $1.50\%$) at $29\%$ lower dial cost, whereas all 224 dials lead only in retrospective buffered Point-F1 ($0.224$ vs.\ $0.198$). This directly motivates the $M=3$ position-plus-drift 128-dial panel in \emph{Laminar-JEPA-Lite}. Scalar $R_{\text{LT}}$ modulation remains null in Panel~(c).
-    \item \emph{Relays, single-quorum voting, and hijack guards:} Removing the 32 onset relays lowers causal Point-F1 slightly ($0.071 \to 0.068$), and replacing the three-counter rule (\ref{eq:panel_quorum}) with a single 224-dial quorum lowers causal Point-F1 to $0.063$ ($\text{FPR}_{\text{hold}} = 0.0055$; Table~\ref{tab:matched_alert}). Conversely, removing hijack guards ($\gamma_j=1$) raises causal Point-F1 to $0.073$ and shortens delay to $70.1$ steps on this cache, showing that drift guards can damp useful fault responses when calibration drift is mild. None removes the $S-1$ causal reporting lag.
-    \item \emph{Quenching step isolation and LayerNorm coupling:} On single-seed 4H checkpoints across all $118$ untouched streams (unquenched causal $\text{FPR}_{\text{hold}} = 6.76\%$, $\text{F1} = 0.0901$, $\text{ER} = 63.8\%$), $k=4$ predictor row damping (Step Q1) shifts unselected coordinates by a median $11.1\%$ of nominal RMS ($45.5\%$ shifting $>10\%$) via 32D LayerNorm coupling without lowering $\text{FPR}_{\text{hold}}$ ($7.06\%$), while horizon-embedding shifts lower raw RMS on $68.2\%$ of edited coordinates ($4.1\%$ spillover). Buffer recentering and precision decoupling alone (Steps Q2--Q3) drive the FPR drop ($\text{FPR}_{\text{hold}} = 6.71\%$, $\text{FPR}_{\text{test}} = 14.75\%$) at lower causal $\text{F1}$ ($0.0826$), whereas adding the nominal split gate (Step Q4, accepted on $39/118$ streams) reaches $\text{FPR}_{\text{hold}} = 6.62\%$ while preserving causal $\text{F1}$ ($0.0904$, $\text{ER} = 63.3\%$). Because ungated edits lower $k=2$ causal $\text{F1}$ on $11/19$ development streams ($0.141\to 0.049$) and $k\in\{8,12\}$ cuts PR-AUC ($0.292\to 0.223$), \emph{Laminar-JEPA-Lite} omits weight editing altogether.
+    \item \emph{Reference 224-dial panel vs.\ distilled position-plus-drift subsets:} We retain 224-dial \emph{Laminar-JEPA} as the full-perspective reference architecture because evaluating all four perspectives on one residual tensor isolates which views aid real-time streaming versus retrospective attribution. Although 224 dials lift causal Point-F1 from $0.013$ to $0.071$ over 1D scoring ($p=0.0023$; buffered $+0.033$, $p=0.53$) and lead buffered Point-F1 ($0.224$ vs.\ $0.198$), pruning fluctuation, endpoint, and relay switches down to the 160-dial position-plus-drift subset ($128$ sub-horizons $+$ $32$ horizon means, single quorum) raises causal Point-F1 to $0.098$ and ER to $59.1\%$, cuts delay from $90.1$ to $74.8$ steps, and lowers nominal FPR ($0.55\%$ held-out, $0.87\%$ test vs.\ $0.76\%$, $1.50\%$) at $29\%$ fewer dials, motivating \emph{Laminar-JEPA-Lite} as the preferred deployment tier. Scalar $R_{\text{LT}}$ modulation remains null in Panel~(c).
+    \item \emph{Relays, PR-AUC score weighting, quorum rules, and hijack guards:} Removing the 32 onset relays lowers causal Point-F1 ($0.071 \to 0.068$), and replacing the three-counter quorum (\ref{eq:panel_quorum}) with one 224-dial quorum lowers causal Point-F1 to $0.063$ ($\text{FPR}_{\text{hold}} = 0.0055$; Table~\ref{tab:matched_alert}). Replacing the double-position continuous score $N_{\text{tot}} = N_{224} + N_{128} + 2N_{\text{edge}}$ with unweighted $N_{224}+N_{\text{edge}}$ or $N_{224}$ leaves binary alarms identical and changes PR-AUC by at most $0.004$ ($0.299 \to 0.297$ causal, $0.448 \to 0.444/0.446$ buffered; \emph{Laminar-JEPA-Lite} uses unweighted $N_{128}$). Removing hijack guards ($\gamma_j=1$) raises causal Point-F1 to $0.073$ ($70.1$-step delay) on this cache when nominal drift is mild; none removes the $S-1$ reporting lag.
+    \item \emph{Quenching step isolation and LayerNorm coupling:} On single-seed 4H checkpoints across all $118$ untouched streams (unquenched causal $\text{FPR}_{\text{hold}} = 6.76\%$, $\text{F1} = 0.0901$, $\text{ER} = 63.8\%$), $k=4$ predictor row damping (Step Q1) shifts unselected coordinates by a median $11.1\%$ of nominal RMS ($45.5\%$ shifting $>10\%$) via 32D LayerNorm coupling without lowering $\text{FPR}_{\text{hold}}$ ($7.06\%$), while horizon-embedding shifts lower raw RMS on $68.2\%$ of edited coordinates ($4.1\%$ spillover). Buffer recentering and precision decoupling (Steps Q2--Q3) lower $\text{FPR}_{\text{hold}}$ to $6.71\%$ at lower causal $\text{F1}$ ($0.0826$), whereas adding the split gate (Step Q4, accepted on $39/118$ streams) reaches $6.62\%$ while preserving causal $\text{F1}$ ($0.0904$). Because ungated edits hurt $k=2$ causal $\text{F1}$ on $11/19$ development streams ($0.141\to 0.049$) and $k\in\{8,12\}$ cuts PR-AUC ($0.292\to 0.223$), \emph{Laminar-JEPA-Lite} omits weight editing altogether.
 \end{enumerate}
 
-\noindent\emph{Conformal, multiplicity-controlled, and SPC detector banks on identical residuals:} Table~\ref{tab:matched_alert} benchmarks the panel against split-conformal, multiple-testing, and SPC detectors on the same 19-stream multi-horizon residuals without test-label tuning. Under family-wise \v{S}id\'{a}k/Bonferroni or Benjamini--Hochberg ($0.5\%$) control across 128 coordinates or 224 dials, discrete calibration $p$-values have minimum resolution $(N_{\text{cal}}+1)^{-1} > 3.9\times 10^{-5}$, paralyzing causal recall ($\text{F1} \le 0.004$). Matching per-coordinate conformal thresholds to the panel's nominal calibration alert rate ($0.34\%$) causes tie-induced false-alarm inflation ($\text{FPR}_{\text{hold}} = 21.1\%$), as do recalibrated Mahalanobis conformal, Hotelling $T^2$, MEWMA, and CUSUM charts ($27.9\%\text{--}58.6\%$). By contrast, training-whitened multivariate $\ell_2$ split-conformal scoring ($\text{F1}=0.072$, $\text{ER}=60.8\%$, $\text{FPR}_{\text{hold}}=0.62\%$), Fisher/Stouffer $p$-value pooling ($0.109/0.095$), and the 160-dial subset ($0.098$) match or exceed the 224-dial panel on this cache, demonstrating that training-fixed whitening and bounded coordinate aggregation---not 224-dial complexity alone---drive false-alarm stability.
+\noindent\emph{Marginal, multiplicity-controlled, and system-matched detector banks:} Evaluating coordinate detector banks fairly requires separating three calibration regimes on the identical 19-stream whitened residuals without test-label tuning (Table~\ref{tab:matched_alert}):
+(1)~\emph{Per-coordinate marginal union:} Thresholding 128 coordinates individually at $q_{0.985}$ or even at the panel's $0.34\%$ rate without a quorum compounds false alarms across coordinates ($\text{FPR}_{\text{hold}} = 66.5\%$ and $40.6\%$).
+(2)~\emph{Family-wise and false discovery rate (FDR) multiplicity control:} Applying \v{S}id\'{a}k ($0.5\%$) across 128 coordinates or BH FDR ($q=0.005$) across 224 dials hits the discrete conformal $p$-value floor $(N_{\text{cal}}+1)^{-1} > 3.9\times 10^{-5}$, paralyzing causal recall ($\text{F1} \le 0.001$).
+(3)~\emph{System-level matched nominal alarm rate:} Calibrating the aggregated statistic directly to each stream's nominal panel rate ($0.34\%$) shows that discrete conformal $\min_j p_j$ still jumps to $\text{FPR}_{\text{hold}} = 21.1\%$ out-of-sample due to boundary ties whenever any coordinate exceeds its calibration maximum, and recalibrated Mahalanobis conformal, Hotelling $T^2$, multivariate exponentially weighted moving average (MEWMA), and cumulative sum (CUSUM) charts inflate to $27.9\%\text{--}58.6\%$. Among stable system-matched rules, the 160-dial position-plus-drift panel ($\text{F1}=0.098$, $\text{FPR}_{\text{hold}}=0.55\%$) outperforms unguarded 128-coordinate top-$k$ voting ($0.068$) and continuous 128-coordinate $\max_j z_j$ ($0.056$) while matching Fisher/Stouffer $p$-pooling ($0.109/0.095$ at $1.05\%/0.87\%$ $\text{FPR}_{\text{hold}}$) and training-whitened $\ell_2^2$ conformal ($0.072$), confirming that horizon-drift expansion and hijack-guarded quorum voting improve over raw coordinate banks.
 
 \begin{table}[t]
 \centering
 \scriptsize
-\caption{Conformal and SPC Comparators on Cached Residuals\label{tab:matched_alert}}
-\setlength{\tabcolsep}{1.8pt}
+\caption{Coordinate Detector-Bank Regimes on Cached Residuals\label{tab:matched_alert}}
+\sisetup{group-digits=false}
+\setlength{\tabcolsep}{1.5pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}l S[table-format=1.3] S[table-format=1.3] S[table-format=1.4] S[table-format=1.4]@{}}
 \toprule
-{Detector (Calibration Rule)} & {Pt-F1 $\uparrow$} & {ER $\uparrow$} & {$\mathrm{FPR}_{\rm hold}\downarrow$} & {$\mathrm{FPR}_{\rm test}\downarrow$} \\
+{Detector \& Calibration Regime} & {Pt-F1 $\uparrow$} & {ER $\uparrow$} & {$\mathrm{FPR}_{\rm hold}\downarrow$} & {$\mathrm{FPR}_{\rm test}\downarrow$} \\
 \midrule
-224-dial panel (deployed) & .071 & .565 & .0076 & .0150 \\
-160-dial P+D (single quorum) & .098 & .591 & .0055 & .0087 \\
-224-dial single quorum (no relay) & .063 & .564 & .0055 & .0088 \\
+\multicolumn{5}{@{}l}{\textit{Multi-horizon circuit-breaker panels (nominal quorum)}} \\
+\quad 160-dial pos.+drift (single quorum) & \bfseries .098 & .591 & .0055 & .0087 \\
+\quad 224-dial panel (deployed) & .071 & .564 & .0076 & .0150 \\
+\quad 224-dial single quorum (no relay) & .063 & .564 & .0055 & .0088 \\
 \addlinespace[1.5pt]
-Per-coord.\ conformal (\v{S}id\'{a}k $.005$) & .000 & .000 & .0000 & .0000 \\
-224-dial BH FDR ($q{=}.005$) & .004 & .018 & .0000 & .0001 \\
-Per-coord.\ conformal (matched) & .265 & .843 & .2111 & .2831 \\
-Multivar.\ conf.\ ($\|\mathbf{e}_{\text{white}}\|_2^2$, matched) & .072 & .608 & .0062 & .0095 \\
-Multivar.\ conf.\ (Mahal., $\alpha{=}.005$) & .279 & .896 & .2789 & .4739 \\
+\multicolumn{5}{@{}l}{\textit{1. Per-coordinate marginal union (no quorum, 128 coords)}} \\
+\quad Per-coord.\ $q_{.985}$ union & .291 & .913 & .6651 & .7353 \\
+\quad Per-coord.\ $.0034$ marginal union & .303 & .874 & .4057 & .4765 \\
 \addlinespace[1.5pt]
-Fisher $p$-pool (matched) & .109 & .591 & .0105 & .0183 \\
-Maximum dial $z$ (matched) & .083 & .565 & .0093 & .0157 \\
-Hotelling $T^2$ (matched) & .283 & .896 & .2901 & .4831 \\
+\multicolumn{5}{@{}l}{\textit{2. Family-wise / FDR multiplicity control ($\alpha,q{=}.005$)}} \\
+\quad Per-coord.\ conformal (\v{S}id\'{a}k) & .000 & .000 & \bfseries .0000 & \bfseries .0000 \\
+\quad 224-dial conformal BH FDR & .000 & .026 & \bfseries .0000 & \bfseries .0000 \\
+\addlinespace[1.5pt]
+\multicolumn{5}{@{}l}{\textit{3. System-level matched nominal rate (mean $.0034$ on $\mathbf{X}_{\text{cal}}$)}} \\
+\quad Raw 128-coord.\ top-$k$ vote & .068 & .564 & .0052 & .0096 \\
+\quad Continuous 128-coord.\ $\max_j z_j$ & .056 & .658 & .0078 & .0147 \\
+\quad Discrete conformal $\min_j p_j$ & .265 & .843 & .2111 & .2831 \\
+\quad Multivar.\ conf.\ ($\|\mathbf{e}_{\text{white}}\|_2^2$) & .072 & .608 & .0062 & .0095 \\
+\quad Fisher $p$-pool (224 dials) & .109 & .643 & .0105 & .0183 \\
+\quad Maximum 224-dial $z$ & .083 & .652 & .0093 & .0157 \\
+\quad Hotelling $T^2$ (recalibrated) & .283 & .816 & .2900 & .4831 \\
 \bottomrule
 \end{tabular*}
 \par\vspace{1.5pt}
-{\tiny 19 streams $\times$ 3 seeds, causal means. Matched rules use each stream's nominal panel alarm rate (mean $0.34\%$; Stouffer F1 $.095$, $\mathrm{FPR}_{\rm hold}$ $.0087$; Top-$k$ F1 $.070$, $\mathrm{FPR}_{\rm hold}$ $.0077$; MEWMA $.4301$, CUSUM $.5862$ $\mathrm{FPR}_{\rm hold}$).}
+{\tiny 19 streams $\times$ 3 seeds, causal means. System-matched rules match each stream's nominal panel alert rate after aggregation (Stouffer $.095$ F1, $.0087$ $\mathrm{FPR}_{\rm hold}$; 224-dial top-$k$ $.070$, $.0077$; Mahalanobis conf.\ $.2789$, CUSUM $.3457$, MEWMA $.5862$ $\mathrm{FPR}_{\rm hold}$).}
 \end{table}
 
 \subsection{Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}

@@ -204,6 +204,8 @@ def inspect_soliton_reynolds_weight_space(
     tr_w: np.ndarray,
     cal_w: np.ndarray,
     config: WSPConfig | None = None,
+    cal_latents: tuple[torch.Tensor, torch.Tensor] | None = None,
+    tr_raw4: np.ndarray | None = None,
 ) -> tuple[WSPDiagnosticReport, dict]:
     """Inspect SolitonReynoldsJEPAModel weights and calibration residuals without gradients."""
     cfg = config or WSPConfig()
@@ -211,8 +213,9 @@ def inspect_soliton_reynolds_weight_space(
     dev = next(model.parameters()).device
     M, D = int(model.num_subblocks), int(model.latent_dim)
 
-    base_eval = _eval_cal_gates_and_internal_split(model, cal_w, cfg.context_len, cfg.suspect_len)
-    tr_raw4, _ = extract_multihorizon_4subblocks(model, tr_w, cfg.context_len, dev)
+    base_eval = _eval_cal_gates_and_internal_split(model, cal_w, cfg.context_len, cfg.suspect_len, cal_latents=cal_latents)
+    if tr_raw4 is None:
+        tr_raw4, _ = extract_multihorizon_4subblocks(model, tr_w, cfg.context_len, dev)
     cal_raw4 = base_eval["cal_raw4"]
     cal_white4 = base_eval["cal_white4"]
     n_cal = len(cal_raw4)
@@ -299,6 +302,8 @@ def apply_surgical_wsp_quench(
     tr_w: np.ndarray,
     cal_w: np.ndarray,
     config: WSPConfig | None = None,
+    cal_latents: tuple[torch.Tensor, torch.Tensor] | None = None,
+    tr_raw4: np.ndarray | None = None,
 ) -> WSPSurgicalResult:
     """Perform zero-gradient surgical Weight-Space Programming on SolitonReynoldsJEPAModel."""
     cfg = config or WSPConfig()
@@ -307,7 +312,7 @@ def apply_surgical_wsp_quench(
     M, D = int(model.num_subblocks), int(model.latent_dim)
     total_params = sum(p.numel() for p in model.parameters())
 
-    report, aux = inspect_soliton_reynolds_weight_space(model, tr_w, cal_w, cfg)
+    report, aux = inspect_soliton_reynolds_weight_space(model, tr_w, cal_w, cfg, cal_latents=cal_latents, tr_raw4=tr_raw4)
     base_eval = aux["base_eval"]
     tr_mean = aux["tr_mean"]
     cal_mean = aux["cal_mean"]
@@ -327,7 +332,8 @@ def apply_surgical_wsp_quench(
 
     from src.experimental.phase_embedding_synthesis import _extract_subblock_latents, _forward_predictors_with_phase
 
-    cal_latents = _extract_subblock_latents(model, cal_w, cfg.context_len)
+    if cal_latents is None:
+        cal_latents = _extract_subblock_latents(model, cal_w, cfg.context_len)
     sorted_coords = report.ranked_coords
     orig_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
 

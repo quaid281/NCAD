@@ -149,14 +149,15 @@ class PositionDriftLitePanel:
         num_horizons = int(panel_bits["num_horizons"])
 
         if mapping == "smear" and self.use_prefix_smear:
-            vp, vm = aggregate_prefix_pd_stream(bits_va, len_va, c_len, s_len, num_horizons, mapping)
-            tp, tm = aggregate_prefix_pd_stream(bits_te, len_test, c_len, s_len, num_horizons, mapping)
+            va_g = bits_va.reshape(len(bits_va), num_horizons + 1, -1).sum(axis=2)
+            te_g = bits_te.reshape(len(bits_te), num_horizons + 1, -1).sum(axis=2)
+            vp, vm = aggregate_prefix_pd_stream(va_g, len_va, c_len, s_len, num_horizons, mapping)
+            tp, tm = aggregate_prefix_pd_stream(te_g, len_test, c_len, s_len, num_horizons, mapping)
+            v_cnt, t_cnt = vp[vm].sum(axis=1), tp[tm].sum(axis=1)
         else:
-            vp, vm = aggregate_vector_stream(bits_va, len_va, c_len, s_len, mapping)
-            tp, tm = aggregate_vector_stream(bits_te, len_test, c_len, s_len, mapping)
-
-        v_cnt = vp[vm].sum(axis=1)
-        t_cnt = tp[tm].sum(axis=1)
+            vp, vm = aggregate_vector_stream(bits_va.sum(axis=1, keepdims=True), len_va, c_len, s_len, mapping)
+            tp, tm = aggregate_vector_stream(bits_te.sum(axis=1, keepdims=True), len_test, c_len, s_len, mapping)
+            v_cnt, t_cnt = vp[vm, 0], tp[tm, 0]
         half = len(v_cnt) // 2
         n_dials = float(bits_va.shape[1])
 

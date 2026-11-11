@@ -10,6 +10,7 @@ from src.config import CSMConfig
 from src.engine.activation_tracer import autopsy_model
 from src.engine.builder import build_ts_jepa_model
 from src.models.laminar_lite import LaminarJEPALiteModel, LaminarLiteEncoder, LiteLatentPredictor
+from src.scoring.circuit_breaker_panel import MultiPerspectiveCircuitBreakerPanel, stabilize_whitened_subblocks
 from src.scoring.laminar_lite_panel import PositionDriftLitePanel, build_position_drift_dials
 
 
@@ -162,3 +163,39 @@ def test_position_drift_panel_energy_identity_and_causal_non_leakage() -> None:
     # Prior to window 50, causal decisions must be bitwise identical (zero future leakage).
     assert np.array_equal(dec_clean.test_pred_balanced[:50], dec_spike.test_pred_balanced[:50])
     assert dec_spike.test_pred_balanced[50:].sum() > dec_clean.test_pred_balanced[50:].sum()
+
+
+def test_disjoint_adaptation_non_leakage_and_score_modes() -> None:
+    """Verify X_q adaptation leaves X_cal untouched in Eq. (2) and score_mode preserves binary gates."""
+    rng = np.random.default_rng(7)
+    q_w = rng.normal(scale=1.4, size=(96, 4, 8)).astype(np.float32)
+    q_r = rng.normal(scale=0.6, size=(96, 4, 8)).astype(np.float32)
+    va_w = rng.normal(scale=0.9, size=(120, 4, 8)).astype(np.float32)
+    va_r = rng.normal(scale=0.4, size=(120, 4, 8)).astype(np.float32)
+    te_w = rng.normal(scale=1.0, size=(80, 4, 8)).astype(np.float32)
+    te_r = rng.normal(scale=0.5, size=(80, 4, 8)).astype(np.float32)
+
+    va_ew1, te_ew1 = stabilize_whitened_subblocks(va_w, te_w, va_r, te_r, n_cal_w=60, adapt_white4=q_w, adapt_raw4=q_r)
+    va_w_perturbed = va_w.copy()
+    va_r_perturbed = va_r.copy()
+    va_w_perturbed[:60] += 50.0
+    va_r_perturbed[:60] += 50.0
+    va_ew2, te_ew2 = stabilize_whitened_subblocks(
+        va_w_perturbed, te_w, va_r_perturbed, te_r, n_cal_w=60, adapt_white4=q_w, adapt_raw4=q_r
+    )
+    assert np.array_equal(te_ew1, te_ew2)
+    assert np.array_equal(va_ew1[60:], va_ew2[60:])
+
+    with pytest.raises(ValueError, match="must both be provided"):
+        stabilize_whitened_subblocks(va_w, te_w, va_r, te_r, n_cal_w=60, adapt_white4=q_w, adapt_raw4=None)
+
+    panel = MultiPerspectiveCircuitBreakerPanel(context_size=32, suspect_size=16)
+    bits = panel.calibrate_and_trip_windows(va_ew1, te_ew1, n_cal_w=60)
+    d_w = panel.evaluate_stream_decisions(bits, len_va=120 + 47, len_test=80 + 47, mapping="trailing", score_mode="weighted")
+    d_u = panel.evaluate_stream_decisions(bits, len_va=120 + 47, len_test=80 + 47, mapping="trailing", score_mode="unweighted_224")
+    d_ue = panel.evaluate_stream_decisions(bits, len_va=120 + 47, len_test=80 + 47, mapping="trailing", score_mode="unweighted_224_edge")
+    assert np.array_equal(d_w.test_pred_balanced, d_u.test_pred_balanced)
+    assert np.array_equal(d_w.test_pred_balanced, d_ue.test_pred_balanced)
+    assert np.all(d_w.test_switch_counts >= d_ue.test_switch_counts - 1e-6)
+    assert np.all(d_ue.test_switch_counts >= d_u.test_switch_counts - 1e-6)
+

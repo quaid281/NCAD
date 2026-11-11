@@ -39,21 +39,33 @@ def stabilize_whitened_subblocks(
     va_raw4: np.ndarray,
     te_raw4: np.ndarray,
     n_cal_w: int,
+    adapt_white4: np.ndarray | None = None,
+    adapt_raw4: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Blend whitened and raw sub-block residuals per coordinate using nominal calibration stability.
+    """Blend whitened and raw sub-block residuals per coordinate using nominal stability.
 
-    On training data, Mahalanobis-whitened coordinates have unit variance. If a whitened
-    coordinate exhibits RMS > 1.10 on held-out nominal calibration windows `[:n_cal_w]`,
-    the precision matrix amplified out-of-sample drift along that direction, so the panel
-    smoothly falls back toward the calibration-normalized unwhitened residual.
+    When `adapt_white4` and `adapt_raw4` are supplied from a disjoint nominal adaptation block
+    `X_q`, the blending weights `w_white` and raw RMS scales are estimated strictly on `X_q`
+    and frozen before `va[:n_cal_w]` (`X_cal`) is used for threshold estimation. When omitted,
+    falls back to `va[:n_cal_w]` for legacy callers.
     """
+    if (adapt_white4 is None) != (adapt_raw4 is None):
+        raise ValueError("adapt_white4 and adapt_raw4 must both be provided or both be None.")
+
     va_w = np.clip(np.nan_to_num(va_white4.astype(np.float64), nan=0.0), -100.0, 100.0)
     te_w = np.clip(np.nan_to_num(te_white4.astype(np.float64), nan=0.0), -100.0, 100.0)
     va_r = np.clip(np.nan_to_num(va_raw4.astype(np.float64), nan=0.0), -100.0, 100.0)
     te_r = np.clip(np.nan_to_num(te_raw4.astype(np.float64), nan=0.0), -100.0, 100.0)
 
-    rms_white_cal = np.sqrt(np.mean(va_w[:n_cal_w] ** 2, axis=0, keepdims=True)) + 1e-4
-    rms_raw_cal = np.sqrt(np.mean(va_r[:n_cal_w] ** 2, axis=0, keepdims=True)) + 1e-4
+    if adapt_white4 is not None and adapt_raw4 is not None:
+        ref_w = np.clip(np.nan_to_num(adapt_white4.astype(np.float64), nan=0.0), -100.0, 100.0)
+        ref_r = np.clip(np.nan_to_num(adapt_raw4.astype(np.float64), nan=0.0), -100.0, 100.0)
+    else:
+        ref_w = va_w[:n_cal_w]
+        ref_r = va_r[:n_cal_w]
+
+    rms_white_cal = np.sqrt(np.mean(ref_w ** 2, axis=0, keepdims=True)) + 1e-4
+    rms_raw_cal = np.sqrt(np.mean(ref_r ** 2, axis=0, keepdims=True)) + 1e-4
     raw_norm_va = va_r / rms_raw_cal
     raw_norm_te = te_r / rms_raw_cal
 
@@ -162,6 +174,8 @@ class CircuitBreakerStreamDecision:
     test_pred_balanced: np.ndarray
     k_gate_strict: float
     k_gate_balanced: float
+    test_unw224_counts: np.ndarray | None = None
+    test_unw224_edge_counts: np.ndarray | None = None
 
 
 class MultiPerspectiveCircuitBreakerPanel:
@@ -261,60 +275,72 @@ class MultiPerspectiveCircuitBreakerPanel:
         len_va: int,
         len_test: int,
         mapping: str,
+        score_mode: str = "weighted",
     ) -> CircuitBreakerStreamDecision:
         """Project binary switch states onto the timeline and apply coincidence gates."""
         C, S = self.context_size, self.suspect_size
-        vp_pref, vm = aggregate_prefix_224_stream(panel_bits["bits224_va"], len_va, C, S, mapping)
-        tp_pref, tm = aggregate_prefix_224_stream(panel_bits["bits224_te"], len_test, C, S, mapping)
+        b224_va_g = panel_bits["bits224_va"].reshape(len(panel_bits["bits224_va"]), 7, -1).sum(axis=2)
+        b224_te_g = panel_bits["bits224_te"].reshape(len(panel_bits["bits224_te"]), 7, -1).sum(axis=2)
+        vp_pref, vm = aggregate_prefix_224_stream(b224_va_g, len_va, C, S, mapping)
+        tp_pref, tm = aggregate_prefix_224_stream(b224_te_g, len_test, C, S, mapping)
 
-        vp_b128, _ = aggregate_vector_stream(panel_bits["bits128_va"], len_va, C, S, mapping)
-        tp_b128, _ = aggregate_vector_stream(panel_bits["bits128_te"], len_test, C, S, mapping)
+        vp_b128, _ = aggregate_vector_stream(panel_bits["bits128_va"].sum(axis=1, keepdims=True), len_va, C, S, mapping)
+        tp_b128, _ = aggregate_vector_stream(panel_bits["bits128_te"].sum(axis=1, keepdims=True), len_test, C, S, mapping)
 
-        vp_edge, _ = aggregate_vector_stream(panel_bits["fast_edge_va"], len_va, C, S, mapping)
-        tp_edge, _ = aggregate_vector_stream(panel_bits["fast_edge_te"], len_test, C, S, mapping)
+        vp_edge, _ = aggregate_vector_stream(panel_bits["fast_edge_va"].sum(axis=1, keepdims=True), len_va, C, S, mapping)
+        tp_edge, _ = aggregate_vector_stream(panel_bits["fast_edge_te"].sum(axis=1, keepdims=True), len_test, C, S, mapping)
 
-        vpref, tpref = vp_pref[vm], tp_pref[tm]
-        vb128, tb128 = vp_b128[vm], tp_b128[tm]
-        vedge, tedge = vp_edge[vm], tp_edge[tm]
-        half = len(vpref) // 2
+        vpref_s, tpref_s = vp_pref[vm].sum(axis=1), tp_pref[tm].sum(axis=1)
+        vb128_s, tb128_s = vp_b128[vm, 0], tp_b128[tm, 0]
+        vedge_s, tedge_s = vp_edge[vm, 0], tp_edge[tm, 0]
+        half = len(vpref_s) // 2
 
-        tot_va = vpref.sum(axis=1) + vb128.sum(axis=1) + 2.0 * vedge.sum(axis=1)
-        tot_te = tpref.sum(axis=1) + tb128.sum(axis=1) + 2.0 * tedge.sum(axis=1)
+        if score_mode == "weighted":
+            tot_va = vpref_s + vb128_s + 2.0 * vedge_s
+            tot_te = tpref_s + tb128_s + 2.0 * tedge_s
+        elif score_mode == "unweighted_224":
+            tot_va = vpref_s
+            tot_te = tpref_s
+        elif score_mode == "unweighted_224_edge":
+            tot_va = vpref_s + vedge_s
+            tot_te = tpref_s + tedge_s
+        else:
+            raise ValueError(f"Unsupported score_mode '{score_mode}'.")
 
-        k_edge = max(float(np.percentile(vedge[:half].sum(axis=1), 99.90)) * 1.25, 2.5)
-        edge_hold = (vedge[half + S :].sum(axis=1) > k_edge).astype(int)
-        edge_test = (tedge.sum(axis=1) > k_edge).astype(int)
+        k_edge = max(float(np.percentile(vedge_s[:half], 99.90)) * 1.25, 2.5)
+        edge_hold = (vedge_s[half + S :] > k_edge).astype(int)
+        edge_test = (tedge_s > k_edge).astype(int)
 
-        k_128_bal = max(float(np.percentile(vb128[:half].sum(axis=1), 99.5)) * 1.12, 3.5)
-        k_pref_bal = max(float(np.percentile(vpref[:half].sum(axis=1), 99.5)) * 1.12, 5.0)
+        k_128_bal = max(float(np.percentile(vb128_s[:half], 99.5)) * 1.12, 3.5)
+        k_pref_bal = max(float(np.percentile(vpref_s[:half], 99.5)) * 1.12, 5.0)
         hold_bal = np.maximum(
             np.maximum(
-                (vb128[half + S :].sum(axis=1) > k_128_bal).astype(int),
-                (vpref[half + S :].sum(axis=1) > k_pref_bal).astype(int),
+                (vb128_s[half + S :] > k_128_bal).astype(int),
+                (vpref_s[half + S :] > k_pref_bal).astype(int),
             ),
             edge_hold,
         )
         test_bal = np.maximum(
             np.maximum(
-                (tb128.sum(axis=1) > k_128_bal).astype(int),
-                (tpref.sum(axis=1) > k_pref_bal).astype(int),
+                (tb128_s > k_128_bal).astype(int),
+                (tpref_s > k_pref_bal).astype(int),
             ),
             edge_test,
         )
 
-        k_128_strict = max(float(np.percentile(vb128[:half].sum(axis=1), 99.85)) * 1.20, 4.0)
-        k_pref_strict = max(float(np.percentile(vpref[:half].sum(axis=1), 99.85)) * 1.18, 5.5)
+        k_128_strict = max(float(np.percentile(vb128_s[:half], 99.85)) * 1.20, 4.0)
+        k_pref_strict = max(float(np.percentile(vpref_s[:half], 99.85)) * 1.18, 5.5)
         hold_strict = np.maximum(
             np.maximum(
-                (vb128[half + S :].sum(axis=1) > k_128_strict).astype(int),
-                (vpref[half + S :].sum(axis=1) > k_pref_strict).astype(int),
+                (vb128_s[half + S :] > k_128_strict).astype(int),
+                (vpref_s[half + S :] > k_pref_strict).astype(int),
             ),
             edge_hold,
         )
         test_strict = np.maximum(
             np.maximum(
-                (tb128.sum(axis=1) > k_128_strict).astype(int),
-                (tpref.sum(axis=1) > k_pref_strict).astype(int),
+                (tb128_s > k_128_strict).astype(int),
+                (tpref_s > k_pref_strict).astype(int),
             ),
             edge_test,
         )
@@ -330,6 +356,8 @@ class MultiPerspectiveCircuitBreakerPanel:
             test_pred_balanced=test_bal,
             k_gate_strict=float(k_pref_strict),
             k_gate_balanced=float(k_pref_bal),
+            test_unw224_counts=tpref_s,
+            test_unw224_edge_counts=tpref_s + tedge_s,
         )
 
 

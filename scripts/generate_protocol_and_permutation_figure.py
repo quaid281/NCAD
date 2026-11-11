@@ -38,26 +38,32 @@ def draw_protocol_schematic(ax: plt.Axes) -> None:
     ax.set_ylim(-6.0, 96.0)
     ax.axis("off")
 
-    # --- Row 1: Raw Nominal Telemetry Partition ---
-    ax.text(0.0, 91.5, "1. Raw Nominal Sequence ($T_{\\mathrm{nom}}$):", fontsize=6.6, fontweight="bold", color="#222222")
-    y1, h1 = 75.5, 11.5
-    ax.add_patch(Rectangle((0.0, y1), 54.0, h1, fc="#d0e1f2", ec="#1d4e89", lw=0.8))
-    ax.text(27.0, y1 + h1 / 2, "Training Block ($65\\%$)\n$\\mathbf{X}[0 : N_{\\mathrm{tr}})$ (fit $E_\\theta, E_\\phi, P_{\\mathrm{sub}}, P_\\theta, \\mathbf{\\Omega}$)",
-            ha="center", va="center", fontsize=5.8, color="#0b3c68")
-    ax.plot([54.5, 54.5], [y1 - 1.5, y1 + h1 + 1.5], color="#a31d3d", lw=1.0, ls="--")
-    ax.text(54.5, y1 + h1 + 2.2, "Disjoint ($N_{\\mathrm{tr}}$)", ha="center", va="bottom", fontsize=5.4, color="#a31d3d", fontweight="bold")
+    # --- Row 1: 5-Block Disjoint Nominal Telemetry Partition ---
+    ax.text(0.0, 93.0, "1. Five-Block Nominal Partition ($T_{\\mathrm{nom}}$; Archive $\\mathbf{X}_q \\perp \\mathbf{X}_{\\mathrm{cal}}$):", fontsize=6.4, fontweight="bold", color="#222222")
+    y1, h1 = 76.5, 11.5
+    ax.add_patch(Rectangle((0.0, y1), 26.5, h1, fc="#d0e1f2", ec="#1d4e89", lw=0.8))
+    ax.text(13.25, y1 + h1 / 2, "Fit $\\mathbf{X}_{\\mathrm{fit}}$\n($E_\\theta, P, \\mathbf{\\Omega}$)",
+            ha="center", va="center", fontsize=5.5, color="#0b3c68", fontweight="bold")
+    ax.add_patch(Rectangle((27.2, y1), 12.2, h1, fc="#dbe9f6", ec="#1d4e89", lw=0.75))
+    ax.text(33.3, y1 + h1 / 2, "Sel. $\\mathbf{X}_{\\mathrm{sel}}$\n(ckpt)",
+            ha="center", va="center", fontsize=5.4, color="#0b3c68")
+    ax.add_patch(Rectangle((40.1, y1), 13.9, h1, fc="#fff2cc", ec="#996515", lw=0.8))
+    ax.text(47.05, y1 + h1 / 2, "Adapt $\\mathbf{X}_q$\n($w_{m,c}$, Q1\u20134)",
+            ha="center", va="center", fontsize=5.4, color="#664200", fontweight="bold")
+    ax.plot([54.5, 54.5], [y1 - 1.4, y1 + h1 + 1.4], color="#a31d3d", lw=1.0, ls="--")
+    ax.text(54.5, y1 - 1.9, "Freeze ($N_{\\mathrm{tr}}$)", ha="center", va="top", fontsize=5.2, color="#a31d3d", fontweight="bold")
     ax.add_patch(Rectangle((55.0, y1), 45.0, h1, fc="#f2e6d8", ec="#8a4a22", lw=0.8))
-    ax.text(77.5, y1 + h1 / 2, "Held-Out Nominal ($35\\%$)\n$\\mathbf{X}[N_{\\mathrm{tr}} : T_{\\mathrm{nom}})$ (0 window overlap)",
-            ha="center", va="center", fontsize=5.8, color="#5c2e12")
+    ax.text(77.5, y1 + h1 / 2, "Untouched Nominal $\\mathbf{X}_{\\mathrm{val}}$ ($35\\%$)\n$\\mathbf{X}_{\\mathrm{cal}} \\perp \\mathbf{X}_{\\mathrm{hold}}$ ($S{=}64$ target gaps)",
+            ha="center", va="center", fontsize=5.5, color="#5c2e12")
 
-    # --- Row 2: Causal Window Indexing inside Held-Out Block ---
-    ax.text(0.0, 65.5, "2. Held-Out Causal Indexing ($W{=}C{+}S{=}320$, $\\tau{=}t{+}S{-}1$):",
-            fontsize=6.6, fontweight="bold", color="#222222")
+    # --- Row 2: Causal Window Indexing inside Untouched Nominal Block ---
+    ax.text(0.0, 65.5, "2. Untouched Calibration & Evaluation ($W{=}C{+}S{=}320$, $\\tau{=}t{+}S{-}1$):",
+            fontsize=6.4, fontweight="bold", color="#222222")
     y2, h2 = 49.0, 12.0
-    ax.add_patch(Rectangle((0.0, y2), 18.0, h2, fc="#f4f4f4", ec="#666666", lw=0.7, ls="--"))
-    ax.text(9.0, y2 + h2 / 2, "Warm-up\n$W{-}1{=}319$", ha="center", va="center", fontsize=5.5, color="#333333")
-    ax.add_patch(Rectangle((18.5, y2), 31.0, h2, fc="#ccece6", ec="#00706b", lw=0.8))
-    ax.text(34.0, y2 + h2 / 2, "Calibration Block $[0 : H)$\n(fit 224 $\\tau_j, \\gamma_j$ & quorum $K$)", ha="center", va="center", fontsize=5.5, color="#004d49", fontweight="bold")
+    ax.add_patch(Rectangle((0.0, y2), 17.5, h2, fc="#f4f4f4", ec="#666666", lw=0.7, ls="--"))
+    ax.text(8.75, y2 + h2 / 2, "Warm-up\n$W{-}1{=}319$", ha="center", va="center", fontsize=5.4, color="#333333")
+    ax.add_patch(Rectangle((18.0, y2), 31.5, h2, fc="#ccece6", ec="#00706b", lw=0.8))
+    ax.text(33.75, y2 + h2 / 2, "Untouched $\\mathbf{X}_{\\mathrm{cal}}$ $[0 : H)$\n(fit $\\tau_j, \\gamma_j$ & quorum $K$)", ha="center", va="center", fontsize=5.4, color="#004d49", fontweight="bold")
     ax.add_patch(Rectangle((50.0, y2), 16.5, h2, fc="#fbe3e8", ec="#a31d3d", lw=0.8))
     ax.text(58.25, y2 + h2 / 2, "Gap $S{=}64$\n(or $W{=}320$)", ha="center", va="center", fontsize=5.5, color="#80112a", fontweight="bold")
     ax.add_patch(Rectangle((67.0, y2), 33.0, h2, fc="#e2d9f3", ec="#5c2d91", lw=0.8))
@@ -70,8 +76,8 @@ def draw_protocol_schematic(ax: plt.Axes) -> None:
     )
 
     # --- Row 3: Score-Emission Latency vs. Fault-Detection Delay ---
-    ax.text(0.0, 35.0, "3. Online Window Causality ($\\mathcal{F}_\\tau$): Emission Lag vs. Detection Delay:",
-            fontsize=6.6, fontweight="bold", color="#222222")
+    ax.text(0.0, 35.0, "3. Online Window Causality ($\\tau{=}t{+}S{-}1$): Emission Lag vs. Detection Delay:",
+            fontsize=6.5, fontweight="bold", color="#222222")
     y3, h3 = 14.0, 10.5
     ax.add_patch(Rectangle((0.0, y3), 40.0, h3, fc="#d0e1f2", ec="#1d4e89", lw=0.75))
     ax.text(20.0, y3 + h3 / 2, "Past Context $\\mathbf{x}_{\\mathrm{ctx}}$ ($C{=}256$)", ha="center", va="center", fontsize=5.7, color="#0b3c68")

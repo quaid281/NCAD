@@ -2,25 +2,25 @@
 \centering
 \scriptsize
 \setlength{\tabcolsep}{1.2pt}
-\caption{Disjoint-Selection Held-Out Archive Benchmark\label{tab:calibrator_comparison}}
+\caption{Disjoint Five-Block Held-Out Archive Benchmark\label{tab:calibrator_comparison}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l cc cc cc cc @{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{FPR$_{\text{hold}}$ $\downarrow$}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
 \textbf{(a) Untouched $n{=}118$} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
-TS-JEPA (1D)                   & .060 & .131 & .153 & .200 & .423 & .475 & \textbf{.042} & \textbf{.109} \\
-Multi-Horizon JEPA (1D)        & .074 & .138 & \textbf{.169} & \textbf{.234} & .495 & .552 & .059 & .178 \\
+TS-JEPA (1D)                   & .057 & .134 & \underline{.155} & .207 & .414 & .459 & \textbf{.042} & \textbf{.110} \\
+Multi-Horizon JEPA (1D)        & \underline{.076} & .143 & \textbf{.162} & \textbf{.230} & .525 & .590 & \underline{.044} & .195 \\
 \addlinespace[1.5pt]
-Laminar-JEPA (w/o Quench)      & \underline{.077} & \underline{.146} & .147 & \underline{.229} & \underline{.639} & \underline{.626} & .056 & .181 \\
-\textbf{Laminar-JEPA (224B)}   & .073 & .141 & .144 & .222 & .621 & .613 & \underline{.054}$^\S$ & .174 \\
-\textbf{Laminar-JEPA-Lite (128B)} & \textbf{.085}$^\dagger$ & \textbf{.153}$^\ddagger$ & \underline{.148} & .220 & \textbf{.670}$^\P$ & \textbf{.686} & .057 & \underline{.120} \\
+Laminar-JEPA (w/o Quench)      & .075 & .141 & .143 & .210 & \textbf{.644} & \underline{.640} & .069 & .190 \\
+\textbf{Laminar-JEPA (224B)}   & .072 & \underline{.144} & .143 & .211 & .609 & .619 & .068$^\S$ & .190 \\
+\textbf{Laminar-JEPA-Lite (128B)} & \textbf{.079}$^\dagger$ & \textbf{.156}$^\ddagger$ & .145 & \underline{.224} & \underline{.638}$^\P$ & \textbf{.674} & .070 & \underline{.143} \\
 \midrule
 \multicolumn{9}{@{}l@{}}{\textbf{All Archive $n{=}141$ ($12$ Datasets)}} \\
-TS-JEPA (1D)                   & .055 & .136 & .165 & .213 & .426 & .475 & \textbf{.036} & \textbf{.103} \\
-Multi-Horizon JEPA (1D)        & .070 & .146 & \textbf{.182} & \textbf{.246} & .492 & .543 & .050 & .163 \\
-\textbf{Laminar-JEPA (224B)}   & .069 & \underline{.150} & .159 & \underline{.237} & \underline{.634} & \underline{.623} & \underline{.046} & .161 \\
-\textbf{Laminar-JEPA-Lite (128B)} & \textbf{.084} & \textbf{.155} & \underline{.161} & .233 & \textbf{.665} & \textbf{.679} & .050 & \underline{.107} \\
+TS-JEPA (1D)                   & .055 & .138 & \underline{.167} & .218 & .414 & .447 & \textbf{.036} & \textbf{.102} \\
+Multi-Horizon JEPA (1D)        & \underline{.075} & .146 & \textbf{.174} & \textbf{.239} & .512 & .573 & \underline{.038} & .181 \\
+\textbf{Laminar-JEPA (224B)}   & .072 & \underline{.150} & .158 & .233 & \underline{.631} & \underline{.628} & .059 & .175 \\
+\textbf{Laminar-JEPA-Lite (128B)} & \textbf{.076} & \textbf{.156} & .158 & \underline{.235} & \textbf{.636} & \textbf{.658} & .060 & \underline{.124} \\
 \bottomrule
 \end{tabular*}
 
@@ -32,13 +32,13 @@ Multi-Horizon JEPA (1D)        & .070 & .146 & \textbf{.182} & \textbf{.246} & .
 \cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}
 \textbf{(b) Held-out} & {$n$} & \textbf{Lite} & \textbf{Lam.} & \textbf{1D} & \textbf{Lite} & \textbf{Lam.} & \textbf{1D} & \textbf{Lite} & \textbf{Lam.} & \textbf{1D} \\
 \midrule
-SMAP        & 40 & \underline{.097} & .077 & \textbf{.141} & \underline{.177} & .175 & \textbf{.201} & \textbf{.048} & \underline{.062} & .125 \\
-SMD         & 18 & \underline{.052} & \textbf{.074} & .027 & \underline{.124} & \textbf{.135} & .067 & \underline{.016} & .031 & \textbf{.004} \\
-Exathlon    & 17 & \textbf{.178} & \underline{.138} & .085 & \textbf{.217} & \underline{.168} & .131 & .181 & \underline{.113} & \textbf{.098} \\
-Daphnet     & 15 & \textbf{.088} & \underline{.070} & .037 & \textbf{.150} & \underline{.138} & .093 & .081 & \underline{.075} & \textbf{.009} \\
-MSL         & 13 & .023 & \textbf{.032} & \underline{.026} & .104 & \underline{.112} & \textbf{.211} & \underline{.010} & .013 & \textbf{.004} \\
-OPPORT.     & 12 & \textbf{.029} & \underline{.016} & .010 & \textbf{.093} & \underline{.048} & .043 & .011 & \underline{.008} & \textbf{.004} \\
+SMAP        & 40 & .083 & \underline{.087} & \textbf{.131} & \underline{.186} & .180 & \textbf{.192} & \underline{.087} & .099 & \textbf{.083} \\
+SMD         & 18 & \underline{.049} & \textbf{.052} & .031 & \textbf{.157} & \underline{.097} & .096 & \underline{.012} & .019 & \textbf{.003} \\
+Exathlon    & 17 & \textbf{.191} & \underline{.129} & .092 & \textbf{.204} & \underline{.166} & .162 & .180 & \underline{.134} & \textbf{.097} \\
+Daphnet     & 15 & \textbf{.072} & \underline{.064} & .019 & \textbf{.146} & \underline{.146} & .101 & \underline{.068} & .077 & \textbf{.007} \\
+MSL         & 13 & .033 & \textbf{.055} & \underline{.052} & .141 & \underline{.151} & \textbf{.182} & \underline{.012} & .017 & \textbf{.005} \\
+OPPORT.     & 12 & .009 & \underline{.011} & \textbf{.046} & .030 & \textbf{.073} & \underline{.045} & .021 & \underline{.008} & \textbf{.002} \\
 \bottomrule
-\multicolumn{11}{@{}p{\columnwidth}@{}}{\tiny Three seeds under $\mathbf{X}_{\text{sel}}\perp\mathbf{X}_{\text{cal}}$; best in \textbf{bold}, second \underline{underlined} (1D = Multi-Horizon JEPA 1D). $^\dagger$Lite vs.\ 1D ($n{=}118$): causal F1 $\Delta{=}{+}0.012$ ($69/39$ wins, $p{=}0.0034$; vs.\ TS-JEPA ${+}0.025$, cluster CI $[{+}0.005,{+}0.046]$, $p{=}1.6{\times}10^{-4}$); positive in $12/12$ LODO folds on $n{=}141$ ($\max p{=}0.015$). $^\ddagger$Buf.\ F1 $\Delta{=}{+}0.015$ ($p{=}0.0067$; vs.\ Lam.\ ${+}0.012$, $p{=}0.026$, median buf.\ $\text{FPR}_{\text{hold}}$ $1.96\%$ vs.\ $4.74\%$). $^\P$Causal ER $\Delta{=}{+}0.175$ vs.\ 1D (cluster CI $[{+}0.105,{+}0.273]$, $8/9$ sets, sign-flip $p{=}0.012$; Lam.\ ${+}0.126$, $p{=}0.016$). $^\S$Quenching vs.\ unq.\ 4H: causal $\text{FPR}_{\text{hold}}$ $\Delta{=}{-}0.002$ ($7/9$ sets improved, $0$ worse, sign-flip $p{=}0.016$, Wilcoxon $p{=}2.7{\times}10^{-4}$; median $0.96\%$ vs.\ $1.25\%$).} \\
+\multicolumn{11}{@{}p{\columnwidth}@{}}{\tiny Three seeds under $\mathbf{X}_{\text{sel}}\perp\mathbf{X}_q\perp\mathbf{X}_{\text{cal}}$; best \textbf{bold}, second \underline{underlined} (1D = Multi-Horizon JEPA 1D). $^\dagger$Lite vs.\ 1D ($n{=}118$): causal F1 $\Delta{=}{+}0.003$ ($70/40$ wins, $p{=}0.014$; vs.\ TS-JEPA ${+}0.022$, cluster CI $[{+}0.005,{+}0.052]$, $p{=}1.8{\times}10^{-4}$); beats system-matched max-$z$ ($.062$, $p{=}3{\times}10^{-5}$) and raw top-$k$ ($.073$, $p{=}0.0034$). $^\ddagger$Buf.\ F1 $\Delta{=}{+}0.014$ ($p{=}0.022$; vs.\ Lam.\ ${+}0.012$, $p{=}0.0064$, median buf.\ $\text{FPR}_{\text{hold}}$ $4.79\%$ vs.\ $8.70\%$ 1D). $^\P$Causal ER $\Delta{=}{+}0.113$ vs.\ 1D (cluster CI $[{+}0.051,{+}0.210]$, $9/9$ sets, sign-flip $p{=}0.0039$; vs.\ $\ell_2^2$ conf.\ ${+}0.041$, $p{=}0.0041$). $^\S$Disjoint $\mathbf{X}_q$ quench: causal $\text{FPR}_{\text{hold}}$ $\Delta{=}{-}0.0007$ ($p{=}0.010$, sign-flip $p{=}0.55$), ER ${-}0.035$.} \\
 \end{tabular*}\par\vspace{-4pt}
 \end{table}
