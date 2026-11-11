@@ -54,11 +54,11 @@ def set_ieee_style():
         "ytick.minor.width": 0.4,
         "xtick.direction": "out",
         "ytick.direction": "out",
-        "xtick.labelsize": 7.6,
-        "ytick.labelsize": 7.6,
-        "axes.labelsize": 8.4,
-        "axes.titlesize": 8.6,
-        "legend.fontsize": 6.8,
+        "xtick.labelsize": 8.0,
+        "ytick.labelsize": 8.0,
+        "axes.labelsize": 8.8,
+        "axes.titlesize": 9.0,
+        "legend.fontsize": 7.1,
         "figure.dpi": 300,
     })
 
@@ -66,10 +66,10 @@ def set_ieee_style():
 def make_figure():
     set_ieee_style()
     fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(7.16, 2.38),
-        gridspec_kw={"width_ratios": [1.0, 1.15], "wspace": 0.24}
+        1, 2, figsize=(7.16, 2.48),
+        gridspec_kw={"width_ratios": [1.0, 1.14], "wspace": 0.195}
     )
-    fig.subplots_adjust(top=0.72, bottom=0.21, left=0.068, right=0.985)
+    fig.subplots_adjust(top=0.745, bottom=0.220, left=0.067, right=0.994)
 
     x_indices = np.arange(5)
     x_labels = [
@@ -104,31 +104,31 @@ def make_figure():
 
     callouts = [
         (0, 0.0365, "$2.6{\\times}$\n(82% ER)", (0, 6)),
-        (1, 0.0497, "$4.3{\\times}$\n(84% ER)", (-3, 6)),
-        (2, 0.0549, "$1.7{\\times}$\n(80% ER)", (-3, 6)),
-        (3, 0.0736, "$2.4{\\times}$\n(81% ER)", (-4, 6)),
-        (4, 0.0775, "$1.7{\\times}$ (80% ER)", (-12, 5)),
+        (1, 0.0497, "$4.3{\\times}$\n(84% ER)", (0, 6)),
+        (2, 0.0549, "$1.7{\\times}$\n(80% ER)", (0, 6)),
+        (3, 0.0736, "$2.4{\\times}$\n(81% ER)", (-2, 6)),
+        (4, 0.0775, "$1.7{\\times}$\n(80% ER)", (0, 6)),
     ]
     for idx, yval, txt, offset in callouts:
         ax1.annotate(
             txt, xy=(idx, yval), xytext=offset, textcoords="offset points",
-            ha="center", va="bottom", fontsize=6.4, fontweight="bold", color="#5a1224",
-            linespacing=0.92, zorder=7
+            ha="center", va="bottom", fontsize=6.8, fontweight="bold", color="#5a1224",
+            linespacing=0.94, zorder=7
         )
 
     ax1.set_xticks(x_indices)
-    ax1.set_xticklabels(x_labels, fontsize=7.3)
-    ax1.set_xlabel("Target Horizon $S$ (Causal Reporting Lag $S{-}1$ Steps)", labelpad=4.0)
-    ax1.set_ylabel("Causal Point-F1", labelpad=3.5)
-    ax1.set_xlim(-0.42, 4.42)
-    ax1.set_ylim(0.002, 0.104)
+    ax1.set_xticklabels(x_labels, fontsize=7.7)
+    ax1.set_xlabel("Target Horizon $S$ (Causal Reporting Lag $S{-}1$ Steps)", labelpad=3.5)
+    ax1.set_ylabel("Causal Point-F1", labelpad=3.0)
+    ax1.set_xlim(-0.44, 4.50)
+    ax1.set_ylim(0.002, 0.109)
     ax1.set_yticks([0.00, 0.02, 0.04, 0.06, 0.08, 0.10])
     ax1.grid(True, which="major", linestyle="-", linewidth=0.45, color="#e0e0e0", alpha=0.75)
     ax1.set_axisbelow(True)
-    ax1.set_title("(a) Multi-Horizon Scaling Across $S \\in \\{1, 4, 16, 32, 64\\}$", fontweight="bold", pad=27)
+    ax1.set_title("(a) Multi-Horizon Scaling Across $S \\in \\{1, 4, 16, 32, 64\\}$", fontweight="bold", pad=26)
     ax1.legend(
-        loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2, frameon=False,
-        columnspacing=0.80, handletextpad=0.35, labelspacing=0.22, fontsize=6.5
+        loc="lower center", bbox_to_anchor=(0.50, 1.015), ncol=2, frameon=False,
+        columnspacing=0.85, handletextpad=0.35, labelspacing=0.22, fontsize=7.0
     )
 
     # =========================================================================
@@ -201,19 +201,19 @@ def make_figure():
             linewidths=0.65, marker=m["marker"], label=m["label"], zorder=6
         )
 
-    ax2.set_xlabel("False Alarms per 1,000 Nominal Steps (Realized FPR, $\\sqrt{\\cdot}$ scale)", labelpad=4.0)
-    ax2.set_ylabel("Causal Event Recall (ER)", labelpad=3.5)
+    ax2.set_xlabel("False Alarms per 1,000 Nominal Steps (Realized FPR, $\\sqrt{\\cdot}$ scale)", labelpad=3.5)
+    ax2.set_ylabel("Causal Event Recall (ER)", labelpad=3.0)
     ax2.set_xlim(2.5, 288.0)
-    ax2.set_ylim(0.11, 0.84)
+    ax2.set_ylim(0.11, 0.85)
     ax2.set_xticks([10, 50, 100, 175, 250])
-    ax2.set_xticklabels(["10 (1%)", "50 (5%)", "100 (10%)", "175 (17.5%)", "250 (25%)"], fontsize=7.2)
+    ax2.set_xticklabels(["10 (1%)", "50 (5%)", "100 (10%)", "175 (17.5%)", "250 (25%)"], fontsize=7.6)
     ax2.set_yticks([0.20, 0.35, 0.50, 0.65, 0.80])
     ax2.grid(True, which="major", linestyle="-", linewidth=0.45, color="#e0e0e0", alpha=0.75)
     ax2.set_axisbelow(True)
-    ax2.set_title("(b) Causal Operating Frontier & Diagnostic $f^*$ Curves", fontweight="bold", pad=27)
+    ax2.set_title("(b) Causal Operating Frontier & Diagnostic $f^*$ Curves", fontweight="bold", pad=26)
     ax2.legend(
-        loc="lower center", bbox_to_anchor=(0.48, 1.02), ncol=4, frameon=False,
-        columnspacing=0.62, handletextpad=0.28, labelspacing=0.22, handlelength=1.40, fontsize=6.4
+        loc="lower center", bbox_to_anchor=(0.49, 1.015), ncol=4, frameon=False,
+        columnspacing=0.70, handletextpad=0.30, labelspacing=0.22, handlelength=1.45, fontsize=6.9
     )
 
     saved = save_true_vector_figure(

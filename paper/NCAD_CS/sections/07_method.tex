@@ -129,16 +129,36 @@ Layer-by-layer activation tracing and component ablations of \emph{Laminar-JEPA}
 \end{enumerate}
 
 \begin{algorithm}[t]
-\caption{Laminar-JEPA (224-Bit) and Laminar-JEPA-Lite (128-Bit) Pipeline\label{alg:pipeline}}
-\scriptsize
+\caption{Laminar-JEPA (224-Bit) and Laminar-JEPA-Lite (128-Bit)\label{alg:pipeline}}
+\footnotesize
 \begin{algorithmic}[1]
-\Require Nominal stream $\mathbf{X}_{\text{nom}}$, test stream $\mathbf{X}_{\text{test}}$, tier $\in\{\text{Full }(M{=}4),\text{Lite }(M{=}3)\}$, mode $\in\{\text{causal},\text{buffered}\}$.
-\State \textbf{Disjoint Split \& Training:} Partition $\mathbf{X}_{\text{nom}}$ chronologically into $(\mathbf{X}_{\text{fit}},\mathbf{X}_{\text{sel}},\mathbf{X}_{\text{cal}},\text{gap}_S,\mathbf{X}_{\text{hold}})$. Standardize by $\mathbf{X}_{\text{fit}}$; train encoders and predictor(s) on stride-16 windows of $\mathbf{X}_{\text{fit}}$ via (\ref{eq:soliton_reynolds_loss}); select checkpoint on $\mathbf{X}_{\text{sel}}$ (or fixed epochs); fit $(\bar{\bm{\mu}}_{\text{res}},\mathbf{\Omega}\in\mathcal{S}_+^{MD})$ on $\mathbf{X}_{\text{fit}}$.
-\If{tier $=$ Full and $q_{\text{wsp}} = 1$} \Comment{Optional gated weight-space quenching}
-    \State Rank coordinates by $r_c$ (\ref{eq:quench_score}) on $(\mathbf{X}_{\text{fit}},\mathbf{X}_{\text{cal}})$; run Steps Q1--Q4 for $k\in\{4,2\}$ and retain edit iff nominal half-split and $0.92$-quorum gates pass.
+\Require Nominal history $\mathbf{X}_{\text{nom}}$, test stream $\mathbf{X}_{\text{test}}$, tier $\in\{\text{Full},\text{Lite}\}$, attribution mode $\in\{\text{causal},\text{buffered}\}$.
+\Ensure Per-timestep binary alarms $\hat{y}(\tau)\in\{0,1\}$ and continuous score $N_{\text{tot}}(\tau)$.
+\Statex \vspace{1.5pt}\textbf{Phase 1: Disjoint Training \& Resolvent Whitening}
+\State Split $\mathbf{X}_{\text{nom}}$ chronologically into $(\mathbf{X}_{\text{fit}}, \mathbf{X}_{\text{sel}}, \mathbf{X}_{\text{cal}}, \text{gap}_S, \mathbf{X}_{\text{hold}})$ and standardize channels using $\mathbf{X}_{\text{fit}}$ alone.
+\State Set nested prefixes $S_{1:4}=\{16,32,48,64\}$ (Full) or $S_{1:3}=\{16,32,64\}$ with $K\ge 25$ rFFT gate (Lite).
+\For{stride-$16$ training batches in $\mathbf{X}_{\text{fit}}$}
+    \State Encode $z_{\text{ctx}} = E_\theta(\mathbf{x}_{\text{ctx}})$ and targets $z_{\text{tgt}}^{(m)} = E_\phi(\mathbf{x}_{\text{tgt}}^{(m)})$ with barycenter shift $-\bar{\bm{\mu}}_{\text{ctx}}$.
+    \State Roll out sequential $\{P_{\text{sub}}, P_\theta\}$ (Full) or parallel single-LayerNorm predictor (Lite); update $\theta$ via (\ref{eq:soliton_reynolds_loss}) and $\phi \leftarrow m\phi + (1-m)\theta$.
+\EndFor
+\State Select checkpoint on $\mathbf{X}_{\text{sel}}$ (or fixed epochs) and fit $(\bar{\bm{\mu}}_{\text{res}}, \mathbf{\Omega}\in\mathcal{S}_+^{MD})$ on $\mathbf{X}_{\text{fit}}$.
+\If{tier $=$ Full and $q_{\text{wsp}} = 1$}
+    \State Rank coordinates by $r_c$ (\ref{eq:quench_score}) on $(\mathbf{X}_{\text{fit}},\mathbf{X}_{\text{cal}})$; run Q1--Q4 for $k\in\{4,2\}$ and keep edit iff nominal split and $0.92$-quorum gates pass.
 \EndIf
-\State \textbf{Panel Calibration:} Extract $\tilde{\mathbf{E}}_{\text{cal}}$ on $\mathbf{X}_{\text{cal}}$ via (\ref{eq:stabilized_whitening}); form $224$ dials (Full) or $128$ P+D dials (Lite); fit $(m_j,s_j,\gamma_j,\tau_j)$ via (\ref{eq:dial_tripwire}) and nominal quorum(s).
-\State \textbf{Online Inference:} For stride-1 windows of $\mathbf{X}_{\text{hold}}$ or $\mathbf{X}_{\text{test}}$, compute $\tilde{\mathbf{E}}(t)\to\mathbf{d}(t)$, trip $b_j(t)$ (\ref{eq:dial_tripwire}), attribute counts to $\tau=t+S-1$ (causal) or horizon spans (buffered), and emit per-timestep $\hat{y}(\tau)\in\{0,1\}$.
+\Statex \vspace{1.5pt}\textbf{Phase 2: Nominal Circuit-Breaker Calibration on $\mathbf{X}_{\text{cal}}$}
+\State Extract stabilized whitened residuals $\tilde{\mathbf{E}}_{\text{cal}}$ via (\ref{eq:stabilized_whitening}).
+\If{tier $=$ Full}
+    \State Expand $\tilde{\mathbf{E}}_{\text{cal}}$ into $7D=224$ dials (position, drift, fluctuation, endpoint) and $32$ onset relays (\ref{eq:onset_relay}).
+    \State Fit MAD scales $(m_j,s_j)$, hijack guards $\gamma_j$, tripwires $\tau_j$ (\ref{eq:dial_tripwire}), and quorums $(K_{224}, K_{128}, K_{\text{edge}})$ (\ref{eq:panel_quorum}).
+\Else \Comment{Distilled Laminar-JEPA-Lite}
+    \State Extract $4D=128$ position-plus-drift dials $(|\tilde{e}_{m,c}|, |\bar{e}_c|)$, fit $\tau_j$ (\ref{eq:dial_tripwire}), and set single quorum $K_{\text{Lite}}=\max(1.12\,q_{0.995},4.0)$.
+\EndIf
+\Statex \vspace{1.5pt}\textbf{Phase 3: Online Inference on $\mathbf{X}_{\text{hold}}$ or $\mathbf{X}_{\text{test}}$}
+\For{each stride-$1$ window $[t-C,\,t+S)$}
+    \State Compute $\tilde{\mathbf{E}}(t) \to \mathbf{d}(t)$ and binary trips $b_j(t)=\mathbb{I}(z_j(t)>\tau_j)$ (plus relays $r_c(t)$ if Full).
+    \State Attribute active counts to right edge $\tau=t+S-1$ (\text{causal}) or prefix spans $[t,t+S_m)$ (\text{buffered}).
+    \State Emit $\hat{y}(\tau)\in\{0,1\}$ when active counts exceed $(K_{224}, K_{128}, K_{\text{edge}})$ (\ref{eq:panel_quorum}) or $K_{\text{Lite}}$.
+\EndFor
 \end{algorithmic}
 \end{algorithm}
 

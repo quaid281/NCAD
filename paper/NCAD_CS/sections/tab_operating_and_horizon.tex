@@ -1,25 +1,25 @@
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.70\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
+\includegraphics[width=0.99\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
 \vspace{-5pt}
 \caption{Multi-horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, causal reporting lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and causal operating frontier ($n{=}19$ streams). \textbf{(a)}~Causal Point-F1 and event recall (ER) across $S$ comparing \emph{Laminar-JEPA (224B)}, \emph{Laminar-JEPA-Lite (128B)}, and Multi-Horizon 1D SPOT (nominal FPR $\le 3.6\%$ across all $S$, vs.\ $2.5\% \to 21.3\%$ for TimesNet). \textbf{(b)}~Causal ER vs.\ realized false alarms ($\sqrt{\cdot}$ scale) across diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph{Laminar-JEPA} star, \emph{Laminar-JEPA-Lite} cross, 1D open circles), and quantiles $q^*{\le}0.05$.\label{fig:operating_and_horizon}}
-\vspace{-6pt}
+\vspace{-1pt}
 \end{figure*}
 
 \begin{table}[t]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{0pt}
-\caption{Contextual vs.\ Point Anomaly Detection (Event Recall (ER)).\label{tab:point_vs_contextual}}
+\caption{Contextual vs.\ Point Anomaly Detection\label{tab:point_vs_contextual}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l ccccc cc @{}}
 \toprule
 & \multicolumn{5}{c}{\textbf{NASA Contextual ($n{=}5$ seqs)}} & \multicolumn{2}{c}{\textbf{NASA Point ($n{=}8$)}}\\
 \cmidrule(lr){2-6} \cmidrule(lr){7-8}
-\textbf{(a) Model} & \textbf{Buf.\ PR} & \textbf{Auto.\ ER} & \textbf{FPR} & $f^*{=}.01$ & $f^*{=}.05$ & $f^*{=}.01$ & $f^*{=}.05$ \\
+\textbf{(a) Model} & \textbf{Buf.\ PR} & \textbf{ER} & \textbf{FPR} & $f^*{=}.01$ & $f^*{=}.05$ & $f^*{=}.01$ & $f^*{=}.05$ \\
 \midrule
 \textbf{Laminar-JEPA}      & 0.519 & \underline{0.775} & 0.022 & 0.800 & \textbf{0.960} & 0.783 & 0.900 \\
 \textbf{Laminar-JEPA-Lite} & 0.532 & \textbf{0.875} & \underline{0.013} & \textbf{0.840} & \underline{0.920} & 0.700 & \underline{0.967} \\
-Multi-Horiz.\ JEPA (1D)    & \textbf{0.652} & 0.750 & \textbf{0.006} & \underline{0.820} & \underline{0.920} & 0.683 & 0.867 \\
+Multi-Horiz.\ 1D           & \textbf{0.652} & 0.750 & \textbf{0.006} & \underline{0.820} & \underline{0.920} & 0.683 & 0.867 \\
 TS-JEPA                    & \underline{0.644} & 0.675 & 0.045 & 0.720 & 0.840 & \underline{0.833} & 0.867 \\
 \addlinespace[1.5pt]
 TimesNet                   & 0.317 & 0.625 & 0.415 & 0.560 & 0.560 & 0.750 & 0.767 \\
@@ -30,7 +30,7 @@ ZScoreMax                  & 0.198 & 0.375 & 0.558 & 0.300 & 0.300 & \textbf{1.0
 \end{tabular*}
 
 \vspace{2.5pt}
-\setlength{\tabcolsep}{0pt}
+\setlength{\tabcolsep}{2.2pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l ccc ccc @{}}
 \toprule
 & \multicolumn{3}{c}{\textbf{19-Stream Contextual ($|z|{\le}5$)}} & \multicolumn{3}{c}{\textbf{19-Stream Point ($|z|{>}5$)}}\\
@@ -39,7 +39,7 @@ ZScoreMax                  & 0.198 & 0.375 & 0.558 & 0.300 & 0.300 & \textbf{1.0
 \midrule
 \textbf{Laminar-JEPA}      & \textbf{0.669} & 0.448 & \textbf{0.650} & \underline{0.835} & 0.644 & \underline{0.795} \\
 \textbf{Laminar-JEPA-Lite} & \underline{0.655} & 0.376 & 0.567 & \textbf{0.848} & 0.581 & \textbf{0.801} \\
-Multi-Horiz.\ JEPA (1D)    & 0.628 & \underline{0.498} & 0.590 & 0.782 & \underline{0.683} & 0.781 \\
+Multi-Horiz.\ 1D           & 0.628 & \underline{0.498} & 0.590 & 0.782 & \underline{0.683} & 0.781 \\
 TS-JEPA                    & 0.614 & \textbf{0.520} & \underline{0.594} & 0.776 & \textbf{0.694} & 0.765 \\
 \addlinespace[1.5pt]
 TimesNet                   & 0.382 & 0.290 & 0.301 & 0.668 & 0.549 & 0.567 \\
@@ -47,6 +47,6 @@ TranAD                     & 0.402 & 0.235 & 0.300 & 0.640 & 0.564 & 0.611 \\
 TCN Obs.\ Recon.           & 0.472 & 0.273 & 0.297 & 0.639 & 0.553 & 0.563 \\
 ZScoreMax                  & 0.376 & 0.288 & 0.289 & 0.673 & 0.594 & 0.605 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Panel (a) stratifies the 10 development SMAP/MSL streams by NASA's ground-truth taxonomy \cite{Hundman2018b} (contextual: SMAP E-1, A-2, A-7, MSL M-1, and C-1 $[2100,2210]$; point: SMAP A-1, P-3, D-3, MSL D-14, D-15, and C-1 $[550,750]$). Panel (b) stratifies all $n{=}19$ non-GHL development streams into in-range contextual ($\max|z| \le 5\sigma$) vs.\ out-of-range point ($\max|z| > 5\sigma$) causal events ($f^*$ columns are post-hoc diagnostic controls).} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Event recall (ER; autonomous vs.\ diagnostic $f^*$); best in \textbf{bold}, second \underline{underlined}. (a)~10 SMAP/MSL streams by NASA taxonomy \cite{Hundman2018b} (contextual: E-1, A-2, A-7, M-1, C-1 $[2100,2210]$; point: A-1, P-3, D-3, D-14, D-15, C-1 $[550,750]$). (b)~$n{=}19$ non-GHL streams split into in-range ($\max|z| \le 5\sigma$) vs.\ out-of-range ($\max|z| > 5\sigma$) causal events.} \\
 \end{tabular*}\par\vspace{-4pt}
 \end{table}

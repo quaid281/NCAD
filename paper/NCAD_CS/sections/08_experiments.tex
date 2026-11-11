@@ -25,32 +25,9 @@ Because streams within multi-stream archives share hardware platforms, we report
 
 \subsection{Consolidated Cohort Organization, Development vs.\ Held-Out Separation, and Baseline Fairness}
 \label{subsec:cohort_repro}
-\begin{table}[t]
-\centering
-\caption{Consolidated Cohort Protocol Matrix (Architecture, Horizons, Quenching, Design Use, Pairing, and Attribution).\label{tab:cohorts}}
-\vspace{-2pt}
-\scriptsize
-\setlength{\tabcolsep}{1.0pt}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}l c l ccc@{}}
-\toprule
-\textbf{Cohort} & \textbf{Str./Set} & \textbf{Horiz.\ \& Quench} & \textbf{Des.?} & \textbf{Pair?} & \textbf{Attr.} \\
-\midrule
-Cache 19 (Tab.~\ref{tab:ablations}a,b, \ref{tab:matched_alert}) & 19 / 6 & 4H, unquenched & Yes & Within$^\dagger$ & C,\,B \\
-Backbone 19 (Tab.~\ref{tab:ablations}c) & 19 / 6 & 4H q.+unq.\ / 3H / 1H & Yes & Yes & C,\,B \\
-Dev.\ 33 (Tab.~\ref{tab:core_benchmark}) & 33 / 7 & 4H q.\ / 3H Lite / 1H & Yes & Yes & C,\,B \\
-Tuning 23 & 23 / 7 & 4H q.\ + unq. & Yes & Within & C,\,B \\
-\textbf{Untouched 118 (Tab.~\ref{tab:calibrator_comparison})} & \textbf{118 / 9} & \textbf{4H q.+unq.\ / 3H, $\mathbf{X}_{\text{sel}}$} & \textbf{No} & \textbf{Yes} & \textbf{C,\,B} \\
-\textbf{Non-Exath.\ 101 (Sec.~\ref{subsec:calibration_realities})} & \textbf{101 / 8} & \textbf{4H q.+unq.\ / 3H, $\mathbf{X}_{\text{sel}}$} & \textbf{No} & \textbf{Yes} & \textbf{C,\,B} \\
-Archive 141 (Tab.~\ref{tab:calibrator_comparison}a) & 141 / 12 & 4H q.+unq.\ / 3H, $\mathbf{X}_{\text{sel}}$ & Mix & Yes & C,\,B \\
-Step Audit 118 (Sec.~\ref{subsec:controlled_ablations}) & 118 / 9 & 4H Q1--Q4 steps & No & Within & C,\,B \\
-Ext.\ Screen 130 (Sec.~\ref{subsec:core_benchmark}) & 130 / 11 & 1H vs.\ ext.\ base. & Mix & Within & B \\
-\bottomrule
-\multicolumn{6}{@{}p{\columnwidth}@{}}{\tiny Des.? = used in architecture/threshold design; Pair? = all listed models paired on identical streams/splits ($^\dagger$residual cache is a separate run from Dev.\ 33 / Backbone 19); Attr.: C = causal trailing, B = buffered.} \\
-\end{tabular*}
-\vspace{-3pt}
-\end{table}
-
-Table~\ref{tab:cohorts} specifies each cohort's horizon count ($3\text{H}$ parallel vs.\ $4\text{H}$ sequential), quenching status, stream/dataset count, design use, pairing scope, and attribution. Across cohorts, \emph{Laminar-JEPA} denotes the four-horizon 224-bit architecture with nominal split-gated quenching (\emph{Laminar-JEPA (w/o Quench)} omits Steps Q1--Q4), and \emph{Laminar-JEPA-Lite} denotes the distilled three-horizon 128-bit position-plus-drift architecture without weight editing. Because tripwire and quenching constants were chosen on $23$ development streams ($19$ non-GHL plus \texttt{SMAP T-2}, \texttt{MSL P-10}, \texttt{Daphnet S09R01E2}, and \texttt{OPPORTUNITY S1-ADL3}), the \textbf{$118$ untouched held-out streams} ($101$ non-Exathlon across $8$ datasets) were never inspected during design and provide primary generalization evidence.
+Across all evaluations, \emph{Laminar-JEPA} denotes the sequential four-horizon 224-bit architecture with nominal split-gated quenching (\emph{Laminar-JEPA (w/o Quench)} omits Steps Q1--Q4), and \emph{Laminar-JEPA-Lite} denotes the parallel three-horizon 128-bit position-plus-drift architecture without weight editing. Both causal trailing and retrospective buffered attribution are paired on identical splits within each cohort (aside from a single-horizon 130-stream buffered baseline screen in Section~\ref{subsec:core_benchmark}):
+(1)~\emph{Development cohorts (design-inspected):} A recomputed 19-stream residual cache across $6$ datasets evaluates the dial ladder, component ablations, and conformal/SPC comparators on identical 4H unquenched residuals (Table~\ref{tab:ablations}(a,b), Table~\ref{tab:matched_alert}); a separately trained 33-stream development benchmark across $7$ datasets ($19$ non-GHL matched-backbone streams in Table~\ref{tab:ablations}(c) plus $14$ GHL streams in Table~\ref{tab:core_benchmark}) pairs \emph{Laminar-JEPA}, \emph{Laminar-JEPA-Lite}, 1D JEPAs, and observation-space baselines; and tripwire/quenching constants were fixed on $23$ tuning streams ($19$ non-GHL plus \texttt{SMAP T-2}, \texttt{MSL P-10}, \texttt{Daphnet S09R01E2}, and \texttt{OPPORTUNITY S1-ADL3}).
+(2)~\emph{Untouched held-out cohorts (primary generalization evidence):} Excluding those $23$ design streams from the $141$-stream archive ($12$ datasets, strictly disjoint $\mathbf{X}_{\text{sel}}\perp\mathbf{X}_{\text{cal}}$) leaves \textbf{$118$ untouched held-out streams} across $9$ datasets ($101$ non-Exathlon streams across $8$ datasets; Table~\ref{tab:calibrator_comparison}), supplemented by a single-seed 4H Q1--Q4 step-isolation audit on the same $118$ streams (Section~\ref{subsec:controlled_ablations}). None of the $118$ held-out streams was inspected during architecture or threshold design.
 
 \noindent\emph{Standardized Baseline Fairness Protocol:} Scalar baselines (TS-JEPA, Multi-Horizon JEPA (1D), TCN Forecaster/Autoencoder, PCA Forecaster, Isolation Forest, TimesNet \cite{wu2023timesnet}, TranAD \cite{tuli2022tranad}, Anomaly Transformer \cite{xu2022anomaly}, NCAD \cite{carmona2021neural}, and DCdetector \cite{yang2023dcdetector}) share the identical chronological splits, training-only standardization, isolation gaps, and SPOT calibration ($u=p_{98}$, $q=10^{-3}$), whereas conformal and SPC detector-bank baselines in Table~\ref{tab:matched_alert} share the identical multi-horizon whitened residuals and nominal calibration alert rate. \emph{Laminar-JEPA-Lite} uses $141.9\text{k}$ trainable parameters at $K < 25$ and $222.3\text{k}$ at $K \ge 25$ versus $295.8\text{k}$ for \emph{Laminar-JEPA} ($206\text{k}\text{--}649\text{k}$ across external neural baselines; circuit-breaker panels add zero trainable weights). Runs used PyTorch 2.4 / CUDA 12.4 on an RTX 5090 ($0.15\,\text{ms}$/window batched inference for \emph{Laminar-JEPA-Lite} vs.\ $0.38\,\text{ms}$/window for \emph{Laminar-JEPA}, $2.43\times$ speedup; $188\,\text{MB}$ peak memory); code: \url{https://github.com/quaid281/NCAD}.
 

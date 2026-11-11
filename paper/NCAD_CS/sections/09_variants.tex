@@ -3,7 +3,7 @@
 
 \begin{table*}[t]
 \centering
-\caption{Multi-Perspective Circuit-Breaker Expansion and Component Ablations (a,b: Recomputed 19-Stream Cache); Separately Trained Matched-Backbone Study (c).\label{tab:ablations}}
+\caption{Circuit-Breaker Dial Expansion, Component Ablations, and Matched-Backbone Study\label{tab:ablations}}
 \vspace{1pt}
 \begin{tabular}{@{}p{0.493\textwidth}@{\hspace{0.009\textwidth}}p{0.498\textwidth}@{}}
 \toprule
@@ -113,7 +113,7 @@ Table~\ref{tab:ablations}(a),(b) and Fig.~\ref{fig:regularizer_and_quiet_fault}(
 \begin{table}[t]
 \centering
 \scriptsize
-\caption{Conformal, Multiplicity-Controlled, Reduced-Panel, and SPC Comparators on the 19-Stream Cache (3 Seeds, Causal Stream Means).\label{tab:matched_alert}}
+\caption{Conformal and SPC Comparators on Cached Residuals\label{tab:matched_alert}}
 \setlength{\tabcolsep}{1.8pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}l S[table-format=1.3] S[table-format=1.3] S[table-format=1.4] S[table-format=1.4]@{}}
 \toprule
@@ -135,7 +135,7 @@ Hotelling $T^2$ (matched) & .283 & .896 & .2901 & .4831 \\
 \bottomrule
 \end{tabular*}
 \par\vspace{1.5pt}
-{\tiny Matched rules use each stream's nominal panel calibration alarm rate (mean $0.34\%$; Stouffer F1 $.095$, $\mathrm{FPR}_{\rm hold}$ $.0087$; Top-$k$ F1 $.070$, $\mathrm{FPR}_{\rm hold}$ $.0077$; MEWMA $.4301$, CUSUM $.5862$ $\mathrm{FPR}_{\rm hold}$).}
+{\tiny 19 streams $\times$ 3 seeds, causal means. Matched rules use each stream's nominal panel alarm rate (mean $0.34\%$; Stouffer F1 $.095$, $\mathrm{FPR}_{\rm hold}$ $.0087$; Top-$k$ F1 $.070$, $\mathrm{FPR}_{\rm hold}$ $.0077$; MEWMA $.4301$, CUSUM $.5862$ $\mathrm{FPR}_{\rm hold}$).}
 \end{table}
 
 \subsection{Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}
