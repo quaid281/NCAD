@@ -33,7 +33,7 @@ def main() -> None:
     apply_churkin_style(font_family="Times New Roman", font_size=9)
 
     fig, (ax_a, ax_b) = plt.subplots(
-        1, 2, figsize=(7.16, 2.38), gridspec_kw={"width_ratios": [1.02, 1.05], "wspace": 0.26}
+        1, 2, figsize=(7.16, 2.28), gridspec_kw={"width_ratios": [1.03, 1.04], "wspace": 0.20}
     )
 
     # =========================================================================
@@ -130,19 +130,19 @@ def main() -> None:
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=7.5,
+            fontsize=7.8,
             fontweight="bold" if idx in (0, 5) else "normal",
             color=c_buf_line,
         )
         ax_a.annotate(
             f".{int(round(causal_f1[idx]*1000)):03d}",
             xy=(x_a[idx], causal_f1[idx]),
-            xytext=(0, -10.5 if idx not in (0, 3) else 5.0),
+            xytext=(0, -10.5 if idx not in (0, 3) else 5.5),
             textcoords="offset points",
             ha="center",
             va="top" if idx not in (0, 3) else "bottom",
-            fontsize=7.5,
-            fontweight="bold" if idx in (0, 5) else "normal",
+            fontsize=7.8,
+            fontweight="bold" if idx in (0, 3, 5) else "normal",
             color=c_cau_line,
         )
 
@@ -150,33 +150,33 @@ def main() -> None:
     ax_a.annotate(
         "Causal delay:\n166 \u2192 90 steps",
         xy=(x_a[-1], causal_f1[-1]),
-        xytext=(x_a[3] - 0.15, 0.116),
+        xytext=(4.12, 0.128),
         fontsize=7.5,
         color="#333333",
         ha="center",
         bbox=dict(boxstyle="round,pad=0.22", facecolor="#f8f8fa", edgecolor="#bcbcbc", lw=0.6),
-        arrowprops=dict(arrowstyle="->", color="#555555", lw=0.8, connectionstyle="arc3,rad=0.15"),
+        arrowprops=dict(arrowstyle="->", color="#555555", lw=0.8, connectionstyle="arc3,rad=0.14"),
         zorder=5,
     )
 
     ax_a.set_xticks(x_a)
-    ax_a.set_xticklabels(stages, fontsize=7.5)
-    ax_a.set_xlim(-0.38, len(stages) - 0.55)
-    ax_a.set_ylim(0.0, 0.270)
+    ax_a.set_xticklabels(stages, fontsize=7.8)
+    ax_a.set_xlim(-0.40, len(stages) - 0.52)
+    ax_a.set_ylim(0.0, 0.272)
     ax_a.set_yticks([0.0, 0.05, 0.10, 0.15, 0.20, 0.25])
-    ax_a.set_xlabel("Multi-Horizon Perspective Expansion (n=19 Streams)", fontsize=8.5, labelpad=3)
-    ax_a.set_ylabel("Unadjusted Point-F1", fontsize=8.5)
-    ax_a.set_title("(a) 1D Collapse vs. 224-Bit Panel", fontsize=9.0, fontweight="bold", pad=22)
+    ax_a.set_xlabel("Multi-Horizon Perspective Expansion (n=19 Streams)", fontsize=8.8, labelpad=3.5)
+    ax_a.set_ylabel("Unadjusted Point-F1", fontsize=8.8, labelpad=3.0)
+    ax_a.set_title("(a) 1D Collapse vs. 224-Bit Panel", fontsize=9.2, fontweight="bold", pad=19)
 
     style_subtle_grid(ax_a, lock_square_aspect=False)
     ax_a.legend(
-        loc="upper center",
-        bbox_to_anchor=(0.5, 1.15),
+        loc="lower center",
+        bbox_to_anchor=(0.50, 1.015),
         ncol=2,
         frameon=False,
-        fontsize=7.5,
-        handletextpad=0.4,
-        columnspacing=1.0,
+        fontsize=7.6,
+        handletextpad=0.38,
+        columnspacing=0.90,
     )
 
     # =========================================================================
@@ -230,36 +230,44 @@ def main() -> None:
                 )
 
     ax_b.set_xticks(x_b)
-    ax_b.set_xticklabels(fault_labels, fontsize=7.5)
+    ax_b.set_xticklabels(fault_labels, fontsize=7.8)
     ax_b.set_xlim(-0.55, len(fault_labels) - 0.45)
-    ax_b.set_ylim(0.0, 62.0)
+    ax_b.set_ylim(0.0, 62.5)
     ax_b.set_yticks([0, 15, 30, 45, 60])
-    ax_b.set_yticklabels(["0%", "15%", "30%", "45%", "60%"])
-    ax_b.set_xlabel("Injected Single-Channel Fault Class (n=6 Streams)", fontsize=8.5, labelpad=3)
-    ax_b.set_ylabel("Event Recall (%)", fontsize=8.5)
-    ax_b.set_title("(b) Single-Channel Quiet-Fault Event Recall", fontsize=9.0, fontweight="bold", pad=22)
+    ax_b.set_yticklabels(["0%", "15%", "30%", "45%", "60%"], fontsize=8.0)
+    ax_a.tick_params(axis="y", labelsize=8.0)
+    ax_b.set_xlabel("Injected Single-Channel Fault Class (n=6 Streams)", fontsize=8.8, labelpad=3.5)
+    ax_b.set_ylabel("Event Recall (%)", fontsize=8.8, labelpad=3.0)
+    ax_b.set_title("(b) Single-Channel Quiet-Fault Event Recall", fontsize=9.2, fontweight="bold", pad=19)
 
     style_subtle_grid(ax_b, lock_square_aspect=False)
     ax_b.legend(
-        loc="upper center",
-        bbox_to_anchor=(0.5, 1.15),
+        loc="lower center",
+        bbox_to_anchor=(0.50, 1.015),
         ncol=3,
         frameon=False,
-        fontsize=7.5,
+        fontsize=7.6,
         handletextpad=0.35,
-        columnspacing=0.8,
+        columnspacing=0.80,
     )
 
-    fig.subplots_adjust(left=0.075, right=0.985, bottom=0.19, top=0.80)
+    fig.subplots_adjust(left=0.068, right=0.994, bottom=0.225, top=0.775)
 
     out_dir = Path("paper/NCAD_CS/figures")
-    paths = save_true_vector_figure(fig, out_dir / "regularizer_sweep_and_quiet_faults")
+    paths = save_true_vector_figure(
+        fig,
+        out_dir / "regularizer_sweep_and_quiet_faults",
+        formats=("svg", "pdf", "png"),
+        png_dpi=300,
+        inkscape_postprocess_pdf=True,
+        ensure_pure_vector=True,
+        ensure_outside_legend=True,
+    )
     svg_path = Path(paths["svg"])
     svg_path.write_text(
         "\n".join(line.rstrip() for line in svg_path.read_text(encoding="utf-8").splitlines()) + "\n",
         encoding="utf-8",
     )
-    fig.savefig(out_dir / "regularizer_sweep_and_quiet_faults.png", dpi=300)
     plt.close(fig)
     print(f"Saved: {paths}")
 
