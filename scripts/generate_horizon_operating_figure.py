@@ -4,10 +4,10 @@
 Two-panel horizontal banner tailored for IEEE two-column layout with generous subplot width:
 - Panel (a): Target Horizon S in {1, 4, 16, 32, 64} (reporting lag S-1 in {0, 3, 15, 31, 63})
              vs. Causal Point-F1 (5 streams, 3 seeds), comparing Laminar-JEPA (224B),
-             Reynolds 224-Bit, and 1D Scalar SPOT, with gain callouts and event recall.
+             Laminar-JEPA-Lite (128B), and Multi-Horizon 1D Scalar SPOT.
 - Panel (b): Causal Event Recall vs. Realized False Alarms per 1,000 Nominal Steps on a
              square-root horizontal scale (FuncScale) across diagnostic budgets f* in {1%, 5%},
-             autonomous Laminar-JEPA / 224-Bit / Strict operating points, and q* = 0.05.
+             autonomous Laminar-JEPA / Laminar-JEPA-Lite operating points, and q* = 0.05.
 """
 import sys
 from pathlib import Path
@@ -30,8 +30,8 @@ OUT_STEM = FIGDIR / "operating_and_horizon_tradeoffs"
 
 # Curated Churkin / IEEE grayscale-safe high-contrast palette
 C_LAMINAR = "#a31d3d"       # Deep Crimson-Burgundy (Laminar-JEPA 224-Bit)
-C_BREAKER = "#7b3294"       # Royal Plum (Reynolds 224-Bit unquenched)
-C_SOLREY_CAUS = "#1d4e89"   # Deep Navy (Reynolds 1D causal)
+C_LITE = "#0d7377"          # Deep Teal (Laminar-JEPA-Lite 128-Bit)
+C_MH1D_CAUS = "#1d4e89"     # Deep Navy (Multi-Horizon 1D causal)
 C_TSJEPA_CAUS = "#6a408d"   # Churkin Deep Purple (TS-JEPA 1D causal)
 C_TCNLN_CAUS = "#8c6d31"    # Warm Ochre (TCN Obs. Forecaster LN)
 C_TIMESNET_CAUS = "#e13661" # Vibrant Coral-Red (TimesNet)
@@ -80,13 +80,13 @@ def make_figure():
     # =========================================================================
     # Panel (a): Horizon Scaling — Causal Point-F1 & Event Recall Gain
     # =========================================================================
-    f1_laminar_caus = np.array([0.0369, 0.0496, 0.0554, 0.0740, 0.0781])
-    f1_breaker_caus = np.array([0.0268, 0.0408, 0.0512, 0.0535, 0.0871])
-    f1_scalar_caus = np.array([0.0144, 0.0115, 0.0325, 0.0309, 0.0442])
+    f1_laminar_caus = np.array([0.0365, 0.0497, 0.0549, 0.0736, 0.0775])
+    f1_lite_caus = np.array([0.0298, 0.0362, 0.0519, 0.0516, 0.0592])
+    f1_scalar_caus = np.array([0.0142, 0.0115, 0.0318, 0.0311, 0.0444])
 
     ax1.fill_between(
-        x_indices, f1_scalar_caus, np.maximum(f1_laminar_caus, f1_breaker_caus),
-        color="#f3e5eb", alpha=0.58, zorder=1
+        x_indices, f1_scalar_caus, np.maximum(f1_laminar_caus, f1_lite_caus),
+        color="#f3e5eb", alpha=0.55, zorder=1
     )
     ax1.plot(
         x_indices, f1_laminar_caus, color=C_LAMINAR, linestyle="-", linewidth=1.8,
@@ -94,20 +94,20 @@ def make_figure():
         label="Laminar-JEPA (224B, FPR $\\leq$ 3.6%)", zorder=6
     )
     ax1.plot(
-        x_indices, f1_breaker_caus, color=C_BREAKER, linestyle="--", linewidth=1.6,
-        marker="P", markersize=5.2, label="Reynolds 224B (FPR $\\leq$ 2.9%)", zorder=5
+        x_indices, f1_lite_caus, color=C_LITE, linestyle="--", linewidth=1.6,
+        marker="P", markersize=5.2, label="Laminar-JEPA-Lite (128B, FPR $\\leq$ 2.4%)", zorder=5
     )
     ax1.plot(
-        x_indices, f1_scalar_caus, color=C_SOLREY_CAUS, linestyle="-.", linewidth=1.5,
-        marker="o", markersize=4.5, label="Reynolds 1D Scalar (SPOT)", zorder=4
+        x_indices, f1_scalar_caus, color=C_MH1D_CAUS, linestyle="-.", linewidth=1.5,
+        marker="o", markersize=4.5, label="Multi-Horizon 1D (SPOT)", zorder=4
     )
 
     callouts = [
-        (0, 0.0369, "$2.6{\\times}$\n(82% ER)", (0, 6)),
-        (1, 0.0496, "$4.3{\\times}$\n(84% ER)", (-3, 6)),
-        (2, 0.0554, "$1.7{\\times}$\n(84% ER)", (-3, 6)),
-        (3, 0.0740, "$2.4{\\times}$\n(78% ER)", (-4, 6)),
-        (4, 0.0871, "$2.0{\\times}$ (80% ER)", (-14, 4)),
+        (0, 0.0365, "$2.6{\\times}$\n(82% ER)", (0, 6)),
+        (1, 0.0497, "$4.3{\\times}$\n(84% ER)", (-3, 6)),
+        (2, 0.0549, "$1.7{\\times}$\n(80% ER)", (-3, 6)),
+        (3, 0.0736, "$2.4{\\times}$\n(81% ER)", (-4, 6)),
+        (4, 0.0775, "$1.7{\\times}$ (80% ER)", (-12, 5)),
     ]
     for idx, yval, txt, offset in callouts:
         ax1.annotate(
@@ -121,14 +121,14 @@ def make_figure():
     ax1.set_xlabel("Target Horizon $S$ (Causal Reporting Lag $S{-}1$ Steps)", labelpad=4.0)
     ax1.set_ylabel("Causal Point-F1", labelpad=3.5)
     ax1.set_xlim(-0.42, 4.42)
-    ax1.set_ylim(0.002, 0.106)
+    ax1.set_ylim(0.002, 0.104)
     ax1.set_yticks([0.00, 0.02, 0.04, 0.06, 0.08, 0.10])
     ax1.grid(True, which="major", linestyle="-", linewidth=0.45, color="#e0e0e0", alpha=0.75)
     ax1.set_axisbelow(True)
     ax1.set_title("(a) Multi-Horizon Scaling Across $S \\in \\{1, 4, 16, 32, 64\\}$", fontweight="bold", pad=27)
     ax1.legend(
         loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2, frameon=False,
-        columnspacing=0.85, handletextpad=0.35, labelspacing=0.22, fontsize=6.6
+        columnspacing=0.80, handletextpad=0.35, labelspacing=0.22, fontsize=6.5
     )
 
     # =========================================================================
@@ -146,23 +146,25 @@ def make_figure():
         linewidth=1.2, label="Random Alerter", zorder=2
     )
 
-    cb_pts = [(10.6, 0.534), (16.7, 0.607), (50.0, 0.728), (72.0, 0.774)]
-    ax2.plot([p[0] for p in cb_pts], [p[1] for p in cb_pts], color=C_BREAKER, linestyle="-", linewidth=1.7, zorder=5)
-    ax2.scatter([10.6], [0.534], s=30, facecolors="#ffffff", edgecolors=C_BREAKER, linewidths=1.4, zorder=6)
+    lam_pts = [(10.0, 0.612), (13.4, 0.673), (50.0, 0.757), (72.0, 0.795)]
+    ax2.plot([p[0] for p in lam_pts], [p[1] for p in lam_pts], color=C_LAMINAR, linestyle="-", linewidth=1.7, zorder=6)
     ax2.scatter(
-        [18.2], [0.604], s=42, facecolors=C_BREAKER, edgecolors="#222222",
-        linewidths=0.65, marker="P", label="Reynolds 224B", zorder=7
-    )
-    ax2.scatter(
-        [15.2], [0.628], s=72, facecolors=C_LAMINAR, edgecolors="#111111",
+        [13.4], [0.673], s=72, facecolors=C_LAMINAR, edgecolors="#111111",
         linewidths=0.75, marker="*", label="Laminar-JEPA", zorder=8
     )
 
+    lite_pts = [(10.0, 0.560), (10.2, 0.650), (50.0, 0.772), (68.0, 0.811)]
+    ax2.plot([p[0] for p in lite_pts], [p[1] for p in lite_pts], color=C_LITE, linestyle="-", linewidth=1.6, zorder=5)
+    ax2.scatter(
+        [10.2], [0.650], s=44, facecolors=C_LITE, edgecolors="#222222",
+        linewidths=0.65, marker="P", label="Laminar-Lite", zorder=7
+    )
+
     models_data = {
-        "SolitonReynolds": {
+        "MultiHorizon1D": {
             "pts": [(5.6, 0.478), (10.0, 0.562), (50.0, 0.698), (73.7, 0.752)],
             "op": (5.6, 0.478), "q05": (73.7, 0.752),
-            "color": C_SOLREY_CAUS, "ls": "--", "marker": "p", "label": "Reynolds 1D"
+            "color": C_MH1D_CAUS, "ls": "--", "marker": "p", "label": "Multi-Horiz. 1D"
         },
         "TS-JEPA": {
             "pts": [(10.0, 0.395), (24.0, 0.487), (50.0, 0.584), (86.3, 0.730)],
@@ -186,7 +188,7 @@ def make_figure():
         },
     }
 
-    for name, m in models_data.items():
+    for _, m in models_data.items():
         xs = [p[0] for p in m["pts"]]
         ys = [p[1] for p in m["pts"]]
         ax2.plot(xs, ys, color=m["color"], linestyle=m["ls"], linewidth=1.4, zorder=3)
@@ -202,7 +204,7 @@ def make_figure():
     ax2.set_xlabel("False Alarms per 1,000 Nominal Steps (Realized FPR, $\\sqrt{\\cdot}$ scale)", labelpad=4.0)
     ax2.set_ylabel("Causal Event Recall (ER)", labelpad=3.5)
     ax2.set_xlim(2.5, 288.0)
-    ax2.set_ylim(0.11, 0.82)
+    ax2.set_ylim(0.11, 0.84)
     ax2.set_xticks([10, 50, 100, 175, 250])
     ax2.set_xticklabels(["10 (1%)", "50 (5%)", "100 (10%)", "175 (17.5%)", "250 (25%)"], fontsize=7.2)
     ax2.set_yticks([0.20, 0.35, 0.50, 0.65, 0.80])
@@ -211,7 +213,7 @@ def make_figure():
     ax2.set_title("(b) Causal Operating Frontier & Diagnostic $f^*$ Curves", fontweight="bold", pad=27)
     ax2.legend(
         loc="lower center", bbox_to_anchor=(0.48, 1.02), ncol=4, frameon=False,
-        columnspacing=0.65, handletextpad=0.28, labelspacing=0.22, handlelength=1.45, fontsize=6.5
+        columnspacing=0.62, handletextpad=0.28, labelspacing=0.22, handlelength=1.40, fontsize=6.4
     )
 
     saved = save_true_vector_figure(

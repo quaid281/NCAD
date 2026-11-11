@@ -5,9 +5,9 @@
 \centering
 \caption{Multi-Perspective Circuit-Breaker Expansion and Component Ablations (a,b: Recomputed 19-Stream Cache); Separately Trained Matched-Backbone Study (c).\label{tab:ablations}}
 \vspace{1pt}
-\begin{tabular}{@{}p{0.492\textwidth}@{\hspace{0.008\textwidth}}p{0.492\textwidth}@{}}
+\begin{tabular}{@{}p{0.493\textwidth}@{\hspace{0.009\textwidth}}p{0.498\textwidth}@{}}
 \toprule
-\multicolumn{1}{c}{\textbf{(a) Perspective Expansion Ladder ($1 \to 224$ Dials, $n{=}19$)}} & \multicolumn{1}{c}{\textbf{(b) Circuit-Breaker Component \& Quorum Ablation ($n{=}19$)}} \\
+\multicolumn{1}{@{}c}{\footnotesize\textbf{(a) Perspective Expansion Ladder ($1 \to 224$ Dials, $n{=}19$)}} & \multicolumn{1}{c@{}}{\footnotesize\textbf{(b) Circuit-Breaker Component \& Quorum Ablation ($n{=}19$)}} \\
 \cmidrule(r){1-1} \cmidrule(l){2-2}
 \begingroup
 \scriptsize
@@ -22,13 +22,13 @@
 1D Scalar Collapse (1 Dial) & .013 & .191 & \textbf{.315} & .413 & .459 & \textbf{.550} & 166.2 & 143.1 \\
 32-Bit Full Horizon ($m{=}4$) & .050 & .135 & .255 & .381 & .500 & .243 & 123.4 & 65.5 \\
 128-Bit Sub-Horizons ($m{=}1..4$) & .063 & \underline{.216} & .294 & \textbf{.449} & .556 & .462 & 110.6 & \textbf{38.8} \\
-160-Bit ($+32$ Reynolds Drift) & \textbf{.098} & .198 & \underline{.304} & .429 & \textbf{.591} & \textbf{.550} & \textbf{74.8} & 108.3 \\
-192-Bit ($+32$ Reynolds Fluc.) & .067 & .192 & .299 & .443 & \underline{.573} & .453 & \underline{79.1} & 101.6 \\
+160-Bit ($+32$ Horizon Drift) & \textbf{.098} & .198 & \underline{.304} & .429 & \textbf{.591} & \textbf{.550} & \textbf{74.8} & 108.3 \\
+192-Bit ($+32$ Horizon Fluc.) & .067 & .192 & .299 & .443 & \underline{.573} & .453 & \underline{79.1} & 101.6 \\
 \textbf{224-Bit ($+32$ Endpoint/Relays)} & \underline{.071}$^*$ & \textbf{.224} & .299 & \underline{.448} & .564 & .506 & 90.1 & 83.7 \\
 \bottomrule
 \multicolumn{9}{@{}p{\linewidth}@{}}{\tiny $^*$Versus 1D, causal F1 difference $+0.057$ (stream-bootstrap 95\% CI $[0.016,0.120]$; Wilcoxon $p=0.0023$, $12/2$ wins/losses). Buffered difference $+0.033$ (CI $[-0.017,0.093]$, $p=0.53$). The scalar spectral-modulation ablation in the separately trained study remains null.} \\
 \end{tabular*}%
-\endgroup
+\endgroup%
 &
 \begingroup
 \scriptsize
@@ -48,28 +48,29 @@ w/o Hijack Guards ($\gamma_j{=}1$) & \textbf{.073} & \textbf{.226} & \textbf{.29
 \bottomrule
 \multicolumn{9}{@{}p{\linewidth}@{}}{\tiny Panels (a,b): $19$ streams $\times$ $3$ seeds on the same whitened-residual cache, without the stabilized blend in (\ref{eq:stabilized_whitening}). Panel (c) uses a separate training run; cross-panel comparisons are not paired.} \\
 \end{tabular*}%
-\endgroup
+\endgroup%
 \\
 \midrule
-\multicolumn{2}{@{}c@{}}{\textbf{(c) Matched-Backbone Architectural Comparison ($n{=}19$ Development Streams)}} \\
+\multicolumn{2}{@{}c@{}}{\footnotesize\textbf{(c) Matched-Backbone Architectural Comparison ($n{=}19$ Development Streams)}} \\
 \multicolumn{2}{@{}c@{}}{%
 \begingroup
 \scriptsize
 \renewcommand{\arraystretch}{0.92}
-\setlength{\tabcolsep}{3.2pt}
+\setlength{\tabcolsep}{2.9pt}
 \begin{tabular*}{0.992\textwidth}{@{\extracolsep{\fill}}l cc cc cc cc cccc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Tail / Drift}} & \multicolumn{2}{c}{\textbf{Held-Out FPR}} & \multicolumn{2}{c}{\textbf{Point-F1}} & \multicolumn{2}{c}{\textbf{PR-AUC}} & \multicolumn{4}{c}{\textbf{Causal Event Recall}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13}
 \textbf{Architecture Arm} & $\gamma_2$ & $D_{\text{KS}}$ & Caus. & Buf. & Caus. & Buf. & Caus. & Buf. & Auto. & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ \\
 \midrule
-\textbf{Reynolds 224-Bit Breaker} & 2.30 & 0.179 & 0.017 & 0.132 & 0.138 & \underline{0.228} & \textbf{0.312} & \textbf{0.411} & \textbf{0.607} & \underline{0.774} & \textbf{0.584} & \textbf{0.728} \\
-\textbf{Reynolds 224-Bit Strict} & 2.30 & 0.179 & 0.011 & 0.098 & 0.116 & 0.190 & \textbf{0.312} & \textbf{0.411} & 0.534 & \underline{0.774} & \textbf{0.584} & \textbf{0.728} \\
-TS-JEPA (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & \underline{0.161} & 0.206 & 0.278 & \underline{0.331} & 0.487 & 0.730 & 0.395 & 0.584 \\
-Reynolds (1D Scalar) & 2.30 & 0.179 & \textbf{0.006} & 0.078 & 0.050 & 0.148 & 0.259 & \underline{0.331} & 0.478 & 0.752 & 0.562 & 0.698 \\
-Reynolds ($\alpha_{\text{LT}}{=}0$, 1D) & 2.19 & 0.183 & \textbf{0.006} & 0.083 & 0.055 & 0.149 & 0.261 & 0.330 & 0.439 & 0.755 & \underline{0.578} & \underline{0.711} \\
+\textbf{Laminar-JEPA (224-Bit)} & 0.92 & 0.190 & 0.013 & 0.128 & 0.144 & \textbf{0.244} & \textbf{0.311} & \textbf{0.407} & \underline{0.673} & 0.795 & \underline{0.612} & 0.757 \\
+\textbf{Laminar-JEPA (w/o Quench)} & \underline{0.88} & 0.190 & 0.016 & 0.128 & 0.142 & 0.235 & \underline{0.304} & 0.381 & \textbf{0.695} & \underline{0.815} & \textbf{0.631} & \underline{0.765} \\
+\textbf{Laminar-JEPA-Lite (128-Bit)} & 2.33 & 0.182 & 0.010 & \underline{0.061} & 0.133 & \underline{0.242} & 0.301 & \underline{0.397} & 0.650 & 0.811 & 0.560 & \textbf{0.772} \\
+TS-JEPA (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & \underline{0.161} & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
+Multi-Horizon JEPA (1D) & 2.30 & \underline{0.179} & \textbf{0.006} & 0.078 & 0.050 & 0.148 & 0.259 & 0.331 & 0.478 & 0.752 & 0.562 & 0.698 \\
+Multi-Horizon JEPA ($\alpha_{\text{LT}}{=}0$, 1D) & 2.19 & 0.183 & \textbf{0.006} & 0.083 & 0.055 & 0.149 & 0.261 & 0.330 & 0.439 & 0.755 & 0.578 & 0.711 \\
 JEPA Context Autoencoder & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
-JEPA Frozen Target & 1.16 & \textbf{0.167} & 0.009 & 0.098 & 0.146 & \textbf{0.235} & 0.273 & 0.328 & 0.503 & \textbf{0.816} & 0.398 & 0.600 \\
+JEPA Frozen Target & 1.16 & \textbf{0.167} & \underline{0.009} & 0.098 & 0.146 & 0.235 & 0.273 & 0.328 & 0.503 & \textbf{0.816} & 0.398 & 0.600 \\
 TS-JEPA ($\ell_2$ Scoring) & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
 \addlinespace[1.5pt]
 PCA Linear Forecaster (LN) & 0.95 & 0.233 & 0.021 & 0.186 & 0.017 & 0.104 & 0.210 & 0.244 & 0.452 & 0.665 & 0.377 & 0.624 \\
@@ -78,12 +79,12 @@ Isolation Forest & \textbf{0.70} & 0.373 & 0.039 & \textbf{0.056} & 0.041 & 0.04
 \addlinespace[1.5pt]
 TCN Obs.\ Forecaster & 6.10 & 0.463 & 0.247 & 0.313 & 0.140 & 0.145 & 0.272 & 0.310 & 0.546 & 0.629 & 0.171 & 0.383 \\
 TCN Obs.\ Autoencoder & 6.24 & 0.445 & 0.245 & 0.304 & 0.134 & 0.135 & 0.261 & 0.301 & 0.528 & 0.619 & 0.163 & 0.379 \\
-TimesNet & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & 0.281 & 0.329 & \underline{0.588} & 0.618 & 0.217 & 0.407 \\
+TimesNet & 5.54 & 0.438 & 0.243 & 0.300 & \textbf{0.209} & 0.197 & 0.281 & 0.329 & 0.588 & 0.618 & 0.217 & 0.407 \\
 TranAD & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 0.602 & 0.149 & 0.343 \\
 \bottomrule
 \end{tabular*}%
-\endgroup
-}
+\endgroup%
+}%
 \\
 \bottomrule
 \end{tabular}\par\vspace{-8pt}
@@ -91,37 +92,74 @@ TranAD & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/regularizer_sweep_and_quiet_faults.pdf}
+\includegraphics[width=0.72\textwidth]{figures/regularizer_sweep_and_quiet_faults.pdf}
 \vspace{-6pt}
 \caption{Development studies. \textbf{(a)}~Causal and buffered Point-F1 across the six-step expansion on cached whitened residuals from 19 streams (three seeds; no stabilization blend). \textbf{(b)}~Event recall for injected single-channel faults in a separate six-stream study, comparing 1D TS-JEPA, 224-Bit Breaker, and their channel-level union.\label{fig:regularizer_and_quiet_fault}}
-\vspace{-8pt}
+\vspace{-7pt}
 \end{figure*}
 
 \subsection{Ablation 1: Perspective Expansion Ladder, Circuit-Breaker Components, and Weight-Space Quenching}
 \label{subsec:controlled_ablations}
 \label{subsec:factorial}
-Table~\ref{tab:ablations}(a),(b) and Fig.~\ref{fig:regularizer_and_quiet_fault}(a) trace the expansion and component choices on the currently reproducible 19-stream cache. The separately trained study in Panel~(c) is not paired to this cache:
+Table~\ref{tab:ablations}(a),(b) and Fig.~\ref{fig:regularizer_and_quiet_fault}(a) evaluate perspective expansion and panel components on the 19-stream residual cache (not paired to the separately trained run in Panel~(c)):
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \emph{From scalar collapse to sub-horizon switches:} The full panel raises causal F1 from $0.013$ to $0.071$ on this cache ($p=0.0023$), but its buffered difference of $+0.033$ has a stream-bootstrap interval spanning zero ($p=0.53$). The 160-dial position-plus-drift rule scores higher causal F1 ($0.098$) than all 224 dials. Scalar $R_{\text{LT}}$ modulation remains null in the separate fixed-backbone study.
-    \item \emph{Component ablations:} Removing relays changes mean causal delay from $90.1$ to $90.7$ steps; removing prefix routing changes buffered delay from $83.7$ to $115.4$ steps. Without hijack guards, causal F1 rises from $0.071$ to $0.073$ and delay falls to $70.1$ steps on this cache, so these ablations do not establish a universal benefit for the guards, relays, or additional dial groups. None removes the $S-1$ causal reporting lag.
-    \item \emph{Quenching components and sensitivity ($k_{\text{rogue}} \in \{0,\dots,12\}$):} On the development streams, the separate residual-mean-buffer recentering ablation (without predictor-weight edits) raises causal event recall from $56.5\%$ to $64.3\%$ and buffered F1 from $0.224$ to $0.256$, at the cost of higher nominal FPR. Precision tempering alone lowers buffered F1 to $0.135$, while RMS stabilization (\ref{eq:stabilized_whitening}) raises causal F1 to $0.099$. Sweeping $k_{\text{rogue}}\in\{1,2,4,8,12\}$ shows that the selected $k\in\{4,2\}$ nominal-split-gated intervention lowers archive-wide causal FPR across 162 streams from $6.71\%$ to $6.17\%$ ($p=0.0011$), while more aggressive edits ($k\in\{8,12\}$) reduce causal PR-AUC from $0.292$ to $0.223$. This ablation does not isolate an additive predictor-bias correction.
+    \item \emph{Operational trade-off between 160 and 224 dials:} While the 224-dial panel lifts causal Point-F1 from $0.013$ to $0.071$ over 1D scoring ($p=0.0023$; buffered $+0.033$, $p=0.53$), more dials are not automatically better: the 160-dial position-plus-drift subset ($128$ sub-horizons $+$ $32$ horizon means, single quorum, no relays) achieves higher causal Point-F1 ($0.098$), higher causal ER ($59.1\%$ vs.\ $56.5\%$), shorter causal delay ($74.8$ vs.\ $90.1$ steps), and lower nominal FPR ($0.55\%$ held-out, $0.87\%$ test vs.\ $0.76\%$, $1.50\%$) at $29\%$ lower dial cost, whereas all 224 dials lead only in retrospective buffered Point-F1 ($0.224$ vs.\ $0.198$). This directly motivates the $M=3$ position-plus-drift 128-dial panel in \emph{Laminar-JEPA-Lite}. Scalar $R_{\text{LT}}$ modulation remains null in Panel~(c).
+    \item \emph{Relays, single-quorum voting, and hijack guards:} Removing the 32 onset relays lowers causal Point-F1 slightly ($0.071 \to 0.068$), and replacing the three-counter rule (\ref{eq:panel_quorum}) with a single 224-dial quorum lowers causal Point-F1 to $0.063$ ($\text{FPR}_{\text{hold}} = 0.0055$; Table~\ref{tab:matched_alert}). Conversely, removing hijack guards ($\gamma_j=1$) raises causal Point-F1 to $0.073$ and shortens delay to $70.1$ steps on this cache, showing that drift guards can damp useful fault responses when calibration drift is mild. None removes the $S-1$ causal reporting lag.
+    \item \emph{Quenching step isolation and LayerNorm coupling:} On single-seed 4H checkpoints across all $118$ untouched streams (unquenched causal $\text{FPR}_{\text{hold}} = 6.76\%$, $\text{F1} = 0.0901$, $\text{ER} = 63.8\%$), $k=4$ predictor row damping (Step Q1) shifts unselected coordinates by a median $11.1\%$ of nominal RMS ($45.5\%$ shifting $>10\%$) via 32D LayerNorm coupling without lowering $\text{FPR}_{\text{hold}}$ ($7.06\%$), while horizon-embedding shifts lower raw RMS on $68.2\%$ of edited coordinates ($4.1\%$ spillover). Buffer recentering and precision decoupling alone (Steps Q2--Q3) drive the FPR drop ($\text{FPR}_{\text{hold}} = 6.71\%$, $\text{FPR}_{\text{test}} = 14.75\%$) at lower causal $\text{F1}$ ($0.0826$), whereas adding the nominal split gate (Step Q4, accepted on $39/118$ streams) reaches $\text{FPR}_{\text{hold}} = 6.62\%$ while preserving causal $\text{F1}$ ($0.0904$, $\text{ER} = 63.3\%$). Because ungated edits lower $k=2$ causal $\text{F1}$ on $11/19$ development streams ($0.141\to 0.049$) and $k\in\{8,12\}$ cuts PR-AUC ($0.292\to 0.223$), \emph{Laminar-JEPA-Lite} omits weight editing altogether.
 \end{enumerate}
 
-\noindent\emph{Statistical detector controls on the same cached runs:} A position-plus-drift subset reaches causal F1 $0.098$ at nominal held-out FPR $0.006$, versus $0.071$ and $0.008$ for the full panel; its paired F1 interval spans zero. A top-$k$ vote reaches F1 $0.078$ at FPR $0.010$. Hotelling $T^2$, MEWMA, and CUSUM score F1 $0.271$--$0.282$ but incur held-out FPR $0.304$--$0.594$. These development controls do not establish a matched-alert-rate advantage over statistical process control.
+\noindent\emph{Conformal, multiplicity-controlled, and SPC detector banks on identical residuals:} Table~\ref{tab:matched_alert} benchmarks the panel against split-conformal, multiple-testing, and SPC detectors on the same 19-stream multi-horizon residuals without test-label tuning. Under family-wise \v{S}id\'{a}k/Bonferroni or Benjamini--Hochberg ($0.5\%$) control across 128 coordinates or 224 dials, discrete calibration $p$-values have minimum resolution $(N_{\text{cal}}+1)^{-1} > 3.9\times 10^{-5}$, paralyzing causal recall ($\text{F1} \le 0.004$). Matching per-coordinate conformal thresholds to the panel's nominal calibration alert rate ($0.34\%$) causes tie-induced false-alarm inflation ($\text{FPR}_{\text{hold}} = 21.1\%$), as do recalibrated Mahalanobis conformal, Hotelling $T^2$, MEWMA, and CUSUM charts ($27.9\%\text{--}58.6\%$). By contrast, training-whitened multivariate $\ell_2$ split-conformal scoring ($\text{F1}=0.072$, $\text{ER}=60.8\%$, $\text{FPR}_{\text{hold}}=0.62\%$), Fisher/Stouffer $p$-value pooling ($0.109/0.095$), and the 160-dial subset ($0.098$) match or exceed the 224-dial panel on this cache, demonstrating that training-fixed whitening and bounded coordinate aggregation---not 224-dial complexity alone---drive false-alarm stability.
+
+\begin{table}[t]
+\centering
+\scriptsize
+\caption{Conformal, Multiplicity-Controlled, Reduced-Panel, and SPC Comparators on the 19-Stream Cache (3 Seeds, Causal Stream Means).\label{tab:matched_alert}}
+\setlength{\tabcolsep}{1.8pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}l S[table-format=1.3] S[table-format=1.3] S[table-format=1.4] S[table-format=1.4]@{}}
+\toprule
+{Detector (Calibration Rule)} & {Pt-F1 $\uparrow$} & {ER $\uparrow$} & {$\mathrm{FPR}_{\rm hold}\downarrow$} & {$\mathrm{FPR}_{\rm test}\downarrow$} \\
+\midrule
+224-dial panel (deployed) & .071 & .565 & .0076 & .0150 \\
+160-dial P+D (single quorum) & .098 & .591 & .0055 & .0087 \\
+224-dial single quorum (no relay) & .063 & .564 & .0055 & .0088 \\
+\addlinespace[1.5pt]
+Per-coord.\ conformal (\v{S}id\'{a}k $.005$) & .000 & .000 & .0000 & .0000 \\
+224-dial BH FDR ($q{=}.005$) & .004 & .018 & .0000 & .0001 \\
+Per-coord.\ conformal (matched) & .265 & .843 & .2111 & .2831 \\
+Multivar.\ conf.\ ($\|\mathbf{e}_{\text{white}}\|_2^2$, matched) & .072 & .608 & .0062 & .0095 \\
+Multivar.\ conf.\ (Mahal., $\alpha{=}.005$) & .279 & .896 & .2789 & .4739 \\
+\addlinespace[1.5pt]
+Fisher $p$-pool (matched) & .109 & .591 & .0105 & .0183 \\
+Maximum dial $z$ (matched) & .083 & .565 & .0093 & .0157 \\
+Hotelling $T^2$ (matched) & .283 & .896 & .2901 & .4831 \\
+\bottomrule
+\end{tabular*}
+\par\vspace{1.5pt}
+{\tiny Matched rules use each stream's nominal panel calibration alarm rate (mean $0.34\%$; Stouffer F1 $.095$, $\mathrm{FPR}_{\rm hold}$ $.0087$; Top-$k$ F1 $.070$, $\mathrm{FPR}_{\rm hold}$ $.0077$; MEWMA $.4301$, CUSUM $.5862$ $\mathrm{FPR}_{\rm hold}$).}
+\end{table}
 
 \subsection{Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}
 \label{subsec:gating_ablation}
-When a single sensor out of $K$ freezes or drifts while the remaining $K-1$ channels fluctuate normally, the isolated sensor perturbs the pooled pre-LayerNorm vector by only $O(1/K)$ before spherical normalization rescales the embedding onto $\sqrt{D}\mathbb{S}^{D-1}$. On six injected streams (Fig.~\ref{fig:regularizer_and_quiet_fault}(b)), 1D TS-JEPA catches $19.4\%$ of quiet-fault events, standalone \emph{Reynolds 224-Bit} reaches $25.0\%\text{--}29.2\%$, and a union with a rolling 32-step variance-collapse monitor reaches $44.4\%\text{--}52.8\%$. To evaluate a broader channel-level remedy across all 17 multivariate development streams ($K \in [5, 55]$, excluding univariate Yahoo), we pair the 224-bit panel with a complementary channel-level branch that monitors three causal per-channel statistics calibrated at $q_{0.999}$ on $\mathcal{D}_{\text{cal}}$ with drift guards $\gamma_c^{\text{cal}}$: (i)~rolling 32-step variance collapse $\max(0, 1 - s_c(t)/\text{med}_{\text{cal}}(s_c))$, (ii)~causal first-order autoregressive (AR(1)) prediction residuals $|x_{t,c} - \hat{\phi}_{1,c} x_{t-1,c} - \hat{\phi}_{0,c}|$, and (iii)~rolling 32-step mean bias $|\bar{x}_{t,c}^{(32)} - \mu_{\text{cal},c}|$. Across six single-channel fault classes injected into the test windows of all 17 streams, adding the variance-collapse monitor lifts event recall from $61.4\%$ to $93.0\%$ on variance collapse, $63.2\%$ to $93.0\%$ on sensor freezing, and $73.7\%$ to $96.5\%$ on sensor saturation (tripling to quintupling causal F1 to $0.376\text{--}0.414$). Adding the full AR(1) and bias branch further lifts event recall on single-channel prediction shocks ($80.7\% \to 98.2\%$, causal F1 $0.139 \to 0.327$), gradual sensor degradation ($68.4\% \to 93.0\%$, F1 $0.080 \to 0.154$), and isolated sensor bias ($70.2\% \to 93.0\%$, F1 $0.095 \to 0.195$). On unmodified test streams, however, monitoring $3K$ channel statistics in parallel raises nominal causal FPR from $1.5\%$ (standalone 224-Bit) to $6.8\%$ (variance-collapse union) and $19.4\%$ (full channel branch); thus, the variance-collapse union provides a practical safeguard for freeze and saturation faults, while full channel-residual monitoring requires cross-channel quorum gating when $K$ is large.
+Even when flatlining shifts the normalized summary ($0.64$ vs.\ $0.77$ relative divergence for a variance-matched harmonic flip on \texttt{SMAP P-3}), terminal LayerNorm spreads static error thinly across all $32$ coordinates ($12.5$ vs.\ $62.1$ switches; $6.3\%$ vs.\ $97.7\%$ window alerts), and single-sensor faults suffer further $O(1/K)$ dilution across $K-1$ nominal channels. Extending Fig.~\ref{fig:regularizer_and_quiet_fault}(b) ($n{=}6$), we evaluate a causal channel branch across all $19$ multivariate development streams ($K\in[5,55]$) without per-stream or test-label tuning. Per channel, three 64-step rolling statistics---log-variance drop $-\ln(\operatorname{Var}_{64}(x_c)+10^{-4})$, training-fit first-order autoregressive (AR(1)) residual RMS, and mean shift $|\bar{x}_{64,c}-\mu_c|/\sigma_c$---are thresholded at $1.25\,q_{0.999}$ on nominal validation windows (floor $6.0$ MAD, $1.25\times$ half-split drift multiplier) with a $24$-of-$40$-step persistence gate. On the highest-variance active channel $c^\star=\arg\max_{c:\sigma_c^{\text{tr}}>10^{-8}}\sigma_c^{\text{tr}}$, a deterministic 9-point grid over $[320,N_{\text{test}}-520]$ (stride-50 fallback) places three nonoverlapping $L_{\text{inj}}=200$-step faults ($57$ events/class, gap $\ge 264$) inside clean segments ($y^{\text{orig}}\equiv 0$ on $[s-64,s+264)$). For $s\le t<s+200$ using training $(\mu_c,\sigma_c,q_{.995,c})$:
+\begin{equation}
+\small
+x'_{t,c^\star}=
+\begin{cases}
+\mu_{c^\star} & \text{variance collapse},\\
+\mu_{c^\star}+1.35(-1)^{t-s}\sigma_{c^\star} & \text{prediction shock},\\
+x_{s-1,c^\star} & \text{sensor freezing},\\
+\max(q_{.995,c^\star},\mu_{c^\star}+2.2\sigma_{c^\star}) & \text{saturation},\\
+x_{t,c^\star}+2.5\sigma_{c^\star}(t-s)/199 & \text{gradual degradation},\\
+x_{t,c^\star}+1.5\sigma_{c^\star} & \text{isolated bias}.
+\end{cases}
+\label{eq:single_channel_injection}
+\end{equation}
+Outside $[s,s+200)$, all channels remain unchanged. Injected-event recall rises from $63.2\%$ (standalone panel) to $93.0\%$ for variance collapse, $63.2\%$ to $94.7\%$ for freezing, and $82.5\%$ to $94.7\%$ ($96.5\%$ full branch) for saturation under the variance-collapse union; the full channel branch raises recall from $75.4\%$ to $96.5\%$ on prediction shocks, $59.6\%$ to $80.7\%$ on gradual degradation, and $68.4\%$ to $86.0\%$ on isolated bias. However, on the \emph{unmodified} test streams, causal $\text{FPR}_{\text{test}}$ rises from $1.5\%$ (standalone panel, $\text{F1}=0.071$) to $6.8\%$ (variance-collapse union, $\text{F1}=0.070$) and $19.4\%$ (full branch, $\text{F1}=0.129$). Synthetic single-channel injections do not establish detection on natural sensor failures, and the full union's $19.4\%$ false-alarm rate makes it unsuitable as a default detector.
 
 \subsection{Ablation 3: Multiscale Dyadic-Shell Front-End vs.\ Standard Convolutional Stem}
 \label{subsec:dyadic_ablation}
-Retraining Multi-Horizon Reynolds JEPA with and without 4-shell rFFT splitting across five streams (\texttt{SMAP P-3}, \texttt{MSL M-1}, \texttt{SMD machine-1-2}, \texttt{Daphnet S01R01E1}, and \texttt{GECCO}, three seeds) shows a clear dimensionality threshold: frequency-shell splitting substantially improves detection on high-dimensional spacecraft arrays ($K=55$ \texttt{MSL M-1} buffered F1 $0.085 \to 0.410$; $K=25$ \texttt{SMAP P-3} causal F1 $0.212 \to 0.321$), where separating slow thermal drift from high-frequency actuator chatter prevents cross-band masking, but lowers accuracy on low-channel streams ($K=9$ \texttt{Daphnet} and \texttt{GECCO}), paying off only when $K \ge 25$.
+Retraining the multi-horizon JEPA backbone with and without 4-shell rFFT splitting on five streams (\texttt{SMAP P-3}, \texttt{MSL M-1}, \texttt{SMD machine-1-2}, \texttt{Daphnet S01R01E1}, \texttt{GECCO}; three seeds) reveals a clear channel-count threshold: shell splitting improves high-channel spacecraft detection ($K{=}55$ \texttt{MSL M-1} buffered F1 $0.085 \to 0.410$; $K{=}25$ \texttt{SMAP P-3} causal F1 $0.212 \to 0.321$) by separating thermal drift from actuator chatter, but lowers F1 at $K{=}9$ (\texttt{Daphnet}, \texttt{GECCO}), setting the $K \ge 25$ spectral gate in \emph{Laminar-JEPA-Lite}.
 
 \subsection{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}
 \label{subsec:controlled_backbone}
-Comparing all 15 model arms under matched budgets and parameter counts in Table~\ref{tab:ablations}(c) isolates five mechanisms governing false-alarm stability:
-(1)~\emph{Forecasting vs.\ reconstructing raw observations:} Using the identical causal dilated TCN encoder to forecast or reconstruct raw sensor waveforms leaves heavy residual tails ($\gamma_2 \approx 6.2$), severe calibration drift ($D_{\text{KS}} \approx 0.45$), and high causal false-alarm rates ($\approx 25\%$) virtually unchanged.
-(2)~\emph{LayerNorm bottleneck in observation space:} Inserting a $D=32$ LayerNorm bottleneck into the observation forecaster compresses tail kurtosis six-fold ($\gamma_2 = 0.91$) and halves causal false alarms, but predicting raw waveforms still leaves calibration drift high ($D_{\text{KS}} = 0.376$).
-(3)~\emph{Learned latent target projection and whitening:} Moving the prediction target into the learned $D=32$ spherical space halves calibration drift ($D_{\text{KS}} = 0.214$ in TS-JEPA and $0.179$ in Multi-Horizon Reynolds JEPA, $p \le 0.001$).
-(4)~\emph{Nonlinear TCN vs.\ linear PCA and Isolation Forest:} Linear principal-component forecasting maintains low false alarms but lacks the nonlinear capacity to capture fault dynamics, while Isolation Forest misses most anomaly events.
-(5)~\emph{Prediction vs.\ autoencoding, frozen targets, and $\ell_2$ scoring:} Latent context autoencoding sacrifices causal accuracy relative to multi-horizon prediction, whereas freezing the target encoder or replacing Mahalanobis whitening with $\ell_2$ scoring still keeps causal false alarms below $2\%$, confirming that false-alarm suppression is an intrinsic geometric property of the normalized latent representation.
+Comparing all 16 matched-budget arms in Table~\ref{tab:ablations}(c) isolates five mechanisms: (1)~raw-observation forecasting and autoencoding share heavy tails ($\gamma_2 \approx 6.2$), large drift ($D_{\text{KS}} \approx 0.45$), and $\approx 25\%$ causal FPR; (2)~a $D{=}32$ LayerNorm bottleneck in observation space cuts kurtosis ($\gamma_2 = 0.91$) and halves FPR, yet raw targets keep drift high ($D_{\text{KS}} = 0.376$); (3)~learned $D{=}32$ latent targets and whitening halve drift ($D_{\text{KS}} = 0.214$ in TS-JEPA and $0.179\text{--}0.190$ across multi-horizon JEPA tiers, $p \le 0.001$); (4)~linear PCA and Isolation Forest keep low FPR but miss nonlinear faults; and (5)~frozen targets and $\ell_2$ scoring retain $<2\%$ causal FPR, whereas latent context autoencoding lowers causal F1.

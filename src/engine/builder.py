@@ -58,6 +58,7 @@ from src.models.jepa.tangent_harmonic_jepa import TangentHarmonicJEPAModel
 from src.models.jepa.tangent_normal_jepa import TangentNormalJEPAModel
 from src.models.jepa.transfer_function_jepa import TransferFunctionJEPAModel
 from src.models.jepa.ts_jepa import TSJEPAModel
+from src.models.laminar_lite import LaminarJEPALiteModel, LaminarLiteEncoder
 
 logger = logging.getLogger("NCAD.engine.builder")
 
@@ -103,6 +104,7 @@ EncoderModel = Union[
     EddyDeltaJEPAModel,
     AnchoredStokesJEPAModel,
     SolitonReynoldsJEPAModel,
+    LaminarJEPALiteModel,
 ]
 
 
@@ -574,6 +576,21 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             predictor_hidden_dim=max(64, config.latent_dim * 2),
             ema_decay=0.996,
             dropout=config.dropout,
+        )
+    elif canonical == "laminar_jepa_lite":
+        lite_encoder = LaminarLiteEncoder(
+            input_dim=input_dim,
+            latent_dim=config.latent_dim,
+            filters=config.filters,
+            tcn_layers=min(4, config.tcn_layers),
+            kernel_size=config.kernel_size,
+        )
+        model = LaminarJEPALiteModel(
+            context_encoder=lite_encoder,
+            latent_dim=config.latent_dim,
+            predictor_hidden_dim=max(64, config.latent_dim * 2),
+            ema_decay=0.996,
+            num_horizons=3,
         )
     else:
         raise ValueError(f"Unsupported model type: {config.model_type!r} (canonical: {canonical!r})")

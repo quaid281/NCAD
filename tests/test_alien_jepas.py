@@ -347,3 +347,80 @@ def test_multi_perspective_224bit_circuit_breaker_panel():
         assert dec.test_pred_balanced.shape == dec.test_switch_counts.shape
         assert set(np.unique(dec.test_pred_balanced)).issubset({0, 1})
         assert dec.test_switch_counts[20:30].mean() > dec.cal_switch_counts.mean()
+
+
+def test_proposition1_fluctuation_gram_dimensions_and_equality_bounds():
+    from src.scoring.circuit_breaker_panel import build_224_perspective_dials
+
+    torch.manual_seed(7)
+    B, M, D = 5, 4, 8
+    e_tilde = torch.randn(B, M, D, dtype=torch.float64)
+    e_bar = e_tilde.mean(dim=1, keepdim=True)
+    fluct = e_tilde - e_bar  # F(t) in R^{M x D}
+
+    # 1. Gram matrix G = F F^T in S_+^M (not F^T F in R^{D x D}) with null vector 1_M
+    ones_m = torch.ones(B, M, 1, dtype=torch.float64)
+    assert torch.allclose(torch.bmm(fluct.transpose(1, 2), ones_m), torch.zeros(B, D, 1, dtype=torch.float64), atol=1e-12)
+    gram = torch.bmm(fluct, fluct.transpose(1, 2))
+    assert gram.shape == (B, M, M)
+    assert torch.allclose(torch.bmm(gram, ones_m), torch.zeros(B, M, 1, dtype=torch.float64), atol=1e-12)
+    evals = torch.linalg.eigvalsh(gram)
+    assert torch.allclose(evals[:, 0], torch.zeros(B, dtype=torch.float64), atol=1e-12)
+
+    # 2. General interior bounds: R_LT(F) in [1 / (M - 1), 1] for gamma > -0.5
+    for gamma in (-0.25, 0.5, 1.0):
+        r_gen = SolitonReynoldsJEPAModel.lieb_thirring_soliton_ratio(fluct.float(), gamma=gamma)
+        assert torch.all(r_gen >= (1.0 / (M - 1)) - 1e-5)
+        assert torch.all(r_gen <= 1.0 + 1e-5)
+
+    # 3. Equality at lower bound 1 / (M - 1): isotropic energy across M - 1 zero-sum horizon modes
+    helmert = torch.tensor(
+        [
+            [1.0, -1.0, 0.0, 0.0],
+            [1.0, 1.0, -2.0, 0.0],
+            [1.0, 1.0, 1.0, -3.0],
+        ],
+        dtype=torch.float64,
+    )  # (M - 1, M), rows orthogonal to 1_M
+    helmert = helmert / torch.linalg.norm(helmert, dim=1, keepdim=True)
+    q_d, _ = torch.linalg.qr(torch.randn(B, D, M - 1, dtype=torch.float64))  # orthonormal columns in R^D
+    f_iso = torch.matmul(helmert.T.unsqueeze(0), q_d.transpose(1, 2))  # (B, M, D)
+    assert torch.allclose(f_iso.sum(dim=1), torch.zeros(B, D, dtype=torch.float64), atol=1e-12)
+    r_iso = SolitonReynoldsJEPAModel.lieb_thirring_soliton_ratio(f_iso.float(), gamma=1.0)
+    assert torch.allclose(r_iso, torch.full((B,), 1.0 / (M - 1)), atol=1e-5)
+
+    # 4. Equality at upper bound 1: rank-one zero-mean fluctuation F = u v^T with u^T 1_M = 0
+    u_raw = torch.randn(B, M, 1, dtype=torch.float64)
+    u_zero = u_raw - u_raw.mean(dim=1, keepdim=True)
+    v_vec = torch.randn(B, 1, D, dtype=torch.float64)
+    f_rank1 = torch.bmm(u_zero, v_vec)
+    r_rank1 = SolitonReynoldsJEPAModel.lieb_thirring_soliton_ratio(f_rank1.float(), gamma=1.0)
+    assert torch.allclose(r_rank1, torch.ones(B), atol=1e-5)
+
+    # 5. Proposition 1(i): coordinate-wise energy orthogonality and endpoint difference bound
+    dials = build_224_perspective_dials(e_tilde.numpy().astype(np.float32))
+    d_pos = dials[:, : 4 * D].reshape(B, M, D)
+    d_drift = dials[:, 4 * D : 5 * D]
+    d_fluc = dials[:, 5 * D : 6 * D]
+    d_accel = dials[:, 6 * D : 7 * D]
+    assert np.allclose(np.mean(d_pos**2, axis=1), d_drift**2 + d_fluc**2, atol=1e-5)
+    assert np.all(d_accel <= np.sqrt(2.0 * M) * d_fluc + 1e-5)
+
+
+def test_disjoint_checkpoint_selection_split_no_calibration_overlap():
+    import pytest
+    from scripts.run_tier2_exhaustive_benchmark import W, split_train_checkpoint_block
+
+    raw_nominal = np.arange(4000 * 3, dtype=np.float32).reshape(4000, 3)
+    n_val = int(len(raw_nominal) * 0.35)
+    tr_full, va_full = raw_nominal[:-n_val], raw_nominal[-n_val:]
+    tr_fit, select_blk = split_train_checkpoint_block(tr_full, len(raw_nominal))
+
+    assert len(tr_fit) + len(select_blk) == len(tr_full)
+    assert len(select_blk) >= W + 64
+    assert np.intersect1d(tr_fit[:, 0], select_blk[:, 0]).size == 0
+    assert np.intersect1d(select_blk[:, 0], va_full[:, 0]).size == 0
+
+    with pytest.raises(ValueError, match="Insufficient disjoint training history"):
+        split_train_checkpoint_block(raw_nominal[: W + 70], 1000)
+

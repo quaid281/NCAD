@@ -16,22 +16,27 @@ from __future__ import annotations
 
 import argparse
 import itertools
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy.stats import wilcoxon
 
 from scripts.circuit_breaker_19stream.common import DEVELOPMENT_STREAMS, ROOT
+from scripts.run_tier2_exhaustive_benchmark import atomic_save_csv
 
 PANEL = "Speculative-224Bit-Breaker"
 BASELINES = ("Speculative-Alien-JEPA", "TS-JEPA")
+REQUIRED_MODELS = ("TS-JEPA", "Speculative-JEPA", "Speculative-Alien-JEPA",
+                   "Speculative-224Bit-Strict", PANEL)
+SEEDS = (42, 123, 456)
 METRICS = ("f1", "event_recall", "mean_delay", "hold_fpr", "pr_auc")
 N_BOOT = 2000
 TIE_TOL = 1e-4  # |dF1| below this counts as a tie, matching the manuscript win counts
 
 
-def load_stream_means() -> pd.DataFrame:
-    d = pd.read_csv(ROOT / "reports" / "heldout_tier2_141stream_circuit_breaker.csv")
+def load_stream_means(input_path: Path | None = None) -> pd.DataFrame:
+    d = pd.read_csv(input_path or ROOT / "reports" / "heldout_tier2_141stream_circuit_breaker.csv")
     is_panel = d.model.str.contains("224Bit")
     d = d[(is_panel & (d.calibrator == "CircuitBreaker")) | (~is_panel & (d.calibrator == "SPOT"))]
     d = d.assign(ds=d.dataset.str.lower(), ch=d.channel.astype(str))
@@ -56,12 +61,44 @@ def sign_flip_p(cluster_means: np.ndarray) -> float:
     return float((np.abs((flips * cluster_means).mean(axis=1)) >= obs - 1e-12).mean())
 
 
+def bh_adjust(p_values: np.ndarray) -> np.ndarray:
+    """Benjamini-Hochberg adjusted p-values for one explicitly defined family."""
+    p = np.asarray(p_values, dtype=float)
+    if not len(p):
+        return p.copy()
+    order = np.argsort(p)
+    q = np.minimum.accumulate((p[order] * len(p) / np.arange(1, len(p) + 1))[::-1])[::-1]
+    adjusted = np.empty_like(q)
+    adjusted[order] = np.clip(q, 0.0, 1.0)
+    return adjusted
+
+
+def validate_complete_archive(rows: pd.DataFrame, manifest: set[tuple[str, str]]) -> None:
+    panel = rows.model.isin(REQUIRED_MODELS[-2:])
+    baselines = rows.model.isin(REQUIRED_MODELS[:3])
+    selected = rows[(panel & (rows.calibrator == "CircuitBreaker")) |
+                    (baselines & (rows.calibrator == "SPOT"))]
+    actual = set(zip(selected.dataset, selected.channel))
+    groups = selected.groupby(["dataset", "channel", "model", "seed", "mapping"]).size()
+    expected = len(manifest) * len(REQUIRED_MODELS) * len(SEEDS) * 2
+    if (actual != manifest or len(groups) != expected or not groups.eq(1).all() or
+            set(selected.seed) != set(SEEDS) or set(selected.mapping) != {"trailing", "smear"}):
+        raise ValueError(f"Incomplete or duplicated archive: {len(actual)} streams, {len(groups)}/{expected} model-seed-mapping cells")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--input", type=Path, default=ROOT / "reports" / "heldout_tier2_141stream_circuit_breaker.csv")
     ap.add_argument("--out-prefix", default=str(ROOT / "reports" / "benchmark_141"))
     args = ap.parse_args()
+    targets = [Path(f"{args.out_prefix}_{suffix}.csv") for suffix in ("headline_ci", "paired_tests", "lodo")]
+    if any(path.exists() for path in targets):
+        raise FileExistsError("Choose a new --out-prefix to preserve existing benchmark statistics")
+    manifest = {tuple(line.split(":", 1)) for line in
+                (ROOT / "reports" / "streams_141_tier2.txt").read_text(encoding="utf-8").splitlines() if line}
+    validate_complete_archive(pd.read_csv(args.input), manifest)
     rng = np.random.default_rng(0)
-    sm = load_stream_means()
+    sm = load_stream_means(args.input)
     head_rows, pair_rows, lodo_rows = [], [], []
 
     for mapping in ("trailing", "smear"):
@@ -100,9 +137,14 @@ def main() -> None:
                                               p_wilcoxon=float(wilcoxon(diff[keep]).pvalue)))
 
     head, pairs, lodo = pd.DataFrame(head_rows), pd.DataFrame(pair_rows), pd.DataFrame(lodo_rows)
-    head.to_csv(f"{args.out_prefix}_headline_ci.csv", index=False)
-    pairs.to_csv(f"{args.out_prefix}_paired_tests.csv", index=False)
-    lodo.to_csv(f"{args.out_prefix}_lodo.csv", index=False)
+    focal = (pairs.mapping == "trailing") & (pairs.cohort == "untouched118")
+    pairs["p_wilcoxon_bh"] = np.nan
+    pairs["p_signflip_dataset_bh"] = np.nan
+    for raw, adjusted in (("p_wilcoxon", "p_wilcoxon_bh"),
+                          ("p_signflip_dataset", "p_signflip_dataset_bh")):
+        pairs.loc[focal, adjusted] = bh_adjust(pairs.loc[focal, raw].to_numpy())
+    for frame, path in zip((head, pairs, lodo), targets):
+        atomic_save_csv(frame, path)
 
     pd.set_option("display.width", 250)
     print("=== HEADLINE (224Bit-Breaker vs 1D baselines) ===")

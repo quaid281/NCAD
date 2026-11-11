@@ -365,6 +365,14 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         description="Unified Helmholtz-Soliton JEPA combining solenoidal vorticity curl, Lieb-Thirring soliton wavepackets, and LCS coreset null-space memory.",
         category="primary",
     ),
+    ModelSpec(
+        canonical_name="laminar_jepa_lite",
+        aliases=("laminar_lite", "reynolds_lite"),
+        is_jepa=True,
+        requires_patch_division=False,
+        description="Streamlined 3-horizon unified-predictor spherical JEPA with K>=25 dyadic gating, 4-block TCN, tap/barycenter centering, and 128-bit P+D panel.",
+        category="ablation",
+    ),
 )
 
 

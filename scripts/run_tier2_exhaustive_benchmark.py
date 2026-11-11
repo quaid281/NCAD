@@ -65,6 +65,13 @@ def atomic_save_csv(df: pd.DataFrame, out_path: Path) -> None:
     os.replace(tmp_path, out_path)
 
 
+def split_train_checkpoint_block(train: np.ndarray, total_nominal_length: int) -> tuple[np.ndarray, np.ndarray]:
+    n_select = max(W + 64, int(0.15 * total_nominal_length))
+    if len(train) - n_select < W + 16:
+        raise ValueError("Insufficient disjoint training history for checkpoint selection")
+    return train[:-n_select], train[-n_select:]
+
+
 @torch.no_grad()
 def evaluate_jepa_validation(
     m: nn.Module, val_w: np.ndarray, cfg: CSMConfig, device: torch.device, is_speculative: bool
@@ -361,17 +368,34 @@ def main() -> None:
     )
     ap.add_argument("--fresh", action="store_true", help="Start completely fresh (ignore any existing output CSV)")
     ap.add_argument("--quiet-epochs", action="store_true", help="Only print summary per seed instead of every epoch")
+    ap.add_argument(
+        "--checkpoint-source",
+        choices=("calibration", "train_holdout"),
+        default="calibration",
+        help="Select checkpoints on nominal calibration windows (legacy) or a disjoint training holdout",
+    )
     a = ap.parse_args()
 
     out_path = Path(a.out)
     baseline_path = Path(a.baseline_csv)
+    if a.checkpoint_source == "train_holdout":
+        if out_path == Path(ap.get_default("out")) or out_path == baseline_path:
+            raise ValueError("Clean checkpoint selection requires a distinct --out path")
+        if a.fresh and out_path.exists():
+            raise ValueError("--fresh would overwrite an existing independent-protocol result")
     streams_path = Path(a.streams)
     streams = [tuple(ln.strip().split(":", 1)) for ln in streams_path.read_text().splitlines() if ln.strip()]
 
     existing_rows = []
     if not a.fresh and out_path.exists():
-        existing_rows.extend(pd.read_csv(out_path).to_dict("records"))
-    elif not a.fresh and baseline_path.exists() and out_path != baseline_path:
+        existing_df = pd.read_csv(out_path)
+        if a.checkpoint_source == "train_holdout" and (
+            "checkpoint_source" not in existing_df
+            or not existing_df["checkpoint_source"].eq(a.checkpoint_source).all()
+        ):
+            raise ValueError("Cannot resume independent-protocol run from mismatched output")
+        existing_rows.extend(existing_df.to_dict("records"))
+    elif a.checkpoint_source == "calibration" and not a.fresh and baseline_path.exists() and out_path != baseline_path:
         base_df = pd.read_csv(baseline_path)
         existing_rows.extend(base_df.to_dict("records"))
         atomic_save_csv(base_df, out_path)
@@ -411,18 +435,26 @@ def main() -> None:
             train, test, y = load_stream(ds, ch)
             n_val = int(len(train) * a.val_frac)
             tr, va = train[:-n_val], train[-n_val:]
+            if a.checkpoint_source == "train_holdout":
+                tr, select = split_train_checkpoint_block(tr, len(train))
             mu, sd_arr = tr.mean(0), tr.std(0)
             sc = np.where(sd_arr < 1e-8, 1.0, np.maximum(sd_arr, 0.01))
             tr_s, va_s, te_s = (tr - mu) / sc, (va - mu) / sc, (test - mu) / sc
             tr_w = DataLoader.create_windows(tr_s, W, step=16, copy=False)
             va_w = DataLoader.create_windows(va_s, W, step=1, copy=False)
             te_w = DataLoader.create_windows(te_s, W, step=1, copy=False)
-            cal_block_s = va_s[: len(va_s) // 2]
-            val_mon_w = DataLoader.create_windows(
-                cal_block_s, W, step=max(1, min(8, (len(cal_block_s) - W) // 32)), copy=False
-            )
-            if len(val_mon_w) == 0:
-                val_mon_w = va_w[: max(1, len(va_w) // 2) : 8]
+            if a.checkpoint_source == "train_holdout":
+                select_s = (select - mu) / sc
+                val_mon_w = DataLoader.create_windows(
+                    select_s, W, step=max(1, min(8, (len(select_s) - W) // 32)), copy=False
+                )
+            else:
+                cal_block_s = va_s[: len(va_s) // 2]
+                val_mon_w = DataLoader.create_windows(
+                    cal_block_s, W, step=max(1, min(8, (len(cal_block_s) - W) // 32)), copy=False
+                )
+                if len(val_mon_w) == 0:
+                    val_mon_w = va_w[: max(1, len(va_w) // 2) : 8]
 
             k = train.shape[1]
             print(
@@ -557,12 +589,17 @@ def main() -> None:
                         done_keys.add((ds, ch, seed, "Speculative-224Bit-Breaker"))
 
                 print(f"   seed={seed} completed (saved to {out_path.name})", flush=True)
-                atomic_save_csv(pd.DataFrame(rows), out_path)
+                df_progress = pd.DataFrame(rows)
+                if a.checkpoint_source == "train_holdout":
+                    df_progress["checkpoint_source"] = a.checkpoint_source
+                atomic_save_csv(df_progress, out_path)
 
         except Exception as exc:
             print(f"   FAILED {ds}:{ch}: {type(exc).__name__}: {exc}", flush=True)
 
     df_final = pd.DataFrame(rows)
+    if a.checkpoint_source == "train_holdout":
+        df_final["checkpoint_source"] = a.checkpoint_source
     atomic_save_csv(df_final, out_path)
     print(f"\nSaved {len(df_final)} rows to {out_path}", flush=True)
     print_summary(df_final)

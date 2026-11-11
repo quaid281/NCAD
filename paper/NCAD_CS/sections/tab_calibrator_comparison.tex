@@ -2,24 +2,25 @@
 \centering
 \scriptsize
 \setlength{\tabcolsep}{1.2pt}
-\caption{Archive-Wide Circuit-Breaker Benchmark (3 Seeds): 118 Held-Out Streams Never Used in Development, Full 141-Stream Aggregate, and Per-Dataset Breakdown.\label{tab:calibrator_comparison}}
+\caption{Disjoint-Selection Archive Benchmark ($\mathbf{X}_{\text{sel}} \perp \mathbf{X}_{\text{cal}}$, 3 Seeds): 118 Untouched Held-Out Streams, 141-Stream Archive, and Multi-Stream Cohorts.\label{tab:calibrator_comparison}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l cc cc cc cc @{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{PR-AUC $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{FPR$_{\text{hold}}$ $\downarrow$}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
-\textbf{(a) Held-Out $n{=}118$} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
+\textbf{(a) Untouched $n{=}118$} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
-TS-JEPA (1D)               & .072 & .142 & .154 & .202 & .484 & .458 & \textbf{.051} & \textbf{.104} \\
-Speculative-JEPA (1D)      & .076 & .148 & .172 & .245 & .509 & .577 & \underline{.054} & .194 \\
-Spec.-Alien-JEPA (1D)      & .083 & .146 & .174 & .242 & .512 & .573 & .059 & .199 \\
+TS-JEPA (1D)                   & .060 & .131 & .153 & .200 & .423 & .475 & \textbf{.042} & \textbf{.109} \\
+Multi-Horizon JEPA (1D)        & .074 & .138 & \textbf{.169} & \textbf{.234} & .495 & .552 & .059 & .178 \\
 \addlinespace[1.5pt]
-\textbf{Spec.-224Bit-Strict}  & \underline{.134} & \underline{.166} & \textbf{.183} & \textbf{.247} & \underline{.662} & \underline{.673} & .073 & \underline{.181} \\
-\textbf{Spec.-224Bit-Breaker} & \textbf{.143}$^\dagger$ & \textbf{.168}$^\ddagger$ & \textbf{.183} & \textbf{.247} & \textbf{.728} & \textbf{.691} & .083 & .210 \\
-\textbf{Laminar-JEPA (224-Bit)} & .091 & .149 & {--} & {--} & .622 & .609 & .073$^\S$ & .205 \\
+Laminar-JEPA (w/o Quench)      & \underline{.077} & \underline{.146} & .147 & \underline{.229} & \underline{.639} & \underline{.626} & .056 & .181 \\
+\textbf{Laminar-JEPA (224B)}   & .073 & .141 & .144 & .222 & .621 & .613 & \underline{.054}$^\S$ & .174 \\
+\textbf{Laminar-JEPA-Lite (128B)} & \textbf{.085}$^\dagger$ & \textbf{.153}$^\ddagger$ & \underline{.148} & .220 & \textbf{.670}$^\P$ & \textbf{.686} & .057 & \underline{.120} \\
 \midrule
-\textbf{All $n{=}141$ (incl.\ 23 dev.)} & & & & & & & & \\
-Spec.-Alien-JEPA (1D)      & .077 & .153 & .184 & .253 & .507 & .567 & .051 & .180 \\
-Spec.-224Bit-Breaker       & .139 & .180 & .197 & .261 & .727 & .685 & .072 & .196 \\
+\multicolumn{9}{@{}l@{}}{\textbf{All Archive $n{=}141$ ($12$ Datasets, $\mathbf{X}_{\text{sel}} \perp \mathbf{X}_{\text{cal}}$)}} \\
+TS-JEPA (1D)                   & .055 & .136 & .165 & .213 & .426 & .475 & \textbf{.036} & \textbf{.103} \\
+Multi-Horizon JEPA (1D)        & .070 & .146 & \textbf{.182} & \textbf{.246} & .492 & .543 & .050 & .163 \\
+\textbf{Laminar-JEPA (224B)}   & .069 & \underline{.150} & .159 & \underline{.237} & \underline{.634} & \underline{.623} & \underline{.046} & .161 \\
+\textbf{Laminar-JEPA-Lite (128B)} & \textbf{.084} & \textbf{.155} & \underline{.161} & .233 & \textbf{.665} & \textbf{.679} & .050 & \underline{.107} \\
 \bottomrule
 \end{tabular*}
 
@@ -29,15 +30,15 @@ Spec.-224Bit-Breaker       & .139 & .180 & .197 & .261 & .727 & .685 & .072 & .1
 \toprule
 & & \multicolumn{3}{c}{\textbf{Causal Pt-F1 $\uparrow$}} & \multicolumn{3}{c}{\textbf{Buffered Pt-F1 $\uparrow$}} & \multicolumn{3}{c}{\textbf{Causal FPR$_{\text{hold}}$ $\downarrow$}} \\
 \cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}
-\textbf{(b) Held-out} & {$n$} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} & \textbf{224B} & \textbf{1D-Al.} & \textbf{TS} \\
+\textbf{(b) Held-out} & {$n$} & \textbf{Lite} & \textbf{Lam.} & \textbf{1D} & \textbf{Lite} & \textbf{Lam.} & \textbf{1D} & \textbf{Lite} & \textbf{Lam.} & \textbf{1D} \\
 \midrule
-SMAP        & 40 & \textbf{.194} & \underline{.129} & .091 & \underline{.201} & .193 & \textbf{.214} & .088 & .086 & \textbf{.065} \\
-SMD         & 18 & \textbf{.090} & .028 & \underline{.042} & \textbf{.125} & .065 & \underline{.072} & .019 & \textbf{.006} & .009 \\
-Exathlon    & 17 & \textbf{.163} & \underline{.133} & .092 & \underline{.181} & \textbf{.186} & .134 & .235 & .137 & \textbf{.119} \\
-Daphnet     & 15 & \textbf{.125} & .053 & \underline{.075} & \textbf{.153} & \underline{.125} & .105 & .085 & \textbf{.063} & \textbf{.063} \\
-MSL         & 13 & \textbf{.133} & .051 & \underline{.074} & \textbf{.239} & .176 & \underline{.191} & .023 & \textbf{.007} & .011 \\
-OPPORT.     & 12 & \textbf{.075} & .018 & \underline{.024} & \underline{.066} & \textbf{.067} & .030 & .027 & \textbf{.003} & .008 \\
+SMAP        & 40 & \underline{.097} & .077 & \textbf{.141} & \underline{.177} & .175 & \textbf{.201} & \textbf{.048} & \underline{.062} & .125 \\
+SMD         & 18 & \underline{.052} & \textbf{.074} & .027 & \underline{.124} & \textbf{.135} & .067 & \underline{.016} & .031 & \textbf{.004} \\
+Exathlon    & 17 & \textbf{.178} & \underline{.138} & .085 & \textbf{.217} & \underline{.168} & .131 & .181 & \underline{.113} & \textbf{.098} \\
+Daphnet     & 15 & \textbf{.088} & \underline{.070} & .037 & \textbf{.150} & \underline{.138} & .093 & .081 & \underline{.075} & \textbf{.009} \\
+MSL         & 13 & .023 & \textbf{.032} & \underline{.026} & .104 & \underline{.112} & \textbf{.211} & \underline{.010} & .013 & \textbf{.004} \\
+OPPORT.     & 12 & \textbf{.029} & \underline{.016} & .010 & \textbf{.093} & \underline{.048} & .043 & .011 & \underline{.008} & \textbf{.004} \\
 \bottomrule
-\multicolumn{11}{@{}p{\columnwidth}@{}}{\tiny $^\dagger$vs.\ 1D Spec.-Alien: $\Delta{=}{+}0.060$ ($95\%$ CI $[{+}0.042, {+}0.079]$), $95/15$ wins, $p{=}1.6{\times}10^{-13}$, positive in $8$ of $9$ datasets (sign-flip $p{=}0.008$); vs.\ TS-JEPA $85/28$, $p{=}6.4{\times}10^{-11}$. $^\ddagger$vs.\ 1D Spec.-Alien: $\Delta{=}{+}0.021$ ($[{+}0.010, {+}0.034]$), $p{=}1.7{\times}10^{-4}$, dataset-level $p{=}0.27$. $^\S$4-horizon Laminar-JEPA vs.\ unquenched 4-horizon panel: causal $\text{FPR}_{\text{hold}}$ $-8.2\%$ ($p{=}0.0011$, dataset $p{=}0.027$; median $1.03\%$ on $n{=}162$, $1.13\%$ on $n{=}118$), $\text{FPR}_{\text{test}}$ $-4.8\%$ ($p{<}10^{-4}$, dataset $p{=}0.016$; median $1.59\%$ on $n{=}162$). In (b), 224B = Spec.-224Bit-Breaker, 1D-Al.\ = 1D Spec.-Alien, TS = TS-JEPA ($115$ of $118$ streams; three single-stream datasets in text).} \\
+\multicolumn{11}{@{}p{\columnwidth}@{}}{\tiny $^\dagger$Lite vs.\ Multi-Horizon 1D ($n{=}118$): causal F1 $\Delta{=}{+}0.012$ ($69/39$ wins, Wilcoxon $p{=}0.0034$; vs.\ TS-JEPA ${+}0.025$, cluster CI $[{+}0.005,{+}0.046]$, $77/35$ wins, $p{=}1.6{\times}10^{-4}$); positive in $12/12$ LODO folds on $n{=}141$ ($\max p{=}0.015$). $^\ddagger$Buf.\ F1 $\Delta{=}{+}0.015$ ($72/38$ wins, $p{=}0.0067$; vs.\ Laminar-JEPA ${+}0.012$, $p{=}0.026$, median buf.\ $\text{FPR}_{\text{hold}}$ $1.96\%$ vs.\ $4.74\%$). $^\P$Causal ER $\Delta{=}{+}0.175$ vs.\ Multi-Horizon 1D (cluster CI $[{+}0.105,{+}0.273]$, $68/10$ wins, $8/9$ datasets, sign-flip $p{=}0.012$; Laminar-JEPA ${+}0.126$, $8/9$ datasets, $p{=}0.016$). $^\S$Quenching vs.\ unquenched 4H: causal $\text{FPR}_{\text{hold}}$ $\Delta{=}{-}0.002$ ($7/9$ datasets improved, $0$ worse, sign-flip $p{=}0.016$, Wilcoxon $p{=}2.7{\times}10^{-4}$; median $0.96\%$ vs.\ $1.25\%$). In (b), 1D = Multi-Horizon JEPA (1D).} \\
 \end{tabular*}\par\vspace{-4pt}
 \end{table}

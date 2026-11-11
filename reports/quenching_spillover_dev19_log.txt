@@ -1,0 +1,27 @@
+Daphnet:S01R01E1: abstain_clean, selected=0
+Daphnet:S02R01E0: surgical_k4, selected=4
+Daphnet:S02R02E0: abstain_clean, selected=0
+Daphnet:S03R01E0: abstain_gate, selected=0
+Daphnet:S03R01E1: surgical_k2, selected=2
+Daphnet:S03R02E0: surgical_k4, selected=4
+Genesis:default: surgical_k2, selected=2
+metro:traffic-volume: abstain_gate, selected=0
+MSL:C-1: surgical_k2, selected=2
+MSL:D-14: surgical_k2, selected=2
+MSL:D-15: surgical_k4, selected=4
+MSL:M-1: abstain_gate, selected=0
+SMAP:A-1: surgical_k2, selected=2
+SMAP:A-2: abstain_gate, selected=0
+SMAP:A-7: surgical_k2, selected=2
+SMAP:D-3: abstain_gate, selected=0
+SMAP:P-3: surgical_k2, selected=2
+SMAP:E-1: surgical_k4, selected=4
+C:\Users\andre\anaconda3\envs\alpha\lib\site-packages\numpy\_core\_methods.py:194: RuntimeWarning: overflow encountered in multiply
+  x = um.multiply(x, x, out=x)
+swan:sf: abstain_gate, selected=0
+               hold_other_median  hold_other_above_10pct    pre_f1   post_f1
+mode                                                                        
+abstain_clean           0.000000                0.000000  0.121215  0.121215
+abstain_gate            0.000000                0.000000  0.009338  0.009338
+surgical_k2             0.100854                0.409524  0.140817  0.049155
+surgical_k4             0.105756                0.553571  0.148855  0.128465

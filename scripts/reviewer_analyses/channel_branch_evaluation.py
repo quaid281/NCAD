@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Evaluate a complementary channel-level anomaly branch alongside the 224-bit JEPA panel
-across all 17 multivariate streams (K > 1) of the 19-stream cohort and 6 single-channel fault types.
+across all 19 multivariate streams (K > 1) of the development cohort and 6 single-channel fault types.
 
 Addresses Reviewer Concern 4:
 Evaluates:
@@ -40,6 +40,7 @@ from scripts.circuit_breaker_19stream.common import C, S, VAL_FRAC, W, cache_pat
 from scripts.experiment_wsp_soliton import extract_raw4_white4_from_latents
 from scripts.reviewer_analyses.run_224bit_horizon_sweep import fast_extract_latents
 from scripts.run_multiseed_heldout_benchmark import batches, compute_metrics, event_stats, load_stream
+from scripts.run_tier2_exhaustive_benchmark import atomic_save_csv
 from src.config import CSMConfig
 from src.data.data_loader import DataLoader
 from src.engine.builder import build_ts_jepa_model
@@ -61,14 +62,13 @@ def inject_single_channel_fault(
     ch_idx: int,
     fault_type: str,
     train_norm: np.ndarray,
-    rng: np.random.Generator,
     n_events: int = 3,
     dur: int = 200,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Inject `n_events` single-channel faults of `fault_type` into nominal regions of `test_norm`."""
     x_mod = test_norm.copy()
     n = len(x_mod)
-    y_synth = np.zeros(n, dtype=np.int64)
+    y_synth = np.asarray(y_orig, dtype=np.int64).copy()
     ch_mean = float(np.mean(train_norm[:, ch_idx]))
     ch_std = max(float(np.std(train_norm[:, ch_idx])), 0.1)
     ch_p995 = float(np.quantile(train_norm[:, ch_idx], 0.995))
@@ -76,11 +76,21 @@ def inject_single_channel_fault(
     # Pick 3 evenly spaced nominal windows after C+S
     usable_start = W + 50
     usable_end = n - dur - 50
-    if usable_end <= usable_start + n_events * dur:
-        starts = [max(W, n // 3)]
-    else:
-        stride = (usable_end - usable_start) // n_events
-        starts = [usable_start + i * stride for i in range(n_events)]
+    if usable_end < usable_start:
+        return x_mod, y_synth
+    candidates = np.arange(usable_start, usable_end + 1)
+    counts = np.r_[0, np.cumsum(y_synth != 0, dtype=np.int64)]
+    eligible = candidates[counts[candidates + dur] == counts[candidates]]
+    if not len(eligible):
+        return x_mod, y_synth
+    starts = []
+    indices = np.linspace(0, len(eligible) - 1, min(len(eligible), n_events * 3)).astype(int)
+    for s in eligible[indices]:
+        if starts and s - starts[-1] < dur + 64:
+            continue
+        starts.append(int(s))
+        if len(starts) == n_events:
+            break
 
     for s in starts:
         e = min(n, s + dur)
@@ -233,9 +243,18 @@ def main() -> None:
     panel = MultiPerspectiveCircuitBreakerPanel()
     streams = load_streams_19()
     rows: list[dict[str, object]] = []
+    out_path = Path(args.out)
+    if out_path.exists():
+        existing = pd.read_csv(out_path)
+        if "injection_protocol" not in existing or not existing["injection_protocol"].eq("nominal_disjoint_v2").all():
+            raise ValueError("Cannot resume corrected injection study from an older protocol artifact")
+        rows.extend(existing.to_dict("records"))
+    completed = {str(row["stream"]) for row in rows}
     t0 = time.time()
 
     for ds, ch in streams:
+        if f"{ds}:{ch}" in completed:
+            continue
         train, test, y_orig = load_stream(ds, ch)
         K = train.shape[1]
         if K <= 1:
@@ -252,11 +271,12 @@ def main() -> None:
 
         n_val = int(len(train) * VAL_FRAC)
         tr, va = train[:-n_val], train[-n_val:]
-        mu, sd = tr.mean(0), tr.std(0)
+        mu = tr.mean(0, dtype=np.float64)
+        sd = tr.std(0, dtype=np.float64)
         sc = np.where(sd < 1e-8, 1.0, np.maximum(sd, 0.01))
-        tr_norm = (tr - mu) / sc
-        va_norm = (va - mu) / sc
-        te_norm = (test - mu) / sc
+        tr_norm = ((tr - mu) / sc).astype(np.float32)
+        va_norm = ((va - mu) / sc).astype(np.float32)
+        te_norm = ((test - mu) / sc).astype(np.float32)
 
         tr_w = DataLoader.create_windows(tr_norm, W, step=16, copy=False)
         va_w = DataLoader.create_windows(va_norm, W, step=1, copy=False)
@@ -300,19 +320,19 @@ def main() -> None:
         # Pick active dynamic sensor with highest training std
         active_indices = np.where(ch_branch.active_mask)[0]
         target_ch = int(active_indices[np.argmax(sd[active_indices])])
-        rng = np.random.default_rng(42)
-
         for ftype in (*FAULT_TYPES, "0_unmodified_test"):
             if ftype == "0_unmodified_test":
                 x_te_cur, y_cur = te_norm, y_orig
                 z_ctx_te, z_tgt_te = z_ctx_te_orig, z_tgt_te_orig
             else:
                 x_te_cur, y_cur = inject_single_channel_fault(
-                    te_norm, y_orig, target_ch, ftype, tr_norm, rng
+                    te_norm, y_orig, target_ch, ftype, tr_norm
                 )
+                if not np.any((y_cur != 0) & (y_orig == 0)):
+                    continue
                 te_w = DataLoader.create_windows(x_te_cur, W, step=1, copy=False)
-                # Only re-encode windows that overlap the injected fault timestamps y_cur == 1
-                fault_idx = np.where(y_cur == 1)[0]
+                # Only re-encode windows that overlap the injected fault timestamps
+                fault_idx = np.where((y_cur != 0) & (y_orig == 0))[0]
                 aff_mask = np.zeros(len(te_w), dtype=bool)
                 if len(fault_idx) > 0:
                     # Any window starting in [t - W + 1, t] overlaps timestamp t
@@ -353,7 +373,8 @@ def main() -> None:
                 mt = compute_metrics(
                     tl, prd, scores=scr, valid_mask=np.ones_like(tl, dtype=bool), use_pa=False
                 )
-                er, delay = event_stats(tl, prd)
+                injected_labels = ((y_cur != 0) & (y_orig == 0))[valid_mask].astype(np.int64)
+                er, delay = event_stats(injected_labels if ftype != "0_unmodified_test" else tl, prd)
                 tfpr = float(prd[tl == 0].mean()) if np.any(tl == 0) else 0.0
                 rows.append(
                     {
@@ -361,6 +382,8 @@ def main() -> None:
                         "K": K,
                         "target_channel": target_ch,
                         "fault_type": ftype,
+                        "injection_protocol": "nominal_disjoint_v2",
+                        "n_injected_events": int(np.count_nonzero(np.diff(np.r_[0, injected_labels]) == 1)),
                         "variant": vname,
                         "f1": float(mt["f1"]),
                         "precision": float(mt["precision"]),
@@ -371,12 +394,13 @@ def main() -> None:
                         "delay": float(delay),
                     }
                 )
+        atomic_save_csv(pd.DataFrame(rows), out_path)
         print(f"[{time.time() - t0:5.1f}s] {ds}:{ch} (K={K}) 6-fault channel evaluation done", flush=True)
 
     df = pd.DataFrame(rows)
-    df.to_csv(args.out, index=False)
+    atomic_save_csv(df, out_path)
 
-    print("\n=== SINGLE-CHANNEL FAULT EVALUATION ACROSS ALL 17 MULTIVARIATE STREAMS (K > 1) ===")
+    print("\n=== SINGLE-CHANNEL FAULT EVALUATION ACROSS ALL 19 MULTIVARIATE STREAMS (K > 1) ===")
     summary = (
         df.groupby(["fault_type", "variant"])[
             ["event_recall", "f1", "precision", "recall", "fpr", "delay"]

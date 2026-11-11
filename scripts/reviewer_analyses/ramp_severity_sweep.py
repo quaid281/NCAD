@@ -70,6 +70,7 @@ from __future__ import annotations
 import argparse
 import copy as copylib
 import math
+import os
 from pathlib import Path
 import sys
 import time
@@ -244,9 +245,10 @@ def train_stream(ds: str, ch: str, device: torch.device):
     train, test, y_test = load_stream(ds, ch)
     n_val = int(len(train) * VAL_FRAC)
     tr, va = train[:-n_val], train[-n_val:]
-    mu, sd = tr.mean(0), tr.std(0)
+    mu, sd = tr.mean(0, dtype=np.float64), tr.std(0, dtype=np.float64)
     sc = np.where(sd < 1e-8, 1.0, np.maximum(sd, 0.01))
-    tr_norm, va_norm = (tr - mu) / sc, (va - mu) / sc
+    tr_norm = ((tr - mu) / sc).astype(np.float32)
+    va_norm = ((va - mu) / sc).astype(np.float32)
     tr_w = DataLoader.create_windows(tr_norm, W, step=16, copy=False)
     va_w = DataLoader.create_windows(va_norm, W, step=1, copy=False)
     torch.manual_seed(SEED)
@@ -394,11 +396,10 @@ def main() -> None:
                                                 "amp": amp, "L": L})
         rows.extend(stream_rows)
         df = pd.DataFrame(rows)
-        tmp = out_path.with_suffix(".tmp.csv")
+        tmp = out_path.with_suffix(f".tmp.{os.getpid()}.csv")
         df.to_csv(tmp, index=False)
         tmp.replace(out_path)
         del model, scorer
-        torch.cuda.empty_cache()
         print(f"[{time.time() - t_start:7.1f}s] {name} done in {time.time() - t_s:6.1f}s (seg={n_seg}, K={K})", flush=True)
 
     df = pd.read_csv(out_path)

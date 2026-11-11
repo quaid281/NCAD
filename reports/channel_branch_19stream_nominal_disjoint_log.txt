@@ -1,0 +1,53 @@
+[  4.8s] Daphnet:S01R01E1 (K=9) 6-fault channel evaluation done
+[  8.6s] Daphnet:S02R01E0 (K=9) 6-fault channel evaluation done
+[ 13.0s] Daphnet:S02R02E0 (K=9) 6-fault channel evaluation done
+[ 16.9s] Daphnet:S03R01E0 (K=9) 6-fault channel evaluation done
+[ 20.8s] Daphnet:S03R01E1 (K=9) 6-fault channel evaluation done
+[ 24.2s] Daphnet:S03R02E0 (K=9) 6-fault channel evaluation done
+[ 27.3s] Genesis:default (K=18) 6-fault channel evaluation done
+[ 32.0s] metro:traffic-volume (K=5) 6-fault channel evaluation done
+[ 34.0s] MSL:C-1 (K=55) 6-fault channel evaluation done
+[ 36.0s] MSL:D-14 (K=55) 6-fault channel evaluation done
+[ 37.9s] MSL:D-15 (K=55) 6-fault channel evaluation done
+[ 39.8s] MSL:M-1 (K=55) 6-fault channel evaluation done
+[ 42.7s] SMAP:A-1 (K=25) 6-fault channel evaluation done
+[ 45.3s] SMAP:A-2 (K=25) 6-fault channel evaluation done
+[ 48.3s] SMAP:A-7 (K=25) 6-fault channel evaluation done
+[ 51.3s] SMAP:D-3 (K=25) 6-fault channel evaluation done
+[ 54.3s] SMAP:P-3 (K=25) 6-fault channel evaluation done
+[ 57.4s] SMAP:E-1 (K=25) 6-fault channel evaluation done
+C:\Users\andre\anaconda3\envs\alpha\lib\site-packages\numpy\_core\_methods.py:194: RuntimeWarning: overflow encountered in multiply
+  x = um.multiply(x, x, out=x)
+[ 63.4s] swan:sf (K=38) 6-fault channel evaluation done
+
+=== SINGLE-CHANNEL FAULT EVALUATION ACROSS ALL 17 MULTIVARIATE STREAMS (K > 1) ===
+                                                            event_recall      f1  precision  recall     fpr     delay
+fault_type             variant                                                                                       
+0_unmodified_test      1_Standalone_JEPA_224Bit                   0.5645  0.0709     0.3163  0.0538  0.0150   90.1077
+                       2_Hybrid_VarCollapse_Monitor               0.5645  0.0697     0.2565  0.0581  0.0678   90.1077
+                       3_Channel_PredRes_Bias_Only                0.1968  0.0735     0.1465  0.1145  0.1731  229.4048
+                       4_JEPA_224Bit_+_Full_Channel_Branch        0.6069  0.1294     0.2522  0.1650  0.1943   85.0542
+1_variance_collapse    1_Standalone_JEPA_224Bit                   0.6316  0.0721     0.4038  0.0462  0.0164   54.0392
+                       2_Hybrid_VarCollapse_Monitor               0.9298  0.2439     0.5544  0.1888  0.0853   65.0877
+                       3_Channel_PredRes_Bias_Only                0.1404  0.0751     0.1552  0.0983  0.1751   11.2222
+                       4_JEPA_224Bit_+_Full_Channel_Branch        0.9298  0.2680     0.4399  0.2741  0.2105   55.9298
+2_channel_pred_shock   1_Standalone_JEPA_224Bit                   0.7544  0.1210     0.4941  0.0839  0.0234   59.6759
+                       2_Hybrid_VarCollapse_Monitor               0.7719  0.1205     0.4315  0.0877  0.0774   59.0093
+                       3_Channel_PredRes_Bias_Only                0.5789  0.2290     0.3021  0.2473  0.2224   60.1818
+                       4_JEPA_224Bit_+_Full_Channel_Branch        0.9649  0.3187     0.4472  0.3233  0.2459   42.2719
+3_sensor_freezing      1_Standalone_JEPA_224Bit                   0.6316  0.0655     0.4139  0.0418  0.0163   59.4118
+                       2_Hybrid_VarCollapse_Monitor               0.9474  0.2482     0.5601  0.1946  0.0877   65.8596
+                       3_Channel_PredRes_Bias_Only                0.1754  0.0821     0.1603  0.1097  0.1755   36.5333
+                       4_JEPA_224Bit_+_Full_Channel_Branch        0.9474  0.2723     0.4471  0.2822  0.2129   56.1053
+4_sensor_saturation    1_Standalone_JEPA_224Bit                   0.8246  0.1150     0.4910  0.0935  0.0208   48.9123
+                       2_Hybrid_VarCollapse_Monitor               0.9474  0.2886     0.6037  0.2397  0.0891   51.2544
+                       3_Channel_PredRes_Bias_Only                0.7895  0.2722     0.3943  0.2800  0.2050   61.6000
+                       4_JEPA_224Bit_+_Full_Channel_Branch        0.9649  0.3579     0.4781  0.3799  0.2297   36.5263
+5_gradual_degradation  1_Standalone_JEPA_224Bit                   0.5965  0.0882     0.4241  0.0634  0.0184   78.4020
+                       2_Hybrid_VarCollapse_Monitor               0.6140  0.0878     0.3665  0.0675  0.0724   77.6373
+                       3_Channel_PredRes_Bias_Only                0.4561  0.1197     0.1575  0.1495  0.1898  102.0741
+                       4_JEPA_224Bit_+_Full_Channel_Branch        0.8070  0.1932     0.3405  0.2124  0.2131   63.7500
+6_isolated_sensor_bias 1_Standalone_JEPA_224Bit                   0.6842  0.1035     0.4653  0.0793  0.0185   48.9804
+                       2_Hybrid_VarCollapse_Monitor               0.7018  0.1037     0.4012  0.0851  0.0726   48.2157
+                       3_Channel_PredRes_Bias_Only                0.4035  0.1427     0.1974  0.1798  0.1873   50.0417
+                       4_JEPA_224Bit_+_Full_Channel_Branch        0.8596  0.2296     0.3898  0.2593  0.2108   37.0741

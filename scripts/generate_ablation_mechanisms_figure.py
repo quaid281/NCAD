@@ -7,10 +7,10 @@ Follows `.agents/skills/beautiful-research-figures/SKILL.md`:
   - Strict external-only frameless horizontal legends (`bbox_to_anchor` outside axes)
   - Subtle dual-hierarchy gridlines strictly behind data (`set_axisbelow(True)`)
   - Clean two-panel layout with zero dual-axis clutter and zero overlapping symbols:
-      Panel (a): 6-step fluid-dynamic perspective expansion ladder (1D Scalar -> Reynolds 224B)
+      Panel (a): 6-step multi-horizon perspective expansion ladder (1D Scalar -> 224-Bit Panel)
                  showing strictly causal and buffered Point-F1 with shaded gain envelope ($n=19$).
       Panel (b): Injected single-channel fault Event Recall (%) comparing 1D TS-JEPA,
-                 standalone Reynolds 224B, and Hybrid 224-Bit Union ($n=6$).
+                 standalone 224-Bit Panel, and Hybrid 224-Bit Union ($n=6$).
 """
 
 from pathlib import Path
@@ -45,7 +45,7 @@ def main() -> None:
         "128-Bit\nSub-Blk",
         "160-Bit\n(+Drift)",
         "192-Bit\n(+Fluc.)",
-        "Reynolds\n224-Bit",
+        "224-Bit\n(+Relays)",
     ]
     x_a = np.arange(len(stages), dtype=float)
 
@@ -164,7 +164,7 @@ def main() -> None:
     ax_a.set_xlim(-0.38, len(stages) - 0.55)
     ax_a.set_ylim(0.0, 0.270)
     ax_a.set_yticks([0.0, 0.05, 0.10, 0.15, 0.20, 0.25])
-    ax_a.set_xlabel("Fluid-Dynamic Perspective Expansion (n=19 Streams)", fontsize=8.5, labelpad=3)
+    ax_a.set_xlabel("Multi-Horizon Perspective Expansion (n=19 Streams)", fontsize=8.5, labelpad=3)
     ax_a.set_ylabel("Unadjusted Point-F1", fontsize=8.5)
     ax_a.set_title("(a) 1D Collapse vs. 224-Bit Panel", fontsize=9.0, fontweight="bold", pad=22)
 
@@ -200,7 +200,7 @@ def main() -> None:
 
     series = [
         (er_1d_jepa, -width, "#b8b8b8", "#4e4e4e", "1D TS-JEPA"),
-        (er_224bit, 0.0, "#9671bd", "#5b3280", "Reynolds 224B"),
+        (er_224bit, 0.0, "#9671bd", "#5b3280", "224-Bit Panel"),
         (er_hybrid, width, "#77b5b6", "#1f6f78", "Hybrid 224-Bit Union"),
     ]
 

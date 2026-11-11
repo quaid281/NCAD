@@ -1,9 +1,9 @@
 \begin{table*}[!t]
 \centering
-\caption{Separately trained 33-stream development benchmark across attribution regimes (19 non-GHL, 14 GHL); not paired with the current-cache ablation in Table~\ref{tab:ablations}(a,b). Best in \textbf{bold}, second \underline{underlined}.\label{tab:core_benchmark}}
+\caption{Primary 33-stream development benchmark across attribution regimes (19 non-GHL at 5 seeds, 14 GHL at 3 seeds; separately trained from the residual-cache ablation in Table~\ref{tab:ablations}(a,b)). Best in \textbf{bold}, second \underline{underlined}.\label{tab:core_benchmark}}
 \scriptsize
-\setlength{\tabcolsep}{3.5pt}
-\renewcommand{\arraystretch}{1.06}
+\setlength{\tabcolsep}{3.4pt}
+\renewcommand{\arraystretch}{1.05}
 \begin{tabular*}{\textwidth}{
     @{\extracolsep{\fill}}
     l
@@ -26,39 +26,38 @@
 \cmidrule(lr){2-6} \cmidrule(lr){7-10} \cmidrule(lr){11-12} \cmidrule(l){13-13}
 \textbf{Architecture} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{PR-AUC} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{DS-F1} $\uparrow$} \\
 \midrule
-\multicolumn{13}{@{}l}{\textit{Multi-perspective fluid-dynamic circuit-breaker architectures}} \\
-\quad \textbf{Laminar-JEPA (224-Bit)}   & 0.107             & \bfseries 0.262   & \underline{0.406} & \bfseries 0.664   & 89.9              & 0.016             & 0.100             & \bfseries 0.625   & \bfseries 59.6    & \bfseries 0.002   & 0.000             & \bfseries 0.139 \\
-\quad \textbf{Reynolds 224-Bit Breaker} & 0.132             & \underline{0.228} & \bfseries 0.411   & \underline{0.631} & \underline{71.8}  & 0.017             & 0.138             & \underline{0.607} & 105.9             & \bfseries 0.002   & 0.000             & \underline{0.122} \\
-\quad \textbf{Reynolds 224-Bit Strict}  & 0.098             & 0.190             & \bfseries 0.411   & 0.545             & 97.3              & 0.011             & 0.116             & 0.534             & 248.0             & \bfseries 0.002   & 0.000             & 0.098 \\
+\multicolumn{13}{@{}l}{\textit{Multi-horizon coordinate circuit-breaker architectures}} \\
+\quad \textbf{Laminar-JEPA (224-Bit)}       & 0.128             & \bfseries 0.244   & \bfseries 0.407   & \bfseries 0.669   & 432.9             & 0.013             & 0.144             & \bfseries 0.673   & 249.9             & 0.004             & 0.000             & \underline{0.133} \\
+\quad \textbf{Laminar-JEPA-Lite (128-Bit)}  & \underline{0.061} & \underline{0.242} & \underline{0.397} & \underline{0.636} & \underline{59.3}  & \underline{0.010} & 0.133             & \underline{0.650} & \underline{73.8}  & 0.005             & 0.000             & \bfseries 0.171   \\
 \addlinespace[2.0pt]
 \multicolumn{13}{@{}l}{\textit{1D scalar-scored latent predictive baselines (JEPAs)}} \\
-\quad TS-JEPA (unconstrained 1D)            & 0.093             & 0.206             & 0.331             & 0.477             & 110.3             & 0.024             & \underline{0.161} & 0.487             & 124.0             & 0.004             & 0.000             & 0.115 \\
-\quad Reynolds (1D scalar)          & \underline{0.078} & 0.148             & 0.331             & 0.430             & 127.1             & \bfseries 0.006   & 0.050             & 0.478             & 154.0             & \bfseries 0.002   & 0.000             & 0.073 \\
-\quad Reynolds ($\alpha_{\text{LT}}{=}0$, 1D) & 0.083  & 0.149             & 0.330             & 0.462             & 113.3             & \bfseries 0.006   & 0.055             & 0.439             & 138.4             & \bfseries 0.002   & 0.000             & 0.074 \\
+\quad TS-JEPA (unconstrained 1D)            & 0.093             & 0.206             & 0.331             & 0.477             & 110.3             & 0.024             & \underline{0.161} & 0.487             & 124.0             & 0.004             & 0.000             & 0.115             \\
+\quad Multi-Horizon JEPA (1D)               & 0.078             & 0.148             & 0.331             & 0.430             & 127.1             & \bfseries 0.006   & 0.050             & 0.478             & 154.0             & \bfseries 0.002   & 0.000             & 0.073             \\
+\quad Multi-Horizon JEPA ($\alpha_{\text{LT}}{=}0$, 1D) & 0.083 & 0.149             & 0.330             & 0.462             & 113.3             & \bfseries 0.006   & 0.055             & 0.439             & 138.4             & \bfseries 0.002   & 0.000             & 0.074             \\
 \addlinespace[2.0pt]
 \multicolumn{13}{@{}l}{\textit{Observation-space reconstructive and linear baselines}} \\
-\quad TimesNet                              & 0.300             & 0.197             & 0.329             & 0.583             & \bfseries 48.5    & 0.243             & \bfseries 0.209   & 0.588             & \underline{62.2}  & 0.061             & \bfseries 0.022   & 0.100 \\
-\quad TranAD                                & 0.307             & 0.130             & 0.287             & 0.490             & 234.4             & 0.222             & 0.140             & 0.533             & 241.0             & 0.046             & \underline{0.020} & 0.069 \\
-\quad Linear AR Forecaster                  & \bfseries 0.005   & 0.051             & 0.255             & 0.432             & 87.8              & {--}              & {--}              & {--}              & {--}              & \bfseries 0.002   & 0.000             & 0.038 \\
+\quad TimesNet                              & 0.300             & 0.197             & 0.329             & 0.583             & \bfseries 48.5    & 0.243             & \bfseries 0.209   & 0.588             & \bfseries 62.2    & 0.061             & \bfseries 0.022   & 0.100             \\
+\quad TranAD                                & 0.307             & 0.130             & 0.287             & 0.490             & 234.4             & 0.222             & 0.140             & 0.533             & 241.0             & 0.046             & \underline{0.020} & 0.069             \\
+\quad Linear AR Forecaster                  & \bfseries 0.005   & 0.051             & 0.255             & 0.432             & 87.8              & {--}              & {--}              & {--}              & {--}              & \bfseries 0.002   & 0.000             & 0.038             \\
 \bottomrule
 \end{tabular*}
 
-\vspace{3.5pt}
+\vspace{3.0pt}
 \setlength{\tabcolsep}{2.2pt}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l rrr cc ccccc ccccc@{}}
 \toprule
 & \multicolumn{5}{c}{\textbf{(c) Dataset Summary}} & \multicolumn{5}{c}{\textbf{Buffered Point-F1 $\uparrow$}} & \multicolumn{5}{c}{\textbf{Held-Out FPR (Causal / Buffered) $\downarrow$}} \\
 \cmidrule(lr){2-6} \cmidrule(lr){7-11} \cmidrule(lr){12-16}
-\textbf{Dataset} & {$n$} & {$K$} & {$E$} & {$\pi$} & {$\text{F1}_{\text{all}}$} & {\textbf{224-Bit}} & {\textbf{TS-JEPA}} & {\textbf{Rey.\ 1D}} & {\textbf{TimesNet}} & {\textbf{TranAD}} & {\textbf{224-Bit}} & {\textbf{TS-JEPA}} & {\textbf{Rey.\ 1D}} & {\textbf{TimesNet}} & {\textbf{TranAD}} \\
+\textbf{Dataset} & {$n$} & {$K$} & {$E$} & {$\pi$} & {$\text{F1}_{\text{all}}$} & {\textbf{Lam.}} & {\textbf{Lite}} & {\textbf{TS-JEPA}} & {\textbf{TimesNet}} & {\textbf{TranAD}} & {\textbf{Lam.}} & {\textbf{Lite}} & {\textbf{TS-JEPA}} & {\textbf{TimesNet}} & {\textbf{TranAD}} \\
 \midrule
-Daphnet & 6  & 9  & 72   & 0.148 & 0.256 & \underline{0.223} & 0.145             & 0.143             & \textbf{0.229}    & 0.144             & \textbf{.007/.047} & .030/.091          & \underline{.008/.072} & .291/.313          & .250/.298 \\
-GHL     & 14 & 16 & 26   & 0.013 & 0.026 & 0.000             & 0.000             & 0.000             & \textbf{0.022}    & \underline{0.020} & \textbf{.001/.002} & \underline{.004/.004} & \textbf{.001/.002} & .056/.061          & .040/.046 \\
-Genesis & 1  & 18 & 2    & 0.003 & 0.006 & \textbf{0.063}    & 0.000             & \underline{0.012} & 0.000             & 0.000             & .010/.038          & .004/.017          & \underline{.003}/.098 & \textbf{.000/.000} & \textbf{.000/.000} \\
-MSL     & 4  & 55 & 6    & 0.255 & 0.381 & \textbf{0.199}    & \underline{0.161} & 0.081             & 0.158             & 0.151             & \underline{.014}/.131 & .054/\textbf{.095} & \textbf{.004}/\underline{.098} & .161/.133 & .132/.241 \\
-SMAP    & 6  & 25 & 7    & 0.150 & 0.236 & \underline{0.354} & \textbf{0.379}    & 0.267             & 0.289             & 0.167             & .021/.214          & \underline{.014/.135} & \textbf{.006/.093} & .333/.549          & .360/.513 \\
-Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & 0.000             & \textbf{0.001}    & \textbf{0.001}    & 0.000             & \underline{.002/.007} & .008/.014       & \underline{.002/.007} & \textbf{.000/.000} & \textbf{.000/.000} \\
-SWAN    & 1  & 38 & 6615 & 0.279 & 0.437 & \underline{0.017} & \textbf{0.119}    & 0.008             & 0.000             & 0.000             & \textbf{.000/.000} & \textbf{.000/.000} & .001/\textbf{.000}    & \textbf{.000/.000} & \textbf{.000/.000} \\
+Daphnet & 6  & 9  & 72   & 0.148 & 0.256 & \underline{0.214} & 0.179             & 0.145             & \textbf{0.229}    & 0.144             & \textbf{.009/.061}    & \underline{.012/.091} & .030/.091             & .291/.313          & .250/.298 \\
+GHL     & 14 & 16 & 26   & 0.013 & 0.026 & 0.000             & 0.000             & 0.000             & \textbf{0.022}    & \underline{0.020} & \textbf{.003/.004}    & .005/.005             & \underline{.004/.004} & .056/.061          & .040/.046 \\
+Genesis & 1  & 18 & 2    & 0.003 & 0.006 & \underline{0.078} & \textbf{0.191}    & 0.000             & 0.000             & 0.000             & .009/.104             & .008/.020             & \underline{.004/.017} & \textbf{.000/.000} & \textbf{.000/.000} \\
+MSL     & 4  & 55 & 6    & 0.255 & 0.381 & \textbf{0.284}    & \underline{0.210} & 0.161             & 0.158             & 0.151             & \underline{.013}/.151 & \textbf{.004/.049}    & .054/\underline{.095} & .161/.133          & .132/.241 \\
+SMAP    & 6  & 25 & 7    & 0.150 & 0.236 & 0.357             & \underline{0.375} & \textbf{0.379}    & 0.289             & 0.167             & .021/.223             & \underline{.016}/\textbf{.066} & \textbf{.014}/\underline{.135} & .333/.549 & .360/.513 \\
+Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & 0.000             & 0.000             & \textbf{0.001}    & 0.000             & .010/.014             & \underline{.001}/\textbf{.000} & .008/.014    & \textbf{.000/.000} & \textbf{.000/.000} \\
+SWAN    & 1  & 38 & 6615 & 0.279 & 0.437 & 0.000             & \textbf{0.240}    & \underline{0.119} & 0.000             & 0.000             & \textbf{.000/.000}    & .001/\textbf{.000}    & \textbf{.000/.000}    & \textbf{.000/.000} & \textbf{.000/.000} \\
 \bottomrule
 \end{tabular*}\par\vspace{2pt}\noindent
-\parbox{\textwidth}{\scriptsize\emph{Note:} In (c), $n$ = streams, $K$ = channels, $E$ = events, $\pi$ = anomaly rate, $\text{F1}_{\text{all}} = 2\pi/(1+\pi)$. 95\% stream-bootstrap CIs ($n{=}19$): 224-Bit Breaker buffered FPR $[.068, .198]$, F1 $[.142, .321]$ and causal FPR $[.008, .027]$, F1 $[.068, .224]$ (vs.\ Reynolds 1D causal F1 $[.013, .097]$ and TimesNet causal FPR $[.123, .375]$).}\vspace{-5pt}
+\parbox{\textwidth}{\scriptsize\emph{Note:} In (c), $n$ = streams, $K$ = channels, $E$ = events, $\pi$ = anomaly rate, $\text{F1}_{\text{all}} = 2\pi/(1+\pi)$, Lam.\ = Laminar-JEPA, Lite = Laminar-JEPA-Lite. Unweighted Laminar-JEPA mean $\Delta t$ reflects one late trigger on SWAN ($0.0002$ recall; stream-median $\Delta t$ is $50.5$ buffered and $45.8$ causal, or $54.8$ and $57.2$ across the 16 non-SWAN streams). 95\% stream-bootstrap CIs ($n{=}19$): Laminar-JEPA-Lite buffered FPR $[.030, .103]$, F1 $[.151, .335]$ and causal FPR $[.006, .014]$, F1 $[.055, .236]$; Laminar-JEPA buffered F1 $[.150, .357]$ and causal FPR $[.009, .018]$, F1 $[.058, .257]$ (vs.\ Multi-Horizon 1D causal F1 $[.013, .097]$ and TimesNet causal FPR $[.123, .375]$).}\vspace{-5pt}
 \end{table*}

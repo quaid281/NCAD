@@ -146,3 +146,53 @@ def test_autopsy_anomaly_divergence():
     # Every layer receiving perturbed input should show positive divergence
     for layer, div in report.anomaly_divergence.items():
         assert div > 0.0
+
+
+def test_tracer_on_flagship_laminar_jepa_zero_leakage():
+    """Verify multi-horizon leaf tracing and strict context causality on SolitonReynoldsJEPAModel."""
+    torch.manual_seed(0)
+    config = CSMConfig(
+        model_type="soliton_reynolds_jepa",
+        context_size=64,
+        suspect_size=16,
+        latent_dim=16,
+        filters=16,
+        tcn_layers=3,
+    )
+    device = torch.device("cpu")
+    model = build_ts_jepa_model(config, input_dim=4, device=device).eval()
+
+    x_ctx = torch.randn(8, 64, 4)
+    x_tgt_nom = torch.randn(8, 16, 4)
+    x_tgt_anom = x_tgt_nom.clone()
+    x_tgt_anom[:, -4:, 0] += 6.0
+
+    report = autopsy_model(
+        model,
+        sample_input=(x_ctx, x_tgt_nom),
+        anomalous_input=(x_ctx, x_tgt_anom),
+        model_name="Laminar-JEPA-Flagship",
+    )
+    assert report.global_health != "CRITICAL_UNSTABLE"
+
+    # Sub-predictor must be traced 3 times (m=1,2,3) and target_tap_head 4 times (m=1..4)
+    sub_hits = [r.name for r in report.records if r.name.startswith("sub_predictor.net.0")]
+    tgt_tap_hits = [r.name for r in report.records if r.name.startswith("target_tap_head.net.0")]
+    assert len(sub_hits) == 3
+    assert len(tgt_tap_hits) == 4
+
+    # Strict causality: perturbing target window ONLY must produce zero divergence in context & predictors,
+    # and strictly positive divergence in terminal target prefix (m=4 -> #3).
+    for k, div in report.anomaly_divergence.items():
+        if k.startswith(("context_encoder.", "context_tap_head.", "sub_predictor.", "predictor.")):
+            assert div == pytest.approx(0.0, abs=1e-6), f"Future target leaked into {k}: div={div}"
+    last_tap_key = [r.name for r in report.records if r.name.startswith("target_tap_head.net.3")][-1]
+    assert report.anomaly_divergence[last_tap_key] > 0.0
+    # First 3 prefixes [0:4], [0:8], [0:12] also must not see perturbation restricted to [-4:] = [12:16]!
+    first_tap_key = [r.name for r in report.records if r.name.startswith("target_tap_head.net.3")][0]
+    assert report.anomaly_divergence[first_tap_key] == pytest.approx(0.0, abs=1e-6)
+
+    # Hook cleanup invariant
+    for module in model.modules():
+        assert len(module._forward_hooks) == 0
+

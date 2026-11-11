@@ -1,0 +1,569 @@
+Starting fresh Tier-2 benchmark: 141 streams x 3 seeds (max_epochs=12, patience=4).
+[001/141] == Daphnet:S01R01E1 (K=9) train=6899 val=4828 test=58880 anom=0.0717
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[002/141] == Daphnet:S02R01E0 (K=9) train=2560 val=1792 test=20480 anom=0.1727
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[003/141] == Daphnet:S02R02E0 (K=9) train=6092 val=4263 test=51968 anom=0.1397
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[004/141] == Daphnet:S03R01E0 (K=9) train=4641 val=3248 test=44032 anom=0.1459
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[005/141] == Daphnet:S03R01E1 (K=9) train=2268 val=1586 test=28672 anom=0.1830
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[006/141] == Daphnet:S03R02E0 (K=9) train=1665 val=1164 test=13312 anom=0.1732
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[007/141] == Daphnet:S05R01E0 (K=9) train=1895 val=1325 test=15872 anom=0.0640
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[008/141] == Daphnet:S05R01E1 (K=9) train=981 val=734 test=11674 anom=0.1782
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[009/141] == Daphnet:S05R01E2 (K=9) train=877 val=679 test=11264 anom=0.2077
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[010/141] == Daphnet:S05R02E0 (K=9) train=3364 val=2354 test=28672 anom=0.2524
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[011/141] == Daphnet:S05R02E1 (K=9) train=3009 val=2105 test=24064 anom=0.2218
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[012/141] == Daphnet:S06R01E0 (K=9) train=5120 val=3584 test=40960 anom=0.1966
+Resuming with 1056 rows in heldout_tier2_141stream_independent_select.csv.
+[001/141] == Daphnet:S01R01E1 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[002/141] == Daphnet:S02R01E0 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[003/141] == Daphnet:S02R02E0 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[004/141] == Daphnet:S03R01E0 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[005/141] == Daphnet:S03R01E1 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[006/141] == Daphnet:S03R02E0 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[007/141] == Daphnet:S05R01E0 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[008/141] == Daphnet:S05R01E1 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[009/141] == Daphnet:S05R01E2 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[010/141] == Daphnet:S05R02E0 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[011/141] == Daphnet:S05R02E1 (already completed in heldout_tier2_141stream_independent_select.csv, skipping)
+[012/141] == Daphnet:S06R01E0 (K=9) train=5120 val=3584 test=40960 anom=0.1966
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[013/141] == Daphnet:S06R01E1 (K=9) train=3073 val=2150 test=24576 anom=0.0111
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[014/141] == Daphnet:S06R01E2 (K=9) train=2560 val=1792 test=20480 anom=0.0043
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[015/141] == Daphnet:S07R01E0 (K=9) train=7112 val=4978 test=59392 anom=0.0547
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[016/141] == Daphnet:S07R02E0 (K=9) train=2881 val=2015 test=23040 anom=0.0580
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[017/141] == Daphnet:S08R01E0 (K=9) train=1473 val=1030 test=11776 anom=0.1875
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[018/141] == Daphnet:S08R01E2 (K=9) train=1345 val=940 test=10752 anom=0.0985
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[019/141] == Daphnet:S09R01E0 (K=9) train=864 val=672 test=7680 anom=0.0421
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[020/141] == Daphnet:S09R01E2 (K=9) train=1797 val=1257 test=28160 anom=0.1362
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[021/141] == Daphnet:S09R01E3 (K=9) train=4458 val=3120 test=36864 anom=0.1219
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[022/141] == Daphnet:S09R01E4 (K=9) train=864 val=672 test=7680 anom=0.0349
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[023/141] == Exathlon:10_2_1000000_67 (K=20) train=949 val=717 test=8200 anom=0.6377
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[024/141] == Exathlon:10_3_1000000_75 (K=20) train=4667 val=3265 test=37325 anom=0.0958
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[025/141] == Exathlon:10_4_1000000_79 (K=20) train=3661 val=2561 test=34469 anom=0.1144
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[026/141] == Exathlon:1_4_1000000_80 (K=20) train=3661 val=2561 test=34470 anom=0.1129
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[027/141] == Exathlon:2_1_100000_60 (K=20) train=4667 val=3265 test=37324 anom=0.0740
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[028/141] == Exathlon:2_5_1000000_87 (K=20) train=4311 val=3016 test=34480 anom=0.0001
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[029/141] == Exathlon:4_1_100000_61 (K=20) train=12055 val=8438 test=77519 anom=0.1322
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[030/141] == Exathlon:5_1_100000_63 (K=20) train=4308 val=3014 test=34453 anom=0.1544
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[031/141] == Exathlon:5_1_100000_64 (K=20) train=4667 val=3266 test=37328 anom=0.0737
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[032/141] == Exathlon:5_1_500000_62 (K=20) train=4218 val=2952 test=37328 anom=0.1202
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[033/141] == Exathlon:5_5_1000000_91 (K=20) train=4308 val=3014 test=34460 anom=0.0001
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[034/141] == Exathlon:6_1_500000_65 (K=20) train=4214 val=2949 test=37320 anom=0.0967
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[035/141] == Exathlon:6_3_200000_76 (K=20) train=4666 val=3265 test=37324 anom=0.0951
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[036/141] == Exathlon:8_3_200000_73 (K=20) train=4665 val=3264 test=37313 anom=0.0954
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[037/141] == Exathlon:8_4_1000000_77 (K=20) train=3661 val=2561 test=34463 anom=0.1146
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[038/141] == Exathlon:9_3_500000_74 (K=20) train=4500 val=3149 test=37320 anom=0.0873
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[039/141] == Exathlon:9_4_1000000_78 (K=20) train=3664 val=2563 test=34484 anom=0.1127
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[040/141] == GECCO:water_quality (K=9) train=13780 val=9646 test=83113 anom=0.0154
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[041/141] == Genesis:default (K=18) train=1623 val=1135 test=9332 anom=0.0030
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[042/141] == MSL:C-1 (K=55) train=1019 val=755 test=2264 anom=0.1378
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[043/141] == MSL:D-14 (K=55) train=1838 val=1286 test=2625 anom=0.0846
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[044/141] == MSL:D-15 (K=55) train=965 val=725 test=2158 anom=0.2970
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[045/141] == MSL:F-4 (K=55) train=1075 val=785 test=3422 anom=0.0207
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[046/141] == MSL:F-5 (K=55) train=1300 val=909 test=3922 anom=0.0385
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[047/141] == MSL:F-7 (K=55) train=1249 val=878 test=5054 anom=0.0837
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[048/141] == MSL:F-8 (K=55) train=1672 val=1169 test=2487 anom=0.2159
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[049/141] == MSL:M-1 (K=55) train=1052 val=773 test=2277 anom=0.5011
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[050/141] == MSL:M-2 (K=55) train=1052 val=772 test=2277 anom=0.5011
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[051/141] == MSL:M-3 (K=55) train=941 val=712 test=2127 anom=0.1180
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[052/141] == MSL:M-4 (K=55) train=966 val=726 test=2038 anom=0.1232
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[053/141] == MSL:M-5 (K=55) train=937 val=711 test=2303 anom=0.1307
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[054/141] == MSL:P-10 (K=55) train=2155 val=1507 test=6100 anom=0.0215
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[055/141] == MSL:P-11 (K=55) train=1985 val=1389 test=3535 anom=0.0645
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[056/141] == MSL:P-14 (K=55) train=1441 val=1007 test=6100 anom=0.0297
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[057/141] == MSL:P-15 (K=55) train=1842 val=1288 test=2856 anom=0.0074
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[058/141] == MSL:T-4 (K=55) train=1093 val=795 test=2217 anom=0.0311
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[059/141] == MSL:T-5 (K=55) train=1093 val=795 test=2218 anom=0.0117
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[060/141] == OPPORTUNITY:S1-ADL2 (K=32) train=2843 val=1989 test=25780 anom=0.0246
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[061/141] == OPPORTUNITY:S1-ADL3 (K=32) train=3004 val=2102 test=26619 anom=0.0243
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[062/141] == OPPORTUNITY:S1-ADL4 (K=32) train=2948 val=2062 test=26364 anom=0.0115
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[063/141] == OPPORTUNITY:S1-ADL5 (K=32) train=2697 val=1887 test=24102 anom=0.0243
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[064/141] == OPPORTUNITY:S2-ADL1 (K=32) train=3834 val=2683 test=34238 anom=0.0114
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[065/141] == OPPORTUNITY:S2-ADL2 (K=32) train=2784 val=1948 test=24146 anom=0.0146
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[066/141] == OPPORTUNITY:S3-ADL3 (K=32) train=2101 val=1470 test=21374 anom=0.0174
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[067/141] == OPPORTUNITY:S3-ADL4 (K=32) train=1914 val=1338 test=22145 anom=0.0203
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[068/141] == OPPORTUNITY:S3-ADL5 (K=32) train=2120 val=1483 test=21196 anom=0.0207
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[069/141] == OPPORTUNITY:S4-ADL2 (K=32) train=2666 val=1865 test=22190 anom=0.0297
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[070/141] == OPPORTUNITY:S4-ADL3 (K=32) train=2131 val=1490 test=20106 anom=0.0172
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[071/141] == OPPORTUNITY:S4-ADL4 (K=32) train=2046 val=1431 test=17784 anom=0.0243
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[072/141] == OPPORTUNITY:S4-ADL5 (K=32) train=2814 val=1968 test=24422 anom=0.0185
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[073/141] == PSM:default (K=26) train=66241 val=46368 test=70273 anom=0.3205
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[074/141] == SMAP:A-1 (K=25) train=1441 val=1007 test=8640 anom=0.0098
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[075/141] == SMAP:A-2 (K=25) train=1325 val=926 test=7914 anom=0.0140
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[076/141] == SMAP:A-3 (K=25) train=1369 val=957 test=8205 anom=0.0227
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[077/141] == SMAP:A-4 (K=25) train=1346 val=941 test=8080 anom=0.0137
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[078/141] == SMAP:A-7 (K=25) train=1441 val=1007 test=8631 anom=0.2782
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[079/141] == SMAP:B-1 (K=25) train=1199 val=852 test=8044 anom=0.0088
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[080/141] == SMAP:D-11 (K=25) train=1307 val=913 test=7431 anom=0.0082
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[081/141] == SMAP:D-1 (K=25) train=1425 val=997 test=8509 anom=0.3830
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[082/141] == SMAP:D-2 (K=25) train=1441 val=1007 test=8595 anom=0.4908
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[083/141] == SMAP:D-3 (K=25) train=1441 val=1007 test=8640 anom=0.3792
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[084/141] == SMAP:D-4 (K=25) train=1418 val=991 test=8473 anom=0.3833
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[085/141] == SMAP:D-5 (K=25) train=1281 val=896 test=7628 anom=0.0067
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[086/141] == SMAP:D-6 (K=25) train=1298 val=907 test=7884 anom=0.0103
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[087/141] == SMAP:D-7 (K=25) train=1292 val=904 test=7642 anom=0.3536
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[088/141] == SMAP:D-8 (K=25) train=1302 val=910 test=7874 anom=0.0065
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[089/141] == SMAP:D-9 (K=25) train=1292 val=904 test=7406 anom=0.1561
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[090/141] == SMAP:E-10 (K=25) train=1441 val=1007 test=8505 anom=0.0379
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[091/141] == SMAP:E-11 (K=25) train=1441 val=1007 test=8514 anom=0.0346
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[092/141] == SMAP:E-12 (K=25) train=1441 val=1007 test=8512 anom=0.0685
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[093/141] == SMAP:E-13 (K=25) train=1441 val=1007 test=8640 anom=0.0306
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[094/141] == SMAP:E-1 (K=25) train=1441 val=1007 test=8516 anom=0.0597
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[095/141] == SMAP:E-2 (K=25) train=1441 val=1007 test=8532 anom=0.1639
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[096/141] == SMAP:E-3 (K=25) train=1441 val=1007 test=8307 anom=0.3868
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[097/141] == SMAP:E-4 (K=25) train=1441 val=1007 test=8354 anom=0.3366
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[098/141] == SMAP:E-5 (K=25) train=1441 val=1007 test=8294 anom=0.0387
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[099/141] == SMAP:E-6 (K=25) train=1441 val=1007 test=8300 anom=0.0080
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[100/141] == SMAP:E-7 (K=25) train=1385 val=969 test=8310 anom=0.0338
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[101/141] == SMAP:E-8 (K=25) train=1441 val=1007 test=8532 anom=0.0730
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[102/141] == SMAP:E-9 (K=25) train=1441 val=1007 test=8302 anom=0.0423
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[103/141] == SMAP:F-1 (K=25) train=1435 val=1004 test=8584 anom=0.0118
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[104/141] == SMAP:F-2 (K=25) train=1431 val=1001 test=8626 anom=0.3428
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[105/141] == SMAP:F-3 (K=25) train=1441 val=1007 test=8376 anom=0.0049
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[106/141] == SMAP:G-1 (K=25) train=1411 val=986 test=8469 anom=0.0143
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[107/141] == SMAP:G-2 (K=25) train=1227 val=867 test=7361 anom=0.0056
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[108/141] == SMAP:G-3 (K=25) train=1313 val=918 test=7907 anom=0.0064
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[109/141] == SMAP:G-4 (K=25) train=1275 val=892 test=7632 anom=0.0041
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[110/141] == SMAP:G-6 (K=25) train=1441 val=1008 test=8640 anom=0.0117
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[111/141] == SMAP:G-7 (K=25) train=1206 val=856 test=4015 anom=0.0416
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[112/141] == SMAP:P-1 (K=25) train=1437 val=1005 test=8505 anom=0.0883
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[113/141] == SMAP:P-2 (K=25) train=1411 val=987 test=8209 anom=0.1493
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[114/141] == SMAP:P-3 (K=25) train=1428 val=999 test=8493 anom=0.1573
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[115/141] == SMAP:P-4 (K=25) train=1305 val=913 test=7783 anom=0.0569
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[116/141] == SMAP:R-1 (K=25) train=1438 val=1005 test=7244 anom=0.0112
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[117/141] == SMAP:S-1 (K=25) train=1410 val=986 test=7331 anom=0.0611
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[118/141] == SMAP:T-1 (K=25) train=1438 val=1006 test=8612 anom=0.1784
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[119/141] == SMAP:T-2 (K=25) train=1428 val=999 test=8625 anom=0.2070
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[120/141] == SMAP:T-3 (K=25) train=1439 val=1006 test=8579 anom=0.0214
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[121/141] == SMD:machine-1-2 (K=38) train=11848 val=8292 test=4930 anom=0.0339
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[122/141] == SMD:machine-1-3 (K=38) train=11852 val=8295 test=15218 anom=0.0480
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[123/141] == SMD:machine-1-4 (K=38) train=11854 val=8297 test=10084 anom=0.0406
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[124/141] == SMD:machine-1-6 (K=38) train=11845 val=8290 test=18584 anom=0.1766
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[125/141] == SMD:machine-1-7 (K=38) train=11850 val=8293 test=17131 anom=0.0623
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[126/141] == SMD:machine-1-8 (K=38) train=11850 val=8294 test=20367 anom=0.0157
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[127/141] == SMD:machine-2-1 (K=38) train=11848 val=8292 test=12706 anom=0.0804
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[128/141] == SMD:machine-2-2 (K=38) train=11851 val=8294 test=5459 anom=0.1993
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[129/141] == SMD:machine-2-3 (K=38) train=11845 val=8290 test=14213 anom=0.0116
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[130/141] == SMD:machine-2-4 (K=38) train=11845 val=8291 test=18912 anom=0.0888
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[131/141] == SMD:machine-2-5 (K=38) train=11845 val=8290 test=17468 anom=0.0388
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[132/141] == SMD:machine-2-7 (K=38) train=11849 val=8293 test=18188 anom=0.0223
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[133/141] == SMD:machine-2-9 (K=38) train=14362 val=10052 test=11123 anom=0.0686
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[134/141] == SMD:machine-3-10 (K=38) train=11847 val=8292 test=18651 anom=0.0478
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[135/141] == SMD:machine-3-2 (K=38) train=11852 val=8295 test=13152 anom=0.0179
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[136/141] == SMD:machine-3-3 (K=38) train=11852 val=8296 test=18885 anom=0.0318
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[137/141] == SMD:machine-3-5 (K=38) train=11846 val=8291 test=9117 anom=0.0291
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[138/141] == SMD:machine-3-6 (K=38) train=14364 val=10054 test=12401 anom=0.0637
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=456 completed (saved to heldout_tier2_141stream_independent_select.csv)
+[139/141] == creditcard:default (K=29) train=28403 val=19881 test=170885 anom=0.0015
+   seed=42 completed (saved to heldout_tier2_141stream_independent_select.csv)
+   seed=123 completed (saved to heldout_tier2_141stream_independent_select.csv)

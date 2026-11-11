@@ -1,0 +1,28 @@
+Daphnet:S01R01E1 matched-calibration controls done
+Daphnet:S02R01E0 matched-calibration controls done
+Daphnet:S02R02E0 matched-calibration controls done
+Daphnet:S03R01E0 matched-calibration controls done
+Daphnet:S03R01E1 matched-calibration controls done
+Daphnet:S03R02E0 matched-calibration controls done
+Genesis:default matched-calibration controls done
+metro:traffic-volume matched-calibration controls done
+MSL:C-1 matched-calibration controls done
+MSL:D-14 matched-calibration controls done
+MSL:D-15 matched-calibration controls done
+MSL:M-1 matched-calibration controls done
+SMAP:A-1 matched-calibration controls done
+SMAP:A-2 matched-calibration controls done
+SMAP:A-7 matched-calibration controls done
+SMAP:D-3 matched-calibration controls done
+SMAP:P-3 matched-calibration controls done
+SMAP:E-1 matched-calibration controls done
+swan:sf matched-calibration controls done
+                 arm       f1  hold_fpr  test_fpr  target_cal_rate  actual_cal_rate
+        B1_maxz_q995 0.083498  0.009302  0.015732         0.003362         0.003362
+        B2_topk_q995 0.070024  0.007722  0.011489         0.003362         0.003245
+      B4_fisher_q995 0.109001  0.010451  0.018302         0.003362         0.003362
+    B4_stouffer_q995 0.095270  0.008743  0.013522         0.003362         0.003362
+C1_hotelling_T2_q995 0.282754  0.290050  0.483108         0.003362         0.003362
+       C2_mewma_q995 0.274615  0.586199  0.824509         0.003362         0.003362
+   C3_cusum_max_q995 0.271703  0.345663  0.816079         0.003362         0.003362
+      PANEL_224_full 0.070930  0.007608  0.015015         0.003362         0.003362
