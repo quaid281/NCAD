@@ -25,7 +25,6 @@
 \HyPL@Entry{0<</S/D>>}
 \@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:intro}{{I}{1}{Introduction}{section.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-A}}Contributions}{1}{subsection.1.1}\protected@file@percent }
 \citation{Hundman2018b}
 \citation{tuli2022tranad}
 \citation{xu2022anomaly}
@@ -63,6 +62,7 @@
 \citation{bachlin2010wearable}
 \citation{candanedo2016accurate}
 \citation{asuncion2007uci}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-A}}Contributions}{2}{subsection.1.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
 \newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {III}Multi-Sensor Telemetry Benchmark Suite}{2}{section.3}\protected@file@percent }
@@ -82,15 +82,15 @@
 \newlabel{subsec:triad_formulations}{{\mbox  {IV-B}}{3}{Stage 2: Nested Causal Multi-Horizon Rollout and Variance-Floor Decorrelation Objective}{subsection.4.2}{}}
 \newlabel{eq:soliton_reynolds_loss}{{1}{3}{Stage 2: Nested Causal Multi-Horizon Rollout and Variance-Floor Decorrelation Objective}{equation.4.1}{}}
 \citation{reynolds1895dynamical}
+\citation{lieb1976inequalities}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Overview of the four-stage \emph  {Laminar-JEPA} and distilled \emph  {Laminar-JEPA-Lite} pipeline: \textbf  {(1)}\nobreakspace  {}sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta , E_\phi $) with conditional rFFT splitting ($K{\ge }25$ in Lite), barycenter centering, and LayerNorm; \textbf  {(2)}\nobreakspace  {}multi-horizon rollout ($M{=}4$ sequential in full \emph  {Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph  {Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde  {\mathbf  {E}} \in \mathbb  {R}^{M \times 32}$; \textbf  {(3)}\nobreakspace  {}horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph  {Lite}); and \textbf  {(4)}\nobreakspace  {}per-dial Boolean circuit breakers emitting causal ($\tau {=}t{+}S{-}1$) or prefix-buffered alarms.}}{4}{figure.1}\protected@file@percent }
 \newlabel{fig:triad_architecture}{{1}{4}{Overview of the four-stage \emph {Laminar-JEPA} and distilled \emph {Laminar-JEPA-Lite} pipeline: \textbf {(1)}~sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta , E_\phi $) with conditional rFFT splitting ($K{\ge }25$ in Lite), barycenter centering, and LayerNorm; \textbf {(2)}~multi-horizon rollout ($M{=}4$ sequential in full \emph {Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph {Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde {\mathbf {E}} \in \mathbb {R}^{M \times 32}$; \textbf {(3)}~horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph {Lite}); and \textbf {(4)}~per-dial Boolean circuit breakers emitting causal ($\tau {=}t{+}S{-}1$) or prefix-buffered alarms}{figure.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Stage 3: Calibration-Stabilized Whitening, Optional Weight-Space Quenching, and 224-Dial Expansion}{4}{subsection.4.3}\protected@file@percent }
 \newlabel{subsec:reynolds_expansion}{{\mbox  {IV-C}}{4}{Stage 3: Calibration-Stabilized Whitening, Optional Weight-Space Quenching, and 224-Dial Expansion}{subsection.4.3}{}}
 \newlabel{eq:stabilized_whitening}{{2}{4}{Stage 3: Calibration-Stabilized Whitening, Optional Weight-Space Quenching, and 224-Dial Expansion}{equation.4.2}{}}
-\citation{lieb1976inequalities}
+\newlabel{prop:anti_collapse}{{1}{4}{Horizon Energy Split and Spectral Concentration Bounds}{proposition.1}{}}
 \citation{siffer2017anomaly,balkema1974residual,grimshaw1993computing}
 \citation{loshchilov2017decoupled}
-\newlabel{prop:anti_collapse}{{1}{5}{Horizon Energy Split and Spectral Concentration Bounds}{proposition.1}{}}
 \newlabel{eq:lt_bounds}{{3}{5}{Horizon Energy Split and Spectral Concentration Bounds}{equation.4.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Stage 4: Zero-Collapse 224-Bit Circuit-Breaker Panel, Onset Relays, and Temporal Attribution}{5}{subsection.4.4}\protected@file@percent }
 \newlabel{subsec:scoring_function}{{\mbox  {IV-D}}{5}{Stage 4: Zero-Collapse 224-Bit Circuit-Breaker Panel, Onset Relays, and Temporal Attribution}{subsection.4.4}{}}
