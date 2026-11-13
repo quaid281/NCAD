@@ -1,11 +1,11 @@
-\section{Methodology: Multi-Horizon Laminar-JEPA and Distilled Laminar-JEPA-Lite}
+\section{Methodology: Laminar-JEPA and Laminar-JEPA-Lite}
 \label{sec:proposed_method}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.77\textwidth]{figures/opentropy_jepa_architecture.pdf}
 \vspace{-6pt}
-\caption{Overview of the four-stage \emph{Laminar-JEPA} and distilled \emph{Laminar-JEPA-Lite} pipeline: \textbf{(1)}~sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta, E_\phi$) with conditional rFFT splitting ($K{\ge}25$ in Lite), barycenter centering, and LayerNorm; \textbf{(2)}~multi-horizon rollout ($M{=}4$ sequential in full \emph{Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph{Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde{\mathbf{E}} \in \mathbb{R}^{M \times 32}$; \textbf{(3)}~horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph{Lite}); and \textbf{(4)}~per-dial Boolean circuit breakers emitting causal ($\tau{=}t{+}S{-}1$) or prefix-buffered alarms.\label{fig:triad_architecture}}
+\caption{Overview of the four-stage \emph{Laminar-JEPA} and compact \emph{Laminar-JEPA-Lite} pipeline: \textbf{(1)}~sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta, E_\phi$) with conditional rFFT splitting ($K{\ge}25$ in Lite), barycenter centering, and LayerNorm; \textbf{(2)}~multi-horizon rollout ($M{=}4$ sequential in full \emph{Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph{Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde{\mathbf{E}} \in \mathbb{R}^{M \times 32}$; \textbf{(3)}~horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph{Lite}); and \textbf{(4)}~per-dial Boolean circuit breakers emitting causal ($\tau{=}t{+}S{-}1$) or prefix-buffered alarms.\label{fig:triad_architecture}}
 \vspace{-5pt}
 \end{figure*}
 
@@ -91,9 +91,9 @@ Instead of adding all 224 dials into one global score, Stage~4 (Fig.~\ref{fig:tr
     with nominal calibration quorums $K_{224} = \max(1.12\,q_{0.995}, 5.0)$, $K_{128} = \max(1.12\,q_{0.995}, 3.5)$, and $K_{\text{edge}} = \max(1.25\,q_{0.999}, 2.5)$.
 \end{enumerate}
 
-\subsection{Distilled Variant: \emph{Laminar-JEPA-Lite}}
+\subsection{Compact Variant: \emph{Laminar-JEPA-Lite}}
 \label{subsec:laminar_lite}
-Layer-by-layer activation tracing and component ablations of \emph{Laminar-JEPA} (Section~\ref{sec:ablations}) motivate three simplifications that cut trainable parameters by $35\%\text{--}52\%$ ($141.9\text{k}$ at $K < 25$; $222.3\text{k}$ at $K \ge 25$ vs.\ $295.8\text{k}$) and accelerate windowed GPU inference by $2.43\times$ ($3.14\times$ at $K < 25$) with zero post-training weight editing:
+\emph{Laminar-JEPA-Lite} makes three simplifications, each supported by the ablations in Section~\ref{sec:ablations}, that cut trainable parameters by $35\%\text{--}52\%$ ($141.9\text{k}$ at $K < 25$; $222.3\text{k}$ at $K \ge 25$ vs.\ $295.8\text{k}$) and accelerate windowed GPU inference by $2.43\times$ ($3.14\times$ at $K < 25$) with zero post-training weight editing:
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
     \item \emph{Four-block TCN and $K \ge 25$ spectral gating:} Because a fifth dilated block damps short-prefix anomaly divergence without improving effective rank, \emph{Laminar-JEPA-Lite} uses four TCN blocks ($d \in \{1, 2, 4, 8\}$), $64\text{D}$ pooling heads, and activates the four-shell rFFT front-end only on high-channel streams ($K \ge 25$), using a direct causal projection when $K < 25$.
     \item \emph{Parallel three-horizon single-LayerNorm predictor:} Instead of sequential four-horizon unrolling and stacked predictor normalizations, a single residual two-layer GELU MLP predicts $M=3$ nested prefixes ($S_m \in \{16, 32, 64\}$ at $S=64$; $96\times 96$ precision $\mathbf{\Omega}$) in parallel from $z_{\text{ctx}} + \mathbf{p}_m$ with one terminal LayerNorm, avoiding sequential lag and LayerNorm cross-coupling.

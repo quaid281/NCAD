@@ -21,10 +21,11 @@
 \citation{xu2022anomaly}
 \citation{siffer2017anomaly}
 \citation{lecun2022path,carmona2021neural}
-\citation{ba2016layernormalization}
 \HyPL@Entry{0<</S/D>>}
 \@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:intro}{{I}{1}{Introduction}{section.1}{}}
+\citation{kim2022towards}
+\citation{ba2016layernormalization}
 \citation{Hundman2018b}
 \citation{tuli2022tranad}
 \citation{xu2022anomaly}
@@ -53,6 +54,9 @@
 \citation{page1954continuous}
 \citation{benjamini1995controlling}
 \citation{kim2022towards,wu2023flawed,schmidl2022anomaly}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-A}}Contributions}{2}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
 \citation{Hundman2018b}
 \citation{bachlin2010wearable,asuncion2007uci}
 \citation{schmidl2022anomaly}
@@ -62,35 +66,30 @@
 \citation{bachlin2010wearable}
 \citation{candanedo2016accurate}
 \citation{asuncion2007uci}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {I-A}}Contributions}{2}{subsection.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
-\newlabel{sec:related}{{II}{2}{Related Work}{section.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {III}Multi-Sensor Telemetry Benchmark Suite}{2}{section.3}\protected@file@percent }
-\newlabel{sec:dataset}{{III}{2}{Multi-Sensor Telemetry Benchmark Suite}{section.3}{}}
 \citation{wu2023flawed}
 \citation{bai2018empirical}
 \citation{lecun2022path}
 \citation{grill2020bootstrap,assran2023self}
 \citation{bardes2021vicreg}
-\citation{garrido2023rankme}
-\@writefile{toc}{\contentsline {section}{\numberline {IV}Methodology: Multi-Horizon Laminar-JEPA and Distilled Laminar-JEPA-Lite}{3}{section.4}\protected@file@percent }
-\newlabel{sec:proposed_method}{{IV}{3}{Methodology: Multi-Horizon Laminar-JEPA and Distilled Laminar-JEPA-Lite}{section.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}Multi-Sensor Telemetry Benchmark Suite}{3}{section.3}\protected@file@percent }
+\newlabel{sec:dataset}{{III}{3}{Multi-Sensor Telemetry Benchmark Suite}{section.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Methodology: Laminar-JEPA and Laminar-JEPA-Lite}{3}{section.4}\protected@file@percent }
+\newlabel{sec:proposed_method}{{IV}{3}{Methodology: Laminar-JEPA and Laminar-JEPA-Lite}{section.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Stage 1: Multiscale Encoder and Barycenter Centering}{3}{subsection.4.1}\protected@file@percent }
 \newlabel{subsec:architecture}{{\mbox  {IV-A}}{3}{Stage 1: Multiscale Encoder and Barycenter Centering}{subsection.4.1}{}}
 \newlabel{subsec:shared_inductive_biases}{{\mbox  {IV-A}}{3}{Stage 1: Multiscale Encoder and Barycenter Centering}{subsection.4.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Stage 2: Multi-Horizon Prediction}{3}{subsection.4.2}\protected@file@percent }
 \newlabel{subsec:triad_formulations}{{\mbox  {IV-B}}{3}{Stage 2: Multi-Horizon Prediction}{subsection.4.2}{}}
-\newlabel{eq:soliton_reynolds_loss}{{1}{3}{Stage 2: Multi-Horizon Prediction}{equation.4.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Stage 3: Residual Whitening and Dial Expansion}{3}{subsection.4.3}\protected@file@percent }
-\newlabel{subsec:reynolds_expansion}{{\mbox  {IV-C}}{3}{Stage 3: Residual Whitening and Dial Expansion}{subsection.4.3}{}}
+\citation{garrido2023rankme}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Overview of the four-stage \emph  {Laminar-JEPA} and compact \emph  {Laminar-JEPA-Lite} pipeline: \textbf  {(1)}\nobreakspace  {}sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta , E_\phi $) with conditional rFFT splitting ($K{\ge }25$ in Lite), barycenter centering, and LayerNorm; \textbf  {(2)}\nobreakspace  {}multi-horizon rollout ($M{=}4$ sequential in full \emph  {Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph  {Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde  {\mathbf  {E}} \in \mathbb  {R}^{M \times 32}$; \textbf  {(3)}\nobreakspace  {}horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph  {Lite}); and \textbf  {(4)}\nobreakspace  {}per-dial Boolean circuit breakers emitting causal ($\tau {=}t{+}S{-}1$) or prefix-buffered alarms.}}{4}{figure.1}\protected@file@percent }
+\newlabel{fig:triad_architecture}{{1}{4}{Overview of the four-stage \emph {Laminar-JEPA} and compact \emph {Laminar-JEPA-Lite} pipeline: \textbf {(1)}~sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta , E_\phi $) with conditional rFFT splitting ($K{\ge }25$ in Lite), barycenter centering, and LayerNorm; \textbf {(2)}~multi-horizon rollout ($M{=}4$ sequential in full \emph {Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph {Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde {\mathbf {E}} \in \mathbb {R}^{M \times 32}$; \textbf {(3)}~horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph {Lite}); and \textbf {(4)}~per-dial Boolean circuit breakers emitting causal ($\tau {=}t{+}S{-}1$) or prefix-buffered alarms}{figure.1}{}}
+\newlabel{eq:soliton_reynolds_loss}{{1}{4}{Stage 2: Multi-Horizon Prediction}{equation.4.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Stage 3: Residual Whitening and Dial Expansion}{4}{subsection.4.3}\protected@file@percent }
+\newlabel{subsec:reynolds_expansion}{{\mbox  {IV-C}}{4}{Stage 3: Residual Whitening and Dial Expansion}{subsection.4.3}{}}
+\newlabel{eq:stabilized_whitening}{{2}{4}{Stage 3: Residual Whitening and Dial Expansion}{equation.4.2}{}}
 \citation{reynolds1895dynamical}
 \citation{lieb1976inequalities}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Overview of the four-stage \emph  {Laminar-JEPA} and distilled \emph  {Laminar-JEPA-Lite} pipeline: \textbf  {(1)}\nobreakspace  {}sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta , E_\phi $) with conditional rFFT splitting ($K{\ge }25$ in Lite), barycenter centering, and LayerNorm; \textbf  {(2)}\nobreakspace  {}multi-horizon rollout ($M{=}4$ sequential in full \emph  {Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph  {Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde  {\mathbf  {E}} \in \mathbb  {R}^{M \times 32}$; \textbf  {(3)}\nobreakspace  {}horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph  {Lite}); and \textbf  {(4)}\nobreakspace  {}per-dial Boolean circuit breakers emitting causal ($\tau {=}t{+}S{-}1$) or prefix-buffered alarms.}}{4}{figure.1}\protected@file@percent }
-\newlabel{fig:triad_architecture}{{1}{4}{Overview of the four-stage \emph {Laminar-JEPA} and distilled \emph {Laminar-JEPA-Lite} pipeline: \textbf {(1)}~sliding window ($C{=}256, S \in \{1..64\}$) and dual encoders ($E_\theta , E_\phi $) with conditional rFFT splitting ($K{\ge }25$ in Lite), barycenter centering, and LayerNorm; \textbf {(2)}~multi-horizon rollout ($M{=}4$ sequential in full \emph {Laminar-JEPA}; $M{=}3$ parallel single-LayerNorm in \emph {Lite}) under variance-floor and decorrelation loss plus resolvent whitening into $\tilde {\mathbf {E}} \in \mathbb {R}^{M \times 32}$; \textbf {(3)}~horizon expansion into $7 \times 32 = 224$ dials (full) or $4 \times 32 = 128$ position-plus-drift dials (\emph {Lite}); and \textbf {(4)}~per-dial Boolean circuit breakers emitting causal ($\tau {=}t{+}S{-}1$) or prefix-buffered alarms}{figure.1}{}}
-\newlabel{eq:stabilized_whitening}{{2}{4}{Stage 3: Residual Whitening and Dial Expansion}{equation.4.2}{}}
-\newlabel{prop:anti_collapse}{{1}{4}{Horizon Energy Split and Spectral Concentration Bounds}{proposition.1}{}}
-\citation{siffer2017anomaly,balkema1974residual,grimshaw1993computing}
-\citation{loshchilov2017decoupled}
+\newlabel{prop:anti_collapse}{{1}{5}{Horizon Energy Split and Spectral Concentration Bounds}{proposition.1}{}}
 \newlabel{eq:lt_bounds}{{3}{5}{Horizon Energy Split and Spectral Concentration Bounds}{equation.4.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Stage 4: Circuit-Breaker Panel}{5}{subsection.4.4}\protected@file@percent }
 \newlabel{subsec:scoring_function}{{\mbox  {IV-D}}{5}{Stage 4: Circuit-Breaker Panel}{subsection.4.4}{}}
@@ -98,27 +97,29 @@
 \newlabel{subsubsec:causal_saliency_gating}{{\mbox  {IV-D}}{5}{Stage 4: Circuit-Breaker Panel}{subsection.4.4}{}}
 \newlabel{eq:dial_tripwire}{{4}{5}{Stage 4: Circuit-Breaker Panel}{equation.4.4}{}}
 \newlabel{eq:panel_quorum}{{5}{5}{Stage 4: Circuit-Breaker Panel}{equation.4.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Distilled Variant: \emph  {Laminar-JEPA-Lite}}{5}{subsection.4.5}\protected@file@percent }
-\newlabel{subsec:laminar_lite}{{\mbox  {IV-E}}{5}{Distilled Variant: \emph {Laminar-JEPA-Lite}}{subsection.4.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Protocol and Evaluation Metrics}{5}{section.5}\protected@file@percent }
-\newlabel{sec:exp}{{V}{5}{Experimental Protocol and Evaluation Metrics}{section.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Setup and Calibration Protocol}{5}{subsection.5.1}\protected@file@percent }
-\newlabel{subsec:exp_setup}{{\mbox  {V-A}}{5}{Setup and Calibration Protocol}{subsection.5.1}{}}
-\citation{benjamini1995controlling}
-\newlabel{alg:pipeline}{{1}{6}{Distilled Variant: \emph {Laminar-JEPA-Lite}}{algorithm.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Compact Variant: \emph  {Laminar-JEPA-Lite}}{5}{subsection.4.5}\protected@file@percent }
+\newlabel{subsec:laminar_lite}{{\mbox  {IV-E}}{5}{Compact Variant: \emph {Laminar-JEPA-Lite}}{subsection.4.5}{}}
+\citation{siffer2017anomaly,balkema1974residual,grimshaw1993computing}
+\citation{loshchilov2017decoupled}
+\newlabel{alg:pipeline}{{1}{6}{Compact Variant: \emph {Laminar-JEPA-Lite}}{algorithm.1}{}}
 \@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Laminar-JEPA (224-Bit) and Laminar-JEPA-Lite (128-Bit)}}{6}{algorithm.1}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Disjoint nominal evaluation protocol ($C{=}256, S{=}64, W{=}320$): (Row\nobreakspace  {}1)\nobreakspace  {}five-block archive partition into $S$-isolated weight-fitting ($\mathbf  {X}_{\text  {fit}}$), checkpoint-selection ($\mathbf  {X}_{\text  {sel}}$), and nominal adaptation ($\mathbf  {X}_q$) prefixes versus $\mathbf  {X}_{\text  {val}}$, (Row\nobreakspace  {}2)\nobreakspace  {}untouched threshold calibration ($\mathbf  {X}_{\text  {cal}}$) and held-out nominal evaluation ($\mathbf  {X}_{\text  {hold}}$), and (Row\nobreakspace  {}3)\nobreakspace  {}structural emission lag ($S{-}1$) versus empirical detection delay ($\Delta t$).}}{6}{figure.2}\protected@file@percent }
 \newlabel{fig:protocol_and_permutation}{{2}{6}{Disjoint nominal evaluation protocol ($C{=}256, S{=}64, W{=}320$): (Row~1)~five-block archive partition into $S$-isolated weight-fitting ($\mathbf {X}_{\text {fit}}$), checkpoint-selection ($\mathbf {X}_{\text {sel}}$), and nominal adaptation ($\mathbf {X}_q$) prefixes versus $\mathbf {X}_{\text {val}}$, (Row~2)~untouched threshold calibration ($\mathbf {X}_{\text {cal}}$) and held-out nominal evaluation ($\mathbf {X}_{\text {hold}}$), and (Row~3)~structural emission lag ($S{-}1$) versus empirical detection delay ($\Delta t$)}{figure.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Protocol and Evaluation Metrics}{6}{section.5}\protected@file@percent }
+\newlabel{sec:exp}{{V}{6}{Experimental Protocol and Evaluation Metrics}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Setup and Calibration Protocol}{6}{subsection.5.1}\protected@file@percent }
+\newlabel{subsec:exp_setup}{{\mbox  {V-A}}{6}{Setup and Calibration Protocol}{subsection.5.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0a}Disjoint Calibration Protocol}{6}{paragraph.5.1.0.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Nominal Partitioning and Calibration Protocol by Cohort}}{6}{table.1}\protected@file@percent }
-\newlabel{tab:protocol_matrix}{{I}{6}{Nominal Partitioning and Calibration Protocol by Cohort}{table.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0b}Statistical Inference}{6}{paragraph.5.1.0.2}\protected@file@percent }
+\citation{benjamini1995controlling}
 \citation{wu2023timesnet}
 \citation{tuli2022tranad}
 \citation{xu2022anomaly}
 \citation{carmona2021neural}
 \citation{yang2023dcdetector}
 \citation{kim2022towards}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Nominal Partitioning and Calibration Protocol by Cohort}}{7}{table.1}\protected@file@percent }
+\newlabel{tab:protocol_matrix}{{I}{7}{Nominal Partitioning and Calibration Protocol by Cohort}{table.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0b}Statistical Inference}{7}{paragraph.5.1.0.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Cohorts and Baselines}{7}{subsection.5.2}\protected@file@percent }
 \newlabel{subsec:cohort_repro}{{\mbox  {V-B}}{7}{Cohorts and Baselines}{subsection.5.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Metrics}{7}{subsection.5.3}\protected@file@percent }
@@ -132,10 +133,10 @@
 \newlabel{tab:ablations}{{II}{8}{Circuit-Breaker Dial Expansion, Component Ablations, and Matched-Backbone Study}{table.2}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Development studies. \textbf  {(a)}\nobreakspace  {}Causal and buffered Point-F1 across the six-step expansion on cached whitened residuals from 19 streams (three seeds; no stabilization blend). \textbf  {(b)}\nobreakspace  {}Event recall for injected single-channel faults in a separate six-stream study, comparing 1D TS-JEPA, 224-Bit Breaker, and their channel-level union.}}{8}{figure.3}\protected@file@percent }
 \newlabel{fig:regularizer_and_quiet_fault}{{3}{8}{Development studies. \textbf {(a)}~Causal and buffered Point-F1 across the six-step expansion on cached whitened residuals from 19 streams (three seeds; no stabilization blend). \textbf {(b)}~Event recall for injected single-channel faults in a separate six-stream study, comparing 1D TS-JEPA, 224-Bit Breaker, and their channel-level union}{figure.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}{8}{subsection.6.2}\protected@file@percent }
-\newlabel{subsec:gating_ablation}{{\mbox  {VI-B}}{8}{Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}{subsection.6.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Coordinate Detector-Bank Regimes on Cached Residuals}}{9}{table.3}\protected@file@percent }
 \newlabel{tab:matched_alert}{{III}{9}{Coordinate Detector-Bank Regimes on Cached Residuals}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}{9}{subsection.6.2}\protected@file@percent }
+\newlabel{subsec:gating_ablation}{{\mbox  {VI-B}}{9}{Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}{subsection.6.2}{}}
 \newlabel{eq:single_channel_injection}{{6}{9}{Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}{equation.6.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Ablation 3: Multiscale Dyadic-Shell Front-End vs.\ Standard Convolutional Stem}{9}{subsection.6.3}\protected@file@percent }
 \newlabel{subsec:dyadic_ablation}{{\mbox  {VI-C}}{9}{Ablation 3: Multiscale Dyadic-Shell Front-End vs.\ Standard Convolutional Stem}{subsection.6.3}{}}
@@ -146,7 +147,6 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Benchmark Results}{9}{subsection.7.1}\protected@file@percent }
 \newlabel{subsec:core_benchmark}{{\mbox  {VII-A}}{9}{Benchmark Results}{subsection.7.1}{}}
 \citation{Hundman2018b}
-\citation{Hundman2018b}
 \@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Primary 33-Stream Development Benchmark Across Attribution Regimes}}{10}{table.4}\protected@file@percent }
 \newlabel{tab:core_benchmark}{{IV}{10}{Primary 33-Stream Development Benchmark Across Attribution Regimes}{table.4}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Contextual vs.\ Point Anomaly Detection}}{10}{table.5}\protected@file@percent }
@@ -155,10 +155,11 @@
 \newlabel{subsec:causal_vs_buffered}{{\mbox  {VII-B}}{10}{Real-Time Streaming vs.\ Retrospective Buffered Attribution}{subsection.7.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Multi-Horizon Scaling Across $S \in \{1, 4, 16, 32, 64\}$ and Latency Trade-Offs}{10}{subsection.7.3}\protected@file@percent }
 \newlabel{subsec:horizon_latency}{{\mbox  {VII-C}}{10}{Multi-Horizon Scaling Across $S \in \{1, 4, 16, 32, 64\}$ and Latency Trade-Offs}{subsection.7.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Operating Budgets and Contextual vs.\ Point Anomalies}{10}{subsection.7.4}\protected@file@percent }
-\newlabel{subsec:matched_operating}{{\mbox  {VII-D}}{10}{Operating Budgets and Contextual vs.\ Point Anomalies}{subsection.7.4}{}}
+\citation{Hundman2018b}
 \@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Multi-horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, causal reporting lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and causal operating frontier ($n{=}19$ streams). \textbf  {(a)}\nobreakspace  {}Causal Point-F1 and event recall (ER) across $S$ comparing \emph  {Laminar-JEPA (224B)}, \emph  {Laminar-JEPA-Lite (128B)}, and Multi-Horizon 1D SPOT (nominal FPR $\le 3.6\%$ across all $S$, vs.\ $2.5\% \to 21.3\%$ for TimesNet). \textbf  {(b)}\nobreakspace  {}Causal ER vs.\ realized false alarms ($\sqrt  {\cdot }$ scale) across diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph  {Laminar-JEPA} star, \emph  {Laminar-JEPA-Lite} cross, 1D open circles), and quantiles $q^*{\le }0.05$.}}{11}{figure.4}\protected@file@percent }
 \newlabel{fig:operating_and_horizon}{{4}{11}{Multi-horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, causal reporting lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and causal operating frontier ($n{=}19$ streams). \textbf {(a)}~Causal Point-F1 and event recall (ER) across $S$ comparing \emph {Laminar-JEPA (224B)}, \emph {Laminar-JEPA-Lite (128B)}, and Multi-Horizon 1D SPOT (nominal FPR $\le 3.6\%$ across all $S$, vs.\ $2.5\% \to 21.3\%$ for TimesNet). \textbf {(b)}~Causal ER vs.\ realized false alarms ($\sqrt {\cdot }$ scale) across diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph {Laminar-JEPA} star, \emph {Laminar-JEPA-Lite} cross, 1D open circles), and quantiles $q^*{\le }0.05$}{figure.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Operating Budgets and Contextual vs.\ Point Anomalies}{11}{subsection.7.4}\protected@file@percent }
+\newlabel{subsec:matched_operating}{{\mbox  {VII-D}}{11}{Operating Budgets and Contextual vs.\ Point Anomalies}{subsection.7.4}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Disjoint Five-Block Held-Out Archive Benchmark}}{11}{table.6}\protected@file@percent }
 \newlabel{tab:calibrator_comparison}{{VI}{11}{Disjoint Five-Block Held-Out Archive Benchmark}{table.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Held-Out Generalization and Calibration Limits}{11}{subsection.7.5}\protected@file@percent }
@@ -175,41 +176,41 @@
 \bibcite{siffer2017anomaly}{8}
 \bibcite{lecun2022path}{9}
 \bibcite{carmona2021neural}{10}
-\bibcite{ba2016layernormalization}{11}
-\bibcite{schmidl2022anomaly}{12}
-\bibcite{zhang2023self}{13}
-\bibcite{eldele2021time}{14}
-\bibcite{yue2022ts2vec}{15}
-\bibcite{yang2023dcdetector}{16}
-\bibcite{assran2023self}{17}
-\bibcite{bardes2024vjepa}{18}
-\bibcite{grill2020bootstrap}{19}
-\bibcite{bardes2021vicreg}{20}
-\bibcite{zbontar2021barlow}{21}
-\bibcite{ermolov2021whitening}{22}
-\bibcite{brunton2016discovering}{23}
-\bibcite{chen2018neural}{24}
-\bibcite{raissi2019physics}{25}
-\bibcite{greydanus2019hamiltonian}{26}
-\bibcite{cranmer2020lagrangian}{27}
-\bibcite{koopman1931hamiltonian}{28}
-\bibcite{mezic2005spectral}{29}
-\bibcite{brunton2016koopman}{30}
-\bibcite{lusch2018deep}{31}
-\bibcite{liu2023koopa}{32}
-\bibcite{wang2021understanding}{33}
-\bibcite{reynolds1895dynamical}{34}
-\bibcite{hotelling1947multivariate}{35}
-\bibcite{lowry1992multivariate}{36}
-\bibcite{balkema1974residual}{37}
-\bibcite{ferro2003inference}{38}
-\bibcite{page1954continuous}{39}
-\bibcite{benjamini1995controlling}{40}
-\bibcite{kim2022towards}{41}
-\bibcite{wu2023flawed}{42}
+\bibcite{kim2022towards}{11}
+\bibcite{ba2016layernormalization}{12}
+\bibcite{schmidl2022anomaly}{13}
+\bibcite{zhang2023self}{14}
+\bibcite{eldele2021time}{15}
+\bibcite{yue2022ts2vec}{16}
+\bibcite{yang2023dcdetector}{17}
+\bibcite{assran2023self}{18}
+\bibcite{bardes2024vjepa}{19}
+\bibcite{grill2020bootstrap}{20}
+\bibcite{bardes2021vicreg}{21}
+\bibcite{zbontar2021barlow}{22}
+\bibcite{ermolov2021whitening}{23}
+\bibcite{brunton2016discovering}{24}
+\bibcite{chen2018neural}{25}
+\bibcite{raissi2019physics}{26}
 \@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{12}{section.8}\protected@file@percent }
 \newlabel{sec:conclusion}{{VIII}{12}{Conclusion and Future Work}{section.8}{}}
 \@writefile{toc}{\contentsline {section}{References}{12}{section*.1}\protected@file@percent }
+\bibcite{greydanus2019hamiltonian}{27}
+\bibcite{cranmer2020lagrangian}{28}
+\bibcite{koopman1931hamiltonian}{29}
+\bibcite{mezic2005spectral}{30}
+\bibcite{brunton2016koopman}{31}
+\bibcite{lusch2018deep}{32}
+\bibcite{liu2023koopa}{33}
+\bibcite{wang2021understanding}{34}
+\bibcite{reynolds1895dynamical}{35}
+\bibcite{hotelling1947multivariate}{36}
+\bibcite{lowry1992multivariate}{37}
+\bibcite{balkema1974residual}{38}
+\bibcite{ferro2003inference}{39}
+\bibcite{page1954continuous}{40}
+\bibcite{benjamini1995controlling}{41}
+\bibcite{wu2023flawed}{42}
 \bibcite{bachlin2010wearable}{43}
 \bibcite{asuncion2007uci}{44}
 \bibcite{zhou2026mtsbench}{45}
