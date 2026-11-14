@@ -2,7 +2,7 @@
 \centering
 \includegraphics[width=0.99\textwidth]{figures/operating_and_horizon_tradeoffs.pdf}
 \vspace{-5pt}
-\caption{Multi-horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, causal reporting lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and causal operating frontier ($n{=}19$ streams). \textbf{(a)}~Causal Point-F1 and event recall (ER) across $S$ comparing \emph{Laminar-JEPA (224B)}, \emph{Laminar-JEPA-Lite (128B)}, and Multi-Horizon 1D SPOT (nominal FPR $\le 3.6\%$ across all $S$, vs.\ $2.5\% \to 21.3\%$ for TimesNet). \textbf{(b)}~Causal ER vs.\ realized false alarms ($\sqrt{\cdot}$ scale) across diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph{Laminar-JEPA} star, \emph{Laminar-JEPA-Lite} cross, 1D open circles), and healthy calibration quantiles $q^*{\le}0.05$.\label{fig:operating_and_horizon}}
+\caption{Horizon scaling, operating frontier, and archive calibration-size effects. \textbf{(a)}~Exploratory horizon sweep ($S \in \{1..64\}$, causal lag $S{-}1$, $n{=}5$ streams, nominal FPR $\le 3.6\%$ vs.\ $2.5\%\to 21.3\%$ for TimesNet). \textbf{(b)}~Design-stage causal ER vs.\ realized test FPR ($\sqrt{\cdot}$ scale, $n{=}19$ streams) across diagnostic budgets $f^*\in\{1\%,5\%\}$ (dotted), autonomous points, and $q^*{\le}0.05$. \textbf{(c)}~Primary archive calibration windows $N_{\text{cal}}$ vs.\ causal held-out $\text{FPR}_{\text{hold}}$ across $n{=}118$ untouched streams (Spearman $\rho{=}-0.32$, $p{=}5.2\times 10^{-4}$), marking $N_{\text{cal}}{=}500$ and $1\%/5\%$ budgets.\label{fig:operating_and_horizon}}
 \vspace{-1pt}
 \end{figure*}
 

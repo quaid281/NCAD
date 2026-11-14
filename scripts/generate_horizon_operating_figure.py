@@ -272,8 +272,8 @@ def make_figure():
     )
 
     ax3.annotate(
-        "$N_{\\mathrm{cal}}{=}500$", xy=(500.0, 0.31), xytext=(560.0, 0.31),
-        fontsize=6.4, color="#6a408d", fontweight="bold", va="center", ha="left", zorder=6
+        "$N_{\\mathrm{cal}}{=}500$", xy=(500.0, 0.68), xytext=(535.0, 0.68),
+        fontsize=5.8, color="#6a408d", fontweight="bold", va="center", ha="left", zorder=6
     )
 
     ax3.set_xlabel("Calibration Windows $N_{\\mathrm{cal}}$ ($\\log_{10}$)", labelpad=3.0)

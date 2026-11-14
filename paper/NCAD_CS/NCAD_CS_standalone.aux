@@ -86,9 +86,9 @@
 \newlabel{eq:soliton_reynolds_loss}{{1}{4}{Stage 2: Multi-Horizon Prediction}{equation.4.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Stage 3: Residual Whitening and Dial Expansion}{4}{subsection.4.3}\protected@file@percent }
 \newlabel{subsec:reynolds_expansion}{{\mbox  {IV-C}}{4}{Stage 3: Residual Whitening and Dial Expansion}{subsection.4.3}{}}
+\newlabel{eq:stabilized_whitening}{{2}{4}{Stage 3: Residual Whitening and Dial Expansion}{equation.4.2}{}}
 \citation{reynolds1895dynamical}
 \citation{lieb1976inequalities}
-\newlabel{eq:stabilized_whitening}{{2}{5}{Stage 3: Residual Whitening and Dial Expansion}{equation.4.2}{}}
 \newlabel{prop:anti_collapse}{{1}{5}{Horizon Energy Split and Spectral Concentration Bounds}{proposition.1}{}}
 \newlabel{eq:lt_bounds}{{3}{5}{Horizon Energy Split and Spectral Concentration Bounds}{equation.4.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Stage 4: Circuit-Breaker Panel}{5}{subsection.4.4}\protected@file@percent }
@@ -96,18 +96,20 @@
 \newlabel{subsubsec:circuit_breaker_panel}{{\mbox  {IV-D}}{5}{Stage 4: Circuit-Breaker Panel}{subsection.4.4}{}}
 \newlabel{subsubsec:causal_saliency_gating}{{\mbox  {IV-D}}{5}{Stage 4: Circuit-Breaker Panel}{subsection.4.4}{}}
 \newlabel{eq:dial_tripwire}{{4}{5}{Stage 4: Circuit-Breaker Panel}{equation.4.4}{}}
+\newlabel{eq:panel_quorum}{{5}{5}{Stage 4: Circuit-Breaker Panel}{equation.4.5}{}}
 \citation{siffer2017anomaly,balkema1974residual,grimshaw1993computing}
 \citation{loshchilov2017decoupled}
-\newlabel{eq:panel_quorum}{{5}{6}{Stage 4: Circuit-Breaker Panel}{equation.4.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Compact Variant: \emph  {Laminar-JEPA-Lite}}{6}{subsection.4.5}\protected@file@percent }
 \newlabel{subsec:laminar_lite}{{\mbox  {IV-E}}{6}{Compact Variant: \emph {Laminar-JEPA-Lite}}{subsection.4.5}{}}
-\newlabel{alg:pipeline}{{1}{6}{Compact Variant: \emph {Laminar-JEPA-Lite}}{algorithm.1}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Laminar-JEPA (224-Bit) and Laminar-JEPA-Lite (128-Bit)}}{6}{algorithm.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Protocol and Evaluation Metrics}{6}{section.5}\protected@file@percent }
 \newlabel{sec:exp}{{V}{6}{Experimental Protocol and Evaluation Metrics}{section.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Setup and Calibration Protocol}{6}{subsection.5.1}\protected@file@percent }
 \newlabel{subsec:exp_setup}{{\mbox  {V-A}}{6}{Setup and Calibration Protocol}{subsection.5.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0a}Disjoint Calibration Protocol}{6}{paragraph.5.1.0.1}\protected@file@percent }
+\newlabel{alg:pipeline}{{1}{6}{Compact Variant: \emph {Laminar-JEPA-Lite}}{algorithm.1}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Laminar-JEPA (224-Bit) and Laminar-JEPA-Lite (128-Bit)}}{6}{algorithm.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Disjoint nominal evaluation protocol ($C{=}256, S{=}64, W{=}320$): (Row\nobreakspace  {}1)\nobreakspace  {}five-block archive partition into $S$-isolated weight-fitting ($\mathbf  {X}_{\text  {fit}}$), checkpoint-selection ($\mathbf  {X}_{\text  {sel}}$), and nominal adaptation ($\mathbf  {X}_q$) prefixes versus $\mathbf  {X}_{\text  {val}}$, (Row\nobreakspace  {}2)\nobreakspace  {}untouched threshold calibration ($\mathbf  {X}_{\text  {cal}}$) and held-out nominal evaluation ($\mathbf  {X}_{\text  {hold}}$), and (Row\nobreakspace  {}3)\nobreakspace  {}structural emission lag ($S{-}1$) versus empirical detection delay ($\Delta t$).}}{6}{figure.2}\protected@file@percent }
+\newlabel{fig:protocol_and_permutation}{{2}{6}{Disjoint nominal evaluation protocol ($C{=}256, S{=}64, W{=}320$): (Row~1)~five-block archive partition into $S$-isolated weight-fitting ($\mathbf {X}_{\text {fit}}$), checkpoint-selection ($\mathbf {X}_{\text {sel}}$), and nominal adaptation ($\mathbf {X}_q$) prefixes versus $\mathbf {X}_{\text {val}}$, (Row~2)~untouched threshold calibration ($\mathbf {X}_{\text {cal}}$) and held-out nominal evaluation ($\mathbf {X}_{\text {hold}}$), and (Row~3)~structural emission lag ($S{-}1$) versus empirical detection delay ($\Delta t$)}{figure.2}{}}
 \citation{benjamini1995controlling}
 \citation{wu2023timesnet}
 \citation{tuli2022tranad}
@@ -115,8 +117,6 @@
 \citation{carmona2021neural}
 \citation{yang2023dcdetector}
 \citation{kim2022towards}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Disjoint nominal evaluation protocol ($C{=}256, S{=}64, W{=}320$): (Row\nobreakspace  {}1)\nobreakspace  {}five-block archive partition into $S$-isolated weight-fitting ($\mathbf  {X}_{\text  {fit}}$), checkpoint-selection ($\mathbf  {X}_{\text  {sel}}$), and nominal adaptation ($\mathbf  {X}_q$) prefixes versus $\mathbf  {X}_{\text  {val}}$, (Row\nobreakspace  {}2)\nobreakspace  {}untouched threshold calibration ($\mathbf  {X}_{\text  {cal}}$) and held-out nominal evaluation ($\mathbf  {X}_{\text  {hold}}$), and (Row\nobreakspace  {}3)\nobreakspace  {}structural emission lag ($S{-}1$) versus empirical detection delay ($\Delta t$).}}{7}{figure.2}\protected@file@percent }
-\newlabel{fig:protocol_and_permutation}{{2}{7}{Disjoint nominal evaluation protocol ($C{=}256, S{=}64, W{=}320$): (Row~1)~five-block archive partition into $S$-isolated weight-fitting ($\mathbf {X}_{\text {fit}}$), checkpoint-selection ($\mathbf {X}_{\text {sel}}$), and nominal adaptation ($\mathbf {X}_q$) prefixes versus $\mathbf {X}_{\text {val}}$, (Row~2)~untouched threshold calibration ($\mathbf {X}_{\text {cal}}$) and held-out nominal evaluation ($\mathbf {X}_{\text {hold}}$), and (Row~3)~structural emission lag ($S{-}1$) versus empirical detection delay ($\Delta t$)}{figure.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Nominal Partitioning and Calibration Protocol by Cohort}}{7}{table.1}\protected@file@percent }
 \newlabel{tab:protocol_matrix}{{I}{7}{Nominal Partitioning and Calibration Protocol by Cohort}{table.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-A}0b}Statistical Inference}{7}{paragraph.5.1.0.2}\protected@file@percent }
@@ -136,34 +136,34 @@
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Development studies. \textbf  {(a)}\nobreakspace  {}Causal and buffered Point-F1 across the six-step expansion on cached whitened residuals from 19 streams (three seeds; no stabilization blend). \textbf  {(b)}\nobreakspace  {}Event recall for injected single-channel faults in a separate six-stream study, comparing 1D TS-JEPA, 224-Bit Breaker, and their channel-level union.}}{9}{figure.3}\protected@file@percent }
 \newlabel{fig:regularizer_and_quiet_fault}{{3}{9}{Development studies. \textbf {(a)}~Causal and buffered Point-F1 across the six-step expansion on cached whitened residuals from 19 streams (three seeds; no stabilization blend). \textbf {(b)}~Event recall for injected single-channel faults in a separate six-stream study, comparing 1D TS-JEPA, 224-Bit Breaker, and their channel-level union}{figure.3}{}}
 \newlabel{eq:single_channel_injection}{{6}{9}{Ablation 2: Single-Channel Faults and Complementary Channel-Level Anomaly Branch}{equation.6.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Ablation 3: Multiscale Dyadic-Shell Front-End vs.\ Standard Convolutional Stem}{9}{subsection.6.3}\protected@file@percent }
+\newlabel{subsec:dyadic_ablation}{{\mbox  {VI-C}}{9}{Ablation 3: Multiscale Dyadic-Shell Front-End vs.\ Standard Convolutional Stem}{subsection.6.3}{}}
+\citation{Hundman2018b}
 \citation{Hundman2018b}
 \@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Coordinate Detector-Bank Regimes on Cached Residuals}}{10}{table.3}\protected@file@percent }
 \newlabel{tab:matched_alert}{{III}{10}{Coordinate Detector-Bank Regimes on Cached Residuals}{table.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Ablation 3: Multiscale Dyadic-Shell Front-End vs.\ Standard Convolutional Stem}{10}{subsection.6.3}\protected@file@percent }
-\newlabel{subsec:dyadic_ablation}{{\mbox  {VI-C}}{10}{Ablation 3: Multiscale Dyadic-Shell Front-End vs.\ Standard Convolutional Stem}{subsection.6.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}{10}{subsection.6.4}\protected@file@percent }
 \newlabel{subsec:controlled_backbone}{{\mbox  {VI-D}}{10}{Mechanism-Discrimination Study: Latent Space vs.\ Observation Space}{subsection.6.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VII}Results and Discussion}{10}{section.7}\protected@file@percent }
 \newlabel{sec:results}{{VII}{10}{Results and Discussion}{section.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Benchmark Results}{10}{subsection.7.1}\protected@file@percent }
-\newlabel{subsec:core_benchmark}{{\mbox  {VII-A}}{10}{Benchmark Results}{subsection.7.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Design-Stage Benchmark and Scope Boundaries}{10}{subsection.7.1}\protected@file@percent }
+\newlabel{subsec:core_benchmark}{{\mbox  {VII-A}}{10}{Design-Stage Benchmark and Scope Boundaries}{subsection.7.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Real-Time Streaming vs.\ Retrospective Buffered Attribution}{10}{subsection.7.2}\protected@file@percent }
 \newlabel{subsec:causal_vs_buffered}{{\mbox  {VII-B}}{10}{Real-Time Streaming vs.\ Retrospective Buffered Attribution}{subsection.7.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Multi-Horizon Scaling Across $S \in \{1, 4, 16, 32, 64\}$ and Latency Trade-Offs}{10}{subsection.7.3}\protected@file@percent }
-\newlabel{subsec:horizon_latency}{{\mbox  {VII-C}}{10}{Multi-Horizon Scaling Across $S \in \{1, 4, 16, 32, 64\}$ and Latency Trade-Offs}{subsection.7.3}{}}
-\citation{Hundman2018b}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Exploratory Horizon Sweep Across $S \in \{1, 4, 16, 32, 64\}$}{10}{subsection.7.3}\protected@file@percent }
+\newlabel{subsec:horizon_latency}{{\mbox  {VII-C}}{10}{Exploratory Horizon Sweep Across $S \in \{1, 4, 16, 32, 64\}$}{subsection.7.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Design-Stage Operating Budgets and Fault Taxonomies}{10}{subsection.7.4}\protected@file@percent }
+\newlabel{subsec:matched_operating}{{\mbox  {VII-D}}{10}{Design-Stage Operating Budgets and Fault Taxonomies}{subsection.7.4}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Primary 33-Stream Development Benchmark Across Attribution Regimes}}{11}{table.4}\protected@file@percent }
 \newlabel{tab:core_benchmark}{{IV}{11}{Primary 33-Stream Development Benchmark Across Attribution Regimes}{table.4}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Multi-horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, causal reporting lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and causal operating frontier ($n{=}19$ streams). \textbf  {(a)}\nobreakspace  {}Causal Point-F1 and event recall (ER) across $S$ comparing \emph  {Laminar-JEPA (224B)}, \emph  {Laminar-JEPA-Lite (128B)}, and Multi-Horizon 1D SPOT (nominal FPR $\le 3.6\%$ across all $S$, vs.\ $2.5\% \to 21.3\%$ for TimesNet). \textbf  {(b)}\nobreakspace  {}Causal ER vs.\ realized false alarms ($\sqrt  {\cdot }$ scale) across diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph  {Laminar-JEPA} star, \emph  {Laminar-JEPA-Lite} cross, 1D open circles), and healthy calibration quantiles $q^*{\le }0.05$.}}{11}{figure.4}\protected@file@percent }
-\newlabel{fig:operating_and_horizon}{{4}{11}{Multi-horizon scaling ($S \in \{1, 4, 16, 32, 64\}$, causal reporting lag $S{-}1 \in \{0, 3, 15, 31, 63\}$ steps, $n{=}5$ streams) and causal operating frontier ($n{=}19$ streams). \textbf {(a)}~Causal Point-F1 and event recall (ER) across $S$ comparing \emph {Laminar-JEPA (224B)}, \emph {Laminar-JEPA-Lite (128B)}, and Multi-Horizon 1D SPOT (nominal FPR $\le 3.6\%$ across all $S$, vs.\ $2.5\% \to 21.3\%$ for TimesNet). \textbf {(b)}~Causal ER vs.\ realized false alarms ($\sqrt {\cdot }$ scale) across diagnostic budgets $f^* \in \{1\%, 5\%\}$ (dotted guides), autonomous points (\emph {Laminar-JEPA} star, \emph {Laminar-JEPA-Lite} cross, 1D open circles), and healthy calibration quantiles $q^*{\le }0.05$}{figure.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Operating Budgets and Contextual vs.\ Point Anomalies}{11}{subsection.7.4}\protected@file@percent }
-\newlabel{subsec:matched_operating}{{\mbox  {VII-D}}{11}{Operating Budgets and Contextual vs.\ Point Anomalies}{subsection.7.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Horizon scaling, operating frontier, and archive calibration-size effects. \textbf  {(a)}\nobreakspace  {}Exploratory horizon sweep ($S \in \{1..64\}$, causal lag $S{-}1$, $n{=}5$ streams, nominal FPR $\le 3.6\%$ vs.\ $2.5\%\to 21.3\%$ for TimesNet). \textbf  {(b)}\nobreakspace  {}Design-stage causal ER vs.\ realized test FPR ($\sqrt  {\cdot }$ scale, $n{=}19$ streams) across diagnostic budgets $f^*\in \{1\%,5\%\}$ (dotted), autonomous points, and $q^*{\le }0.05$. \textbf  {(c)}\nobreakspace  {}Primary archive calibration windows $N_{\text  {cal}}$ vs.\ causal held-out $\text  {FPR}_{\text  {hold}}$ across $n{=}118$ untouched streams (Spearman $\rho {=}-0.32$, $p{=}5.2\times 10^{-4}$), marking $N_{\text  {cal}}{=}500$ and $1\%/5\%$ budgets.}}{11}{figure.4}\protected@file@percent }
+\newlabel{fig:operating_and_horizon}{{4}{11}{Horizon scaling, operating frontier, and archive calibration-size effects. \textbf {(a)}~Exploratory horizon sweep ($S \in \{1..64\}$, causal lag $S{-}1$, $n{=}5$ streams, nominal FPR $\le 3.6\%$ vs.\ $2.5\%\to 21.3\%$ for TimesNet). \textbf {(b)}~Design-stage causal ER vs.\ realized test FPR ($\sqrt {\cdot }$ scale, $n{=}19$ streams) across diagnostic budgets $f^*\in \{1\%,5\%\}$ (dotted), autonomous points, and $q^*{\le }0.05$. \textbf {(c)}~Primary archive calibration windows $N_{\text {cal}}$ vs.\ causal held-out $\text {FPR}_{\text {hold}}$ across $n{=}118$ untouched streams (Spearman $\rho {=}-0.32$, $p{=}5.2\times 10^{-4}$), marking $N_{\text {cal}}{=}500$ and $1\%/5\%$ budgets}{figure.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Primary Held-Out Generalization, False-Alarm Tails, and Calibration Limits}{11}{subsection.7.5}\protected@file@percent }
+\newlabel{subsec:calibration_realities}{{\mbox  {VII-E}}{11}{Primary Held-Out Generalization, False-Alarm Tails, and Calibration Limits}{subsection.7.5}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Contextual vs.\ Point Anomaly Detection}}{12}{table.5}\protected@file@percent }
 \newlabel{tab:point_vs_contextual}{{V}{12}{Contextual vs.\ Point Anomaly Detection}{table.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Disjoint Five-Block Held-Out Archive Benchmark}}{12}{table.6}\protected@file@percent }
-\newlabel{tab:calibrator_comparison}{{VI}{12}{Disjoint Five-Block Held-Out Archive Benchmark}{table.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Held-Out Generalization and Calibration Limits}{12}{subsection.7.5}\protected@file@percent }
-\newlabel{subsec:calibration_realities}{{\mbox  {VII-E}}{12}{Held-Out Generalization and Calibration Limits}{subsection.7.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Disjoint Five-Block Untouched Archive Benchmark ($n{=}118$)}}{12}{table.6}\protected@file@percent }
+\newlabel{tab:calibrator_comparison}{{VI}{12}{Disjoint Five-Block Untouched Archive Benchmark ($n{=}118$)}{table.6}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion and Future Work}{12}{section.8}\protected@file@percent }
 \newlabel{sec:conclusion}{{VIII}{12}{Conclusion and Future Work}{section.8}{}}
 \bibstyle{IEEEtran}
