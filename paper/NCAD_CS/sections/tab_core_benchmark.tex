@@ -2,7 +2,7 @@
 \centering
 \caption{Primary 33-Stream Development Benchmark Across Attribution Regimes\label{tab:core_benchmark}}
 \scriptsize
-\setlength{\tabcolsep}{3.4pt}
+\setlength{\tabcolsep}{2.6pt}
 \renewcommand{\arraystretch}{1.05}
 \begin{tabular*}{\textwidth}{
     @{\extracolsep{\fill}}
@@ -24,7 +24,7 @@
 \toprule
 & \multicolumn{5}{c}{\textbf{(a) Buffered Attribution ($n{=}19$ Non-GHL)}} & \multicolumn{4}{c}{\textbf{(b) Causal Attribution ($n{=}19$ Non-GHL)}} & \multicolumn{2}{c}{\textbf{GHL ($n{=}14$)}} & {\textbf{Macro}} \\
 \cmidrule(lr){2-6} \cmidrule(lr){7-10} \cmidrule(lr){11-12} \cmidrule(l){13-13}
-\textbf{Architecture} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{PR-AUC} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{DS-F1} $\uparrow$} \\
+\textbf{Architecture} & {\textbf{FPR$_{\text{hold}}$} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{PR-AUC} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR$_{\text{hold}}$} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{ER} $\uparrow$} & {$\boldsymbol{\Delta t}$ $\downarrow$} & {\textbf{FPR$_{\text{hold}}$} $\downarrow$} & {\textbf{Pt-F1} $\uparrow$} & {\textbf{DS-F1} $\uparrow$} \\
 \midrule
 \multicolumn{13}{@{}l}{\textit{Multi-horizon coordinate circuit-breaker architectures}} \\
 \quad \textbf{Laminar-JEPA (224-Bit)}       & 0.128             & \bfseries 0.244   & \bfseries 0.407   & \bfseries 0.669   & 432.9             & 0.013             & 0.144             & \bfseries 0.673   & 249.9             & 0.004             & 0.000             & \underline{0.133} \\
@@ -59,5 +59,5 @@ Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & 0.000            
 SWAN    & 1  & 38 & 6615 & 0.279 & 0.437 & 0.000             & \textbf{0.240}    & \underline{0.119} & 0.000             & 0.000             & \textbf{.000/.000}    & .001/\textbf{.000}    & \textbf{.000/.000}    & \textbf{.000/.000} & \textbf{.000/.000} \\
 \bottomrule
 \end{tabular*}\par\vspace{2pt}\noindent
-\parbox{\textwidth}{\scriptsize\emph{Note:} 19 non-GHL streams (5 seeds) and 14 GHL streams (3 seeds), trained separately from Table~\ref{tab:ablations}(a,b); best in \textbf{bold}, second \underline{underlined}. In (c), $n$ = streams, $K$ = channels, $E$ = events, $\pi$ = anomaly rate, $\text{F1}_{\text{all}} = 2\pi/(1+\pi)$, Lam.\ = Laminar-JEPA, Lite = Laminar-JEPA-Lite. Unweighted Laminar-JEPA $\Delta t$ reflects one late SWAN trigger ($0.0002$ recall; median $\Delta t$ is $50.5$ buffered / $45.8$ causal, or $54.8$ / $57.2$ ex-SWAN). 95\% stream-bootstrap CIs ($n{=}19$): Lite buffered FPR $[.030,.103]$, F1 $[.151,.335]$ and causal FPR $[.006,.014]$, F1 $[.055,.236]$; Lam.\ buffered F1 $[.150,.357]$ and causal FPR $[.009,.018]$, F1 $[.058,.257]$ (vs.\ Multi-Horizon 1D $[.013,.097]$ and TimesNet causal FPR $[.123,.375]$).}\vspace{-5pt}
+\parbox{\textwidth}{\scriptsize\emph{Note:} 19 non-GHL streams (5 seeds) and 14 GHL streams (3 seeds), trained separately from Table~\ref{tab:ablations}(a,b); best in \textbf{bold}, second \underline{underlined}. $\Delta t$ = mean step delay over detected events; $\text{DS-F1}$ = unweighted $7$-dataset macro Buffered Point-F1. In (c), $n$ = streams, $K$ = channels, $E$ = events, $\pi$ = faulty-step fraction, $\text{F1}_{\text{all}} = 2\pi/(1+\pi)$ (trivial always-alarm Point-F1), Lam.\ = Laminar-JEPA, Lite = Laminar-JEPA-Lite. Unweighted Laminar-JEPA $\Delta t$ reflects one late SWAN trigger ($0.0002$ recall; median $\Delta t$ is $50.5$ buffered / $45.8$ causal, or $54.8$ / $57.2$ ex-SWAN). 95\% stream-bootstrap CIs ($n{=}19$): Lite buffered FPR $[.030,.103]$, F1 $[.151,.335]$ and causal FPR $[.006,.014]$, F1 $[.055,.236]$; Lam.\ buffered F1 $[.150,.357]$ and causal FPR $[.009,.018]$, F1 $[.058,.257]$ (vs.\ Multi-Horizon 1D $[.013,.097]$ and TimesNet causal FPR $[.123,.375]$).}\vspace{-5pt}
 \end{table*}
