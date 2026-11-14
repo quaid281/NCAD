@@ -111,8 +111,8 @@ def _conformal_pvals(z_cal: np.ndarray, z: np.ndarray) -> np.ndarray:
     return out
 
 
-def _lite_aggregators(meta, rows, va_ew, te_ew, len_va, len_te, y, n_params, lite_cal_rate) -> None:
-    """System-level aggregators on the identical frozen Lite residuals (trailing attribution)."""
+def lite_coordinate_z(va_ew: np.ndarray, te_ew: np.ndarray) -> dict[str, np.ndarray]:
+    """Robust per-coordinate position+drift z-scores and conformal p-values on frozen Lite residuals."""
     n_cal_w = len(va_ew) // 2
     abs_va = np.abs(va_ew.reshape(len(va_ew), -1))
     abs_te = np.abs(te_ew.reshape(len(te_ew), -1))
@@ -121,9 +121,29 @@ def _lite_aggregators(meta, rows, va_ew, te_ew, len_va, len_te, y, n_params, lit
     med = np.median(pd_va[:n_cal_w], axis=0, keepdims=True)
     mad = 1.4826 * np.median(np.abs(pd_va[:n_cal_w] - med), axis=0, keepdims=True) + 1e-4
     z_va, z_te = np.maximum(0.0, (pd_va - med) / mad), np.maximum(0.0, (pd_te - med) / mad)
-    q985 = np.percentile(z_va[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4
-    p_va = _conformal_pvals(z_va[:n_cal_w], z_va)
-    p_te = _conformal_pvals(z_va[:n_cal_w], z_te)
+    return {
+        "abs_va": abs_va, "abs_te": abs_te, "z_va": z_va, "z_te": z_te,
+        "q985": np.percentile(z_va[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4,
+        "p_va": _conformal_pvals(z_va[:n_cal_w], z_va), "p_te": _conformal_pvals(z_va[:n_cal_w], z_te),
+    }
+
+
+def lite_bank_scores(va_ew: np.ndarray, te_ew: np.ndarray) -> list[tuple[str, np.ndarray, np.ndarray]]:
+    """Window-level max-z, raw top-k, and Fisher scores on frozen Lite residuals."""
+    zz = lite_coordinate_z(va_ew, te_ew)
+    z_va, z_te, q985 = zz["z_va"], zz["z_te"], zz["q985"]
+    return [
+        ("MaxZ", z_va.max(1), z_te.max(1)),
+        ("TopK", (z_va > q985).sum(1).astype(np.float64), (z_te > q985).sum(1).astype(np.float64)),
+        ("Fisher", -2.0 * np.log(zz["p_va"]).sum(1), -2.0 * np.log(zz["p_te"]).sum(1)),
+    ]
+
+
+def _lite_aggregators(meta, rows, va_ew, te_ew, len_va, len_te, y, n_params, lite_cal_rate) -> None:
+    """System-level aggregators on the identical frozen Lite residuals (trailing attribution)."""
+    zz = lite_coordinate_z(va_ew, te_ew)
+    abs_va, abs_te, z_va, z_te, q985 = zz["abs_va"], zz["abs_te"], zz["z_va"], zz["z_te"], zz["q985"]
+    p_va, p_te = zz["p_va"], zz["p_te"]
     fisher_va, fisher_te = -2.0 * np.log(p_va).sum(1), -2.0 * np.log(p_te).sum(1)
     stouf_va = -special.ndtri(np.clip(p_va, 1e-12, 1 - 1e-12)).sum(1) / np.sqrt(p_va.shape[1])
     stouf_te = -special.ndtri(np.clip(p_te, 1e-12, 1 - 1e-12)).sum(1) / np.sqrt(p_te.shape[1])

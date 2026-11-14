@@ -1,0 +1,34 @@
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{1.0pt}
+\caption{Archive False-Alarm and Operating-Point Audit ($n{=}118$, Causal)\label{tab:tail_audit}}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l c c c ccc @{}}
+\toprule
+& & & & \multicolumn{2}{c}{\textbf{FPR$_{\text{hold}}$}} & \textbf{FPR$_{\text{test}}$} \\
+\cmidrule(lr){5-6} \cmidrule(lr){7-7}
+\textbf{(a) Highest-FPR streams} & $\boldsymbol{N_{\text{cal}}}$ & $\boldsymbol{N_{\text{eff}}}$ & $\boldsymbol{D_{\text{KS}}}$ & \textbf{Lite} & \textbf{1D} & \textbf{Lite} \\
+\midrule
+Exathlon 6\_1\_500000\_65    & 1315 & 110 & 1.00 & 1.00 & .47 & 1.00 \\
+SMAP D-11                    & 297  & 12  & 1.00 & 1.00 & .97 & 1.00 \\
+Exathlon 10\_2\_1000000\_67  & 199  & 14  & 1.00 & .99  & .74 & 1.00 \\
+Daphnet S09R01E4             & 176  & 77  & .96  & .86  & .06 & .90 \\
+SMAP G-7                     & 268  & 48  & .96  & .63  & .45 & .31 \\
+SMAP R-1                     & 343  & 343 & .62  & .62  & .10 & 1.00 \\
+Exathlon 5\_5\_1000000\_91   & 1347 & 803 & .48  & .48  & .31 & .62 \\
+Exathlon 10\_3\_1000000\_75  & 1473 & 53  & .75  & .37  & .10 & .99 \\
+SMAP D-8                     & 295  & 295 & .34  & .34  & .23 & .14 \\
+SMAP D-9                     & 292  & 292 & .32  & .32  & .55 & .06 \\
+\midrule
+\textbf{(b) Matched budgets} & \textbf{Lite} & \textbf{Fisher} & \textbf{Top-$k$} & \textbf{Max-$z$} & \textbf{1D} & \textbf{FPR$_{\text{hold}}$} \\
+\midrule
+$r{=}0.5\%$ (healthy) & .676/.084 & .667/\textbf{.090} & .666/.084 & .662/\underline{.072} & \underline{.620}/.096 & .06--.09 \\
+$r{=}1\%$                  & .732/.096 & .715/\textbf{.099} & \underline{.711}/.096 & .738/\underline{.086} & .703/.109 & .07--.10 \\
+$r{=}2\%$                  & .791/.112 & \underline{.761}/.112 & .785/.111 & .819/.103 & .751/.120 & .08--.12 \\
+$r{=}5\%$                  & .863/.131 & \underline{.828}/.133 & .861/.130 & .873/.124 & \underline{.823}/.135 & .13--.17 \\
+\addlinespace[1.5pt]
+$f{=}1\%$ (post hoc)       & .529/.049 & .525/\textbf{.054} & .533/\textbf{.049} & \textbf{.570}/.052 & .549/\textbf{.084} & -- \\
+$f{=}5\%$                  & .723/.099 & .719/\textbf{.107} & .727/.100 & \textbf{.785}/.099 & .754/.122 & -- \\
+\bottomrule
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Independent three-seed rerun, five-block protocol, seed-averaged per stream. (a)~The ten highest Lite causal $\text{FPR}_{\text{hold}}$ streams (the same ten as in Table~\ref{tab:calibrator_comparison}(a)); $N_{\text{eff}}=N_{\text{cal}}/\tau_{\text{int}}$ of the Lite quorum count; $D_{\text{KS}}$ = KS distance between $\mathbf{X}_{\text{cal}}$ and $\mathbf{X}_{\text{hold}}$ counts. (b)~Causal ER/Point-F1 when every detector is thresholded at the same healthy $\mathbf{X}_{\text{cal}}$ alarm rate $r$ (label-free) or post hoc at the same test FPR $f$ (uses test labels; diagnostic). Fisher, top-$k$, and max-$z$ pool the same frozen Lite residuals; 1D = Multi-Horizon JEPA (1D). Bold/underlined: significantly higher/lower than Lite (paired Wilcoxon $p{<}0.05$). Last column: range of mean $\text{FPR}_{\text{hold}}$ across the five detectors.} \\
+\end{tabular*}\par\vspace{-4pt}\end{table}
