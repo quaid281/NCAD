@@ -282,8 +282,8 @@ def main() -> None:
         print(f"Resuming {out_csv}: {len(done_keys)} (stream, seed) pairs already evaluated.")
 
     panel_224 = MultiPerspectiveCircuitBreakerPanel(context_size=c_len, suspect_size=s_len)
-    panel_lite_guard = PositionDriftLitePanel(context_size=c_len, suspect_size=s_len, use_hijack_guard=True)
-    panel_lite_noguard = PositionDriftLitePanel(context_size=c_len, suspect_size=s_len, use_hijack_guard=False)
+    panel_lite_guard = PositionDriftLitePanel(context_size=c_len, suspect_size=s_len)
+    panel_lite_noguard = panel_lite_guard
 
     for idx_s, s_name in enumerate(streams, start=1):
         ds, ch = s_name.split(":")

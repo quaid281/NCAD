@@ -122,7 +122,7 @@ def run(args: argparse.Namespace) -> None:
     if args.num_shards > 1:
         schedule = [it for i, it in enumerate(schedule) if i % args.num_shards == args.shard_id]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    panel = PositionDriftLitePanel(context_size=C, suspect_size=S, use_hijack_guard=True)
+    panel = PositionDriftLitePanel(context_size=C, suspect_size=S)
     print(f"=== tail audit: {len(schedule)} untouched streams -> {out_path} ===", flush=True)
 
     for idx, (ds, ch, seeds) in enumerate(schedule, start=1):

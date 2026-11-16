@@ -323,7 +323,7 @@ def test_multi_perspective_224bit_circuit_breaker_panel():
     train_wins = np.random.randn(24, C_len + S_len, K).astype(np.float32)
     va_wins = np.random.randn(40, C_len + S_len, K).astype(np.float32)
     te_wins = np.random.randn(40, C_len + S_len, K).astype(np.float32)
-    te_wins[20:30] += 6.0  # Inject synthetic fault burst
+    te_wins[20:30, C_len:] += 6.0  # Inject synthetic fault burst in target horizon
 
     model.fit_alien_bank(train_wins, context_len=C_len, batch_size=8)
     va_raw4, va_white4 = extract_multihorizon_4subblocks(model, va_wins, C_len, torch.device("cpu"))

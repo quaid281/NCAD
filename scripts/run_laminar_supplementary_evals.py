@@ -104,7 +104,7 @@ def run_horizon_lite_sweep(device: torch.device) -> None:
             va_w = DataLoader.create_windows(va_s, w_len, step=1, copy=False)
             te_w = DataLoader.create_windows(te_s, w_len, step=1, copy=False)
             n_cal_w = len(va_w) // 2
-            panel_lite = PositionDriftLitePanel(context_size=C, suspect_size=s_len, use_hijack_guard=True)
+            panel_lite = PositionDriftLitePanel(context_size=C, suspect_size=s_len)
 
             for seed in (42, 123, 456):
                 torch.manual_seed(seed)
@@ -198,7 +198,7 @@ def run_dev19_laminar_and_contextual(device: torch.device) -> None:
     seeds = [42, 123, 456, 7, 2024]
     wsp_cfg = WSPConfig(context_len=C, suspect_len=S, candidate_k_counts=(4, 2))
     panel_224 = MultiPerspectiveCircuitBreakerPanel(context_size=C, suspect_size=S)
-    panel_lite = PositionDriftLitePanel(context_size=C, suspect_size=S, use_hijack_guard=True)
+    panel_lite = PositionDriftLitePanel(context_size=C, suspect_size=S)
 
     rows: list[dict[str, Any]] = pd.read_csv(out_csv).to_dict("records") if out_csv.exists() else []
     ctx_rows: list[dict[str, Any]] = pd.read_csv(out_ctx_csv).to_dict("records") if out_ctx_csv.exists() else []

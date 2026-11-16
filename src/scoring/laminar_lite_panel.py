@@ -84,54 +84,23 @@ class PositionDriftLitePanel:
         self,
         context_size: int = 256,
         suspect_size: int = 64,
-        use_hijack_guard: bool = True,
         use_prefix_smear: bool = True,
     ):
         self.context_size = context_size
         self.suspect_size = suspect_size
-        self.use_hijack_guard = use_hijack_guard
         self.use_prefix_smear = use_prefix_smear
 
     def calibrate_and_trip_windows(
         self, va_ew: np.ndarray, te_ew: np.ndarray, n_cal_w: int
     ) -> dict[str, np.ndarray | int]:
         """Calibrate per-dial 98.5th-percentile switches on `va_ew[:n_cal_w]`."""
-        _, num_horizons, dim = va_ew.shape
+        _, num_horizons, _ = va_ew.shape
         va_pd = build_position_drift_dials(va_ew)
         te_pd = build_position_drift_dials(te_ew)
-
-        med = np.median(va_pd[:n_cal_w], axis=0, keepdims=True)
-        mad = 1.4826 * np.median(np.abs(va_pd[:n_cal_w] - med), axis=0, keepdims=True) + 1e-4
-        z_va = np.maximum(0.0, (va_pd - med) / mad)
-        z_te = np.maximum(0.0, (te_pd - med) / mad)
-
-        if self.use_hijack_guard:
-            q1 = max(1, n_cal_w // 2)
-            drift = np.maximum(
-                1.0,
-                (np.percentile(z_va[q1:n_cal_w], 98.0, axis=0, keepdims=True) + 0.5)
-                / (np.percentile(z_va[:q1], 98.0, axis=0, keepdims=True) + 0.5),
-            )
-            s_cal = med + mad
-            s_ref = (
-                np.concatenate(
-                    [
-                        np.repeat(np.median(s_cal[:, : num_horizons * dim], keepdims=True), num_horizons * dim, axis=1),
-                        np.repeat(np.median(s_cal[:, num_horizons * dim :], keepdims=True), dim, axis=1),
-                    ],
-                    axis=1,
-                )
-                + 1e-4
-            )
-            scale = np.maximum(1.0, s_cal / (1.5 * s_ref))
-            guard = np.where(drift > 1.35, drift, 1.0) * np.where(scale > 1.25, scale, 1.0)
-        else:
-            guard = 1.0
-
-        tau = (np.percentile(z_va[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4) * guard
+        tau = np.percentile(va_pd[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4
         return {
-            "bits_pd_va": (z_va > tau).astype(np.float32),
-            "bits_pd_te": (z_te > tau).astype(np.float32),
+            "bits_pd_va": (va_pd > tau).astype(np.float32),
+            "bits_pd_te": (te_pd > tau).astype(np.float32),
             "num_horizons": int(num_horizons),
         }
 
@@ -162,21 +131,21 @@ class PositionDriftLitePanel:
         n_dials = float(bits_va.shape[1])
 
         floor_bal = max(2.0, 3.5 * (n_dials / 128.0))
-        floor_strict = max(2.5, 4.0 * (n_dials / 128.0))
         k_bal = max(float(np.percentile(v_cnt[:half], 99.5)) * 1.12, floor_bal)
-        k_strict = max(float(np.percentile(v_cnt[:half], 99.85)) * 1.18, floor_strict)
 
         hold_cnt = v_cnt[half + s_len :]
+        hold_bal = (hold_cnt > k_bal).astype(int)
+        test_bal = (t_cnt > k_bal).astype(int)
         return CircuitBreakerStreamDecision(
             valid_mask=tm,
             cal_switch_counts=v_cnt[:half],
             hold_switch_counts=hold_cnt,
             test_switch_counts=t_cnt,
-            hold_pred_strict=(hold_cnt > k_strict).astype(int),
-            test_pred_strict=(t_cnt > k_strict).astype(int),
-            hold_pred_balanced=(hold_cnt > k_bal).astype(int),
-            test_pred_balanced=(t_cnt > k_bal).astype(int),
-            k_gate_strict=k_strict,
+            hold_pred_strict=hold_bal,
+            test_pred_strict=test_bal,
+            hold_pred_balanced=hold_bal,
+            test_pred_balanced=test_bal,
+            k_gate_strict=k_bal,
             k_gate_balanced=k_bal,
         )
 

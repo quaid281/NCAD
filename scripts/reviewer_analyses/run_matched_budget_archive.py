@@ -191,7 +191,7 @@ def main() -> None:
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     panel_224 = MultiPerspectiveCircuitBreakerPanel(context_size=C, suspect_size=S)
-    panel_pd = PositionDriftLitePanel(context_size=C, suspect_size=S, use_hijack_guard=True)
+    panel_pd = PositionDriftLitePanel(context_size=C, suspect_size=S)
     print(f"=== matched-budget rerun: {len(schedule)} streams -> {out_path} ===", flush=True)
 
     for idx, (ds, ch, seeds) in enumerate(schedule, start=1):

@@ -551,7 +551,7 @@ def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     wsp_cfg = WSPConfig(context_len=C, suspect_len=S, candidate_k_counts=(4, 2))
     panel_224 = MultiPerspectiveCircuitBreakerPanel(context_size=C, suspect_size=S)
-    panel_lite = PositionDriftLitePanel(context_size=C, suspect_size=S, use_hijack_guard=True)
+    panel_lite = PositionDriftLitePanel(context_size=C, suspect_size=S)
 
     print(f"=== Starting suite={args.suite} ({len(schedule)} streams, models={target_models}) -> {out_path} ===", flush=True)
 

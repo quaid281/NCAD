@@ -153,7 +153,7 @@ def test_position_drift_panel_energy_identity_and_causal_non_leakage() -> None:
     te_spike = te_clean.copy()
     te_spike[50:, :, 0] += 12.0  # Fault enters window 50 -> causal timestamp 32 + 16 - 1 + 50 = 97
 
-    panel = PositionDriftLitePanel(context_size=32, suspect_size=16, use_hijack_guard=True)
+    panel = PositionDriftLitePanel(context_size=32, suspect_size=16)
     bits_clean = panel.calibrate_and_trip_windows(va_ew, te_clean, n_cal_w=60)
     bits_spike = panel.calibrate_and_trip_windows(va_ew, te_spike, n_cal_w=60)
 

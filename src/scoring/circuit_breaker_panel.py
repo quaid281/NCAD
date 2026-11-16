@@ -196,63 +196,19 @@ class MultiPerspectiveCircuitBreakerPanel:
         va_224 = build_224_perspective_dials(va_ew)
         te_224 = build_224_perspective_dials(te_ew)
 
-        med_128 = np.median(va_128[:n_cal_w], axis=0, keepdims=True)
-        mad_128 = 1.4826 * np.median(np.abs(va_128[:n_cal_w] - med_128), axis=0, keepdims=True) + 1e-4
-        z128_va = np.maximum(0.0, (va_128 - med_128) / mad_128)
-        z128_te = np.maximum(0.0, (te_128 - med_128) / mad_128)
+        tau_128 = np.percentile(va_128[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4
+        bits128_va = (va_128 > tau_128).astype(np.float32)
+        bits128_te = (te_128 > tau_128).astype(np.float32)
 
-        med_224 = np.median(va_224[:n_cal_w], axis=0, keepdims=True)
-        mad_224 = 1.4826 * np.median(np.abs(va_224[:n_cal_w] - med_224), axis=0, keepdims=True) + 1e-4
-        z224_va = np.maximum(0.0, (va_224 - med_224) / mad_224)
-        z224_te = np.maximum(0.0, (te_224 - med_224) / mad_224)
+        tau_224 = np.percentile(va_224[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4
+        bits224_va = (va_224 > tau_224).astype(np.float32)
+        bits224_te = (te_224 > tau_224).astype(np.float32)
 
-        q1 = max(1, n_cal_w // 2)
-        drift_128 = np.maximum(
-            1.0,
-            (np.percentile(z128_va[q1:n_cal_w], 98.0, axis=0, keepdims=True) + 0.5)
-            / (np.percentile(z128_va[:q1], 98.0, axis=0, keepdims=True) + 0.5),
-        )
-        drift_224 = np.maximum(
-            1.0,
-            (np.percentile(z224_va[q1:n_cal_w], 98.0, axis=0, keepdims=True) + 0.5)
-            / (np.percentile(z224_va[:q1], 98.0, axis=0, keepdims=True) + 0.5),
-        )
-
-        s_cal_128 = med_128 + mad_128
-        tr_shift_128 = np.maximum(1.0, s_cal_128 / (1.5 * np.median(s_cal_128, keepdims=True) + 1e-4))
-
-        s_cal_224 = med_224 + mad_224
-        s_ref_224 = (
-            np.concatenate(
-                [
-                    np.repeat(np.median(s_cal_224[:, : 4 * dim], keepdims=True), 4 * dim, axis=1),
-                    np.repeat(np.median(s_cal_224[:, 4 * dim : 5 * dim], keepdims=True), dim, axis=1),
-                    np.repeat(np.median(s_cal_224[:, 5 * dim : 6 * dim], keepdims=True), dim, axis=1),
-                    np.repeat(np.median(s_cal_224[:, 6 * dim : 7 * dim], keepdims=True), dim, axis=1),
-                ],
-                axis=1,
-            )
-            + 1e-4
-        )
-        tr_shift_224 = np.maximum(1.0, s_cal_224 / (1.5 * s_ref_224))
-
-        guard_128 = np.where(drift_128 > 1.35, drift_128, 1.0) * np.where(tr_shift_128 > 1.25, tr_shift_128, 1.0)
-        guard_224 = np.where(drift_224 > 1.35, drift_224, 1.0) * np.where(tr_shift_224 > 1.25, tr_shift_224, 1.0)
-
-        tau_128 = (np.percentile(z128_va[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4) * guard_128
-        bits128_va = (z128_va > tau_128).astype(np.float32)
-        bits128_te = (z128_te > tau_128).astype(np.float32)
-
-        tau_224 = (np.percentile(z224_va[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4) * guard_224
-        bits224_va = (z224_va > tau_224).astype(np.float32)
-        bits224_te = (z224_te > tau_224).astype(np.float32)
-
-        z7_va = z224_va.reshape(-1, 7, dim)
-        z7_te = z224_te.reshape(-1, 7, dim)
-        g7 = guard_224.reshape(1, 7, dim)
-        tau_edge = (np.percentile(z7_va[:n_cal_w], 99.3, axis=0, keepdims=True) + 1e-4) * (g7**1.25)
-        b_edge_va = z7_va > tau_edge
-        b_edge_te = z7_te > tau_edge
+        d7_va = va_224.reshape(-1, 7, dim)
+        d7_te = te_224.reshape(-1, 7, dim)
+        tau_edge = np.percentile(d7_va[:n_cal_w], 99.3, axis=0, keepdims=True) + 1e-4
+        b_edge_va = d7_va > tau_edge
+        b_edge_te = d7_te > tau_edge
         fast_edge_va = (b_edge_va[:, 3, :] & (b_edge_va[:, 6, :] | b_edge_va[:, 5, :] | b_edge_va[:, 2, :])).astype(
             np.float32
         )
@@ -275,7 +231,7 @@ class MultiPerspectiveCircuitBreakerPanel:
         len_va: int,
         len_test: int,
         mapping: str,
-        score_mode: str = "weighted",
+        score_mode: str = "unweighted_224",
     ) -> CircuitBreakerStreamDecision:
         """Project binary switch states onto the timeline and apply coincidence gates."""
         C, S = self.context_size, self.suspect_size

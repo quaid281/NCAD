@@ -78,13 +78,13 @@ Zero column sums ($\sum_{m=1}^M F_{m,c}=0$) cancel the cross term in $M^{-1}\sum
 \label{subsubsec:causal_saliency_gating}
 Instead of adding all 224 dials into one score, Stage~4 (Algorithm~\ref{alg:pipeline}) gives each dial its own threshold, learned from the healthy calibration block. A dial \emph{trips} when it exceeds its threshold, and an alarm fires when enough dials trip at once. Because all dials come from the same $4 \times 32$ error matrix, their trips are correlated (median effective rank $65$ of $224$ on the development cohort; the variance of the trip count is $7.2\times$ that of independent dials). We therefore do not assume independence; the alarm quorums are set from the trip counts observed on healthy calibration data:
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
-    \item \emph{Per-dial thresholds and hijack guards:} Each dial $j \in \{1,\dots,224\}$ is standardized by its calibration median $m_j$ and scaled MAD $s_j = 1.4826\,\operatorname{MAD}(d_{j,\text{cal}}) + 10^{-4}$ (the $10^{-4}$ floor handles zero-MAD dials), giving $z_j(t) = \max\bigl(0, (d_j(t) - m_j)/s_j\bigr)$. Its tripwire $\tau_j$ is the $98.5$th calibration percentile of $z_j$, widened by $\gamma_j^{\text{cal}} \ge 1$ when its calibration tail grows (second-half $q_{0.98}$ above $1.35\times$ the first half) and by $\gamma_j^{\text{sc}} \ge 1$ when its scale exceeds $1.875\times$ the median scale of its dial family (positions, drifts, fluctuations, or endpoints):
+    \item \emph{Per-dial thresholds:} Each dial $j \in \{1,\dots,224\}$ is thresholded directly at its $98.5$th calibration percentile plus a $10^{-4}$ tie-break floor:
     \begin{equation}
-        b_j(t) = \mathbb{I}\bigl(z_j(t) > \tau_j\bigr), \quad \tau_j = q_{0.985}(z_{j,\text{cal}})\,\gamma_j^{\text{cal}}\,\gamma_j^{\text{sc}}.
+        b_j(t) = \mathbb{I}\bigl(d_j(t) > \tau_j\bigr), \quad \tau_j = q_{0.985}(d_{j,\text{cal}}) + 10^{-4}.
         \label{eq:dial_tripwire}
     \end{equation}
-    \item \emph{32 onset relays:} When a sudden fault first enters the right edge of the target window, the short prefixes ($m \in \{1, 2\}$) still cover healthy data, so few position dials trip. To catch this moment, each coordinate $c$ has stricter $99.3$rd-percentile edge tripwires ($\gamma^{1.25}$ guard) and fires a relay $r_c(t) \in \{0, 1\}$ when its full-window position dial ($m=4$) trips together with its endpoint, fluctuation, or $m=3$ dial.
-    \item \emph{Alarm timing:} Under \emph{causal attribution}, the trips from window $[t,t+S)$ are reported at its right end $\tau=t+S-1$, the earliest moment all of its data exist; this fixes a reporting lag of $S-1$ steps, separate from the detection delay $\Delta t=t_{\text{alm}}-t^*$ after fault onset $t^*$. Under \emph{buffered attribution}, used for after-the-fact review, each trip is assigned to the steps it describes: position trips to their prefix $[t,t+S_m)$, drift and fluctuation trips to $[t,t+S)$, and endpoint trips to $[t+S_3,t+S)$. $N_{224}(\tau)$, the position sub-count $N_{128}(\tau) \subset N_{224}(\tau)$, and the relay count $N_{\text{edge}}(\tau)$. For ranking metrics, the continuous score $N_{\text{tot}}(\tau) = N_{224}(\tau) + N_{128}(\tau) + 2N_{\text{edge}}(\tau)$ counts position trips and relays twice (fixed on development streams before held-out testing; Section~\ref{subsec:controlled_ablations}). The binary alarm fires when any count exceeds its quorum:
+    \item \emph{32 onset relays:} When a sudden fault first enters the right edge of the target window, the short prefixes ($m \in \{1, 2\}$) still cover healthy data, so few position dials trip. To catch this moment, each coordinate $c$ has stricter $99.3$rd-percentile edge tripwires ($q_{0.993}(d_{j,\text{cal}}) + 10^{-4}$) and fires a relay $r_c(t) \in \{0, 1\}$ when its full-window position dial ($m=4$) trips together with its endpoint, fluctuation, or $m=3$ dial.
+    \item \emph{Alarm timing:} Under \emph{causal attribution}, the trips from window $[t,t+S)$ are reported at its right end $\tau=t+S-1$, the earliest moment all of its data exist; this fixes a reporting lag of $S-1$ steps, separate from the detection delay $\Delta t=t_{\text{alm}}-t^*$ after fault onset $t^*$. Under \emph{buffered attribution}, used for after-the-fact review, each trip is assigned to the steps it describes: position trips to their prefix $[t,t+S_m)$, drift and fluctuation trips to $[t,t+S)$, and endpoint trips to $[t+S_3,t+S)$. $N_{224}(\tau)$, the position sub-count $N_{128}(\tau) \subset N_{224}(\tau)$, and the relay count $N_{\text{edge}}(\tau)$. Ranking metrics use the plain count $N_{224}(\tau)$ directly. The binary alarm fires when any count exceeds its quorum:
     \begin{equation}
     \begin{aligned}
         \hat{y}(\tau) = \mathbb{I}\bigl(&N_{224}(\tau) > K_{224} \;\vee\; N_{128}(\tau) > K_{128} \\
@@ -101,7 +101,7 @@ Instead of adding all 224 dials into one score, Stage~4 (Algorithm~\ref{alg:pipe
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
     \item \emph{Smaller encoder:} A fifth dilated block blurred short-lived anomalies without making the summaries richer, so \emph{Laminar-JEPA-Lite} uses four TCN blocks (dilations $\{1, 2, 4, 8\}$) and $64$D pooling heads. The frequency-band front-end is used only on high-channel streams ($K \ge 25$), where it helped; smaller streams use a direct causal projection.
     \item \emph{Parallel three-horizon predictor:} One residual two-layer GELU MLP predicts $M=3$ prefixes ($S_m \in \{16, 32, 64\}$) in parallel from $z_{\text{ctx}} + \mathbf{p}_m$, with a single final LayerNorm. This removes the lag of sequential prediction and the coupling between stacked normalizations, and shrinks $\mathbf{\Omega}$ to $96\times 96$.
-    \item \emph{128-dial panel with one quorum:} Only the $96$ position dials $|\tilde{e}_{m,c}(t)|$ and the $32$ drift dials $|\bar{e}_c(t)|$ are kept, each calibrated by (\ref{eq:dial_tripwire}). Fluctuation and endpoint dials, onset relays, and quenching are removed. Steps are ranked by the plain count $N_{128}(\tau)$, and the alarm uses one quorum, $K_{\text{Lite}} = \max\bigl(1.12\,q_{0.995}(N_{128,\text{cal}}),\,3.5\bigr)$.
+    \item \emph{128-dial panel with one quorum:} Only the $96$ position dials $|\tilde{e}_{m,c}(t)|$ and $32$ drift dials $|\bar{e}_c(t)|$ are kept, each thresholded by (\ref{eq:dial_tripwire}); fluctuation and endpoint dials, relays, and quenching are removed. Steps are ranked by $N_{128}(\tau)$, and alarms use $K_{\text{Lite}} = \max\bigl(1.12\,q_{0.995}(N_{128,\text{cal}}),\,3.5\bigr)$.
 \end{enumerate}
 
 \begin{algorithm}[t]
@@ -126,13 +126,13 @@ Instead of adding all 224 dials into one score, Stage~4 (Algorithm~\ref{alg:pipe
 \State Compute frozen stabilized residuals $\tilde{\mathbf{E}}_{\text{cal}}$ on untouched $\mathbf{X}_{\text{cal}}$ via (\ref{eq:stabilized_whitening}).
 \If{tier $=$ Full}
     \State Expand $\tilde{\mathbf{E}}_{\text{cal}}$ into $7D=224$ dials (position, drift, fluctuation, endpoint) and $32$ right-edge onset relays.
-    \State Fit MAD scales $(m_j,s_j)$, hijack guards $\gamma_j$, tripwires $\tau_j$ (\ref{eq:dial_tripwire}), and quorums $(K_{224}, K_{128}, K_{\text{edge}})$ (\ref{eq:panel_quorum}).
+    \State Fit tripwires $\tau_j$ (\ref{eq:dial_tripwire}) and quorums $(K_{224}, K_{128}, K_{\text{edge}})$ (\ref{eq:panel_quorum}).
 \Else \Comment{Operational tier: Laminar-JEPA-Lite}
     \State Extract $4D=128$ position-plus-drift dials $(|\tilde{e}_{m,c}|, |\bar{e}_c|)$, fit $\tau_j$ (\ref{eq:dial_tripwire}), and set single quorum $K_{\text{Lite}}=\max(1.12\,q_{0.995},3.5)$.
 \EndIf
 \Statex \vspace{1.5pt}\textbf{Phase 3: Online Inference on $\mathbf{X}_{\text{hold}}$ or $\mathbf{X}_{\text{test}}$}
 \For{each stride-$1$ window $[t-C,\,t+S)$}
-    \State Compute $\tilde{\mathbf{E}}(t) \to \mathbf{d}(t)$ and binary trips $b_j(t)=\mathbb{I}(z_j(t)>\tau_j)$ (plus relays $r_c(t)$ if Full).
+    \State Compute $\tilde{\mathbf{E}}(t) \to \mathbf{d}(t)$ and binary trips $b_j(t)=\mathbb{I}(d_j(t)>\tau_j)$ (plus relays $r_c(t)$ if Full).
     \State Attribute active counts to right edge $\tau=t+S-1$ (\text{causal}) or prefix spans $[t,t+S_m)$ (\text{buffered}).
     \State Emit $\hat{y}(\tau)\in\{0,1\}$ when active counts exceed $(K_{224}, K_{128}, K_{\text{edge}})$ (\ref{eq:panel_quorum}) or $K_{\text{Lite}}$.
 \EndFor
