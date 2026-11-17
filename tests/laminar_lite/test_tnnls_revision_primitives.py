@@ -13,6 +13,7 @@ from scripts.tnnls_revision.common_eval import (
     mbb_quorum_thresholds,
     simulate_hijacker_masking_vs_quorum,
 )
+from scripts.tnnls_revision.run_wu_keogh_plausible_suite import inject_wu_keogh_anomaly
 from src.models.laminar_lite import LaminarJEPALiteModel, LaminarLiteEncoder
 from src.scoring.laminar_lite_panel import PositionDriftLitePanel
 
@@ -94,3 +95,16 @@ def test_frozen_latent_drift_monitor_catches_slow_ramp() -> None:
 
     assert float(dec.hold_pred.mean()) <= 0.10
     assert int(dec.test_pred[-20:].sum()) >= 15
+
+
+def test_wu_keogh_cycle_swap_and_phase_desync_preserve_marginals() -> None:
+    """Wu & Keogh plausible anomalies must preserve marginal min/max bounds."""
+    rng = np.random.default_rng(42)
+    seg = rng.standard_normal((1200, 6)).astype(np.float32)
+    mod_swap, y_swap = inject_wu_keogh_anomaly(seg, "Cycle_Swap", t0=600, dur=200, rng=rng)
+    assert y_swap[600:800].sum() == 200
+    assert float(np.max(np.abs(mod_swap))) <= float(np.max(np.abs(seg))) + 1e-6
+
+    mod_desync, y_desync = inject_wu_keogh_anomaly(seg, "Phase_Desync", t0=600, dur=200, rng=rng)
+    assert y_desync[600:800].sum() == 200
+    assert float(np.max(np.abs(mod_desync))) <= float(np.max(np.abs(seg))) + 1e-6
