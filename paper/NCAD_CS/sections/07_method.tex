@@ -3,28 +3,28 @@
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.77\textwidth]{figures/opentropy_jepa_architecture.pdf}
-\vspace{-6pt}
-\caption{Four-stage pipeline of \emph{Laminar-JEPA-Lite} and \emph{Laminar-JEPA}. \textbf{(1)}~A sliding window ($C{=}256$ context steps, $S{\le}64$ target steps) feeds online and target encoders ($E_\theta, E_\phi$) built on a shared four-block TCN with depthwise frequency shells for $K{\ge}25$, hook-free multi-depth pooling, barycenter centering, and LayerNorm. \textbf{(2)}~A parallel MLP predictor forecasts $M$ nested target prefixes ($M{=}3$ for \emph{Lite}; $M{=}4$ for \emph{Laminar-JEPA}), and errors are whitened into $\tilde{\mathbf{E}} \in \mathbb{R}^{M \times 32}$. \textbf{(3)}~The errors expand into $(3+1) \times 32 = 128$ position-plus-drift dials (\emph{Lite}) or $7 \times 32 = 224$ dials (\emph{Laminar-JEPA}). \textbf{(4)}~Each dial has its own tripwire, and a quorum of trips raises a causal ($\tau{=}t{+}S{-}1$) or buffered alarm.\label{fig:triad_architecture}}
-\vspace{-5pt}
+\includegraphics[width=0.66\textwidth]{figures/opentropy_jepa_architecture.pdf}
+\vspace{-7pt}
+\caption{Four-stage pipeline of \emph{Laminar-JEPA-Lite} (operational, $M{=}3$, $128$ dials) and \emph{Laminar-JEPA} (diagnostic, $M{=}4$, $224$ dials): \textbf{(1)}~sliding window ($C{=}256, S{\le}64$) into online/EMA encoders ($E_\theta, E_\phi$) with $K{\ge}25$ rFFT shells, multi-depth taps, centering, and LayerNorm; \textbf{(2)}~parallel MLP multi-horizon prediction and $MD{\times}MD$ damped whitening; \textbf{(3)}~position-plus-drift dial expansion; and \textbf{(4)}~per-dial tripwires and correlation-aware quorum alarm.\label{fig:triad_architecture}}
+\vspace{-7pt}
 \end{figure*}
 
-Fig.~\ref{fig:triad_architecture} shows the pipeline from raw telemetry $\mathbf{X} \in \mathbb{R}^{T \times K}$ ($K$ channels over $T$ steps) to alarms. In plain terms, it has four stages: (1)~encode each window of recent data into a short summary vector; (2)~predict the summaries of the next few stretches of data; (3)~turn the prediction errors into a set of \emph{dials}, each measuring one aspect of the error; and (4)~give every dial its own threshold and raise an alarm when enough dials trip together. The networks are trained on healthy data only; stabilization weights and alarm thresholds are then fitted on later healthy blocks and frozen.
+Fig.~\ref{fig:triad_architecture} traces raw telemetry $\mathbf{X} \in \mathbb{R}^{T \times K}$ to binary alarms across four stages: encode recent context into a compact summary, predict multi-horizon target summaries, expand whitened errors into nonnegative \emph{dials}, and fire when a healthy-calibrated quorum of dials trips together.
 
 \subsection{Stage 1: Multiscale Encoder and Barycenter Centering}
 \label{subsec:architecture}
 \label{subsec:shared_inductive_biases}
-A sliding window of length $W = C + S = 320$ advances one step at a time. At each position $t$ it splits into a \emph{context window} $\mathbf{x}_{\text{ctx}}$ of the past $C = 256$ steps and a \emph{target window} $\mathbf{x}_{\text{tgt}}$ of the next $S = 64$ steps, which ends at the decision time $\tau = t + S - 1$. Multichannel inputs ($K > 1$) pass through a causal depthwise stem before $1{\times}1$ mixing. On high-channel streams ($K \ge 25$), features are split into four smooth frequency bands (dyadic shells of a real fast Fourier transform (rFFT) whose band weights sum to one at every frequency), filtered by per-shell depthwise causal convolutions (kernels $\{15, 9, 5, 3\}$), and recombined via a softmax router before a four-block causal dilated temporal convolutional network (TCN) with dilations $\{1, 2, 4, 8\}$ \cite{bai2018empirical}. Lower-channel streams ($K < 25$) skip the band split and feed directly into the TCN.
+A sliding window of length $W = C + S = 320$ advances one step at a time, splitting at $t$ into a $C = 256$-step \emph{context window} $\mathbf{x}_{\text{ctx}}$ and an $S = 64$-step \emph{target window} $\mathbf{x}_{\text{tgt}}$ ending at causal decision time $\tau = t + S - 1$. Multichannel inputs ($K > 1$) pass through a causal depthwise stem before $1{\times}1$ mixing. On high-channel streams ($K \ge 25$), features split into four smooth dyadic shells of a real fast Fourier transform (rFFT) whose weights sum to one at every frequency (four bands partition the Nyquist interval without over-fragmenting $256$-step windows), pass through depthwise causal convolutions (kernels $\{15, 9, 5, 3\}$), and recombine via a softmax router before a four-block causal dilated temporal convolutional network (TCN) with dilations $\{1, 2, 4, 8\}$ \cite{bai2018empirical}. Lower-channel streams ($K < 25$) feed directly into the TCN.
 
-The encoders follow the Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path}: instead of reconstructing raw waveforms, an online encoder $E_\theta$ and a target encoder $E_\phi$ ($d_{\text{model}}=48$ channels) pool temporal (last step, max, mean $\in\mathbb{R}^{144}$) and statistical (standard deviation, $\ln(1+\text{mean }x^2)$, mean absolute first difference $\in\mathbb{R}^{144}$) descriptors through $D=32$-wide GELU-LayerNorm heads and a linear bottleneck to $D=32$. $E_\phi$ is an exponential moving average (EMA) of $E_\theta$ with momentum $m = 0.996$ ($0.995$ on 1D archive controls) \cite{grill2020bootstrap, assran2023self}. Two native encoder mechanisms preserve fast spikes and center offsets:
+Following the Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path}, an online encoder $E_\theta$ and target encoder $E_\phi$ ($d_{\text{model}}=48$) pool temporal (last step, max, mean $\in\mathbb{R}^{144}$) and statistical (standard deviation, $\ln(1+\text{mean }x^2)$, mean absolute first difference $\in\mathbb{R}^{144}$) descriptors through $D=32$-wide GELU-LayerNorm heads to latent dimension $D=32$ (balancing expressivity against covariance estimation cost; $D\in\{8,16,32,64\}$ is ablated in Section~\ref{subsec:controlled_ablations}). $E_\phi$ tracks an exponential moving average (EMA) of $E_\theta$ with momentum $m = 0.996$ ($0.995$ on 1D controls), matching a $\approx 250$-step target horizon that prevents representation collapse across $10\text{--}20$ epochs \cite{grill2020bootstrap, assran2023self}. Terminal affine-free LayerNorm projects embeddings onto the $\sqrt{D}$-sphere, curbing heavy nominal tails ($\gamma_2$) at a structural trade-off: rescaling by total feature variance dilutes isolated single-sensor flatlines by $O(1/\sqrt{KD})$ across coordinates (Section~\ref{subsec:gating_ablation}). Two native mechanisms preserve fast transients and training offsets:
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
-    \item \emph{Hook-free multi-depth tapping (keeps fast transients):} Both encoders read three intermediate feature maps directly inside the forward pass: the front-end output, block $1$, and final block $3$. Concatenated mean-centered last-step and temporal root-mean-square (RMS) descriptors ($\mathbb{R}^{288}$) pass through a bias-free $288\to 32\to 32$ GELU head with affine-free LayerNorm and blend with the deep output via $g = 0.5\sigma(\theta_g) \le 0.5$.
-    \item \emph{Barycenter centering (removes common offsets):} During training, a running mean $\bar{\bm{\mu}}_{\text{ctx}} \in \mathbb{R}^D$ (rate $0.05$, copied into $E_\phi$ at every EMA step) is subtracted from context and target summaries before an affine-free terminal LayerNorm. Centering removes training offsets without guaranteeing invariance to unseen drift.
+    \item \emph{Hook-free multi-depth tapping:} Both encoders read the front-end, block $1$, and block $3$ directly, passing concatenated mean-centered last-step and temporal root-mean-square (RMS) descriptors ($\mathbb{R}^{288}$) through a bias-free $288\to 32\to 32$ GELU-LayerNorm head blended at $g = 0.5\sigma(\theta_g) \le 0.5$.
+    \item \emph{Barycenter centering:} A running training mean $\bar{\bm{\mu}}_{\text{ctx}} \in \mathbb{R}^D$ (rate $0.05$, synchronized into $E_\phi$) is subtracted before terminal LayerNorm, removing static offsets without guaranteeing invariance to post-calibration regime shifts.
 \end{enumerate}
 
 \subsection{Stage 2: Multi-Horizon Prediction}
 \label{subsec:triad_formulations}
-The simplest JEPA detector, the single-horizon baseline \emph{TS-JEPA}, uses a two-layer multi-layer perceptron (MLP) to predict one summary $\hat{z}_{\text{tgt}}$ of the whole 64-step target window, trained with predictive mean-squared error (MSE) and a VICReg-style log-determinant penalty ($\beta = 0.05$) \cite{bardes2021vicreg}. Summarizing all 64 steps in one vector can average away a short fault. \emph{Laminar-JEPA-Lite} and \emph{Laminar-JEPA} therefore predict $M$ nested prefixes of the target window: $M=3$ prefixes ($\{16, 32, 64\}$ steps) in \emph{Lite}, and $M=4$ prefixes ($\{16, 32, 48, 64\}$ steps) in \emph{Laminar-JEPA}. Starting from $z_{\text{ctx}}$ plus learned horizon embeddings $\mathbf{p}_m \in \mathbb{R}^D$, a single parallel two-layer GELU residual MLP predicts all $M$ summaries $\hat{z}_{\text{tgt}}^{(1)}, \dots, \hat{z}_{\text{tgt}}^{(M)}$ behind one final LayerNorm. The loss gives the full window weight $w_M=1/2$ and each shorter prefix $w_m=1/(2(M-1))$ ($1/4$ in Lite, $1/6$ in 224-Bit), and adds a penalty $\boldsymbol{\Delta}_\gamma$ that keeps the summaries from collapsing to a constant:
+The single-horizon baseline \emph{TS-JEPA} predicts one summary $\hat{z}_{\text{tgt}}$ of the 64-step target window via a two-layer multi-layer perceptron (MLP) trained with predictive mean-squared error (MSE) and a VICReg-style log-determinant term ($\beta = 0.05$) \cite{bardes2021vicreg}. Because one $64$-step vector averages out brief transients, \emph{Laminar-JEPA-Lite} predicts $M=3$ dyadic target prefixes ($\{16, 32, 64\} = \{S/4, S/2, S\}$ steps, spanning impulse, intermediate, and sustained timescales), while the diagnostic reference \emph{Laminar-JEPA} adds $S_3=48$ ($M=4$). From $z_{\text{ctx}} + \mathbf{p}_m \in \mathbb{R}^D$, one parallel two-layer GELU residual MLP predicts $\hat{z}_{\text{tgt}}^{(1)}, \dots, \hat{z}_{\text{tgt}}^{(M)}$ behind a single terminal LayerNorm, weighting the full window at $w_M=1/2$ and shorter prefixes at $w_m=1/(2(M-1))$ with a batch anti-collapse penalty $\boldsymbol{\Delta}_\gamma$:
 \begin{equation}
     \mathcal{L}_{\text{Lam}} = \sum_{m=1}^M \frac{w_m}{D} \Bigl(\bigl\|\hat{z}_{\text{tgt}}^{(m)} - \operatorname{sg}\bigl(z_{\text{tgt}}^{(m)}\bigr)\bigr\|_2^2 + \bigl\|\boldsymbol{\Delta}_\gamma\bigl(\hat{z}_{\text{tgt}}^{(m)}\bigr)\bigr\|_F^2\Bigr),
     \label{eq:soliton_reynolds_loss}
@@ -47,7 +47,7 @@ Stage~3 turns prediction errors into dials. The signed errors $\mathbf{e}_m(t)=z
     \end{aligned}
     \label{eq:stabilized_whitening}
     \end{equation}
-    \item \emph{Legacy weight-space quench (ablation only):} An earlier six-block sequential variant also tested gradient-free editing of predictor rows (Steps Q1--Q4) on $\mathbf{X}_q$; because it yielded no reliable archive benefit (Section~\ref{subsec:controlled_ablations}), the unified backbone omits weight editing entirely.
+    \item \emph{Legacy weight-space quench (ablation only):} Gradient-free predictor-row editing (Steps Q1--Q4) on $\mathbf{X}_q$ gave no archive gain (Section~\ref{subsec:controlled_ablations}) and is omitted from the unified backbone.
     \item \emph{Expansion into $7D = 224$ dials:} For each of the 32 coordinates, the four horizon errors describe how the prediction error evolves across the target window. Borrowing the mean-plus-fluctuation split of Reynolds averaging \cite{reynolds1895dynamical} purely as algebra, we split them into a horizon mean $\bar{e}_c(t) = M^{-1}\sum_{m=1}^M \tilde{e}_{m,c}(t)$ and a zero-mean fluctuation $F_{m,c}(t) = \tilde{e}_{m,c}(t) - \bar{e}_c(t)$. Four views of each coordinate give $7D = 224$ nonnegative dials $\mathbf{d}(t) \in \mathbb{R}_{\ge 0}^{224}$:
     (a)~$4D = 128$ \emph{sub-horizon positions} $|\tilde{e}_{m,c}(t)|$, the error size at each horizon;
     (b)~$D = 32$ \emph{horizon-mean drifts} $|\bar{e}_c(t)|$, a persistent offset shared by all horizons;
@@ -55,7 +55,7 @@ Stage~3 turns prediction errors into dials. The signed errors $\mathbf{e}_m(t)=z
     (d)~$D = 32$ \emph{endpoint differences} $d_{\text{accel},c}(t) = |\tilde{e}_{M,c}(t) - \tilde{e}_{1,c}(t)|$, error that appears late in the window, as at a fault onset.
 \end{enumerate}
 
-The proposition below states two exact properties of this split. Part~(i) says that drift and fluctuation measure non-overlapping parts of the position energy, and that the endpoint dial cannot exceed a multiple of the fluctuation dial. Part~(ii) says the fluctuation pattern lives in at most $M-1$ directions and defines $R_{\text{LT}}$, which is $1$ when one pattern dominates and $1/(M-1)$ when the energy is spread evenly. These are geometric facts about the representation, not accuracy guarantees.
+Proposition~\ref{prop:anti_collapse} states two exact algebraic properties of this split: drift and fluctuation partition horizon energy orthogonally, and the fluctuation spectrum spans at most $M-1$ modes.
 
 \begin{proposition}[Horizon Energy Split and Spectral Concentration Bounds]
 \label{prop:anti_collapse}
@@ -72,11 +72,27 @@ reaching $\frac{1}{M-1}$ iff energy is isotropic across all $M-1$ active modes (
 Zero column sums ($\sum_{m=1}^M F_{m,c}=0$) cancel the cross term in $M^{-1}\sum_{m=1}^M (\bar{e}_c + F_{m,c})^2$, and $(F_{M,c}-F_{1,c})^2 \le 2(F_{M,c}^2+F_{1,c}^2) \le 2M\,d_{\text{fluc},c}^2$ gives~(i). For~(ii), $\mathbf{F}^\top\mathbf{1}_M = \mathbf{0}_D$ implies $\mathbf{G}\mathbf{1}_M = \mathbf{0}_M$ ($\lambda_1 = 0$), while $\|\mathbf{F}\|_F^2 > 0$ implies $\lambda_M > 0$. Summing $0 \le \lambda_m^p \le \lambda_M^p$ over $m \in \{2,\dots,M\}$ yields $\lambda_M^p \le \sum_{m=2}^M \lambda_m^p \le (M-1)\lambda_M^p$; inverting and multiplying by $\lambda_M^p$ gives (\ref{eq:lt_bounds}) and its equality conditions, and nonzero scalar rescaling cancels.
 \end{proof}
 
+\subsection{Theoretical Motivation for Coordinate-Level Fault Isolation}
+\label{subsec:theoretical_motivation}
+In plain terms, multivariate residual scoring faces three design options across $J$ coordinates or dials $\mathbf{u}(t)\in\mathbb{R}^J$: (1)~\emph{global quadratic aggregation} $S_{\text{glob}}(t)=\|\mathbf{u}(t)\|_2^2$, which sums all coordinates into one threshold; (2)~\emph{marginal union} $\max_j \mathbb{I}(|u_j(t)|>\tau_j)$, which compounds per-coordinate false alarms across $J$ tests; and (3)~\emph{correlation-aware coordinate quorum}, which gives every dial its own quantile threshold $\tau_j$ and sets a joint trip-count threshold $K_q$ on healthy calibration data. Proposition~\ref{prop:hijacker_isolation} formalizes why global aggregation is vulnerable when even $k\ll J$ ``hijacker'' coordinates exhibit larger post-training variance on $\mathbf{X}_{\text{cal}}$, whereas per-coordinate tripwires isolate that inflation completely.
+
+\begin{proposition}[Scalar Threshold Masking vs.\ Quorum Scale Invariance]
+\label{prop:hijacker_isolation}
+Let $\mathbf{u}\in\mathbb{R}^J$ be a nominal residual vector on $\mathbf{X}_{\text{cal}}$, and let $\mathbf{u}^{(\eta)}$ rescale a subset $\mathcal{H}\subset\{1,\dots,J\}$ of $k=|\mathcal{H}|<J$ drifting coordinates by $\sqrt{1+\eta^2}$ ($\eta\ge 0$) while leaving $j\notin\mathcal{H}$ unchanged:
+(i)~under global scoring $S_{\text{glob}}(\mathbf{u})=\|\mathbf{u}\|_2^2$, the $(1-\alpha)$-calibration quantile satisfies $\tau_{\text{glob}}(\eta)\ge (1+\eta^2)\,q_{1-\alpha}\bigl(\sum_{j\in\mathcal{H}} u_j^2\bigr)$, growing unboundedly in $\eta^2$ so any live fault $\mathbf{u}(t^*)$ supported on $\mathcal{H}^c$ with $\|\mathbf{u}_{\mathcal{H}^c}(t^*)\|_2^2 \le \tau_{\text{glob}}(\eta)$ goes undetected when $\mathbf{u}_{\mathcal{H}}(t^*)=\mathbf{0}$; and
+(ii)~under scale-homogeneous tripwires $\tau_j^{(\eta)}=q_{1-\beta}(|u_{j,\text{cal}}^{(\eta)}|)$, every binary trip $b_j^{(\eta)}(t)=\mathbb{I}(|u_j^{(\eta)}(t)|>\tau_j^{(\eta)})$ is invariant to $\eta$ for all $\eta\ge 0$ under arbitrary cross-coordinate dependence, leaving $N_{\text{cal}}=\sum_{j=1}^J b_j(t)$ and $K_q=\kappa\,q_{1-\alpha}(N_{\text{cal}})$ unchanged and guaranteeing detection whenever a fault trips $m > K_q$ coordinates in $\mathcal{H}^c$.
+\end{proposition}
+\begin{proof}
+Because $\sum_{j=1}^J (u_j^{(\eta)})^2 \ge (1+\eta^2)\sum_{j\in\mathcal{H}} u_j^2$ pointwise, monotonicity and positive homogeneity of quantiles give~(i), and $\mathbf{u}_{\mathcal{H}}(t^*)=\mathbf{0}$ yields $S_{\text{glob}}(\mathbf{u}(t^*))=\|\mathbf{u}_{\mathcal{H}^c}(t^*)\|_2^2\le\tau_{\text{glob}}(\eta)$. For~(ii), positive homogeneity gives $\tau_j^{(\eta)}=\sqrt{1+\eta^2}\,\tau_j^{(0)}$ for $j\in\mathcal{H}$ (and $\tau_j^{(0)}$ otherwise); dividing $|u_j^{(\eta)}(t)|>\tau_j^{(\eta)}$ by $\sqrt{1+\eta^2}>0$ yields $b_j^{(\eta)}(t)=b_j^{(0)}(t)$ identically at every $t$, preserving $N_{\text{cal}}$ and $K_q$, while $m$ active coordinates in $\mathcal{H}^c$ yield $N(t^*)\ge m > K_q$.
+\end{proof}
+
+\noindent\emph{Concrete illustration and validity assumptions:} For $J=32$ standard normal coordinates at $\alpha=0.005$ and $\beta=0.015$, inflating just $k=2$ hijacker coordinates by $\eta=5$ raises $\tau_{\text{glob}}$ from $56.3$ to $252.4$, completely masking a $10$-coordinate $3.8\sigma$ fault on $\mathcal{H}^c$ ($10\times 3.8^2=144.4 < 252.4$), whereas $K_q$ stays invariant at $3.5$ and fires with $10 > 3.5$ trips. Proposition~\ref{prop:hijacker_isolation} also makes the panel's two required assumptions explicit: (1)~\emph{multi-dial fault coverage ($m > K_q$)}, so ultra-localized single-sensor flatlines diluted below $\tau_j$ fail to reach quorum; and (2)~\emph{nominal regime stationarity on at least $J-\lfloor K_q\rfloor$ dials}, because a post-calibration shift between $\mathbf{X}_{\text{cal}}$ and deployment that simultaneously inflates $>K_q$ dials violates calibration exchangeability and raises false alarms unless gated on $\mathbf{X}_{\text{hold}}$ and live $D_{\text{KS}}$.
+
 \subsection{Stage 4: Circuit-Breaker Panel}
 \label{subsec:scoring_function}
 \label{subsubsec:circuit_breaker_panel}
 \label{subsubsec:causal_saliency_gating}
-Instead of adding all 224 dials into one score, Stage~4 (Algorithm~\ref{alg:pipeline}) gives each dial its own threshold, learned from the healthy calibration block. A dial \emph{trips} when it exceeds its threshold, and an alarm fires when enough dials trip at once. Because all dials come from the same $4 \times 32$ error matrix, their trips are correlated (median effective rank $65$ of $224$ on the development cohort; the variance of the trip count is $7.2\times$ that of independent dials). We therefore do not assume independence; the alarm quorums are set from the trip counts observed on healthy calibration data:
+Stage~4 (Algorithm~\ref{alg:pipeline}) implements this correlation-aware quorum across the healthy calibration block $\mathbf{X}_{\text{cal}}$. Because all dials view the same $M \times 32$ error matrix, their trips are strongly correlated (median effective rank $65$ of $224$ on development streams; count variance $7.2\times$ binomial independence), so quorums are fitted directly to empirical $\mathbf{X}_{\text{cal}}$ trip counts rather than binomial formulas:
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
     \item \emph{Per-dial thresholds:} Each dial $j \in \{1,\dots,224\}$ is thresholded directly at its $98.5$th calibration percentile plus a $10^{-4}$ tie-break floor:
     \begin{equation}
@@ -105,36 +121,21 @@ Both tiers share the exact $120.0\text{k}\text{--}129.3\text{k}$-parameter backb
 \end{enumerate}
 
 \begin{algorithm}[t]
-\caption{Laminar-JEPA (224 Dials) and Laminar-JEPA-Lite (128 Dials)\label{alg:pipeline}}
-\footnotesize
+\caption{Laminar-JEPA-Lite (128 Dials) and Laminar-JEPA (224 Dials)\label{alg:pipeline}}
+\scriptsize
 \begin{algorithmic}[1]
-\Require Nominal history $\mathbf{X}_{\text{nom}}$, test stream $\mathbf{X}_{\text{test}}$, tier $\in\{\text{Lite},\text{224-Bit}\}$, attribution mode $\in\{\text{causal},\text{buffered}\}$.
-\Ensure Per-timestep binary alarms $\hat{y}(\tau)\in\{0,1\}$ and continuous score $N_{\text{tot}}(\tau)$.
-\Statex \vspace{1.5pt}\textbf{Phase 1: Disjoint Training, Whitening \& Adaptation ($\mathbf{X}_{\text{fit}}, \mathbf{X}_{\text{sel}}, \mathbf{X}_q$)}
-\State Split $\mathbf{X}_{\text{nom}}$ chronologically into $S$-isolated $(\mathbf{X}_{\text{fit}}, \mathbf{X}_{\text{sel}}, \mathbf{X}_q, \mathbf{X}_{\text{cal}}, \mathbf{X}_{\text{hold}})$ and standardize channels using $\mathbf{X}_{\text{fit}}$ alone.
-\State Set nested prefixes $S_{1:3}=\{16,32,64\}$ (\text{Lite}) or $S_{1:4}=\{16,32,48,64\}$ (\text{224-Bit}) with $K\ge 25$ depthwise rFFT shells.
-\For{stride-$16$ training batches in $\mathbf{X}_{\text{fit}}$}
-    \State Encode $z_{\text{ctx}} = E_\theta(\mathbf{x}_{\text{ctx}})$ and targets $z_{\text{tgt}}^{(m)} = E_\phi(\mathbf{x}_{\text{tgt}}^{(m)})$ with hook-free multi-depth pooling and barycenter shift $-\bar{\bm{\mu}}_{\text{ctx}}$.
-    \State Predict all $M$ prefixes in parallel behind one LayerNorm; update $\theta$ via (\ref{eq:soliton_reynolds_loss}) and $\phi \leftarrow m\phi + (1-m)\theta$.
+\Require Nominal $\mathbf{X}_{\text{nom}}$, test $\mathbf{X}_{\text{test}}$, tier $\in\{\text{Lite},\text{224-Bit}\}$, mode $\in\{\text{causal},\text{buffered}\}$.
+\Ensure Alarms $\hat{y}(\tau)\in\{0,1\}$ and active count $N_{\text{tot}}(\tau)$.
+\State Partition $\mathbf{X}_{\text{nom}}$ into $S$-isolated $(\mathbf{X}_{\text{fit}}, \mathbf{X}_{\text{sel}}, \mathbf{X}_q, \mathbf{X}_{\text{cal}}, \mathbf{X}_{\text{hold}})$; standardize on $\mathbf{X}_{\text{fit}}$.
+\For{stride-$16$ batches in $\mathbf{X}_{\text{fit}}$ ($S_{1:3}{=}\{16,32,64\}$ or $S_{1:4}{=}\{16,32,48,64\}$)}
+    \State Encode $z_{\text{ctx}}{=}E_\theta(\mathbf{x}_{\text{ctx}})$, $z_{\text{tgt}}^{(m)}{=}E_\phi(\mathbf{x}_{\text{tgt}}^{(m)})$; update $\theta$ via (\ref{eq:soliton_reynolds_loss}) and $\phi \leftarrow m\phi + (1-m)\theta$.
 \EndFor
-\State Select checkpoint on $\mathbf{X}_{\text{sel}}$ (or fixed epochs) and fit $(\bar{\bm{\mu}}_{\text{res}}, \mathbf{\Omega}\in\mathcal{S}_+^{MD})$ on $\mathbf{X}_{\text{fit}}$.
-\State Fit and freeze stabilization scales and blending weights $w_{m,c}$ (\ref{eq:stabilized_whitening}) on $\mathbf{X}_q$.
-\Statex \vspace{1.5pt}\textbf{Phase 2: Untouched Circuit-Breaker Calibration on $\mathbf{X}_{\text{cal}}$}
-\State Compute frozen stabilized residuals $\tilde{\mathbf{E}}_{\text{cal}}$ on untouched $\mathbf{X}_{\text{cal}}$ via (\ref{eq:stabilized_whitening}).
-\If{tier $=$ 224-Bit}
-    \State Expand $\tilde{\mathbf{E}}_{\text{cal}}$ into $7D=224$ dials (position, drift, fluctuation, endpoint) and $32$ right-edge onset relays.
-    \State Fit tripwires $\tau_j$ (\ref{eq:dial_tripwire}) and quorums $(K_{224}, K_{128}, K_{\text{edge}})$ (\ref{eq:panel_quorum}).
-\Else \Comment{Operational tier: Laminar-JEPA-Lite}
-    \State Extract $(M+1)D=128$ dials ($96$ positions $|\tilde{e}_{m,c}|$ + $32$ drifts $|\bar{e}_c|$), fit $\tau_j$ (\ref{eq:dial_tripwire}), and set $K_{\text{Lite}}=\max(1.12\,q_{0.995},3.5)$.
-\EndIf
-\Statex \vspace{1.5pt}\textbf{Phase 3: Online Inference on $\mathbf{X}_{\text{hold}}$ or $\mathbf{X}_{\text{test}}$}
-\For{each stride-$1$ window $[t-C,\,t+S)$}
-    \State Compute $\tilde{\mathbf{E}}(t) \to \mathbf{d}(t)$ and binary trips $b_j(t)=\mathbb{I}(d_j(t)>\tau_j)$ (plus relays $r_c(t)$ if 224-Bit).
-    \State Attribute active counts to right edge $\tau=t+S-1$ (\text{causal}) or prefix spans $[t,t+S_m)$ (\text{buffered}).
-    \State Emit $\hat{y}(\tau)\in\{0,1\}$ when active counts exceed $(K_{224}, K_{128}, K_{\text{edge}})$ (\ref{eq:panel_quorum}) or $K_{\text{Lite}}$.
+\State Select checkpoint on $\mathbf{X}_{\text{sel}}$; fit $(\bar{\bm{\mu}}_{\text{res}}, \mathbf{\Omega})$ on $\mathbf{X}_{\text{fit}}$; freeze $w_{m,c}$ (\ref{eq:stabilized_whitening}) on $\mathbf{X}_q$.
+\State On $\mathbf{X}_{\text{cal}}$, compute $\tilde{\mathbf{E}}_{\text{cal}}$ (\ref{eq:stabilized_whitening}), fit tripwires $\tau_j$ (\ref{eq:dial_tripwire}), and freeze $K_{\text{Lite}}{=}\max(1.12\,q_{0.995},3.5)$ (or $(K_{224}, K_{128}, K_{\text{edge}})$ via (\ref{eq:panel_quorum})).
+\For{each stride-$1$ window $[t-C,\,t+S)$ on $\mathbf{X}_{\text{hold}}$ or $\mathbf{X}_{\text{test}}$}
+    \State Map trips $b_j(t){=}\mathbb{I}(d_j(t){>}\tau_j)$ to $\tau{=}t{+}S{-}1$ (\text{causal}) or $[t,t{+}S_m)$ (\text{buffered}); emit $\hat{y}(\tau)$ when active counts exceed quorum.
 \EndFor
 \end{algorithmic}
 \end{algorithm}
 
-\smallskip
-\noindent\emph{1D single-score controls:} To measure what the breaker panel adds over a single score on the same backbone (Section~\ref{sec:ablations}), the 1D controls pool a residual vector into one number: an equal blend of its $\ell_2$ norm and a softmax-weighted coordinate RMS ($\alpha=\tau_g=0.5$). Single-horizon TS-JEPA pools $\mathbf{e}(t) \in \mathbb{R}^{32}$; 1D Multi-Horizon JEPA combines the pooled full-tensor and peak-horizon scores by root-mean-square (with optional $R_{\text{LT}}$ modulation $\alpha_{\text{LT}} \in \{0.12, 0\}$). Both are thresholded with SPOT \cite{siffer2017anomaly, balkema1974residual, grimshaw1993computing}.
+\noindent\emph{1D single-score controls:} Single-horizon TS-JEPA ($\mathbf{e}(t) \in \mathbb{R}^{32}$) and 1D Multi-Horizon JEPA (RMS of full-tensor and peak-horizon scores, $\alpha_{\text{LT}} \in \{0.12, 0\}$) blend $\ell_2$ norm and softmax coordinate RMS ($\alpha=\tau_g=0.5$), thresholded via SPOT \cite{siffer2017anomaly, balkema1974residual, grimshaw1993computing}.

@@ -1,9 +1,10 @@
 \begin{table*}[!t]
 \centering
 \caption{Primary 33-Stream Development Benchmark Across Attribution Regimes\label{tab:core_benchmark}}
+\vspace{-2pt}
 \scriptsize
 \setlength{\tabcolsep}{2.6pt}
-\renewcommand{\arraystretch}{1.05}
+\renewcommand{\arraystretch}{0.93}
 \begin{tabular*}{\textwidth}{
     @{\extracolsep{\fill}}
     l
@@ -42,7 +43,7 @@
 \bottomrule
 \end{tabular*}
 
-\vspace{3.0pt}
+\vspace{1.5pt}
 \setlength{\tabcolsep}{2.2pt}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l rrr cc ccccc ccccc@{}}
 \toprule
@@ -59,5 +60,5 @@ Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & 0.000            
 SWAN    & 1  & 38 & 6615 & 0.279 & 0.437 & 0.069             & \textbf{0.242}    & \underline{0.119} & 0.000             & 0.000             & \textbf{.000/.000}    & \textbf{.000/.000}    & \textbf{.000/.000}    & \textbf{.000/.000} & \textbf{.000/.000} \\
 \bottomrule
 \end{tabular*}\par\vspace{2pt}\noindent
-\parbox{\textwidth}{\scriptsize\emph{Note:} 19 non-GHL streams (5 seeds) and 14 GHL streams (3 seeds), trained separately from Table~\ref{tab:ablations}(a,b); best in \textbf{bold}, second \underline{underlined}. $\Delta t$ = mean step delay over detected events; $\text{DS-F1}$ = unweighted $7$-dataset macro Buffered Point-F1. In (c), $n$ = streams, $K$ = channels, $E$ = events, $\pi$ = faulty-step fraction, $\text{F1}_{\text{all}} = 2\pi/(1+\pi)$ (trivial always-alarm Point-F1), Lam.\ = Laminar-JEPA, Lite = Laminar-JEPA-Lite. 95\% stream-bootstrap CIs ($n{=}19$): Lite buffered FPR $[.018,.082]$, F1 $[.152,.369]$ and causal FPR $[.005,.010]$, F1 $[.053,.251]$; Lam.\ buffered F1 $[.148,.329]$ and causal FPR $[.007,.016]$, F1 $[.074,.283]$ (vs.\ Multi-Horizon 1D $[.013,.097]$ and TimesNet causal FPR $[.123,.375]$).}\vspace{-5pt}
+\parbox{\textwidth}{\tiny\emph{Note:} 19 non-GHL streams (5 seeds) and 14 GHL streams (3 seeds); best \textbf{bold}, second \underline{underlined}. $\Delta t$ = mean delay over detected events; $\text{DS-F1}$ = $7$-dataset macro Buffered Point-F1; $E$ = events; $\pi$ = faulty-step fraction; $\text{F1}_{\text{all}} = 2\pi/(1+\pi)$. 95\% stream-bootstrap CIs ($n{=}19$): Lite buffered FPR $[.018,.082]$, F1 $[.152,.369]$ and causal FPR $[.005,.010]$, F1 $[.053,.251]$; Lam.\ buffered F1 $[.148,.329]$ and causal FPR $[.007,.016]$, F1 $[.074,.283]$ (vs.\ Multi-Horizon 1D $[.013,.097]$ and TimesNet causal FPR $[.123,.375]$).}\vspace{-7pt}
 \end{table*}

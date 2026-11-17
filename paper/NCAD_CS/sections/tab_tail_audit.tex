@@ -3,23 +3,29 @@
 \scriptsize
 \setlength{\tabcolsep}{1.0pt}
 \caption{Archive False-Alarm and Operating-Point Audit ($n{=}118$, Causal)\label{tab:tail_audit}}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r r c cccc @{}}
+\toprule
+& & & & \multicolumn{3}{c}{\textbf{FPR$_{\text{hold}}$}} & \textbf{FPR$_{\text{test}}$} \\
+\cmidrule(lr){5-7} \cmidrule(lr){8-8}
+\textbf{(a) Highest-FPR streams} & {$\boldsymbol{N_{\text{cal}}}$} & {$\boldsymbol{N_{\text{eff}}}$} & {$\boldsymbol{D_{\text{KS}}}$} & \textbf{Lite} & \textbf{Perm.} & \textbf{1D} & \textbf{Lite} \\
+\midrule
+SMAP G-6                     & 344  & 39  & 1.00 & 1.00 & .00 & 1.00 & .77 \\
+SMAP D-11                    & 297  & 15  & 1.00 & 1.00 & .02 & .98  & 1.00 \\
+Exathlon 10\_2\_1000000\_67  & 199  & 18  & .99  & .75  & .03 & .59  & .99 \\
+Exathlon 6\_1\_500000\_65    & 1315 & 57  & .99  & .72  & .00 & .58  & .70 \\
+Daphnet S09R01E4             & 176  & 123 & .95  & .71  & .01 & .06  & .95 \\
+Exathlon 10\_3\_1000000\_75  & 1473 & 65  & .83  & .69  & .02 & .08  & 1.00 \\
+SMAP G-7                     & 268  & 75  & .94  & .64  & .00 & .34  & .30 \\
+Exathlon 5\_5\_1000000\_91   & 1347 & 475 & .48  & .48  & .00 & .24  & .67 \\
+Daphnet S06R01E2             & 736  & 38  & .44  & .17  & .00 & .00  & .12 \\
+Exathlon 8\_4\_1000000\_77   & 1121 & 549 & .49  & .11  & .00 & .00  & .80 \\
+\bottomrule
+\end{tabular*}
+
+\vspace{2pt}
+\setlength{\tabcolsep}{1.0pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l c c c ccc @{}}
 \toprule
-& & & & \multicolumn{2}{c}{\textbf{FPR$_{\text{hold}}$}} & \textbf{FPR$_{\text{test}}$} \\
-\cmidrule(lr){5-6} \cmidrule(lr){7-7}
-\textbf{(a) Highest-FPR streams} & $\boldsymbol{N_{\text{cal}}}$ & $\boldsymbol{N_{\text{eff}}}$ & $\boldsymbol{D_{\text{KS}}}$ & \textbf{Lite} & \textbf{1D} & \textbf{Lite} \\
-\midrule
-SMAP G-6                     & 344  & --  & --   & 1.00 & 1.00 & .77 \\
-SMAP D-11                    & 297  & 12  & 1.00 & 1.00 & .98  & 1.00 \\
-Exathlon 10\_2\_1000000\_67  & 199  & 14  & 1.00 & .75  & .59  & .99 \\
-Exathlon 6\_1\_500000\_65    & 1315 & 110 & 1.00 & .72  & .58  & .70 \\
-Daphnet S09R01E4             & 176  & 77  & .96  & .71  & .06  & .95 \\
-Exathlon 10\_3\_1000000\_75  & 1473 & 53  & .75  & .69  & .08  & 1.00 \\
-SMAP G-7                     & 268  & 48  & .96  & .64  & .34  & .30 \\
-Exathlon 5\_5\_1000000\_91   & 1347 & 803 & .48  & .48  & .24  & .67 \\
-Daphnet S06R01E2             & 736  & --  & --   & .17  & .00  & .12 \\
-Exathlon 8\_4\_1000000\_77   & 1121 & --  & --   & .11  & .00  & .80 \\
-\midrule
 \textbf{(b) Matched budgets} & \textbf{Lite} & \textbf{Fisher} & \textbf{Top-$k$} & \textbf{Max-$z$} & \textbf{1D} & \textbf{FPR$_{\text{hold}}$} \\
 \midrule
 $r{=}0.5\%$ (healthy) & .676/.084 & .667/\textbf{.090} & .666/.084 & .662/\underline{.072} & \underline{.620}/.096 & .06--.09 \\
@@ -30,5 +36,5 @@ $r{=}5\%$                  & .863/.131 & \underline{.828}/.133 & .861/.130 & .87
 $f{=}1\%$ (post hoc)       & .529/.049 & .525/\textbf{.054} & .533/\textbf{.049} & \textbf{.570}/.052 & .549/\textbf{.084} & -- \\
 $f{=}5\%$                  & .723/.099 & .719/\textbf{.107} & .727/.100 & \textbf{.785}/.099 & .754/.122 & -- \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Five-block archive protocol, three-seed stream means. (a)~The ten highest streamlined \emph{Lite} causal $\text{FPR}_{\text{hold}}$ streams; $N_{\text{eff}}=N_{\text{cal}}/\tau_{\text{int}}$ and $D_{\text{KS}}$ are shown for streams audited in the autocorrelation study (dash where not computed). (b)~Independent three-seed rerun: causal ER/Point-F1 when every detector is thresholded at the same healthy $\mathbf{X}_{\text{cal}}$ alarm rate $r$ (label-free) or post hoc at the same test FPR $f$ (uses test labels; diagnostic). Fisher, top-$k$, and max-$z$ pool the same frozen Lite residuals; 1D = Multi-Horizon JEPA (1D). Bold/underlined: significantly higher/lower than Lite (paired Wilcoxon $p{<}0.05$). Last column: range of mean $\text{FPR}_{\text{hold}}$ across the five detectors.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Five-block archive protocol, three-seed stream means. (a)~Ten highest \emph{Lite} causal $\text{FPR}_{\text{hold}}$ streams with complete $N_{\text{eff}}{=}N_{\text{cal}}/\tau_{\text{int}}$, quorum $D_{\text{KS}}$, and stationary block-permuted $\text{FPR}_{\text{hold}}$ (\textbf{Perm.}, block $\lceil 2\tau_{\text{int}}\rceil$, isolating finite-sample calibration variance from concept drift). (b)~Independent three-seed rerun: causal ER/Point-F1 at matched healthy $\mathbf{X}_{\text{cal}}$ rate $r$ (label-free) or post-hoc test FPR $f$ (diagnostic). Bold/underlined: significantly higher/lower than Lite (Wilcoxon $p{<}0.05$).} \\
 \end{tabular*}\par\vspace{-4pt}\end{table}
