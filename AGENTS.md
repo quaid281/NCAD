@@ -53,8 +53,8 @@
   `intricate`, `seamlessly`, `poised`, `holistic`, `paramount`, `cutting-edge`,
   `paradigm`), formulaic transitions (`Moreover`, `Furthermore`, `Additionally`,
   `In conclusion`), copula avoidance (`serves as`, `boasts`, `features` as verb),
-  and hedge stacking (`could potentially`). Em-dash rate in prose must remain
-  at or below 1.0 per 1,000 words.
+  and hedge stacking (`could potentially`). Zero em-dashes are allowed in prose
+  (0 total).
 - **Define acronyms at first use (IEEE style):** Before committing any
   manuscript change, run
   `C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/audit_acronyms.py`.

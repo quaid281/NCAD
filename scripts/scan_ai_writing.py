@@ -115,8 +115,11 @@ P1_HEDGES = {
     "could possibly": r"\bcould\s+possibly\b",
 }
 
-# P2: Stylistic Polish
+# P1: Em-Dashes (zero tolerance)
 EM_DASH_PATTERN = r"---|[\u2014]"
+P1_EM_DASH = {
+    "em-dash": EM_DASH_PATTERN,
+}
 
 def extract_clean_sentences(text: str):
     """Segment prose into sentences, handling standard academic abbreviations."""
@@ -225,6 +228,18 @@ def scan_file(file_path: Path):
         check_category("P1 Formulaic Transition", P1_TRANSITIONS)
         check_category("P1 Copula Avoidance", P1_COPULA)
         check_category("P1 Hedge Stacking", P1_HEDGES)
+        check_category("P1 Em-Dash", P1_EM_DASH)
+
+        # Check P2 Readability: slash-compressed metric pairs (e.g. 3.2%/17.0% or median/mean)
+        for m in re.finditer(r"\b(?:\d+(?:\.\d+)?\\?%\s*/\s*\d+(?:\.\d+)?\\?%|median/mean|mean/median)\b", line, re.IGNORECASE):
+            issues.append({
+                "file": file_path.name,
+                "line": line_idx,
+                "category": "P2 Readability",
+                "label": "Slash-compressed metric pair",
+                "match": m.group(0),
+                "context": line.strip()[:120]
+            })
 
         # Check P1 Wall-of-math inline cramming (>= 3 inline math blocks containing \sum, \frac, or \int on one prose line)
         inline_math_blocks = re.findall(r"\$([^$]+)\$", line)
@@ -268,6 +283,20 @@ def scan_file(file_path: Path):
             "context": f"Monotonous sentence lengths (mean: {mu:.1f} words, std: {sigma:.1f}, N={len(sentence_lengths)})"
         })
 
+    # P2 Readability: number-dense sentences (> 6 standalone numbers) in prose sections
+    if not file_path.name.startswith("tab_") and file_path.name not in ("01_preamble.tex", "02_title.tex"):
+        for s_text, s_len in sentences:
+            nums = re.findall(r"(?<![A-Za-z0-9_])\d+(?:\.\d+)?%?", s_text)
+            if len(nums) > 6:
+                issues.append({
+                    "file": file_path.name,
+                    "line": 1,
+                    "category": "P2 Readability",
+                    "label": f"Number-dense sentence ({len(nums)} numbers)",
+                    "match": s_text[:60] + "...",
+                    "context": s_text[:120]
+                })
+
     return issues, word_count, em_dash_count, sentence_lengths
 
 def run_scan():
@@ -297,7 +326,7 @@ def run_scan():
 
     print(f"\n[+] Scanned {len(target_files)} section files.")
     print(f"    Total prose words: {total_words}")
-    print(f"    Total em-dashes: {total_em_dashes} ({em_dash_rate:.2f} per 1,000 words; guideline <= 1.0/1,000)")
+    print(f"    Total em-dashes: {total_em_dashes} (guideline: 0)")
     if global_cv is not None:
         print(f"    Sentence Cadence (Burstiness): CV = {global_cv:.2f} (mean: {global_mu:.1f} words, std: {global_sigma:.1f}, N={len(all_sentence_lengths)})")
 
@@ -316,9 +345,6 @@ def run_scan():
             print(f"[{issue['file']}:{issue['line']}] ({issue['category']}) \"{issue['match']}\" [{issue['label']}]")
             print(f"    Context: {issue['context']}")
         print("-" * 70)
-
-    if em_dash_rate > 1.2:
-        print(f"\n[!] Warning: Em-dash frequency ({em_dash_rate:.2f}/1k words) exceeds the recommended rate (<= 1.0/1k).")
 
     if p0_issues or p1_issues:
         print("\n[FAILED] Manuscript prose contains prohibited AI writing patterns.")

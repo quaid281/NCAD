@@ -108,10 +108,10 @@ Not all AI-isms are equal. When doing a quick pass or triaging a large document,
 - Invented contrast-pair mirroring ("false precision rather than genuine accuracy")
 - Bullet lists of bare noun phrases (5+ short adj+noun items, no verbs)
 - Tier 3 phrase clustering (≥3 distinct boilerplate phrases in one piece)
+- Em-dashes (zero tolerance: 0 em-dashes allowed; replace with commas, parentheses, or colons)
 
 ### P2 — Stylistic polish (fix when time allows)
 - Sentence cadence and burstiness (CV < 0.35 — avoid monotonous uniform sentence lengths; mix punchy short statements with compound explanatory clauses)
-- Em dash frequency (above 1 per 1,000 words). This is writing-quality guidance, not evidence of machine authorship: usage has varied by model generation and vendor, so do not score or invert it as an authorship signal.
 - Generic conclusions ("The future looks bright")
 - Repeated setup/reversal punchlines when they replace concrete claims (isolated or supported reversals pass)
 - Judgment-only clarity checks: false agency, transformation crutch, ambiguous domain terminology, consequence-free explanations, and repeated empty concessions (apply each entry's pass conditions)
@@ -124,6 +124,20 @@ Not all AI-isms are equal. When doing a quick pass or triaging a large document,
 - Unnecessary hyphenation (curated open, closed, and position-dependent compounds)
 
 Use P0+P1 for quick passes. Full audit covers all three tiers.
+
+---
+
+## Readability & Quantitative Prose
+
+Technical accuracy does not require dense, breathless prose. Apply these rules whenever writing, auditing, or rewriting scientific and quantitative sections:
+
+1. **Plain-English intuition first:** Before introducing equations, formal propositions, or raw numbers, state what is happening and why in plain English.
+2. **No number-piling (`> 5` numbers per sentence):** Never pack more than five standalone numbers or percentages into one sentence, especially when a cited table already contains the distribution. State the headline finding with 1–2 anchor values and point to the table for the rest.
+3. **No parallel list-to-list zipping:** Never force the reader to mentally align two lists (e.g., *"14, 10, 8, and 8 streams exceed 5%, 10%, 20%, and 30%"*). Either state one or two key thresholds inline or defer the full breakdown to a table.
+4. **No slash-compressed metric pairs:** Write *"17.0% mean and 3.2% median"* instead of *"3.2%/17.0% median/mean"*.
+5. **Break up semicolon chains and parenthetical stacks:** Avoid chaining multiple quantitative clauses with `>= 2` semicolons or interrupting a sentence with `>= 3` parentheticals. Split them into short, sequential sentences.
+6. **Watch sentence length (`> 45` words):** Sentences over 45 words that mix prose, parenthetical statistics, and comparisons should be split into two sentences: one for the claim, one for the supporting numbers.
+7. **Equation and symbol pacing:** Never pack `>= 3` multi-term inline formulas (`\sum`, `\frac`, `\int`) into a single run-on paragraph. Break multi-term equations into display math (`aligned`) and define symbols in prose before comparing them.
 
 ---
 
@@ -222,7 +236,7 @@ None of the following may be **added** to a text that did not already contain it
 - **Manufactured stakes.** "In a world where," "now more than ever," "the stakes have never been higher." Covered as a detection rule under Speculative scenario openers; listed again here because the rewrite side is where it gets *introduced*.
 - **Forced contrarianism.** "Everyone says X, but they're wrong," "the conventional wisdom is backwards." Only legitimate when the source actually argued it. Inventing a foil is inventing a claim.
 - **Performed candor.** "Let's be honest," "real talk," "here's the thing." See Narrated candor and Infomercial engagement hooks. A rewrite that adds one is failing two rules at once.
-- **Em-dash theatrics.** Dashes staged for drama the content has not earned. The rule elsewhere is a rate ceiling; this is about *adding* dashes during a rewrite, which should never happen.
+- **Em-dash theatrics.** Dashes staged for drama the content has not earned. Zero em-dashes are allowed; never use or add em-dashes.
 - **Staccato conversion.** Chopping ordinary sentences into fragments to manufacture rhythm. Vary sentence length by varying the sentences, not by breaking them.
 - **Invented specifics.** A number, name, date, tool, or mechanism the source never contained. Specificity is the most tempting fix because it always reads better, and a fabricated specific is worse than the vague phrasing it replaced. If the concrete detail is missing, flag the gap and leave it. Never fill it.
 
