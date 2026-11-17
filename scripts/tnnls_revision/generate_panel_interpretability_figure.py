@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Generate Figure 4: Intuitive 3-Row Circuit-Breaker Interpretability & Onset-Boundary Case Studies.
+"""Generate Figure 4: Clean 2-Column Circuit-Breaker Interpretability & Onset-Boundary Case Studies.
 
-Designed for immediate visual comprehension in IEEE Transactions two-column print (7.16 in):
+Focuses on two complementary continuous-telemetry regimes across a wide 2-column IEEE layout
+(7.16 in, zero interior callout boxes):
   - Col (a) Abrupt Sensor Fault (`GECCO` water-chemistry spike): continuous sensor jump triggers all
     four breaker groups (`Short S1=16`, `Mid S2=32`, `Long S3=64`, and `Mean Drift |e_bar|`), driving
     `N_128` to 4.9x quorum `K_Lite` while `1D Scalar SPOT` barely grazes threshold (`1.04x`).
-  - Col (b) In-Range Contextual Fault (`SMAP A-7`, official NASA contextual anomaly): continuous
-    spacecraft telemetry stays strictly inside normal `+-2.5 sigma` bounds while anomalous dynamics
-    stack mid/long (`S2, S3`) and `Drift` breakers into a sustained alarm plateau (`1.95x`), whereas
-    `1D Scalar SPOT` stays trapped below threshold (`0%` sustained coverage).
-  - Col (c) Slow Industrial Ramp (`GHL-44` real heating-loop ramp): continuous temperature climbs
+  - Col (b) Slow Process Ramp (`GHL-44` real heating-loop thermal ramp): continuous temperature climbs
     gradually over ~860 steps while context-target co-movement keeps `N_128 = 0` until the abrupt
-    valve reset at the end; the complementary `Frozen-Reference Drift` monitor crosses threshold
-    smoothly inside the ramp.
+    reset at the end; the complementary `Frozen-Reference Drift` monitor crosses threshold inside
+    the ramp.
+
+Three synchronized rows:
+  - Row 1: Continuous Sensor Waveforms (`z`-score) with ground-truth fault span.
+  - Row 2: Stacked Active Circuit Breakers by Timescale (`S1=16`, `S2=32`, `S3=64`, `Drift`), whose top
+           edge equals total count `N_128(tau)` plotted against dashed `Quorum K_Lite`.
+  - Row 3: Score-to-Threshold Ratio (`Score / Threshold`, alarming above `1x`) comparing
+           `Lite quorum`, `1D Scalar SPOT`, and `Frozen-Ref. Drift`.
 """
 
 from __future__ import annotations
@@ -80,16 +84,16 @@ def _set_ieee_style() -> None:
             "font.family": "Times New Roman",
             "mathtext.fontset": "stix",
             "axes.edgecolor": "#333333",
-            "axes.linewidth": 0.72,
-            "xtick.major.width": 0.62,
-            "ytick.major.width": 0.62,
+            "axes.linewidth": 0.75,
+            "xtick.major.width": 0.65,
+            "ytick.major.width": 0.65,
             "xtick.direction": "out",
             "ytick.direction": "out",
-            "xtick.labelsize": 7.6,
-            "ytick.labelsize": 7.6,
-            "axes.labelsize": 8.0,
-            "axes.titlesize": 8.3,
-            "legend.fontsize": 7.2,
+            "xtick.labelsize": 8.0,
+            "ytick.labelsize": 8.0,
+            "axes.labelsize": 8.4,
+            "axes.titlesize": 8.8,
+            "legend.fontsize": 7.6,
             "figure.dpi": 300,
         }
     )
@@ -184,7 +188,6 @@ def _evaluate_case(
     idx_1d = tp1[tm1, 0][i0:i1] / max(float(th_1d), 1e-6)
     idx_long = None
     if dec_d is not None:
-        # Positive Mahalanobis norm starts near nominal median; affine shift maps pre-ramp median -> 0.15 and threshold -> 1.0
         pre_s = dec_d.test_scores[i0 : i0 + 180]
         ref_d = min(float(np.median(pre_s)), float(dec_d.threshold) * 0.85)
         idx_long = 0.15 + 0.85 * _alarm_index(dec_d.test_scores[i0:i1], ref_d, dec_d.threshold)
@@ -215,11 +218,8 @@ def main() -> None:
     ch_jump_g = np.argsort(-np.max(np.abs(te_g_std[3876 + W : 4129 + W]), axis=0))[:2]
     case_a = _evaluate_case("GECCO", "water_quality", (3740, 4210), [int(ch_jump_g[0]), int(ch_jump_g[1])], device, epochs=15)
 
-    # (b) In-Range Contextual Fault: SMAP A-7 (official NASA contextual anomaly, continuous Channel 0)
-    case_b = _evaluate_case("SMAP", "A-7", (5680, 6800), [0], device, epochs=15)
-
-    # (c) Real Industrial Slow Ramp: GHL-44 (continuous Channel 2 temperature ramp [7129, 7992))
-    case_c = _evaluate_case(
+    # (b) Real Industrial Slow Ramp: GHL-44 (continuous Channel 2 thermal ramp [7129, 7992))
+    case_b = _evaluate_case(
         "GHL",
         "44_Lev_corr_Temp_fault_seed_190_vars_23",
         (6920, 8180),
@@ -230,18 +230,17 @@ def main() -> None:
     )
 
     fig, axes = plt.subplots(
-        3, 3, figsize=(7.16, 3.32), sharex="col",
-        gridspec_kw={"height_ratios": [0.98, 1.12, 1.10], "hspace": 0.16, "wspace": 0.18},
+        3, 2, figsize=(7.16, 3.15), sharex="col",
+        gridspec_kw={"height_ratios": [0.95, 1.12, 1.08], "hspace": 0.16, "wspace": 0.16},
     )
-    fig.subplots_adjust(top=0.805, bottom=0.115, left=0.078, right=0.982)
+    fig.subplots_adjust(top=0.795, bottom=0.125, left=0.082, right=0.985)
 
     configs = [
-        ("(a) Abrupt Sensor Fault (GECCO)", case_a, "Abrupt chemical spike", False, False),
-        ("(b) Contextual Fault (SMAP A-7)", case_b, "Stays inside normal $\\pm 2.5\\sigma$ band", True, False),
-        ("(c) Slow Process Ramp (GHL-44)", case_c, "Gradual $860$-step thermal ramp", False, True),
+        (f"(a) Abrupt Chemical Spike (GECCO, $K_{{\\mathrm{{Lite}}}}={case_a['k_quorum']:.1f}$)", case_a, False),
+        (f"(b) Slow Thermal Ramp (GHL-44, $K_{{\\mathrm{{Lite}}}}={case_b['k_quorum']:.1f}$)", case_b, True),
     ]
 
-    for col, (title, cd, note_txt, show_inrange_band, show_long) in enumerate(configs):
+    for col, (title, cd, show_long) in enumerate(configs):
         t = cd["t"]
         yv = cd["y"]
         ax_s, ax_b, ax_r = axes[:, col]
@@ -253,37 +252,23 @@ def main() -> None:
         for ax in (ax_s, ax_b, ax_r):
             if len(on_idx):
                 ax.axvspan(t_f0, t_f1, color="#f6e7eb", alpha=0.62, zorder=0)
-                ax.axvline(t_f0, color="#8c1d40", linestyle=":", linewidth=0.95, zorder=3)
-            ax.grid(True, linestyle="-", linewidth=0.42, color="#e3e3e3", alpha=0.8)
+                ax.axvline(t_f0, color="#8c1d40", linestyle=":", linewidth=1.0, zorder=3)
+            ax.grid(True, linestyle="-", linewidth=0.45, color="#e3e3e3", alpha=0.8)
             ax.set_axisbelow(True)
             ax.set_xlim(float(t[0]), float(t[-1]))
 
-        # ---------------- Row 1: Continuous Sensor Waveforms ----------------
-        if show_inrange_band:
-            ax_s.axhspan(-2.5, 2.5, color="#e3f0f2", alpha=0.75, zorder=1)
-            ax_s.axhline(2.5, color="#7ca8ad", linestyle=":", linewidth=0.7, zorder=2)
-            ax_s.axhline(-2.5, color="#7ca8ad", linestyle=":", linewidth=0.7, zorder=2)
-
+        # Row 1: Continuous Sensor Waveforms (zero interior boxes)
         s_arrays = [np.clip(arr, -4.8, 6.2) for arr in cd["sensors"]]
-        ax_s.plot(t, s_arrays[0], color=C_SENS1, linewidth=1.10, zorder=4)
+        ax_s.plot(t, s_arrays[0], color=C_SENS1, linewidth=1.20, zorder=4)
         if len(s_arrays) > 1:
-            ax_s.plot(t, s_arrays[1], color=C_SENS2, linewidth=0.92, alpha=0.85, zorder=3)
+            ax_s.plot(t, s_arrays[1], color=C_SENS2, linewidth=1.00, alpha=0.88, zorder=3)
         ax_s.set_title(title, fontweight="bold", pad=6)
-        ax_s.text(
-            0.03, 0.88, note_txt, transform=ax_s.transAxes, fontsize=6.9,
-            fontweight="bold", color="#2b2b2b", va="top", ha="left",
-            bbox={"boxstyle": "round,pad=0.16", "facecolor": "#ffffff", "edgecolor": "#cccccc", "lw": 0.45, "alpha": 0.92},
-            zorder=7,
-        )
-        if show_inrange_band:
-            ax_s.set_ylim(-3.4, 3.8)
-        else:
-            s_min = float(min(a.min() for a in s_arrays))
-            s_max = float(max(a.max() for a in s_arrays))
-            pad_s = max(0.7, 0.22 * (s_max - s_min))
-            ax_s.set_ylim(s_min - 0.35 * pad_s, s_max + 0.95 * pad_s)
+        s_min = float(min(a.min() for a in s_arrays))
+        s_max = float(max(a.max() for a in s_arrays))
+        pad_s = max(0.6, 0.16 * (s_max - s_min))
+        ax_s.set_ylim(s_min - pad_s, s_max + pad_s)
 
-        # -------- Row 2: Stacked Breaker Trips by Horizon vs. Quorum --------
+        # Row 2: Stacked Breaker Trips by Horizon vs. Quorum (zero interior boxes)
         y1 = cd["c_s1"]
         y2 = y1 + cd["c_s2"]
         y3 = y2 + cd["c_s3"]
@@ -292,52 +277,27 @@ def main() -> None:
         ax_b.fill_between(t, y1, y2, facecolor=C_S2, edgecolor="none", alpha=0.92, zorder=3)
         ax_b.fill_between(t, y2, y3, facecolor=C_S3, edgecolor="none", alpha=0.92, zorder=4)
         ax_b.fill_between(t, y3, y4, facecolor=C_DRIFT, edgecolor="none", alpha=0.92, zorder=5)
-        ax_b.plot(t, y4, color="#111111", linewidth=0.60, zorder=6)
-        ax_b.axhline(cd["k_quorum"], color=C_THRESH, linestyle="--", linewidth=1.05, zorder=7)
-
-        b_top = max(float(y4.max()) * 1.16, cd["k_quorum"] * 1.38, 18.0)
+        ax_b.plot(t, y4, color="#111111", linewidth=0.65, zorder=6)
+        ax_b.axhline(cd["k_quorum"], color=C_THRESH, linestyle="--", linewidth=1.10, zorder=7)
+        b_top = max(float(y4.max()) * 1.12, cd["k_quorum"] * 1.28, 18.0)
         ax_b.set_ylim(0.0, b_top)
-        # Place K_Lite pill in upper-left pre-fault empty zone so it never overlaps the stacked curve
-        ax_b.text(
-            0.03, 0.87,
-            f"Quorum $K_{{\\mathrm{{Lite}}}}={cd['k_quorum']:.1f}$",
-            transform=ax_b.transAxes, fontsize=6.8, fontweight="bold",
-            color="#222222", ha="left", va="top",
-            bbox={"boxstyle": "round,pad=0.14", "facecolor": "#ffffff", "edgecolor": "#cccccc", "lw": 0.45, "alpha": 0.92},
-            zorder=8,
-        )
 
-        # -------- Row 3: Calibrated Alarm Index (Alarm when > 1.0) --------
+        # Row 3: Score-to-Threshold Ratio (Alarm when > 1x; zero interior boxes)
         if col == 0:
-            r_cap = 5.4
+            r_cap = 5.3
             yticks, yticklabels = [0.0, 1.0, 3.0, 5.0], ["0", "$1{\\times}$", "$3{\\times}$", "$5{\\times}$"]
-            call_txt, call_col, edge_col = "Lite reaches $4.9{\\times}$\n1D barely hits $1.04{\\times}$", "#094d4f", "#b5d6d6"
-        elif col == 1:
-            r_cap = 2.25
-            yticks, yticklabels = [0.0, 1.0, 2.0], ["0", "$1{\\times}$", "$2{\\times}$"]
-            call_txt, call_col, edge_col = "Lite reaches $1.84{\\times}$ ($S_2,S_3$+drift)\nvs. $1.25{\\times}$ on 1D SPOT", "#094d4f", "#b5d6d6"
         else:
-            r_cap = 1.95
-            yticks, yticklabels = [0.0, 1.0, 1.8], ["0", "$1{\\times}$", "$1.8{\\times}$"]
-            call_txt, call_col, edge_col = "Drift crosses $1{\\times}$ in ramp\nSliding Lite stays at $0$", "#7a2e06", "#d9b39c"
+            r_cap = 1.65
+            yticks, yticklabels = [0.0, 1.0, 1.5], ["0", "$1{\\times}$", "$1.5{\\times}$"]
 
         ax_r.axhspan(1.0, r_cap, color="#fde8e8", alpha=0.45, zorder=1)
-        ax_r.axhline(1.0, color=C_THRESH, linestyle="--", linewidth=1.0, zorder=4)
-        ax_r.plot(t, np.minimum(cd["idx_lite"], r_cap * 0.97), color=C_LITE, linewidth=1.30, zorder=6)
-        ax_r.plot(t, np.minimum(cd["idx_1d"], r_cap * 0.97), color=C_1D, linestyle="--", linewidth=1.08, zorder=5)
-
+        ax_r.axhline(1.0, color=C_THRESH, linestyle="--", linewidth=1.05, zorder=4)
+        ax_r.plot(t, np.minimum(cd["idx_lite"], r_cap * 0.97), color=C_LITE, linewidth=1.40, zorder=6)
+        ax_r.plot(t, np.minimum(cd["idx_1d"], r_cap * 0.97), color=C_1D, linestyle="--", linewidth=1.15, zorder=5)
         if show_long and cd["idx_long"] is not None:
-            ax_r.plot(t, np.minimum(cd["idx_long"], r_cap * 0.96), color=C_LONG, linestyle="-.", linewidth=1.40, zorder=7)
+            ax_r.plot(t, np.minimum(cd["idx_long"], r_cap * 0.96), color=C_LONG, linestyle="-.", linewidth=1.45, zorder=7)
 
-        ax_r.text(
-            0.03, 0.88, call_txt,
-            transform=ax_r.transAxes, fontsize=6.7, fontweight="bold", color=call_col,
-            va="top", ha="left",
-            bbox={"boxstyle": "round,pad=0.15", "facecolor": "#ffffff", "edgecolor": edge_col, "lw": 0.45, "alpha": 0.92},
-            zorder=8,
-        )
-
-        ax_r.set_ylim(-0.12, r_cap)
+        ax_r.set_ylim(-0.10, r_cap)
         ax_r.set_yticks(yticks)
         ax_r.set_yticklabels(yticklabels)
         ax_r.set_xlabel("Relative Stream Steps $\\tau$", labelpad=2.5)
@@ -345,7 +305,7 @@ def main() -> None:
         if col == 0:
             ax_s.set_ylabel("Sensors\n($z$-score)", labelpad=3)
             ax_b.set_ylabel("Active Breakers\n$N_{128}(\\tau)$", labelpad=3)
-            ax_r.set_ylabel("Alarm Index\n($>1{\\times}$ Alarms)", labelpad=3)
+            ax_r.set_ylabel("Score / Thresh.\n($>1{\\times}$ Alarms)", labelpad=3)
 
     row2_handles = [
         Patch(facecolor="#f6e7eb", edgecolor="#8c1d40", linestyle=":", linewidth=0.7, label="Ground-truth fault"),
@@ -355,21 +315,21 @@ def main() -> None:
         Patch(facecolor=C_DRIFT, edgecolor="none", label="Mean drift $|\\bar{e}_c|$"),
     ]
     row3_handles = [
-        Line2D([0], [0], color=C_SENS1, lw=1.2, label="Sensor trace"),
-        Line2D([0], [0], color=C_LITE, lw=1.45, label="Lite quorum ($N_{128}$)"),
-        Line2D([0], [0], color=C_1D, lw=1.2, ls="--", label="1D Scalar SPOT"),
-        Line2D([0], [0], color=C_LONG, lw=1.35, ls="-.", label="Frozen-ref. drift"),
-        Line2D([0], [0], color=C_THRESH, lw=1.05, ls="--", label="Alarm threshold ($K_{\\mathrm{Lite}}$ / $1{\\times}$)"),
+        Line2D([0], [0], color=C_SENS1, lw=1.25, label="Sensor trace"),
+        Line2D([0], [0], color=C_LITE, lw=1.50, label="Lite quorum ($N_{128}$)"),
+        Line2D([0], [0], color=C_1D, lw=1.25, ls="--", label="1D Scalar SPOT"),
+        Line2D([0], [0], color=C_LONG, lw=1.40, ls="-.", label="Frozen-ref. drift"),
+        Line2D([0], [0], color=C_THRESH, lw=1.10, ls="--", label="Alarm threshold ($K_{\\mathrm{Lite}}$ / $1{\\times}$)"),
     ]
 
     leg1 = fig.legend(
         handles=row2_handles, loc="upper center", bbox_to_anchor=(0.52, 0.995),
-        ncol=5, frameon=False, columnspacing=1.0, handletextpad=0.4, fontsize=7.2,
+        ncol=5, frameon=False, columnspacing=1.05, handletextpad=0.4, fontsize=7.5,
     )
     fig.add_artist(leg1)
     fig.legend(
-        handles=row3_handles, loc="upper center", bbox_to_anchor=(0.52, 0.928),
-        ncol=5, frameon=False, columnspacing=0.95, handletextpad=0.4, fontsize=7.2,
+        handles=row3_handles, loc="upper center", bbox_to_anchor=(0.52, 0.922),
+        ncol=5, frameon=False, columnspacing=0.95, handletextpad=0.4, fontsize=7.5,
     )
 
     saved = save_true_vector_figure(
@@ -382,7 +342,7 @@ def main() -> None:
         ensure_outside_legend=True,
     )
     plt.close(fig)
-    print("Saved polished 3-row interpretability figure:", saved, flush=True)
+    print("Saved 2-column clean interpretability figure:", saved, flush=True)
 
 
 if __name__ == "__main__":
