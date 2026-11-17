@@ -218,8 +218,11 @@ def main() -> None:
     ch_jump_g = np.argsort(-np.max(np.abs(te_g_std[3876 + W : 4129 + W]), axis=0))[:2]
     case_a = _evaluate_case("GECCO", "water_quality", (3740, 4210), [int(ch_jump_g[0]), int(ch_jump_g[1])], device, epochs=15)
 
-    # (b) Real Industrial Slow Ramp: GHL-44 (continuous Channel 2 thermal ramp [7129, 7992))
-    case_b = _evaluate_case(
+    # (b) In-Range Contextual Fault: SMAP A-7 (official NASA contextual anomaly, continuous Channel 0)
+    case_b = _evaluate_case("SMAP", "A-7", (5680, 6800), [0], device, epochs=15)
+
+    # (c) Real Industrial Slow Ramp: GHL-44 (continuous Channel 2 thermal ramp [7129, 7992))
+    case_c = _evaluate_case(
         "GHL",
         "44_Lev_corr_Temp_fault_seed_190_vars_23",
         (6920, 8180),
@@ -230,17 +233,18 @@ def main() -> None:
     )
 
     fig, axes = plt.subplots(
-        3, 2, figsize=(7.16, 3.15), sharex="col",
+        3, 3, figsize=(7.16, 2.95), sharex="col",
         gridspec_kw={"height_ratios": [0.95, 1.12, 1.08], "hspace": 0.16, "wspace": 0.16},
     )
-    fig.subplots_adjust(top=0.795, bottom=0.125, left=0.082, right=0.985)
+    fig.subplots_adjust(top=0.785, bottom=0.125, left=0.072, right=0.992)
 
     configs = [
-        (f"(a) Abrupt Chemical Spike (GECCO, $K_{{\\mathrm{{Lite}}}}={case_a['k_quorum']:.1f}$)", case_a, False),
-        (f"(b) Slow Thermal Ramp (GHL-44, $K_{{\\mathrm{{Lite}}}}={case_b['k_quorum']:.1f}$)", case_b, True),
+        (f"(a) Abrupt Spike (GECCO, $K_{{\\mathrm{{Lite}}}}={case_a['k_quorum']:.1f}$)", case_a, False, False),
+        (f"(b) Contextual Fault (SMAP A-7, $K_{{\\mathrm{{Lite}}}}={case_b['k_quorum']:.1f}$)", case_b, True, False),
+        (f"(c) Slow Ramp (GHL-44, $K_{{\\mathrm{{Lite}}}}={case_c['k_quorum']:.1f}$)", case_c, False, True),
     ]
 
-    for col, (title, cd, show_long) in enumerate(configs):
+    for col, (title, cd, show_inrange_band, show_long) in enumerate(configs):
         t = cd["t"]
         yv = cd["y"]
         ax_s, ax_b, ax_r = axes[:, col]
@@ -258,15 +262,23 @@ def main() -> None:
             ax.set_xlim(float(t[0]), float(t[-1]))
 
         # Row 1: Continuous Sensor Waveforms (zero interior boxes)
+        if show_inrange_band:
+            ax_s.axhspan(-2.5, 2.5, color="#e3f0f2", alpha=0.72, zorder=1)
+            ax_s.axhline(2.5, color="#7ca8ad", linestyle=":", linewidth=0.7, zorder=2)
+            ax_s.axhline(-2.5, color="#7ca8ad", linestyle=":", linewidth=0.7, zorder=2)
+
         s_arrays = [np.clip(arr, -4.8, 6.2) for arr in cd["sensors"]]
-        ax_s.plot(t, s_arrays[0], color=C_SENS1, linewidth=1.20, zorder=4)
+        ax_s.plot(t, s_arrays[0], color=C_SENS1, linewidth=1.15, zorder=4)
         if len(s_arrays) > 1:
-            ax_s.plot(t, s_arrays[1], color=C_SENS2, linewidth=1.00, alpha=0.88, zorder=3)
-        ax_s.set_title(title, fontweight="bold", pad=6)
-        s_min = float(min(a.min() for a in s_arrays))
-        s_max = float(max(a.max() for a in s_arrays))
-        pad_s = max(0.6, 0.16 * (s_max - s_min))
-        ax_s.set_ylim(s_min - pad_s, s_max + pad_s)
+            ax_s.plot(t, s_arrays[1], color=C_SENS2, linewidth=0.95, alpha=0.88, zorder=3)
+        ax_s.set_title(title, fontweight="bold", pad=6, fontsize=8.1)
+        if show_inrange_band:
+            ax_s.set_ylim(-3.1, 3.1)
+        else:
+            s_min = float(min(a.min() for a in s_arrays))
+            s_max = float(max(a.max() for a in s_arrays))
+            pad_s = max(0.6, 0.16 * (s_max - s_min))
+            ax_s.set_ylim(s_min - pad_s, s_max + pad_s)
 
         # Row 2: Stacked Breaker Trips by Horizon vs. Quorum (zero interior boxes)
         y1 = cd["c_s1"]
@@ -277,8 +289,8 @@ def main() -> None:
         ax_b.fill_between(t, y1, y2, facecolor=C_S2, edgecolor="none", alpha=0.92, zorder=3)
         ax_b.fill_between(t, y2, y3, facecolor=C_S3, edgecolor="none", alpha=0.92, zorder=4)
         ax_b.fill_between(t, y3, y4, facecolor=C_DRIFT, edgecolor="none", alpha=0.92, zorder=5)
-        ax_b.plot(t, y4, color="#111111", linewidth=0.65, zorder=6)
-        ax_b.axhline(cd["k_quorum"], color=C_THRESH, linestyle="--", linewidth=1.10, zorder=7)
+        ax_b.plot(t, y4, color="#111111", linewidth=0.60, zorder=6)
+        ax_b.axhline(cd["k_quorum"], color=C_THRESH, linestyle="--", linewidth=1.05, zorder=7)
         b_top = max(float(y4.max()) * 1.12, cd["k_quorum"] * 1.28, 18.0)
         ax_b.set_ylim(0.0, b_top)
 
@@ -286,6 +298,9 @@ def main() -> None:
         if col == 0:
             r_cap = 5.3
             yticks, yticklabels = [0.0, 1.0, 3.0, 5.0], ["0", "$1{\\times}$", "$3{\\times}$", "$5{\\times}$"]
+        elif col == 1:
+            r_cap = 2.05
+            yticks, yticklabels = [0.0, 1.0, 2.0], ["0", "$1{\\times}$", "$2{\\times}$"]
         else:
             r_cap = 1.65
             yticks, yticklabels = [0.0, 1.0, 1.5], ["0", "$1{\\times}$", "$1.5{\\times}$"]
