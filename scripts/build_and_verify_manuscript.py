@@ -183,6 +183,30 @@ def check_overfull_hboxes():
     print("  [OK] Zero Overfull \\hbox margin spills detected (0 spills > 1.0pt).")
     return True
 
+
+MAX_TABLES = 6
+
+
+def check_table_cap():
+    step(f"4c. Checking manuscript table cap (<= {MAX_TABLES} tables)...")
+    standalone_tex = PAPER_DIR / "NCAD_CS_standalone.tex"
+    if not standalone_tex.exists():
+        warn("NCAD_CS_standalone.tex not found; skipping table cap check.")
+        return True
+    text = standalone_tex.read_text(encoding="utf-8", errors="ignore")
+    # Expand any remaining \input{sections/...} includes so every active table is counted
+    for inc in re.findall(r"\\input\{([^}]+)\}", text):
+        inc_path = PAPER_DIR / (inc if inc.endswith(".tex") else f"{inc}.tex")
+        if inc_path.exists():
+            text += "\n" + inc_path.read_text(encoding="utf-8", errors="ignore")
+    n_tables = len(re.findall(r"\\begin\{table\*?\}", text))
+    print(f"  -> Active tables in manuscript: {n_tables} (Hard ceiling: {MAX_TABLES})")
+    if n_tables > MAX_TABLES:
+        warn(f"Table count ({n_tables}) exceeds [INV-MAX-6-TABLES] cap of {MAX_TABLES}!")
+        return False
+    print(f"  [OK] Table count is within [INV-MAX-6-TABLES] ({n_tables}/{MAX_TABLES}).")
+    return True
+
 def main():
     print("=" * 70)
     print(" NCAD-CS Manuscript Build, Reference Scanner & Quality Verifier")
@@ -224,9 +248,10 @@ def main():
     else:
         print(f"  [OK] {STANDALONE_PDF.name}: 0 rendered '??' or '[?]' issues.")
         
-    # Check page budget and zero margin spills
+    # Check page budget, zero margin spills, and <= 6 table cap
     budget_ok = check_page_budget()
     spill_ok = check_overfull_hboxes()
+    table_ok = check_table_cap()
     
     # 6. Anti-AI writing pattern audit (docs/SKILL.md)
     step("6. Auditing manuscript prose against anti-AI writing rules (docs/SKILL.md)...")
@@ -239,13 +264,15 @@ def main():
     acronym_ok = run_audit()
     
     print("\n" + "=" * 70)
-    if not tex_errors and not has_pdf_issues and budget_ok and spill_ok and ai_audit_ok and acronym_ok:
+    if not tex_errors and not has_pdf_issues and budget_ok and spill_ok and table_ok and ai_audit_ok and acronym_ok:
         print(" [SUCCESS] All cross-references, page budget, and SKILL.md anti-AI rules verified cleanly!")
         print("=" * 70)
         sys.exit(0)
     else:
         if not budget_ok:
             print(f" [ACTION REQUIRED] Reduce text/figures to satisfy the <= {MAX_PAGE_BUDGET} page ceiling.")
+        if not table_ok:
+            print(f" [ACTION REQUIRED] Reduce tables to satisfy [INV-MAX-6-TABLES] (<= {MAX_TABLES} tables).")
         if not ai_audit_ok:
             print(" [ACTION REQUIRED] Eliminate identified AI writing patterns per docs/SKILL.md.")
         if not acronym_ok:

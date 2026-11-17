@@ -11,6 +11,7 @@
   page count. If over budget, condense elsewhere — tighten prose, shrink
   tables, or prune secondary discussions. Everything must fit and be addressed
   directly in the main manuscript.
+- **Table cap (`[INV-MAX-6-TABLES]`): the manuscript must contain at most 6 tables total.** Do not exceed 6 `\begin{table}` / `\begin{table*}` environments in the compiled manuscript (`paper/NCAD_CS/NCAD_CS_standalone.tex`). Consolidate secondary breakdowns into existing multi-panel tables or summarize them concisely in prose before adding a new table.
 - **No supplementary papers (fully self-contained manuscript):** There must be
   no companion supplement paper (no `NCAD_CS_supplement.tex` or external
   S-sections). Reviewers evaluate the main paper alone; central claims, causal

@@ -11,14 +11,14 @@
 \midrule
 TS-JEPA (1D)                      & .057 & .134 & .414 & .459 & \textbf{.042} & \textbf{.110} & \textbf{.004} & .070 & \textbf{.209} & 88.1 \\
 Multi-Horiz.\ 1D                  & \underline{.076} & .143 & .525 & .590 & \underline{.044} & .195 & \textbf{.004} & \textbf{.068} & \underline{.237} & \textbf{89.0} \\
-\textbf{Laminar-JEPA (224B)}      & .075 & \underline{.146} & \textbf{.622} & \underline{.613} & .076$^\S$ & .196 & .013 & .119 & .633 & 84.7 \\
-\textbf{Laminar-Lite (128B)}      & \textbf{.077}$^\dagger$ & \textbf{.154}$^\ddagger$ & \underline{.616}$^\P$ & \textbf{.662} & .078 & \underline{.150} & \underline{.008} & .100 & .632 & 84.7 \\
+\textbf{Laminar-JEPA (224B)}      & \textbf{.091} & \textbf{.166} & \textbf{.694} & \underline{.668} & .070 & .210 & .014 & .096 & .493 & 84.7 \\
+\textbf{Laminar-Lite (128B)}      & \underline{.086}$^\dagger$ & \underline{.158}$^\ddagger$ & \underline{.646}$^\P$ & \textbf{.677} & .064 & \underline{.133} & \underline{.009} & \textbf{.061} & .647 & \underline{88.1} \\
 \addlinespace[1.5pt]
 \multicolumn{11}{@{}l@{}}{\textit{Adequate ($N_{\text{cal}}{\ge}500$, $n{=}59$)} vs.\ \textit{short ($N_{\text{cal}}{<}500$, $n{=}59$) histories}} \\
 MH-1D, $N_{\text{cal}}{\ge}500$   & .040 & .096 & .368 & .457 & \textbf{.020} & .133 & \textbf{.002} & \textbf{.009} & \textbf{.086} & \textbf{93.2} \\
-\textbf{Lite}, $N_{\text{cal}}{\ge}500$ & \textbf{.079} & \textbf{.127} & \textbf{.514} & \textbf{.565} & .045 & \textbf{.099} & .006 & .077 & .137 & 84.7 \\
-MH-1D, $N_{\text{cal}}{<}500$     & \textbf{.112} & \textbf{.191} & .684 & .727 & \textbf{.069} & .258 & \textbf{.007} & \textbf{.175} & \textbf{.364} & 84.7 \\
-\textbf{Lite}, $N_{\text{cal}}{<}500$   & .076 & .182 & \textbf{.719} & \textbf{.762} & .111 & \textbf{.204} & .011 & .397 & .856 & 84.7 \\
+\textbf{Lite}, $N_{\text{cal}}{\ge}500$ & \textbf{.085} & \textbf{.123} & \textbf{.572} & \textbf{.585} & .047 & \textbf{.098} & .007 & .058 & .200 & 88.1 \\
+MH-1D, $N_{\text{cal}}{<}500$     & \textbf{.112} & .191 & .684 & .727 & \textbf{.069} & .258 & \textbf{.007} & .175 & \textbf{.364} & 84.7 \\
+\textbf{Lite}, $N_{\text{cal}}{<}500$   & .088 & \textbf{.195} & \textbf{.721} & \textbf{.773} & .081 & \textbf{.169} & .010 & \textbf{.059} & .712 & \textbf{88.1} \\
 \bottomrule
 \end{tabular*}
 
@@ -37,5 +37,5 @@ Multi-Horizon 1D (SPOT)      & .074 & .502 & \underline{.752} & \textbf{.046} & 
 Laminar-JEPA, 224 dials      & .074 & \underline{.646} & \textbf{.767} & .068 & .013 & \underline{70} & .143 & .643 & .498 \\
 Laminar-JEPA, 160 dials      & .073 & .616 & .736 & .064 & .009 & 88 & .140 & .634 & \underline{.529} \\
 \bottomrule
-\multicolumn{10}{@{}p{\columnwidth}@{}}{\tiny (a)~Three seeds; best \textbf{bold}, second \underline{underlined}; MH-1D = Multi-Horizon JEPA (1D), Lite = Laminar-JEPA-Lite; ${\le}5\%$ = $\%$ of streams with causal FPR$_{\text{hold}}{\le}5\%$. PR-AUC (caus./buf.): TS-JEPA $.155/.207$, 1D $.162/.230$, 224B $.141/.210$, Lite $.146/.225$; unquenched 224B: $.076/.147$ F1, $.639/.636$ ER, $.076/.196$ FPR$_{\text{hold}}$. $^\dagger$Lite vs.\ 1D causal F1 $\Delta{=}{+}0.002$ (stream CI $[{-}0.025,{+}0.024]$, cluster CI $[{-}0.037,{+}0.057]$; $73/40$ wins, $p{=}0.012$); vs.\ TS-JEPA ${+}0.020$ (cluster CI $[{+}0.002,{+}0.048]$). $^\ddagger$Buf.\ F1 $\Delta{=}{+}0.011$ ($p{=}0.029$). $^\P$Causal ER $\Delta{=}{+}0.091$ (cluster CI $[{+}0.029,{+}0.182]$, $8/9$ sets) at higher causal FPR$_{\text{hold}}$ (${+}0.033$, cluster CI $[{+}0.015,{+}0.056]$). $^\S$Disjoint quench: FPR$_{\text{hold}}$ $\Delta{=}{+}0.0001$ ($p{=}0.67$), ER ${-}0.017$. (b)~Independent retraining on identical splits, used only for operating-point controls (headline values come from (a)); Mean/Med.\ = causal FPR$_{\text{hold}}$; ER$_{.05}$ = diagnostic recall at $5\%$ test FPR; ``at cal.\ rate'' matches $\mathbf{X}_{\text{cal}}$ alarm rates (Fisher $.077$ F1, $.611$ ER; top-$k$ $.069$, $.581$; max-$z$ $.063$, $.588$; Stouffer $.057$, $.558$; $\ell_2^2$ conf.\ $.071$, $.556$; BH-FDR $.024$, $.146$).} \\
+\multicolumn{10}{@{}p{\columnwidth}@{}}{\tiny (a)~Three seeds; best \textbf{bold}, second \underline{underlined}; MH-1D = Multi-Horizon JEPA (1D), Lite = Laminar-JEPA-Lite; ${\le}5\%$ = $\%$ of streams with causal FPR$_{\text{hold}}{\le}5\%$. PR-AUC (caus./buf.): TS-JEPA $.155/.206$, 1D $.162/.230$, 224B $.156/.230$, Lite $.152/.229$. $^\dagger$Lite vs.\ 1D causal F1 $\Delta{=}{+}0.011$ (stream CI $[{-}0.010,{+}0.029]$, cluster CI $[{-}0.026,{+}0.069]$; $76/36$ wins, $p{=}8.8{\times}10^{-4}$); vs.\ TS-JEPA ${+}0.029$ (cluster CI $[{+}0.013,{+}0.056]$). $^\ddagger$Buf.\ F1 $\Delta{=}{+}0.016$ ($p{=}0.0098$). $^\P$Causal ER $\Delta{=}{+}0.121$ (cluster CI $[{+}0.037,{+}0.243]$, $9/9$ sets, $p{=}0.0039$) at higher causal FPR$_{\text{hold}}$ (${+}0.020$, cluster CI $[{-}0.001,{+}0.053]$). (b)~Independent retraining on identical splits, used only for operating-point controls (headline values come from (a)); Mean/Med.\ = causal FPR$_{\text{hold}}$; ER$_{.05}$ = diagnostic recall at $5\%$ test FPR; ``at cal.\ rate'' matches $\mathbf{X}_{\text{cal}}$ alarm rates (Fisher $.077$ F1, $.611$ ER; top-$k$ $.069$, $.581$; max-$z$ $.063$, $.588$; Stouffer $.057$, $.558$; $\ell_2^2$ conf.\ $.071$, $.556$; BH-FDR $.024$, $.146$).} \\
 \end{tabular*}\par\vspace{-4pt}\end{table}

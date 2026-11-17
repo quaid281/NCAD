@@ -577,7 +577,8 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             ema_decay=0.996,
             dropout=config.dropout,
         )
-    elif canonical == "laminar_jepa_lite":
+    elif canonical in ("laminar_jepa_lite", "laminar_jepa_224"):
+        num_horizons = 4 if canonical == "laminar_jepa_224" else 3
         lite_encoder = LaminarLiteEncoder(
             input_dim=input_dim,
             latent_dim=config.latent_dim,
@@ -590,7 +591,7 @@ def build_ts_jepa_model(config: CSMConfig, input_dim: int, device: torch.device)
             latent_dim=config.latent_dim,
             predictor_hidden_dim=max(64, config.latent_dim * 2),
             ema_decay=0.996,
-            num_horizons=3,
+            num_horizons=num_horizons,
         )
     else:
         raise ValueError(f"Unsupported model type: {config.model_type!r} (canonical: {canonical!r})")

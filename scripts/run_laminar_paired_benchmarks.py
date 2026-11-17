@@ -523,18 +523,19 @@ def main() -> None:
     ap.add_argument("--suite", choices=("dev33", "dev19_4block", "tier2_141", "tier2_141_5block"), required=True)
     ap.add_argument("--out", required=True, help="Output CSV path")
     ap.add_argument("--lite-only", action="store_true", help="Evaluate Laminar-JEPA-Lite only")
+    ap.add_argument("--skip-1d", action="store_true", help="Skip TS-JEPA-1D and Multi-Horizon-JEPA-1D")
     ap.add_argument("--max-streams", type=int, default=0)
     ap.add_argument("--shard-id", type=int, default=0)
     ap.add_argument("--num-shards", type=int, default=1)
     args = ap.parse_args()
 
-    include_1d = args.suite == "tier2_141_5block" and not args.lite_only
+    include_1d = args.suite == "tier2_141_5block" and not args.lite_only and not args.skip_1d
     if args.lite_only:
         target_models = ("Laminar-JEPA-Lite",)
     elif include_1d:
-        target_models = ("TS-JEPA-1D", "Multi-Horizon-JEPA-1D", "Laminar-JEPA", "Laminar-JEPA-Unq", "Laminar-JEPA-Lite")
+        target_models = ("TS-JEPA-1D", "Multi-Horizon-JEPA-1D", "Laminar-JEPA", "Laminar-JEPA-Lite")
     else:
-        target_models = ("Laminar-JEPA", "Laminar-JEPA-Unq", "Laminar-JEPA-Lite")
+        target_models = ("Laminar-JEPA", "Laminar-JEPA-Lite")
 
     out_path = Path(args.out)
     rows: list[dict[str, Any]] = []
@@ -632,63 +633,32 @@ def main() -> None:
                 )
                 del m_sp
 
-            if not args.lite_only and any((ds, str(ch), seed, m) not in done_keys for m in ("Laminar-JEPA", "Laminar-JEPA-Unq")):
+            if not args.lite_only and (ds, str(ch), seed, "Laminar-JEPA") not in done_keys:
                 torch.manual_seed(seed)
                 np.random.seed(seed)
-                cfg_full = CSMConfig(model_type="soliton_reynolds_jepa", context_size=C, suspect_size=S, latent_dim=32)
+                cfg_full = CSMConfig(model_type="laminar_jepa_224", context_size=C, suspect_size=S, latent_dim=32)
                 m_full = build_ts_jepa_model(cfg_full, input_dim=k_ch, device=device)
+                assert isinstance(m_full, LaminarJEPALiteModel)
                 p_full = sum(p.numel() for p in m_full.parameters() if p.requires_grad)
 
                 if val_mon_w is not None:
                     _fast_val_checkpoint_train(m_full, tr_w, val_mon_w, cfg_full, device, epochs=12, patience=4)
                 else:
                     _train_fixed_epochs(m_full, tr_w, cfg_full, epochs=15, device=device)
+                m_full.fit_resolvent_whitening(tr_w, context_len=C, batch_size=512)
 
-                with torch.inference_mode():
-                    z_ctx_tr, z_tgt_tr = _fast_extract_4h_latents(m_full, tr_w, batch_size=512)
-                    raw_tr_t = z_tgt_tr - _forward_predictors_with_phase(m_full, z_ctx_tr, m_full.subblock_embeddings)
-                    res_flat = raw_tr_t.reshape(len(tr_w), -1)
-                    mean_res = res_flat.mean(dim=0)
-                    diff_tr = res_flat - mean_res
-                    cov_tr = (diff_tr.T @ diff_tr) / max(len(res_flat) - 1, 1)
-                    m_full.residual_mean.copy_(mean_res)
-                    m_full.precision_matrix.copy_(resolvent_precision(cov_tr, u=1e-3))
-                    m_full.precision_fitted.fill_(True)
-                    tr_raw4_u = raw_tr_t.cpu().numpy().astype(np.float32)
-                    del z_ctx_tr, z_tgt_tr, raw_tr_t, res_flat, diff_tr, cov_tr
-
-                z_ctx_va, z_tgt_va = _fast_extract_4h_latents(m_full, va_w, batch_size=512)
-                z_ctx_te, z_tgt_te = _fast_extract_4h_latents(m_full, te_w, batch_size=512)
-                va_raw4_u, va_white4_u = extract_raw4_white4_from_latents(m_full, z_ctx_va, z_tgt_va)
-                te_raw4_u, te_white4_u = extract_raw4_white4_from_latents(m_full, z_ctx_te, z_tgt_te)
-                q_latents: tuple[torch.Tensor, torch.Tensor] | None = None
+                va_raw4, va_white4 = m_full.extract_raw_and_whitened_residuals(va_w, context_len=C, batch_size=1024)
+                te_raw4, te_white4 = m_full.extract_raw_and_whitened_residuals(te_w, context_len=C, batch_size=1024)
                 if q_w is not None:
-                    q_latents = _fast_extract_4h_latents(m_full, q_w, batch_size=512)
-                    q_raw4_u, q_white4_u = extract_raw4_white4_from_latents(m_full, q_latents[0], q_latents[1])
+                    q_raw4, q_white4 = m_full.extract_raw_and_whitened_residuals(q_w, context_len=C, batch_size=1024)
                 else:
-                    q_raw4_u, q_white4_u = None, None
-                _record_panel_rows(
-                    rows, meta, "Laminar-JEPA-Unq", "CircuitBreaker", panel_224,
-                    va_raw4_u, va_white4_u, te_raw4_u, te_white4_u, len_va, len(test), y, p_full,
-                    q_raw=q_raw4_u, q_white=q_white4_u,
-                )
-
-                m_q = copy.deepcopy(m_full)
-                quench_src = q_w if q_w is not None else va_w[:n_cal_w]
-                q_lat_src = q_latents if q_latents is not None else (z_ctx_va[:n_cal_w], z_tgt_va[:n_cal_w])
-                apply_surgical_wsp_quench(m_q, tr_w, quench_src, wsp_cfg, cal_latents=q_lat_src, tr_raw4=tr_raw4_u)
-                va_raw4_q, va_white4_q = extract_raw4_white4_from_latents(m_q, z_ctx_va, z_tgt_va)
-                te_raw4_q, te_white4_q = extract_raw4_white4_from_latents(m_q, z_ctx_te, z_tgt_te)
-                if q_latents is not None:
-                    q_raw4_q, q_white4_q = extract_raw4_white4_from_latents(m_q, q_latents[0], q_latents[1])
-                else:
-                    q_raw4_q, q_white4_q = None, None
+                    q_raw4, q_white4 = None, None
                 _record_panel_rows(
                     rows, meta, "Laminar-JEPA", "CircuitBreaker", panel_224,
-                    va_raw4_q, va_white4_q, te_raw4_q, te_white4_q, len_va, len(test), y, p_full,
-                    q_raw=q_raw4_q, q_white=q_white4_q,
+                    va_raw4, va_white4, te_raw4, te_white4, len_va, len(test), y, p_full,
+                    q_raw=q_raw4, q_white=q_white4,
                 )
-                del m_full, m_q, z_ctx_va, z_tgt_va, z_ctx_te, z_tgt_te, q_latents
+                del m_full
 
             if (ds, str(ch), seed, "Laminar-JEPA-Lite") not in done_keys:
                 torch.manual_seed(seed)
@@ -704,10 +674,10 @@ def main() -> None:
                     _train_fixed_epochs(m_lite, tr_w, cfg_lite, epochs=15, device=device)
                 m_lite.fit_resolvent_whitening(tr_w, context_len=C, batch_size=512)
 
-                va_raw3, va_white3 = m_lite.extract_raw_and_whitened_residuals(va_w, context_len=C, batch_size=512)
-                te_raw3, te_white3 = m_lite.extract_raw_and_whitened_residuals(te_w, context_len=C, batch_size=512)
+                va_raw3, va_white3 = m_lite.extract_raw_and_whitened_residuals(va_w, context_len=C, batch_size=1024)
+                te_raw3, te_white3 = m_lite.extract_raw_and_whitened_residuals(te_w, context_len=C, batch_size=1024)
                 if q_w is not None:
-                    q_raw3, q_white3 = m_lite.extract_raw_and_whitened_residuals(q_w, context_len=C, batch_size=512)
+                    q_raw3, q_white3 = m_lite.extract_raw_and_whitened_residuals(q_w, context_len=C, batch_size=1024)
                 else:
                     q_raw3, q_white3 = None, None
                 va_ew3, te_ew3 = _record_panel_rows(

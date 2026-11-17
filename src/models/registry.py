@@ -354,8 +354,16 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         aliases=("soliton_reynolds", "soliton_jepa", "lieb_thirring_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Soliton-Reynolds JEPA with sub-window centered Reynolds fluctuation and Lieb-Thirring wavepacket concentration.",
-        category="primary",
+        description="Legacy 224-dial Soliton-Reynolds JEPA (6-block HybridTCN + sequential predictor).",
+        category="ablation",
+    ),
+    ModelSpec(
+        canonical_name="laminar_jepa_224",
+        aliases=("laminar_224",),
+        is_jepa=True,
+        requires_patch_division=False,
+        description="Streamlined 4-horizon (224-dial) Laminar-JEPA diagnostic tier sharing the Lite encoder.",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="helmholtz_soliton_jepa",
@@ -363,15 +371,15 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         is_jepa=True,
         requires_patch_division=False,
         description="Unified Helmholtz-Soliton JEPA combining solenoidal vorticity curl, Lieb-Thirring soliton wavepackets, and LCS coreset null-space memory.",
-        category="primary",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="laminar_jepa_lite",
-        aliases=("laminar_lite", "reynolds_lite"),
+        aliases=("laminar_jepa", "laminar_lite", "reynolds_lite"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Streamlined 3-horizon unified-predictor spherical JEPA with K>=25 dyadic gating, 4-block TCN, tap/barycenter centering, and 128-bit P+D panel.",
-        category="ablation",
+        description="Primary streamlined 3-horizon spherical JEPA with depthwise K>=25 dyadic shells, 4-block TCN, hook-free native tap/barycenter readout, and 128-dial P+D panel.",
+        category="primary",
     ),
 )
 

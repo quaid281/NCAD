@@ -1,13 +1,12 @@
-"""Laminar-JEPA-Lite: Streamlined Multi-Horizon Spherical JEPA Architecture.
+"""Laminar-JEPA-Lite: Primary Streamlined Multi-Horizon Spherical JEPA Architecture.
 
-Consolidates the load-bearing Stage 1--3 components identified by the flagship
-layer-to-layer activation autopsy while pruning redundant depth, duplicate
-normalizations, dormant submodules, and split-predictor discontinuities:
+Consolidates the load-bearing Stage 1--3 components identified by activation tracing
+and paired multi-seed ablations while eliminating hook overhead and parameter bloat:
   1. Adaptive 4-block causal TCN encoder (`dilations = {1, 2, 4, 8}`) with `K > 1`
-     depthwise temporal stem, `K >= 25` gated 4-shell rFFT dyadic front-end, zero
-     unused QR trajectory projections, and zero dead `Dropout(0.0)` leaves.
-  2. Multi-depth functional hierarchy tapping (`MultiDepthTapHead`) + synchronized
-     EMA online barycenter subtraction (`running_centroid`).
+     depthwise temporal stem, `K >= 25` depthwise 4-shell rFFT dyadic front-end
+     (`-91%` spectral-stem parameters), zero QR overhead, and zero `Dropout` leaves.
+  2. Native hook-free multi-depth functional hierarchy readout (`tap_net`) + slim
+     `D`-dimensional scale-balanced pooling + synchronized EMA barycenter subtraction.
   3. Single parallel `LiteLatentPredictor` with one internal `LayerNorm(H)` and
      one terminal `F.layer_norm(D)` across `M = 3` dyadic target prefixes
      (`{S/4, S/2, S}` = `{16, 32, 64}` at `S = 64`).
@@ -25,13 +24,24 @@ import torch.nn.functional as F
 
 from src.models._jepa_utils import JEPABase, fit_covariance_batched, whiten_residuals
 from src.models.encoders.tcn_encoder import TimeFirstLayerNorm
-from src.models.jepa.alien_jepas import (
-    _encode_with_multidepth_taps,
-    _init_jepa_encoders,
-    _init_tap_heads,
-    _update_tap_ema,
-    _whitening_defect_loss,
-)
+from src.models.geometric_layers import LittlewoodPaleyDyadicBlock
+from src.models.jepa.alien_jepas import _init_jepa_encoders, _whitening_defect_loss
+
+
+class DepthwiseLittlewoodPaleyBlock(LittlewoodPaleyDyadicBlock):
+    """Littlewood-Paley rFFT dyadic block with depthwise (`groups=channels`) per-shell causal convs."""
+
+    def __init__(self, channels: int, num_shells: int = 4):
+        super().__init__(channels=channels, num_shells=num_shells, dropout=0.0)
+        self.shell_convs = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Conv1d(channels, channels, kernel_size=k, padding=k - 1, groups=channels),
+                    nn.GELU(),
+                )
+                for k in self.kernel_sizes
+            ]
+        )
 
 
 class LaminarLiteTCNBlock(nn.Module):
@@ -78,7 +88,7 @@ class LaminarLiteTCNBlock(nn.Module):
 
 
 class LaminarLiteEncoder(nn.Module):
-    """Lean causal multiscale TCN encoder with `K >= 25` dyadic gating and zero QR overhead."""
+    """Hook-free causal multiscale TCN encoder with depthwise `K >= 25` dyadic shells & native tap readout."""
 
     def __init__(
         self,
@@ -89,6 +99,8 @@ class LaminarLiteEncoder(nn.Module):
         kernel_size: int = 5,
         dyadic_min_channels: int = 25,
         num_dyadic_shells: int = 4,
+        proj_dim: Optional[int] = None,
+        depthwise_dyadic: bool = True,
     ):
         super().__init__()
         self.input_dim = input_dim
@@ -96,6 +108,8 @@ class LaminarLiteEncoder(nn.Module):
         self.filters = filters
         self.tcn_layers = tcn_layers
         self.dyadic_min_channels = dyadic_min_channels
+        head_dim = latent_dim if proj_dim is None else int(proj_dim)
+        self.proj_dim = head_dim
 
         self.stem_kernel = 3
         if input_dim > 1:
@@ -110,11 +124,14 @@ class LaminarLiteEncoder(nn.Module):
         self.input_projection = nn.Conv1d(input_dim, filters, kernel_size=1)
 
         if input_dim >= dyadic_min_channels:
-            from src.models.geometric_layers import LittlewoodPaleyDyadicBlock
-
-            self.dyadic_block: Optional[nn.Module] = LittlewoodPaleyDyadicBlock(
-                channels=filters, num_shells=num_dyadic_shells, dropout=0.0
-            )
+            if depthwise_dyadic:
+                self.dyadic_block: Optional[nn.Module] = DepthwiseLittlewoodPaleyBlock(
+                    channels=filters, num_shells=num_dyadic_shells
+                )
+            else:
+                self.dyadic_block = LittlewoodPaleyDyadicBlock(
+                    channels=filters, num_shells=num_dyadic_shells, dropout=0.0
+                )
         else:
             self.dyadic_block = None
 
@@ -125,21 +142,27 @@ class LaminarLiteEncoder(nn.Module):
             ]
         )
 
-        proj_dim = max(32, 2 * latent_dim)
         self.temporal_dense = nn.Sequential(
-            nn.Linear(filters * 3, proj_dim),
+            nn.Linear(filters * 3, head_dim),
             nn.GELU(),
-            nn.LayerNorm(proj_dim),
+            nn.LayerNorm(head_dim),
         )
         self.stat_dense = nn.Sequential(
-            nn.Linear(filters * 3, proj_dim),
+            nn.Linear(filters * 3, head_dim),
             nn.GELU(),
-            nn.LayerNorm(proj_dim),
+            nn.LayerNorm(head_dim),
         )
-        self.bottleneck = nn.Sequential(
-            nn.Linear(2 * proj_dim, latent_dim),
-            nn.LayerNorm(latent_dim),
+        self.bottleneck = nn.Linear(2 * head_dim, latent_dim)
+
+        self.tap_net = nn.Sequential(
+            nn.Linear(filters * 6, head_dim, bias=False),
+            nn.GELU(),
+            nn.LayerNorm(head_dim, elementwise_affine=False),
+            nn.Linear(head_dim, latent_dim, bias=False),
         )
+        self.tap_gate = nn.Parameter(torch.tensor(0.35))
+        self.register_buffer("running_centroid", torch.zeros(latent_dim))
+        self.register_buffer("has_centroid", torch.tensor(False, dtype=torch.bool))
 
     @staticmethod
     def _statistical_descriptors(x: torch.Tensor) -> torch.Tensor:
@@ -150,6 +173,11 @@ class LaminarLiteEncoder(nn.Module):
         else:
             tv1 = torch.zeros_like(std)
         return torch.nan_to_num(torch.cat([std, log_energy, tv1], dim=1))
+
+    @staticmethod
+    def _tap_stats(x: torch.Tensor) -> torch.Tensor:
+        xc = x - x.mean(dim=-1, keepdim=True)
+        return torch.cat([xc[:, :, -1], torch.sqrt(xc.pow(2).mean(dim=-1) + 1e-6)], dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         if inputs.ndim != 3:
@@ -164,13 +192,45 @@ class LaminarLiteEncoder(nn.Module):
         x = self.input_projection(x)
         if self.dyadic_block is not None:
             x = self.dyadic_block(x)
+        t0 = x
 
-        for block in self.blocks:
+        mid_idx = max(0, (len(self.blocks) - 1) // 3)
+        t1 = x
+        for idx, block in enumerate(self.blocks):
             x = block(x)
+            if idx == mid_idx:
+                t1 = x
+        t2 = x
 
-        temporal_cat = torch.cat([x[:, :, -1], torch.max(x, dim=2).values, torch.mean(x, dim=2)], dim=1)
-        fused = torch.cat([self.temporal_dense(temporal_cat), self.stat_dense(self._statistical_descriptors(x))], dim=1)
-        return torch.nan_to_num(self.bottleneck(fused))
+        d = (self.latent_dim,)
+        temporal_cat = torch.cat([t2[:, :, -1], torch.max(t2, dim=2).values, torch.mean(t2, dim=2)], dim=1)
+        deep_fused = torch.cat(
+            [self.temporal_dense(temporal_cat), self.stat_dense(self._statistical_descriptors(t2))], dim=1
+        )
+        z_deep = F.layer_norm(self.bottleneck(deep_fused), d)
+
+        tap_vec = torch.cat([self._tap_stats(t0), self._tap_stats(t1), self._tap_stats(t2)], dim=1)
+        z_tap = F.layer_norm(self.tap_net(tap_vec), d)
+
+        g = 0.5 * torch.sigmoid(self.tap_gate)
+        fused = (1.0 - g) * z_deep + g * z_tap
+
+        if self.training:
+            with torch.no_grad():
+                c = fused.detach().mean(dim=0)
+                if not bool(self.has_centroid.item()):
+                    self.running_centroid.copy_(c)
+                    self.has_centroid.fill_(True)
+                else:
+                    self.running_centroid.lerp_(c, 0.05)
+            centered = fused - self.running_centroid.unsqueeze(0)
+        elif bool(self.has_centroid.item()):
+            centered = fused - self.running_centroid.unsqueeze(0)
+        elif fused.shape[0] > 1:
+            centered = fused - fused.mean(dim=0, keepdim=True)
+        else:
+            centered = fused
+        return torch.nan_to_num(F.layer_norm(centered, d))
 
 
 class LiteLatentPredictor(nn.Module):
@@ -189,7 +249,7 @@ class LiteLatentPredictor(nn.Module):
 
 
 class LaminarJEPALiteModel(JEPABase):
-    """Streamlined 3-Horizon Unified-Predictor Spherical JEPA with Resolvent Whitening."""
+    """Primary Streamlined 3-Horizon Unified-Predictor Spherical JEPA with Resolvent Whitening."""
 
     def __init__(
         self,
@@ -203,8 +263,6 @@ class LaminarJEPALiteModel(JEPABase):
         _init_jepa_encoders(self, context_encoder, latent_dim, ema_decay)
         self.num_horizons = num_horizons
         self.num_subblocks = num_horizons  # Alias for multi-horizon helper compatibility
-
-        _init_tap_heads(self, context_encoder, latent_dim)
 
         self.predictor = LiteLatentPredictor(latent_dim=latent_dim, hidden_dim=predictor_hidden_dim)
         self.horizon_embeddings = nn.Parameter(0.02 * torch.randn(num_horizons, latent_dim))
@@ -223,7 +281,9 @@ class LaminarJEPALiteModel(JEPABase):
     @torch.no_grad()
     def update_target_encoder(self, momentum: Optional[float] = None) -> None:
         super().update_target_encoder(momentum)
-        _update_tap_ema(self, momentum)
+        if hasattr(self.context_encoder, "running_centroid") and hasattr(self.target_encoder, "running_centroid"):
+            self.target_encoder.running_centroid.copy_(self.context_encoder.running_centroid)
+            self.target_encoder.has_centroid.copy_(self.context_encoder.has_centroid)
 
     def predict_horizons(self, z_ctx: torch.Tensor) -> torch.Tensor:
         """Predict all `M` target horizon summaries in one parallel `[B, M, D]` pass."""
@@ -231,20 +291,16 @@ class LaminarJEPALiteModel(JEPABase):
 
     @torch.no_grad()
     def encode_target_prefixes(self, tgt_win: torch.Tensor) -> torch.Tensor:
-        """Encode the `M` nested target prefixes cleanly under `torch.no_grad()`."""
+        """Encode the `M` nested target prefixes cleanly under `torch.no_grad()` without hooks."""
         self.target_encoder.eval()
-        self.target_tap_head.eval()
         lengths = self.prefix_lengths(tgt_win.shape[1], self.num_horizons)
-        z_list = [
-            _encode_with_multidepth_taps(self.target_encoder, tgt_win[:, :s_len, :], self.target_tap_head).detach()
-            for s_len in lengths
-        ]
+        z_list = [self.target_encoder(tgt_win[:, :s_len, :]).detach() for s_len in lengths]
         return torch.stack(z_list, dim=1)
 
     def forward(
         self, ctx_win: torch.Tensor, tgt_win: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        z_ctx = _encode_with_multidepth_taps(self.context_encoder, ctx_win, self.context_tap_head)
+        z_ctx = self.context_encoder(ctx_win)
         z_sub_pred = self.predict_horizons(z_ctx)
         z_pred = z_sub_pred[:, -1, :]
 
@@ -307,7 +363,7 @@ class LaminarJEPALiteModel(JEPABase):
 
         with torch.inference_mode():
             for i in range(0, len(windows), batch_size):
-                batch = torch.from_numpy(windows[i : i + batch_size]).float().to(device)
+                batch = torch.from_numpy(np.ascontiguousarray(windows[i : i + batch_size])).float().to(device)
                 _, _, _, z_sub_pred, z_sub_tgt = self.forward(batch[:, :context_len], batch[:, context_len:])
                 assert z_sub_tgt is not None
                 raw = z_sub_tgt - z_sub_pred
@@ -336,6 +392,7 @@ class LaminarJEPALiteModel(JEPABase):
 
 
 __all__ = [
+    "DepthwiseLittlewoodPaleyBlock",
     "LaminarJEPALiteModel",
     "LaminarLiteEncoder",
     "LaminarLiteTCNBlock",

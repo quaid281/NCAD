@@ -9,36 +9,50 @@ import torch
 from src.config import CSMConfig
 from src.engine.activation_tracer import autopsy_model
 from src.engine.builder import build_ts_jepa_model
-from src.models.laminar_lite import LaminarJEPALiteModel, LaminarLiteEncoder, LiteLatentPredictor
+from src.models.laminar_lite import (
+    DepthwiseLittlewoodPaleyBlock,
+    LaminarJEPALiteModel,
+    LaminarLiteEncoder,
+    LiteLatentPredictor,
+)
+from src.models.registry import ablation_model_choices, canonical_model_type, primary_model_choices
 from src.scoring.circuit_breaker_panel import MultiPerspectiveCircuitBreakerPanel, stabilize_whitened_subblocks
 from src.scoring.laminar_lite_panel import PositionDriftLitePanel, build_position_drift_dials
 
 
-def test_laminar_lite_channel_gating_and_parameter_parsimony() -> None:
-    """Verify K<=1 stem bypass, K>=25 dyadic gating, zero active Dropout, and parameter reduction."""
+def test_laminar_lite_channel_gating_depthwise_pou_and_parameter_parsimony() -> None:
+    """Verify K<=1 stem bypass, K>=25 depthwise PoU shells, zero Dropout leaves, and >55% param reduction."""
     enc_k1 = LaminarLiteEncoder(input_dim=1, latent_dim=16, filters=16, tcn_layers=2)
     enc_k9 = LaminarLiteEncoder(input_dim=9, latent_dim=16, filters=16, tcn_layers=2)
     enc_k25 = LaminarLiteEncoder(input_dim=25, latent_dim=16, filters=16, tcn_layers=2)
 
     assert enc_k1.channel_stem is None and enc_k1.dyadic_block is None
     assert enc_k9.channel_stem is not None and enc_k9.dyadic_block is None
-    assert enc_k25.channel_stem is not None and enc_k25.dyadic_block is not None
+    assert enc_k25.channel_stem is not None and isinstance(enc_k25.dyadic_block, DepthwiseLittlewoodPaleyBlock)
 
-    for enc in (enc_k1, enc_k9):
+    for conv_seq in enc_k25.dyadic_block.shell_convs:
+        assert conv_seq[0].groups == 16
+
+    pou = enc_k25.dyadic_block.compute_dyadic_filters(65, device=torch.device("cpu"))
+    assert torch.allclose(pou.sum(dim=0), torch.ones(1, 65), atol=1e-6)
+
+    for enc in (enc_k1, enc_k9, enc_k25):
         dropout_leaves = [m for m in enc.modules() if isinstance(m, (torch.nn.Dropout, torch.nn.Dropout1d))]
         assert len(dropout_leaves) == 0
-    assert all(m.p == 0.0 for m in enc_k25.modules() if isinstance(m, (torch.nn.Dropout, torch.nn.Dropout1d)))
+
+    assert canonical_model_type("laminar_jepa") == "laminar_jepa_lite"
+    assert "laminar_jepa_lite" in primary_model_choices()
+    assert "soliton_reynolds_jepa" in ablation_model_choices()
 
     device = torch.device("cpu")
     for k_ch in (9, 25):
         cfg_flag = CSMConfig(model_type="soliton_reynolds_jepa", context_size=64, suspect_size=16, latent_dim=32)
-        cfg_lite = CSMConfig(model_type="laminar_jepa_lite", context_size=64, suspect_size=16, latent_dim=32)
+        cfg_lite = CSMConfig(model_type="laminar_jepa", context_size=64, suspect_size=16, latent_dim=32)
         m_flag = build_ts_jepa_model(cfg_flag, input_dim=k_ch, device=device)
         m_lite = build_ts_jepa_model(cfg_lite, input_dim=k_ch, device=device)
         p_flag = sum(p.numel() for p in m_flag.parameters() if p.requires_grad)
         p_lite = sum(p.numel() for p in m_lite.parameters() if p.requires_grad)
-        max_ratio = 0.50 if k_ch < 25 else 0.76
-        assert p_lite < max_ratio * p_flag, f"Expected <{max_ratio:.0%} params at K={k_ch}, got {p_lite} vs {p_flag}"
+        assert p_lite < 0.45 * p_flag, f"Expected <45% params at K={k_ch}, got {p_lite} vs {p_flag}"
 
 
 def test_lite_predictor_single_layernorm_and_parallel_horizons() -> None:
@@ -58,7 +72,7 @@ def test_lite_predictor_single_layernorm_and_parallel_horizons() -> None:
 
 
 def test_laminar_lite_training_ema_barycenter_and_psd_whitening() -> None:
-    """Verify finite backward gradients, synchronized EMA centroid, and PSD resolvent precision."""
+    """Verify finite backward gradients, native EMA centroid sync, zero hook wrappers, and PSD whitening."""
     torch.manual_seed(42)
     np.random.seed(42)
     cfg = CSMConfig(
@@ -71,6 +85,7 @@ def test_laminar_lite_training_ema_barycenter_and_psd_whitening() -> None:
     )
     model = build_ts_jepa_model(cfg, input_dim=6, device=torch.device("cpu"))
     assert isinstance(model, LaminarJEPALiteModel)
+    assert not hasattr(model, "context_tap_head") and not hasattr(model, "target_tap_head")
 
     windows = np.random.randn(24, 48, 6).astype(np.float32)
     batch = torch.from_numpy(windows[:8])
@@ -83,8 +98,8 @@ def test_laminar_lite_training_ema_barycenter_and_psd_whitening() -> None:
     assert len(grad_norms) > 0 and all(np.isfinite(g) for g in grad_norms)
 
     model.update_target_encoder()
-    assert bool(model.target_tap_head.has_centroid.item())
-    assert torch.allclose(model.target_tap_head.running_centroid, model.context_tap_head.running_centroid)
+    assert bool(model.target_encoder.has_centroid.item())
+    assert torch.allclose(model.target_encoder.running_centroid, model.context_encoder.running_centroid)
 
     model.fit_resolvent_whitening(windows, context_len=32, batch_size=12)
     assert bool(model.precision_fitted.item())
@@ -99,11 +114,11 @@ def test_laminar_lite_training_ema_barycenter_and_psd_whitening() -> None:
 def test_laminar_lite_activation_tracer_zero_hook_leak_and_zero_dead_leaves() -> None:
     """Verify autopsy_model leaves zero hooks, zero dormant leaves, and strict context causality."""
     torch.manual_seed(42)
-    enc = LaminarLiteEncoder(input_dim=5, latent_dim=8, filters=12, tcn_layers=2)
+    enc = LaminarLiteEncoder(input_dim=25, latent_dim=8, filters=12, tcn_layers=2)
     model = LaminarJEPALiteModel(context_encoder=enc, latent_dim=8, predictor_hidden_dim=16, num_horizons=3).eval()
 
-    x_ctx = torch.randn(4, 32, 5)
-    x_tgt_nom = torch.randn(4, 16, 5)
+    x_ctx = torch.randn(4, 32, 25)
+    x_tgt_nom = torch.randn(4, 16, 25)
     x_tgt_anom = x_tgt_nom.clone()
     x_tgt_anom[:, -4:, 0] += 6.0
 
@@ -122,14 +137,14 @@ def test_laminar_lite_activation_tracer_zero_hook_leak_and_zero_dead_leaves() ->
     assert len(zero_hit) == 0, f"Expected zero dormant leaves in LaminarJEPALiteModel, found: {zero_hit}"
 
     pred_hits = [r.name for r in report.records if r.name.startswith("predictor.fc1")]
-    tgt_tap_hits = [r.name for r in report.records if r.name.startswith("target_tap_head.net.0")]
+    tgt_tap_hits = [r.name for r in report.records if r.name.startswith("target_encoder.tap_net.0")]
     assert len(pred_hits) == 1
     assert len(tgt_tap_hits) == 3
 
     for k, div in report.anomaly_divergence.items():
-        if k.startswith(("context_encoder.", "context_tap_head.", "predictor.")):
+        if k.startswith(("context_encoder.", "predictor.")):
             assert div == pytest.approx(0.0, abs=1e-6)
-    last_tap_key = [r.name for r in report.records if r.name.startswith("target_tap_head.net.3")][-1]
+    last_tap_key = [r.name for r in report.records if r.name.startswith("target_encoder.tap_net.3")][-1]
     assert report.anomaly_divergence[last_tap_key] > 0.0
 
     for mod in model.modules():
@@ -198,4 +213,3 @@ def test_disjoint_adaptation_non_leakage_and_score_modes() -> None:
     assert np.array_equal(d_w.test_pred_balanced, d_ue.test_pred_balanced)
     assert np.all(d_w.test_switch_counts >= d_ue.test_switch_counts - 1e-6)
     assert np.all(d_ue.test_switch_counts >= d_u.test_switch_counts - 1e-6)
-

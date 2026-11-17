@@ -83,6 +83,7 @@ Never treat a raw `\begin{tabular}{|c|c|c|}` or a `\resizebox{\textwidth}{!}{...
 - **Consistent Decimal Precision**: Within any single column, format all measurements to the same number of decimal places (e.g., `90.0` instead of `90`, `0.120` instead of `0.12`).
 
 ### Principle 5: Hierarchical Spanner Headers (`\multicolumn` + `\cmidrule(lr)`) & Anti-Clutter Parsimony
+- **Maximum 6 Tables per Manuscript (`[INV-MAX-6-TABLES]`)**: Never exceed **6 tables total** in a manuscript. Consolidate secondary breakdowns into multi-panel tables or summarize them in 1–2 sentences of prose rather than spawning a 7th table.
 - **Prioritize Readability Over Exhaustive Row Dumping**: A table should answer a clear scientific question at a glance. Prune legacy model variants, redundant threshold rules (e.g., multiple near-identical quantiles or broken heuristic scalings), and confusing pooled sub-tables that can be summarized in 1–2 sentences of plain-English prose.
 - When several columns share a domain, metric family, or experimental cohort, group them under a top-level spanner header rather than repeating prefixes in every column title:
   - Bad: `DSE Pass | LIH Coverage | Total Coverage | LLM Mean Latency (ms) | LLM Med Latency (ms)`
