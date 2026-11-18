@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
-"""Generate Figure 4: Clean 2-Column Circuit-Breaker Interpretability & Onset-Boundary Case Studies.
+"""Generate Figure 4: Clean 3-Column Circuit-Breaker Interpretability & Onset-Boundary Case Studies.
 
-Focuses on two complementary continuous-telemetry regimes across a wide 2-column IEEE layout
-(7.16 in, zero interior callout boxes):
-  - Col (a) Abrupt Sensor Fault (`GECCO` water-chemistry spike): continuous sensor jump triggers all
+Spans full two-column IEEE page width (7.16 in, zero interior callout boxes) across three real
+continuous-telemetry regimes:
+  - Col (a) Abrupt Sensor Spike (`GECCO` water-chemistry fault): continuous chemical jump triggers all
     four breaker groups (`Short S1=16`, `Mid S2=32`, `Long S3=64`, and `Mean Drift |e_bar|`), driving
-    `N_128` to 4.9x quorum `K_Lite` while `1D Scalar SPOT` barely grazes threshold (`1.04x`).
-  - Col (b) Slow Process Ramp (`GHL-44` real heating-loop thermal ramp): continuous temperature climbs
-    gradually over ~860 steps while context-target co-movement keeps `N_128 = 0` until the abrupt
-    reset at the end; the complementary `Frozen-Reference Drift` monitor crosses threshold inside
-    the ramp.
-
-Three synchronized rows:
-  - Row 1: Continuous Sensor Waveforms (`z`-score) with ground-truth fault span.
-  - Row 2: Stacked Active Circuit Breakers by Timescale (`S1=16`, `S2=32`, `S3=64`, `Drift`), whose top
-           edge equals total count `N_128(tau)` plotted against dashed `Quorum K_Lite`.
-  - Row 3: Score-to-Threshold Ratio (`Score / Threshold`, alarming above `1x`) comparing
-           `Lite quorum`, `1D Scalar SPOT`, and `Frozen-Ref. Drift`.
+    `N_128` to ~4.9x quorum `K_Lite` while `1D Scalar SPOT` (`TS-JEPA-1D`) stays below `1x` inside the fault.
+  - Col (b) In-Range Contextual Fault (`SMAP A-7` NASA contextual anomaly): telemetry stays strictly within
+    `+-2.5 sigma` as oscillation frequency drops; `S2, S3` and drift stack above `K_Lite` (peaking at `1.84x`
+    with a sustained plateau above `1x`) while `1D Scalar SPOT` remains flat below `1x` (`<= 0.89x`).
+  - Col (c) Slow Process Ramp (`GHL-44` real heating-loop thermal ramp): continuous temperature climbs
+    linearly over ~860 steps while context-target co-movement keeps `N_128 = 0` until the abrupt reset;
+    the complementary `Frozen-Reference Drift` monitor crosses `1x` inside the ramp.
 """
 
 from __future__ import annotations
@@ -27,6 +22,7 @@ from typing import Any
 
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
@@ -53,8 +49,7 @@ from scripts.run_laminar_paired_benchmarks import (
     thresholds,
 )
 from scripts.tnnls_revision.common_eval import FrozenLatentDriftMonitor
-from src.engine.builder import build_encoder
-from src.models.jepa.alien_jepas import SpeculativeJEPAModel
+from src.engine.builder import build_ts_jepa_model
 from src.models.laminar_lite import LaminarJEPALiteModel, LaminarLiteEncoder
 from src.scoring.circuit_breaker_panel import aggregate_vector_stream, stabilize_whitened_subblocks
 from src.scoring.laminar_lite_panel import PositionDriftLitePanel
@@ -62,7 +57,7 @@ from src.scoring.laminar_lite_panel import PositionDriftLitePanel
 FIGDIR = ROOT / "paper" / "NCAD_CS" / "figures"
 OUT_STEM = FIGDIR / "panel_interpretability_case_studies"
 
-# Harmonious, grayscale-safe Churkin / Okabe-Ito publication palette
+# Harmonious, colorblind-safe Churkin / Okabe-Ito publication palette
 C_SENS1 = "#1d4e89"    # Primary continuous sensor (Deep Navy)
 C_SENS2 = "#6a408d"    # Secondary continuous sensor (Churkin Purple)
 C_S1 = "#8ecae6"       # Short horizon S1=16 stack (Sky Teal)
@@ -70,9 +65,9 @@ C_S2 = "#219ebc"       # Medium horizon S2=32 stack (Cerulean)
 C_S3 = "#5e548e"       # Long horizon S3=64 stack (Deep Violet)
 C_DRIFT = "#b51749"    # Persistent drift |e_bar| stack (Crimson)
 C_LITE = "#0d7377"     # Laminar-JEPA-Lite curve (Deep Teal)
-C_1D = "#3d5a80"       # 1D Scalar SPOT curve (Slate Navy)
+C_1D = "#6a1b9a"       # 1D Scalar SPOT (TS-JEPA-1D) curve (High-contrast Royal Plum)
 C_LONG = "#c85a17"     # Frozen-Ref Long-Horizon Drift (Burnt Ochre)
-C_THRESH = "#222222"   # Threshold line
+C_THRESH = "#222222"   # Calibrated threshold line
 
 
 def _set_ieee_style() -> None:
@@ -89,11 +84,11 @@ def _set_ieee_style() -> None:
             "ytick.major.width": 0.65,
             "xtick.direction": "out",
             "ytick.direction": "out",
-            "xtick.labelsize": 8.0,
-            "ytick.labelsize": 8.0,
-            "axes.labelsize": 8.4,
-            "axes.titlesize": 8.8,
-            "legend.fontsize": 7.6,
+            "xtick.labelsize": 7.9,
+            "ytick.labelsize": 7.9,
+            "axes.labelsize": 8.0,
+            "axes.titlesize": 8.2,
+            "legend.fontsize": 7.5,
             "figure.dpi": 300,
         }
     )
@@ -105,6 +100,14 @@ def _alarm_index(series: np.ndarray, baseline_ref: float, threshold: float) -> n
     return np.maximum(-0.10, (np.asarray(series, dtype=np.float64) - float(baseline_ref)) / denom)
 
 
+def _seed_deterministic(seed: int = 42) -> None:
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def _evaluate_case(
     ds: str,
     ch: str,
@@ -114,15 +117,14 @@ def _evaluate_case(
     epochs: int = 15,
     include_drift_hybrid: bool = False,
 ) -> dict[str, Any]:
-    """Train Lite + 1D Scalar SPOT (+ optional Frozen-Ref Drift) and extract synchronized slice."""
+    """Train Lite + 1D Scalar SPOT (`TS-JEPA-1D`) (+ optional Frozen-Ref Drift) and extract slice."""
     train, test, y = load_stream(ds, ch)
     tr_w, q_w, va_w, te_w, len_va = _split_nominal_dev_4block(train, test)
     k_ch = int(train.shape[1])
     n_cal_w = len(va_w) // 2
 
     # 1. Laminar-JEPA-Lite (128 dials)
-    torch.manual_seed(42)
-    np.random.seed(42)
+    _seed_deterministic(42)
     cfg_l = CSMConfig(model_type="laminar_jepa_lite", context_size=C, suspect_size=S, latent_dim=32)
     enc = LaminarLiteEncoder(k_ch, latent_dim=32, filters=48, tcn_layers=4, proj_dim=64)
     m_lite = LaminarJEPALiteModel(enc, latent_dim=32, predictor_hidden_dim=64, num_horizons=3).to(device)
@@ -150,21 +152,13 @@ def _evaluate_case(
         dec_d = drift_mon.calibrate_and_score(f_val, f_te, n_cal_w=n_cal_w, suspect_size=S)
     del m_lite
 
-    # 2. Matched 1D Multi-Horizon JEPA (SPOT)
-    torch.manual_seed(42)
-    np.random.seed(42)
+    # 2. True 1D Scalar SPOT (`TS-JEPA-1D` scalar discrepancy + SPOT threshold on X_cal)
+    _seed_deterministic(42)
     cfg_1 = CSMConfig(model_type="ts_jepa", context_size=C, suspect_size=S, latent_dim=32)
-    m_1d = SpeculativeJEPAModel(
-        context_encoder=build_encoder(cfg_1, k_ch, device),
-        latent_dim=32,
-        predictor_hidden_dim=64,
-        ema_decay=0.995,
-        dropout=cfg_1.dropout,
-    ).to(device)
+    m_1d = build_ts_jepa_model(cfg_1, input_dim=k_ch, device=device)
     _train_fixed_epochs(m_1d, tr_w, cfg_1, epochs=epochs, device=device)
-    m_1d.fit_alien_bank(tr_w, context_len=C, batch_size=512)
-    vs1 = _score_1d_windows(m_1d, va_w, device, use_bank=True)
-    ts1 = _score_1d_windows(m_1d, te_w, device, use_bank=True)
+    vs1 = _score_1d_windows(m_1d, va_w, device)
+    ts1 = _score_1d_windows(m_1d, te_w, device)
     del m_1d
 
     vp1, vm1 = aggregate_vector_stream(vs1[:, None], len_va, C, S, "trailing")
@@ -218,8 +212,8 @@ def main() -> None:
     ch_jump_g = np.argsort(-np.max(np.abs(te_g_std[3876 + W : 4129 + W]), axis=0))[:2]
     case_a = _evaluate_case("GECCO", "water_quality", (3740, 4210), [int(ch_jump_g[0]), int(ch_jump_g[1])], device, epochs=15)
 
-    # (b) In-Range Contextual Fault: SMAP A-7 (official NASA contextual anomaly, continuous Channel 0)
-    case_b = _evaluate_case("SMAP", "A-7", (5680, 6800), [0], device, epochs=15)
+    # (b) In-Range Contextual Fault: SMAP A-7 (focused 700-step transition window [5760, 6460))
+    case_b = _evaluate_case("SMAP", "A-7", (5760, 6460), [0], device, epochs=15)
 
     # (c) Real Industrial Slow Ramp: GHL-44 (continuous Channel 2 thermal ramp [7129, 7992))
     case_c = _evaluate_case(
@@ -232,17 +226,29 @@ def main() -> None:
         include_drift_hybrid=True,
     )
 
+    for label, cd in [("GECCO", case_a), ("SMAP A-7", case_b), ("GHL-44", case_c)]:
+        yv = cd["y"]
+        il, i1 = cd["idx_lite"], cd["idx_1d"]
+        print(
+            f"[{label}] K={cd['k_quorum']:.1f} | "
+            f"Lite fault max={il[yv==1].max():.2f}x mean={il[yv==1].mean():.2f}x (n_max={cd['n_tot'][yv==1].max():.0f}) | "
+            f"1D SPOT fault max={i1[yv==1].max():.2f}x mean={i1[yv==1].mean():.2f}x",
+            flush=True,
+        )
+
     fig, axes = plt.subplots(
-        3, 3, figsize=(7.16, 2.95), sharex="col",
-        gridspec_kw={"height_ratios": [0.95, 1.12, 1.08], "hspace": 0.16, "wspace": 0.16},
+        3, 3, figsize=(7.16, 3.05), sharex="col",
+        gridspec_kw={"height_ratios": [0.95, 1.10, 1.12], "hspace": 0.22, "wspace": 0.155},
     )
-    fig.subplots_adjust(top=0.785, bottom=0.125, left=0.072, right=0.992)
+    fig.subplots_adjust(top=0.790, bottom=0.122, left=0.074, right=0.984)
 
     configs = [
         (f"(a) Abrupt Spike (GECCO, $K_{{\\mathrm{{Lite}}}}={case_a['k_quorum']:.1f}$)", case_a, False, False),
         (f"(b) Contextual Fault (SMAP A-7, $K_{{\\mathrm{{Lite}}}}={case_b['k_quorum']:.1f}$)", case_b, True, False),
         (f"(c) Slow Ramp (GHL-44, $K_{{\\mathrm{{Lite}}}}={case_c['k_quorum']:.1f}$)", case_c, False, True),
     ]
+
+    halo_1d = [pe.Stroke(linewidth=2.5, foreground="white", alpha=0.92), pe.Normal()]
 
     for col, (title, cd, show_inrange_band, show_long) in enumerate(configs):
         t = cd["t"]
@@ -255,7 +261,7 @@ def main() -> None:
 
         for ax in (ax_s, ax_b, ax_r):
             if len(on_idx):
-                ax.axvspan(t_f0, t_f1, color="#f6e7eb", alpha=0.62, zorder=0)
+                ax.axvspan(t_f0, t_f1, color="#f6e7eb", alpha=0.60, zorder=0)
                 ax.axvline(t_f0, color="#8c1d40", linestyle=":", linewidth=1.0, zorder=3)
             ax.grid(True, linestyle="-", linewidth=0.45, color="#e3e3e3", alpha=0.8)
             ax.set_axisbelow(True)
@@ -271,7 +277,7 @@ def main() -> None:
         ax_s.plot(t, s_arrays[0], color=C_SENS1, linewidth=1.15, zorder=4)
         if len(s_arrays) > 1:
             ax_s.plot(t, s_arrays[1], color=C_SENS2, linewidth=0.95, alpha=0.88, zorder=3)
-        ax_s.set_title(title, fontweight="bold", pad=6, fontsize=8.1)
+        ax_s.set_title(title, fontweight="bold", pad=5.5, fontsize=8.1)
         if show_inrange_band:
             ax_s.set_ylim(-3.1, 3.1)
         else:
@@ -289,38 +295,46 @@ def main() -> None:
         ax_b.fill_between(t, y1, y2, facecolor=C_S2, edgecolor="none", alpha=0.92, zorder=3)
         ax_b.fill_between(t, y2, y3, facecolor=C_S3, edgecolor="none", alpha=0.92, zorder=4)
         ax_b.fill_between(t, y3, y4, facecolor=C_DRIFT, edgecolor="none", alpha=0.92, zorder=5)
-        ax_b.plot(t, y4, color="#111111", linewidth=0.60, zorder=6)
-        ax_b.axhline(cd["k_quorum"], color=C_THRESH, linestyle="--", linewidth=1.05, zorder=7)
+        ax_b.plot(t, y4, color="#111111", linewidth=0.55, zorder=6)
+        ax_b.axhline(cd["k_quorum"], color=C_THRESH, linestyle=(0, (3.0, 2.0)), linewidth=1.05, zorder=7)
         b_top = max(float(y4.max()) * 1.12, cd["k_quorum"] * 1.28, 18.0)
         ax_b.set_ylim(0.0, b_top)
 
-        # Row 3: Score-to-Threshold Ratio (Alarm when > 1x; zero interior boxes)
+        # Row 3: Score-to-Threshold Ratio (Alarm when > 1x; high-contrast unoccluded 1D Scalar SPOT)
         if col == 0:
             r_cap = 5.3
             yticks, yticklabels = [0.0, 1.0, 3.0, 5.0], ["0", "$1{\\times}$", "$3{\\times}$", "$5{\\times}$"]
         elif col == 1:
             r_cap = 2.05
-            yticks, yticklabels = [0.0, 1.0, 2.0], ["0", "$1{\\times}$", "$2{\\times}$"]
+            yticks, yticklabels = [0.0, 0.5, 1.0, 1.5, 2.0], ["0", "", "$1{\\times}$", "", "$2{\\times}$"]
         else:
             r_cap = 1.65
-            yticks, yticklabels = [0.0, 1.0, 1.5], ["0", "$1{\\times}$", "$1.5{\\times}$"]
+            yticks, yticklabels = [0.0, 0.5, 1.0, 1.5], ["0", "", "$1{\\times}$", "$1.5{\\times}$"]
 
         ax_r.axhspan(1.0, r_cap, color="#fde8e8", alpha=0.45, zorder=1)
-        ax_r.axhline(1.0, color=C_THRESH, linestyle="--", linewidth=1.05, zorder=4)
-        ax_r.plot(t, np.minimum(cd["idx_lite"], r_cap * 0.97), color=C_LITE, linewidth=1.40, zorder=6)
-        ax_r.plot(t, np.minimum(cd["idx_1d"], r_cap * 0.97), color=C_1D, linestyle="--", linewidth=1.15, zorder=5)
+        ax_r.axhline(1.0, color=C_THRESH, linestyle=(0, (3.0, 2.0)), linewidth=1.0, zorder=4)
+        ax_r.plot(t, np.minimum(cd["idx_lite"], r_cap * 0.97), color=C_LITE, linewidth=1.35, zorder=6)
+        ax_r.plot(
+            t,
+            np.minimum(cd["idx_1d"], r_cap * 0.97),
+            color=C_1D,
+            linestyle=(0, (4.2, 2.0)),
+            linewidth=1.50,
+            path_effects=halo_1d,
+            zorder=8,
+        )
         if show_long and cd["idx_long"] is not None:
             ax_r.plot(t, np.minimum(cd["idx_long"], r_cap * 0.96), color=C_LONG, linestyle="-.", linewidth=1.45, zorder=7)
 
-        ax_r.set_ylim(-0.10, r_cap)
+        ax_r.set_ylim(-0.08, r_cap)
         ax_r.set_yticks(yticks)
         ax_r.set_yticklabels(yticklabels)
         ax_r.set_xlabel("Relative Stream Steps $\\tau$", labelpad=2.5)
 
         if col == 0:
             ax_s.set_ylabel("Sensors\n($z$-score)", labelpad=3)
-            ax_b.set_ylabel("Active Breakers\n$N_{128}(\\tau)$", labelpad=3)
-            ax_r.set_ylabel("Score / Thresh.\n($>1{\\times}$ Alarms)", labelpad=3)
+            ax_b.set_ylabel("Active Dials\n$N_{128}(\\tau)$", labelpad=3)
+            ax_r.set_ylabel("Alarm Ratio\n($>1{\\times}$ Fires)", labelpad=3)
 
     row2_handles = [
         Patch(facecolor="#f6e7eb", edgecolor="#8c1d40", linestyle=":", linewidth=0.7, label="Ground-truth fault"),
@@ -331,10 +345,10 @@ def main() -> None:
     ]
     row3_handles = [
         Line2D([0], [0], color=C_SENS1, lw=1.25, label="Sensor trace"),
-        Line2D([0], [0], color=C_LITE, lw=1.50, label="Lite quorum ($N_{128}$)"),
-        Line2D([0], [0], color=C_1D, lw=1.25, ls="--", label="1D Scalar SPOT"),
+        Line2D([0], [0], color=C_LITE, lw=1.45, label="Lite quorum ($N_{128}$)"),
+        Line2D([0], [0], color=C_1D, lw=1.55, ls=(0, (4.2, 2.0)), label="1D Scalar SPOT"),
         Line2D([0], [0], color=C_LONG, lw=1.40, ls="-.", label="Frozen-ref. drift"),
-        Line2D([0], [0], color=C_THRESH, lw=1.10, ls="--", label="Alarm threshold ($K_{\\mathrm{Lite}}$ / $1{\\times}$)"),
+        Line2D([0], [0], color=C_THRESH, lw=1.05, ls=(0, (3.0, 2.0)), label="Alarm threshold ($K_{\\mathrm{Lite}}$ / $1{\\times}$)"),
     ]
 
     leg1 = fig.legend(
@@ -357,7 +371,7 @@ def main() -> None:
         ensure_outside_legend=True,
     )
     plt.close(fig)
-    print("Saved 2-column clean interpretability figure:", saved, flush=True)
+    print("Saved 3-column clean interpretability figure:", saved, flush=True)
 
 
 if __name__ == "__main__":
