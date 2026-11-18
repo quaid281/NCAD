@@ -401,3 +401,87 @@ def loco_channel_attribution(
     trips = (dials > tau).sum(axis=1).astype(np.float32)
     return np.maximum(0.0, trips[0] - trips[1:])
 
+
+def _damped_zca_sqrt_np(cov: np.ndarray, reg: float = 1e-3, eigen_basis: bool = False) -> np.ndarray:
+    """Compute damped precision square root in float64 (symmetric ZCA or eigenbasis PCA)."""
+    sym = 0.5 * (cov + cov.T)
+    evals, evecs = np.linalg.eigh(sym)
+    pos = np.maximum(evals, 0.0)
+    scales = np.sqrt(pos) / (pos + reg)
+    if eigen_basis:
+        return evecs * scales[None, :]
+    return (evecs * scales[None, :]) @ evecs.T
+
+
+def fit_horizon_whitening_operator(
+    fit_raw: np.ndarray,
+    mode: str = "full_zca",
+    reg: float = 1e-3,
+) -> dict[str, Any]:
+    """Fit multi-horizon residual whitening operator on `fit_raw` of shape `(N_fit, M, D)`.
+
+    Supported `mode` values:
+      - `"full_zca"`: Dense `(MD) x (MD)` symmetric ZCA square root (cross-horizon + cross-coord).
+      - `"shared_kronecker_zca"`: Single shared `D x D` ZCA (`I_M (x) Omega_D^{1/2}`), zero
+        cross-horizon mixing and exact commutation with horizon mean/fluctuation.
+      - `"block_diag_zca"`: Independent `D x D` ZCA per horizon `m` (`(+)_{m=1}^M Omega_m^{1/2}`).
+      - `"pre_dial_zca"`: Independent `D x D` ZCA per raw horizon `m` plus separate `D x D` ZCA
+        on the unwhitened horizon-mean vector `mean_m(e_m - mu_m)`.
+      - `"pca_eigen"`: Non-symmetric `(MD) x (MD)` eigenbasis whitening `U diag(...)` control.
+    """
+    r64 = np.asarray(fit_raw, dtype=np.float64)
+    if r64.ndim != 3:
+        raise ValueError(f"Expected 3D fit_raw (N, M, D), got {r64.shape}.")
+    n_fit, m_cnt, dim = r64.shape
+    mu = r64.mean(axis=0, keepdims=True)
+    cent = r64 - mu
+
+    if mode in ("full_zca", "pca_eigen"):
+        flat = cent.reshape(n_fit, m_cnt * dim)
+        cov = (flat.T @ flat) / max(n_fit - 1, 1)
+        w_mat = _damped_zca_sqrt_np(cov, reg=reg, eigen_basis=(mode == "pca_eigen"))
+        return {"mode": mode, "mu": mu, "w_mat": w_mat}
+
+    if mode == "shared_kronecker_zca":
+        pooled = cent.reshape(n_fit * m_cnt, dim)
+        cov_d = (pooled.T @ pooled) / max(len(pooled) - 1, 1)
+        w_d = _damped_zca_sqrt_np(cov_d, reg=reg, eigen_basis=False)
+        return {"mode": mode, "mu": mu, "w_d": w_d}
+
+    if mode == "block_diag_zca":
+        w_blocks = []
+        for m in range(m_cnt):
+            cm = cent[:, m, :]
+            cov_m = (cm.T @ cm) / max(n_fit - 1, 1)
+            w_blocks.append(_damped_zca_sqrt_np(cov_m, reg=reg, eigen_basis=False))
+        return {"mode": mode, "mu": mu, "w_blocks": np.stack(w_blocks, axis=0)}
+
+    if mode == "pre_dial_zca":
+        w_blocks = []
+        for m in range(m_cnt):
+            cm = cent[:, m, :]
+            cov_m = (cm.T @ cm) / max(n_fit - 1, 1)
+            w_blocks.append(_damped_zca_sqrt_np(cov_m, reg=reg, eigen_basis=False))
+        c_bar = cent.mean(axis=1)
+        cov_bar = (c_bar.T @ c_bar) / max(n_fit - 1, 1)
+        w_bar = _damped_zca_sqrt_np(cov_bar, reg=reg, eigen_basis=False)
+        return {"mode": mode, "mu": mu, "w_blocks": np.stack(w_blocks, axis=0), "w_bar": w_bar}
+
+    raise ValueError(f"Unsupported whitening mode: {mode!r}")
+
+
+def apply_horizon_whitening_operator(raw: np.ndarray, op: dict[str, Any]) -> np.ndarray:
+    """Apply fitted whitening operator from `fit_horizon_whitening_operator` to `(N, M, D)`."""
+    r64 = np.asarray(raw, dtype=np.float64)
+    n_win, m_cnt, dim = r64.shape
+    cent = r64 - op["mu"]
+    mode = str(op["mode"])
+    if mode in ("full_zca", "pca_eigen"):
+        return (cent.reshape(n_win, m_cnt * dim) @ op["w_mat"]).reshape(n_win, m_cnt, dim).astype(np.float32)
+    if mode == "shared_kronecker_zca":
+        return np.einsum("nmd,dk->nmk", cent, op["w_d"]).astype(np.float32)
+    if mode in ("block_diag_zca", "pre_dial_zca"):
+        return np.einsum("nmd,mdk->nmk", cent, op["w_blocks"]).astype(np.float32)
+    raise ValueError(f"Unsupported whitening mode: {mode!r}")
+
+

@@ -9,8 +9,10 @@ import torch
 from scripts.tnnls_revision.common_eval import (
     FrozenLatentDriftMonitor,
     QuarantinedRecalibrationController,
+    apply_horizon_whitening_operator,
     compute_rankme,
     effective_sample_size,
+    fit_horizon_whitening_operator,
     loco_channel_attribution,
     mbb_quorum_thresholds,
     simulate_hijacker_masking_vs_quorum,
@@ -161,4 +163,60 @@ def test_loco_channel_attribution_identifies_perturbed_sensor() -> None:
     attr = loco_channel_attribution(model, tau, x_fault, context_len=64)
     assert attr.shape == (6,)
     assert int(np.argmax(attr)) == 3 or 3 in np.argsort(-attr)[:2].tolist()
+
+
+def test_horizon_preserving_whitening_operators_and_zca_alignment() -> None:
+    """Shared-Kronecker and Block-Diagonal ZCA must have zero cross-horizon leakage; ZCA > PCA alignment."""
+    rng = np.random.default_rng(42)
+    # Correlated across both horizons (M=3) and coordinates (D=8)
+    mix = rng.standard_normal((24, 24)).astype(np.float64) * 0.4 + np.eye(24)
+    fit_raw = (rng.standard_normal((256, 24)) @ mix).reshape(256, 3, 8).astype(np.float32)
+    eval_raw = (rng.standard_normal((64, 24)) @ mix).reshape(64, 3, 8).astype(np.float32)
+
+    op_shared = fit_horizon_whitening_operator(fit_raw, mode="shared_kronecker_zca")
+    op_bdiag = fit_horizon_whitening_operator(fit_raw, mode="block_diag_zca")
+    op_full = fit_horizon_whitening_operator(fit_raw, mode="full_zca")
+    op_pca = fit_horizon_whitening_operator(fit_raw, mode="pca_eigen")
+
+    # Zero cross-horizon leakage when perturbing horizon m=0 alone:
+    pert = eval_raw.copy()
+    pert[:, 0, :] += 10.0
+    for op in (op_shared, op_bdiag):
+        w0 = apply_horizon_whitening_operator(eval_raw, op)
+        wp = apply_horizon_whitening_operator(pert, op)
+        assert np.allclose(wp[:, 1:, :], w0[:, 1:, :], atol=1e-5)
+
+    # Exact commutation of shared Kronecker ZCA with horizon averaging:
+    w_sh = apply_horizon_whitening_operator(eval_raw, op_shared)
+    cent_mean = (eval_raw.astype(np.float64) - op_shared["mu"]).mean(axis=1)
+    direct_mean_white = (cent_mean @ op_shared["w_d"]).astype(np.float32)
+    assert np.allclose(w_sh.mean(axis=1), direct_mean_white, atol=1e-5)
+
+    # ZCA optimality: entrywise alignment with centered residuals strictly exceeds eigenbasis PCA
+    w_zca = apply_horizon_whitening_operator(eval_raw, op_full)
+    w_eig = apply_horizon_whitening_operator(eval_raw, op_pca)
+    cent = (eval_raw.astype(np.float64) - op_full["mu"]).astype(np.float32)
+    assert float(np.sum(w_zca * cent)) > float(np.sum(w_eig * cent))
+
+
+def test_proposition2_requires_matched_calibration_and_operational_scaling() -> None:
+    """Verify binary trip invariance holds under matched scaling and fails under post-freeze drift."""
+    rng = np.random.default_rng(42)
+    u_cal = rng.standard_normal((500, 16))
+    u_op = rng.standard_normal((200, 16))
+    scale = np.ones((1, 16))
+    scale[0, :3] = 5.0
+
+    tau_base = np.quantile(np.abs(u_cal), 0.985, axis=0, keepdims=True)
+    b_base = np.abs(u_op) > tau_base
+
+    # Matched calibration + operational scaling -> exact pointwise trip invariance
+    tau_matched = np.quantile(np.abs(u_cal * scale), 0.985, axis=0, keepdims=True)
+    b_matched = np.abs(u_op * scale) > tau_matched
+    assert np.array_equal(b_base, b_matched)
+
+    # Unmatched scaling (operational shift after freezing tau_base) -> trips inflate on drifted coords
+    b_post_freeze = np.abs(u_op * scale) > tau_base
+    assert int(b_post_freeze[:, :3].sum()) > int(b_base[:, :3].sum())
+
 

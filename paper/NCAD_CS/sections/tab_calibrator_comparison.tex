@@ -27,18 +27,18 @@ MH-1D, $N_{\text{cal}}{<}500$     & \textbf{.112} & .191 & .684 & .727 & \textbf
 \end{tabular*}
 
 \vspace{2pt}
-\setlength{\tabcolsep}{1.2pt}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r r ccc @{}}
+\setlength{\tabcolsep}{0.8pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r r cccc @{}}
 \toprule
-\textbf{(b) Eligibility \& Routing Stage (Causal)} & {$n$} & {\textbf{\% 118}} & {\textbf{ER $\uparrow$}} & {\textbf{Pt-F1 $\uparrow$}} & {\textbf{FPR$_{\text{hold}}$ $\downarrow$}} \\
+\textbf{(b) Eligibility \& Routing Stage (Causal)} & {$n$} & {\textbf{\% 118}} & {\textbf{ER $\uparrow$}} & {\textbf{Pt-F1 $\uparrow$}} & {\textbf{FPR$_{\text{hold}}$}} & {\textbf{FPR$_{\text{test}}$}} \\
 \midrule
-Total untouched archive streams                      & 118 & 100.0 & .646 & .086 & .064 \\
-Pass empirical cutoff ($N_{\text{cal}}{\ge}500$)     & 59  & 50.0  & .572 & .085 & .047 \\
-\quad Pass held-out check ($\text{FPR}_{\text{hold}}{\le}5\%$) & 52  & 44.1  & .543 & .076 & .009 \\
-\quad Fail held-out check ($\text{FPR}_{\text{hold}}{>}5\%$, fallback) & 7 & 5.9 & {--} & {--} & {--} \\
-\quad Optional $N_{\text{eff}}{\ge}50$ subset        & 35  & 29.7  & .564 & .091 & .009 \\
-Routed to 1D SPOT fallback ($59{+}7$)                & 66  & 55.9  & {--} & {--} & {--} \\
-Complete 118-stream routed hybrid                    & 118 & 100.0 & .609 & .094 & .046 \\
+Total untouched archive streams                       & 118 & 100.0 & .646 & .086 & .064 & .170 \\
+Pass empirical cutoff ($N_{\text{cal}}{\ge}500$)      & 59  & 50.0  & .572 & .085 & .047 & .155 \\
+\quad Pass screen ($\text{FPR}_{\text{hold}}{\le}5\%$) & 52  & 44.1  & .543 & .076 & .009 & .110 \\
+\quad Fail screen ($\text{FPR}_{\text{hold}}{>}5\%$, fallback) & 7 & 5.9 & {--} & {--} & .330 & .489 \\
+\quad Optional $N_{\text{eff}}{\ge}50$ subset         & 35  & 29.7  & .564 & .091 & .009 & .145 \\
+Routed to 1D SPOT fallback ($59{+}7$)                 & 66  & 55.9  & .663 & .109 & .076 & .115 \\
+Complete 118-stream routed hybrid                     & 118 & 100.0 & .609 & .094 & .046 & .113 \\
 \bottomrule
-\multicolumn{6}{@{}p{\columnwidth}@{}}{\tiny (a)~Three seeds; best \textbf{bold}, second \underline{underlined}; MH-1D = Multi-Horizon JEPA (1D), Lite = Laminar-JEPA-Lite; ${\le}5\%$ = $\%$ of streams with causal FPR$_{\text{hold}}{\le}5\%$. PR-AUC (causal, buffered): PCA .120, .144; TranAD .236, .274; TimesNet .236, .272; TS-JEPA .155, .206; 1D .162, .230; 224B .156, .230; Lite .152, .229. Post-hoc ER$_{.01}$, ER$_{.05}$: PCA .330, .558; TranAD .255, .413; TimesNet .259, .410; 1D .556, .755; 224B .547, .755; Lite .512, .734. $^\dagger$Lite vs.\ 1D causal F1 $\Delta{=}{+}0.011$ (stream CI $[{-}0.010,{+}0.029]$, cluster CI $[{-}0.026,{+}0.069]$, $p{=}8.8{\times}10^{-4}$); $N_{\text{cal}}{\ge}500$ $\Delta{=}{+}0.045$ (cluster CI $[{+}0.001,{+}0.091]$, sign-flip $p{=}0.047$). $^\ddagger$Buffered F1 $\Delta{=}{+}0.016$ ($p{=}0.0098$). $^\P$Causal ER $\Delta{=}{+}0.121$ (cluster CI $[{+}0.037,{+}0.243]$, $p{=}0.0039$); delay Lite $69.0$ (cluster CI $[53.3,102.4]$) vs.\ 1D $133.5$ ($[90.4,206.2]$), co-detected $\Delta{=}{-}74.6$ ($[{-}156.3,{-}31.1]$). (b)~Two-stage acceptance routes $66$ streams to MH-1D fallback (fallback 1D achieves $.663$ ER, $.109$ F1, $.076$ FPR$_{\text{hold}}$; accepted $52$ 1D reaches $.352$ ER, $.034$ F1, $p{=}3.2{\times}10^{-5}$). Independent matched-rate rerun at Lite's $0.25\%$ calibration rate: Lite $.650$ ER, $.078$ F1 vs.\ 1D $.526$, $.085$; Fisher $.611$, $.077$; 224B $.646$, $.074$; 160B $.616$, $.073$. MBB quorum ($B{=}400$, $n{=}118$ audit): MBB-Median $.092$ F1, $.652$ ER, $.082$ mean, $.009$ med., $.627$ p95 FPR; MBB-UCB90 $.079$, $.562$, $.064$ mean, $.005$ med., $.477$ p95.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny (a)~Three seeds; best \textbf{bold}, second \underline{underlined}; MH-1D = Multi-Horizon JEPA (1D), Lite = Laminar-JEPA-Lite; ${\le}5\%$ = $\%$ of streams with causal FPR$_{\text{hold}}{\le}5\%$. PR-AUC (causal, buffered): PCA .120, .144; TranAD .236, .274; TimesNet .236, .272; TS-JEPA .155, .206; 1D .162, .230; 224B .156, .230; Lite .152, .229. Post-hoc ER$_{.01}$, ER$_{.05}$: PCA .330, .558; TranAD .255, .413; TimesNet .259, .410; 1D .556, .755; 224B .547, .755; Lite .512, .734. $^\dagger$Lite vs.\ 1D causal F1 $\Delta{=}{+}0.011$ (cluster CI $[{-}0.026,{+}0.069]$, $p{=}8.8{\times}10^{-4}$); $N_{\text{cal}}{\ge}500$ $\Delta{=}{+}0.045$ (cluster CI $[{+}0.001,{+}0.091]$, sign-flip $p{=}0.047$). Lite minus 224B causal: $\Delta\text{F1}{=}{-}0.004$ (cluster CI $[{-}0.013,{+}0.006]$, $p{=}0.15$), $\Delta\text{ER}{=}{-}0.048$ (cluster CI $[{-}0.066,{-}0.013]$, $p{=}0.016$), $\Delta\text{FPR}_{\text{hold}}{=}{-}0.006$ ($p{=}1.3{\times}10^{-7}$; buffered ${-}0.077$, $p{=}9.2{\times}10^{-10}$). $^\ddagger$Buffered F1 vs.\ 1D $\Delta{=}{+}0.016$ ($p{=}0.0098$). $^\P$Causal ER vs.\ 1D $\Delta{=}{+}0.121$ (cluster CI $[{+}0.037,{+}0.243]$, $p{=}0.0039$); delay Lite $69.0$ ($[53.3,102.4]$) vs.\ 1D $133.5$ ($[90.4,206.2]$), co-detected $\Delta{=}{-}74.6$ ($[{-}156.3,{-}31.1]$). (b)~FPR$_{\text{test}}$ evaluates subsequent independent healthy test intervals: accepted $52$ reach $.039$ median FPR$_{\text{test}}$ ($53.8\%$ $\le 5\%$; 1D on same $52$ reaches $.352$ ER, $.034$ F1, $p{=}3.2{\times}10^{-5}$); fail-screen row shows unrouted Lite FPR before fallback. Matched-rate rerun ($r{=}0.25\%$): Lite $.650$ ER, $.078$ F1 vs.\ 1D $.526$, $.085$; Fisher $.611$, $.077$; 224B $.646$, $.074$; 160B $.616$, $.073$. MBB ($B{=}400$, $n{=}118$): MBB-Median $.092$ F1, $.652$ ER, $.082$ mean / $.009$ med.\ FPR; MBB-UCB90 $.079$, $.562$, $.064$ / $.005$.} \\
 \end{tabular*}\par\vspace{-4pt}\end{table}

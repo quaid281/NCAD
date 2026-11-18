@@ -28,7 +28,8 @@ CreditCard$^*$   & 1  & 29 & \textbf{2.0}  & 0.4  & \textbf{.007} & .002 & 1   &
 \toprule
 \textbf{(b) Cohort / Exclusion Sensitivity} & {$n_{\text{eval}}$} & {$\boldsymbol{\Delta}\textbf{ER (\%)}$} & {$\boldsymbol{p}_{\textbf{ER}}$} & {$\boldsymbol{\Delta}\textbf{Pt-F1}$} & {$\boldsymbol{p}_{\textbf{F1}}$} & {$\boldsymbol{\Delta}\textbf{FPR}$} \\
 \midrule
-Zero-tune unseen ($4$ sets)          & 37  & $+15.1$ & $.0004$      & $+.064$ & ${<}10^{-6}$ & $+.039$ \\
+Zero-tune external ($4$ sets)        & 37  & $+15.1$ & $.0004$      & $+.064$ & ${<}10^{-6}$ & $+.039$ \\
+Archive-heldout GECCO ($1$ set)      & 1   & $+27.0$ & {--}         & $+.155$ & {--}         & $+.001$ \\
 Tuned-set unseen ($4$ sets)          & 80  & $+10.5$ & $.0080$      & $-.016$ & $.5542$      & $+.011$ \\
 Nested LODO ($9$ sets, $s{=}42$)     & 118 & $+16.7$ & $.0003$      & $+.018$ & $.0002$      & $+.029$ \\
 \addlinespace[1.5pt]
@@ -40,5 +41,5 @@ Excl.\ Daphnet ($15$ removed)        & 103 & $+9.8$  & $.0019$      & $+.003$ & 
 Excl.\ Exathlon ($17$ removed)       & 101 & $+9.7$  & $.0022$      & $-.005$ & $.0650$      & $+.011$ \\
 \bottomrule
 \end{tabular*}\par\vspace{1pt}
-\parbox{\columnwidth}{\tiny\emph{Note:} Five-block untouched archive ($n{=}118$, excluding the $23$ tuning streams); $3$-seed causal means except Nested LODO ($s{=}42$). $^*$ denotes zero-tuning unseen datasets ($n{=}37$; GECCO$^\dagger$ was excluded from tuning), with Lite leading ER in $9/9$ sets ($p{=}0.0039$). Single-stream exclusions ($n_{\text{eval}}{=}117$) yield ${+}12.0\%\text{--}12.2\%$ ER ($p{<}10^{-4}$).}\vspace{-5pt}
+\parbox{\columnwidth}{\tiny\emph{Note:} Five-block untouched archive ($37+1+80=118$, excluding the $23$ tuning streams); $3$-seed causal means except Nested LODO ($s{=}42$). $^*$ denotes zero-tuning external sets ($n{=}37$); pooling GECCO$^\dagger$ ($n{=}38$) gives ${+}15.8\%$ ER ($p{=}2.3{\times}10^{-4}$) and ${+}.068$ F1 ($p{=}1.9{\times}10^{-7}$). Lite leads ER in $9/9$ sets ($p{=}0.0039$). Single-stream exclusions ($n_{\text{eval}}{=}117$) yield ${+}12.0\%\text{--}12.2\%$ ER ($p{<}10^{-4}$).}\vspace{-5pt}
 \end{table}
