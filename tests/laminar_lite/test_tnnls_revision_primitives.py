@@ -8,8 +8,10 @@ import torch
 
 from scripts.tnnls_revision.common_eval import (
     FrozenLatentDriftMonitor,
+    QuarantinedRecalibrationController,
     compute_rankme,
     effective_sample_size,
+    loco_channel_attribution,
     mbb_quorum_thresholds,
     simulate_hijacker_masking_vs_quorum,
 )
@@ -108,3 +110,55 @@ def test_wu_keogh_cycle_swap_and_phase_desync_preserve_marginals() -> None:
     mod_desync, y_desync = inject_wu_keogh_anomaly(seg, "Phase_Desync", t0=600, dur=200, rng=rng)
     assert y_desync[600:800].sum() == 200
     assert float(np.max(np.abs(mod_desync))) <= float(np.max(np.abs(seg))) + 1e-6
+
+
+def test_quarantined_recalibration_prevents_unconfirmed_fault_absorption() -> None:
+    """Quarantined controller must keep tripping on unconfirmed faults and support rollback."""
+    rng = np.random.default_rng(42)
+    cal_dials = rng.gamma(shape=1.5, scale=0.4, size=(200, 32)).astype(np.float32)
+    tau_init = (np.percentile(cal_dials, 98.5, axis=0) + 1e-4).astype(np.float32)
+    k_init = 3.5
+
+    ctrl = QuarantinedRecalibrationController(tau_dials=tau_init, k_quorum=k_init, floor=3.5)
+    shifted_dials = cal_dials + 2.5
+
+    # Under unconfirmed distribution shift (ks >= 0.50), active thresholds remain untouched (100% fault trips)
+    alarms_unconf, _, state = ctrl.process_batch(shifted_dials, ks_distance=0.80)
+    assert state == "QUARANTINE_ALERT"
+    assert float(alarms_unconf.mean()) == pytest.approx(1.0, abs=1e-6)
+    assert np.allclose(ctrl.tau_dials, tau_init)
+
+    # Confirming a legitimate mode shift updates thresholds and reduces benign post-shift FPR
+    assert ctrl.confirm_mode_transition(mode_confirmed=True) is True
+    assert ctrl.state == "NORMAL"
+    assert not np.allclose(ctrl.tau_dials, tau_init)
+    alarms_after, _, _ = ctrl.process_batch(shifted_dials, ks_distance=0.10)
+    assert float(alarms_after.mean()) < 0.05
+
+    # Revoking the update restores exact pre-shift thresholds
+    assert ctrl.rollback() is True
+    assert np.allclose(ctrl.tau_dials, tau_init)
+    assert ctrl.k_quorum == pytest.approx(k_init)
+
+
+def test_loco_channel_attribution_identifies_perturbed_sensor() -> None:
+    """LOCO channel attribution must isolate a strongly perturbed channel in top attribution slots."""
+    torch.manual_seed(42)
+    rng = np.random.default_rng(42)
+    enc = LaminarLiteEncoder(input_dim=6, latent_dim=8, filters=16, tcn_layers=2)
+    model = LaminarJEPALiteModel(enc, latent_dim=8, predictor_hidden_dim=16, num_horizons=3)
+
+    cal_win = (0.25 * rng.standard_normal((24, 96, 6))).astype(np.float32)
+    model.fit_resolvent_whitening(cal_win, context_len=64, batch_size=12)
+    _, cal_white = model.extract_raw_and_whitened_residuals(cal_win, context_len=64, batch_size=12)
+    from src.scoring.laminar_lite_panel import build_position_drift_dials
+
+    cal_pd = build_position_drift_dials(cal_white)
+    tau = (np.percentile(cal_pd, 98.5, axis=0) + 1e-4).astype(np.float32)
+
+    x_fault = (0.25 * rng.standard_normal((96, 6))).astype(np.float32)
+    x_fault[64:, 3] += 8.0
+    attr = loco_channel_attribution(model, tau, x_fault, context_len=64)
+    assert attr.shape == (6,)
+    assert int(np.argmax(attr)) == 3 or 3 in np.argsort(-attr)[:2].tolist()
+

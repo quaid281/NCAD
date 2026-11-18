@@ -299,3 +299,105 @@ class FrozenLatentDriftMonitor:
             hold_pred=(hold_sc > th).astype(int),
             test_pred=(t_sc > th).astype(int),
         )
+
+
+from src.scoring.laminar_lite_panel import build_position_drift_dials
+
+
+@dataclass
+class QuarantinedRecalibrationController:
+    """Two-stage quarantined recalibration gate separating drift detection from update permission."""
+
+    tau_dials: np.ndarray
+    k_quorum: float
+    dial_q: float = 0.985
+    quorum_q: float = 0.995
+    safety: float = 1.12
+    floor: float = 3.5
+    ks_thresh: float = 0.50
+    max_buffer_windows: int = 400
+    state: str = "NORMAL"
+
+    def __post_init__(self) -> None:
+        self.tau_dials = np.asarray(self.tau_dials, dtype=np.float32).copy()
+        self.k_quorum = float(self.k_quorum)
+        self._buffer: list[np.ndarray] = []
+        self._rollback_snapshot: tuple[np.ndarray, float] | None = None
+
+    @property
+    def buffer_len(self) -> int:
+        return int(sum(len(chunk) for chunk in self._buffer))
+
+    def process_batch(
+        self, dials_batch: np.ndarray, ks_distance: float
+    ) -> tuple[np.ndarray, np.ndarray, str]:
+        """Score `dials_batch` against active thresholds; quarantine shift samples without adapting."""
+        d_arr = np.asarray(dials_batch, dtype=np.float32)
+        trips = (d_arr > self.tau_dials.reshape(1, -1)).sum(axis=1).astype(np.float32)
+        alarms = (trips > self.k_quorum).astype(np.int64)
+        if float(ks_distance) >= self.ks_thresh or self.state == "QUARANTINE_ALERT":
+            self.state = "QUARANTINE_ALERT"
+            remaining = self.max_buffer_windows - self.buffer_len
+            if remaining > 0:
+                self._buffer.append(d_arr[:remaining].copy())
+        return alarms, trips, self.state
+
+    def confirm_mode_transition(self, mode_confirmed: bool = True) -> bool:
+        """Apply buffered thresholds only upon external confirmation; discard otherwise."""
+        if not mode_confirmed or self.buffer_len < 16:
+            self._buffer.clear()
+            self.state = "NORMAL"
+            return False
+        buf = np.concatenate(self._buffer, axis=0)
+        self._rollback_snapshot = (self.tau_dials.copy(), float(self.k_quorum))
+        new_tau = (np.percentile(buf, 100.0 * self.dial_q, axis=0) + 1e-4).astype(np.float32)
+        new_trips = (buf > new_tau.reshape(1, -1)).sum(axis=1)
+        new_k = max(float(np.percentile(new_trips, 100.0 * self.quorum_q)) * self.safety, self.floor)
+        self.tau_dials = new_tau
+        self.k_quorum = float(new_k)
+        self._buffer.clear()
+        self.state = "NORMAL"
+        return True
+
+    def rollback(self) -> bool:
+        """Restore the pre-update primary reference thresholds if a mode transition is revoked."""
+        self._buffer.clear()
+        self.state = "NORMAL"
+        if self._rollback_snapshot is None:
+            return False
+        prev_tau, prev_k = self._rollback_snapshot
+        self.tau_dials = prev_tau.copy()
+        self.k_quorum = float(prev_k)
+        return True
+
+
+@torch.no_grad()
+def loco_channel_attribution(
+    model: torch.nn.Module,
+    panel_tripwires: np.ndarray,
+    x_win: np.ndarray,
+    context_len: int = 256,
+    w_white: np.ndarray | None = None,
+    rms_raw_cal: np.ndarray | None = None,
+) -> np.ndarray:
+    """Leave-one-channel-out (LOCO) attribution via one batched forward pass over `[K+1, W, K]`."""
+    x_arr = np.asarray(x_win, dtype=np.float32)
+    if x_arr.ndim != 2 or x_arr.shape[1] < 2:
+        return np.zeros(x_arr.shape[1] if x_arr.ndim == 2 else 1, dtype=np.float32)
+    k_ch = int(x_arr.shape[1])
+    batch_np = np.repeat(x_arr[None, :, :], k_ch + 1, axis=0)
+    idx = np.arange(k_ch)
+    batch_np[idx + 1, :, idx] = 0.0  # Impute standardized training mean (0.0) per left-out channel
+
+    raw_res, white_res = model.extract_raw_and_whitened_residuals(
+        batch_np, context_len=context_len, batch_size=len(batch_np)
+    )
+    if w_white is not None and rms_raw_cal is not None:
+        ew = w_white * white_res + (1.0 - w_white) * (raw_res / rms_raw_cal)
+    else:
+        ew = white_res
+    dials = build_position_drift_dials(ew)
+    tau = np.asarray(panel_tripwires, dtype=np.float32).reshape(1, -1)
+    trips = (dials > tau).sum(axis=1).astype(np.float32)
+    return np.maximum(0.0, trips[0] - trips[1:])
+

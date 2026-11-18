@@ -5,7 +5,7 @@
 \centering
 \includegraphics[width=0.66\textwidth]{figures/opentropy_jepa_architecture.pdf}
 \vspace{-7pt}
-\caption{Four-stage pipeline of \emph{Laminar-JEPA-Lite} (operational, $M{=}3$, $128$ dials) and \emph{Laminar-JEPA} (diagnostic, $M{=}4$, $224$ dials): \textbf{(1)}~sliding window ($C{=}256, S{\le}64$) into online/EMA encoders ($E_\theta, E_\phi$) with $K{\ge}25$ rFFT shells, multi-depth taps, centering, and LayerNorm; \textbf{(2)}~parallel MLP multi-horizon prediction and $MD{\times}MD$ damped whitening; \textbf{(3)}~position-plus-drift dial expansion; and \textbf{(4)}~per-dial tripwires and correlation-aware quorum alarm.\label{fig:triad_architecture}}
+\caption{Four-stage pipeline of \emph{Laminar-JEPA-Lite} (operational, $M{=}3$, $128$ dials) and \emph{Laminar-JEPA} (diagnostic, $M{=}4$, $224$ dials plus $32$ separate onset relays): \textbf{(1)}~sliding window ($C{=}256, S{\le}64$) into online/EMA encoders ($E_\theta, E_\phi$) with $K{\ge}25$ rFFT shells, multi-depth taps, centering, and LayerNorm; \textbf{(2)}~parallel MLP multi-horizon prediction and $MD{\times}MD$ damped whitening; \textbf{(3)}~position-plus-drift dial expansion; and \textbf{(4)}~per-dial tripwires and correlation-aware quorum alarm.\label{fig:triad_architecture}}
 \vspace{-7pt}
 \end{figure*}
 
@@ -55,12 +55,12 @@ Stage~3 turns prediction errors into dials. The signed errors $\mathbf{e}_m(t)=z
     (d)~$D = 32$ \emph{endpoint differences} $d_{\text{accel},c}(t) = |\tilde{e}_{M,c}(t) - \tilde{e}_{1,c}(t)|$, error that appears late in the window, as at a fault onset.
 \end{enumerate}
 
-Proposition~\ref{prop:anti_collapse} states two exact algebraic properties of this split: drift and fluctuation partition horizon energy orthogonally, and the fluctuation spectrum spans at most $M-1$ modes.
+Proposition~\ref{prop:anti_collapse} states two exact algebraic properties of this split: mean and fluctuation partition squared horizon energy orthogonally, and the fluctuation spectrum spans at most $M-1$ modes.
 
 \begin{proposition}[Horizon Energy Split and Spectral Concentration Bounds]
 \label{prop:anti_collapse}
 For $\tilde{\mathbf{E}}(t) \in \mathbb{R}^{M \times D}$ ($M \ge 2$) with horizon mean $\bar{\mathbf{e}}(t)$ and fluctuation matrix $\mathbf{F}(t) = \tilde{\mathbf{E}}(t) - \mathbf{1}_M \bar{\mathbf{e}}(t)^\top \neq \mathbf{0}$:
-(i)~for every coordinate $c$, $M^{-1}\sum_{m=1}^M |\tilde{e}_{m,c}(t)|^2 = |\bar{e}_c(t)|^2 + d_{\text{fluc},c}^2(t)$ and $d_{\text{accel},c}(t) \le \sqrt{2M}\,d_{\text{fluc},c}(t)$; and
+(i)~for every coordinate $c$, $M^{-1}\sum_{m=1}^M |\tilde{e}_{m,c}(t)|^2 = |\bar{e}_c(t)|^2 + d_{\text{fluc},c}^2(t)$ (so the RMS horizon error equals $\sqrt{|\bar{e}_c(t)|^2 + d_{\text{fluc},c}^2(t)}$, not $|\bar{e}_c(t)| + d_{\text{fluc},c}(t)$) and $d_{\text{accel},c}(t) \le \sqrt{2M}\,d_{\text{fluc},c}(t)$; and
 (ii)~the $M\times M$ horizon Gram matrix $\mathbf{G}(t) = \mathbf{F}(t)\mathbf{F}(t)^\top \in \mathcal{S}_+^M$ has ordered eigenvalues $0 = \lambda_1 \le \lambda_2 \le \dots \le \lambda_M$ whose scale-invariant dominant-mode share for any $p > 0$ \cite{lieb1976inequalities} satisfies
 \begin{equation}
     R_{\text{LT}}\bigl(\mathbf{F}(t)\bigr) = \frac{\lambda_M^p}{\sum_{m=1}^M \lambda_m^p} \in \Bigl[\frac{1}{M - 1},\, 1\Bigr],
@@ -86,21 +86,21 @@ Let $\mathbf{u}\in\mathbb{R}^J$ be a nominal residual vector on $\mathbf{X}_{\te
 Because $\sum_{j=1}^J (u_j^{(\eta)})^2 \ge (1+\eta^2)\sum_{j\in\mathcal{H}} u_j^2$ pointwise, monotonicity and positive homogeneity of quantiles give~(i), and $\mathbf{u}_{\mathcal{H}}(t^*)=\mathbf{0}$ yields $S_{\text{glob}}(\mathbf{u}(t^*))=\|\mathbf{u}_{\mathcal{H}^c}(t^*)\|_2^2\le\tau_{\text{glob}}(\eta)$. For~(ii), positive homogeneity gives $\tau_j^{(\eta)}=\sqrt{1+\eta^2}\,\tau_j^{(0)}$ for $j\in\mathcal{H}$ (and $\tau_j^{(0)}$ otherwise); dividing $|u_j^{(\eta)}(t)|>\tau_j^{(\eta)}$ by $\sqrt{1+\eta^2}>0$ yields $b_j^{(\eta)}(t)=b_j^{(0)}(t)$ identically at every $t$, preserving $N_{\text{cal}}$ and $K_q$, while $m$ active coordinates in $\mathcal{H}^c$ yield $N(t^*)\ge m > K_q$.
 \end{proof}
 
-\noindent\emph{Concrete illustration and validity assumptions:} For $J=32$ standard normal coordinates at $\alpha=0.005$ and $\beta=0.015$, inflating just $k=2$ hijacker coordinates by $\eta=5$ raises $\tau_{\text{glob}}$ from $56.3$ to $252.4$. That threshold inflation masks a $10$-coordinate $3.8\sigma$ fault on $\mathcal{H}^c$ ($10\times 3.8^2=144.4 < 252.4$), whereas $K_q$ stays invariant at $3.5$ and fires with $10 > 3.5$ trips. Proposition~\ref{prop:hijacker_isolation} also makes two required assumptions explicit. First, faults must provide \emph{multi-dial coverage ($m > K_q$)}, so single-sensor flatlines diluted below $\tau_j$ do not reach quorum. Second, \emph{nominal stationarity must hold on at least $J-\lfloor K_q\rfloor$ dials}: a post-calibration shift that simultaneously inflates $>K_q$ dials violates calibration exchangeability unless gated on $\mathbf{X}_{\text{hold}}$ and live $D_{\text{KS}}$.
+\noindent\emph{Concrete illustration and validity assumptions:} For $J=32$ standard normal coordinates at $\alpha=0.005$ and $\beta=0.015$, inflating $k=2$ hijackers by $\eta=5$ raises $\tau_{\text{glob}}$ from $56.3$ to $252.4$, masking a $10$-coordinate $3.8\sigma$ fault ($144.4 < 252.4$) while $K_q=3.5$ stays invariant and trips $10 > 3.5$. This isolation assumes \emph{multi-dial fault coverage ($m > K_q$)}, so diluted single-sensor flatlines miss quorum, and \emph{stationarity on $\ge J-\lfloor K_q\rfloor$ dials} unless gated via $\mathbf{X}_{\text{hold}}$ and live $D_{\text{KS}}$.
 
 \subsection{Stage 4: Circuit-Breaker Panel}
 \label{subsec:scoring_function}
 \label{subsubsec:circuit_breaker_panel}
 \label{subsubsec:causal_saliency_gating}
-Stage~4 (Algorithm~\ref{alg:pipeline}) implements this correlation-aware quorum across the healthy calibration block $\mathbf{X}_{\text{cal}}$. Because all dials view the same $M \times 32$ error matrix, their trips are strongly correlated (median effective rank $65$ of $224$ on development streams; count variance $7.2\times$ binomial independence), so quorums are fitted directly to empirical $\mathbf{X}_{\text{cal}}$ trip counts rather than binomial formulas:
+Stage~4 (Algorithm~\ref{alg:pipeline}) implements this quorum on $\mathbf{X}_{\text{cal}}$. Because dials share the $M \times 32$ error matrix, trips correlate strongly (median effective rank $65/224$; count variance $7.2\times$ binomial independence), so quorums are fitted directly to $\mathbf{X}_{\text{cal}}$ trip counts:
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
-    \item \emph{Per-dial thresholds:} Each dial $j \in \{1,\dots,224\}$ is thresholded directly at its $98.5$th calibration percentile plus a $10^{-4}$ tie-break floor:
+    \item \emph{Per-dial thresholds:} Each dial $j \in \{1,\dots,224\}$ is thresholded at its $98.5$th calibration percentile plus a $10^{-4}$ tie-break floor:
     \begin{equation}
         b_j(t) = \mathbb{I}\bigl(d_j(t) > \tau_j\bigr), \quad \tau_j = q_{0.985}(d_{j,\text{cal}}) + 10^{-4}.
         \label{eq:dial_tripwire}
     \end{equation}
-    \item \emph{32 onset relays:} When a sudden fault first enters the right edge of the target window, the short prefixes ($m \in \{1, 2\}$) still cover healthy data, so few position dials trip. To catch this moment, each coordinate $c$ has stricter $99.3$rd-percentile edge tripwires ($q_{0.993}(d_{j,\text{cal}}) + 10^{-4}$) and fires a relay $r_c(t) \in \{0, 1\}$ when its full-window position dial ($m=4$) trips together with its endpoint, fluctuation, or $m=3$ dial.
-    \item \emph{Alarm timing:} Under \emph{causal attribution}, the trips from window $[t,t+S)$ are reported at its right end $\tau=t+S-1$, the earliest moment all of its data exist; this fixes a reporting lag of $S-1$ steps, separate from the detection delay $\Delta t=t_{\text{alm}}-t^*$ after fault onset $t^*$. Under \emph{buffered attribution}, used for retrospective review, position trips map to $[t,t+S_m)$, drift and fluctuation trips map to $[t,t+S)$, and endpoint trips map to $[t+S_3,t+S)$. Summing active trips at step $\tau$ yields the total count $N_{224}(\tau)$, the position sub-count $N_{128}(\tau) \subset N_{224}(\tau)$, and the relay count $N_{\text{edge}}(\tau)$, with ranking metrics using $N_{224}(\tau)$ directly. The binary alarm fires when any count exceeds its quorum:
+    \item \emph{32 separate onset relays:} When a sudden fault enters the target window's right edge while $m \in \{1,2\}$ still see healthy data, coordinate $c$ drives an auxiliary binary relay $r_c(t) \in \{0, 1\}$ (excluded from the $224$-dial vector $\mathbf{d}(t)$) under $q_{0.993} + 10^{-4}$, firing when $m=4$ position trips jointly with endpoint, fluctuation, or $m=3$.
+    \item \emph{Alarm timing:} Under \emph{causal attribution}, window $[t,t+S)$ emits at right edge $\tau=t+S-1$, when all $S=64$ target steps exist. Because windows starting at fault onset $t^*$ finish at $t^*+S-1$, full-window alignment imposes an $S-1=63$-step reporting lag, though sharp right-edge faults can trigger earlier ($\Delta t < 63$). All causal delays $\Delta t = \tau_{\text{alm}} - t^*$ reported here measure end-to-end online alarm latency from $t^*$ to live emission $\tau_{\text{alm}}$ and thus include this reporting lag. Under \emph{buffered attribution} (retrospective review only), position trips map to $[t,t+S_m)$, drift and fluctuation to $[t,t+S)$, and endpoint to $[t+S_3,t+S)$. Summing the $224$ dials gives $N_{224}(\tau)$ (with $128$-dial position sub-count $N_{128}(\tau)$) while summing the $32$ excluded relays gives $N_{\text{edge}}(\tau)$; ranking checks score $N_{224}(\tau)$. An alarm fires when any count exceeds its quorum:
     \begin{equation}
     \begin{aligned}
         \hat{y}(\tau) = \mathbb{I}\bigl(&N_{224}(\tau) > K_{224} \;\vee\; N_{128}(\tau) > K_{128} \\
@@ -108,20 +108,19 @@ Stage~4 (Algorithm~\ref{alg:pipeline}) implements this correlation-aware quorum 
     \end{aligned}
     \label{eq:panel_quorum}
     \end{equation}
-    with quorums set on calibration counts: $K_{224} = \max(1.12\,q_{0.995}, 5.0)$, $K_{128} = \max(1.12\,q_{0.995}, 3.5)$, and $K_{\text{edge}} = \max(1.25\,q_{0.999}, 2.5)$. All quantiles use linear interpolation, the safety factor is applied before the floor, quorums stay real-valued, and both trips and alarms use strict inequalities.
+    with calibration quorums $K_{224} = \max(1.12\,q_{0.995}, 5.0)$, $K_{128} = \max(1.12\,q_{0.995}, 3.5)$, and $K_{\text{edge}} = \max(1.25\,q_{0.999}, 2.5)$ (linear quantiles, strict inequalities).
 \end{enumerate}
 
 \subsection{Operational Configuration: \emph{Laminar-JEPA-Lite} vs.\ \emph{Laminar-JEPA} (224 Dials)}
 \label{subsec:laminar_lite}
-Both tiers share the exact $120.0\text{k}\text{--}129.3\text{k}$-parameter backbone ($120.0\text{k}$ at $K < 25$ and $127.7\text{k}\text{--}129.3\text{k}$ at $K \ge 25$, down from $295.8\text{k}$ in the legacy six-block sequential model) and differ only in horizon count and dial expansion:
+Both tiers share one $120.0\text{k}\text{--}129.3\text{k}$-parameter backbone ($120.0\text{k}$ at $K < 25$; $127.7\text{k}\text{--}129.3\text{k}$ at $K \ge 25$) using four adaptive TCN blocks (dilations $\{1, 2, 4, 8\}$), $D$-wide pooling and hook-free tap heads, depthwise rFFT shells gated at $K \ge 25$, and one parallel residual MLP ($\mathbb{R}^{32} \to 64 \to \text{GELU} \to \text{LN} \to 32$ behind $\operatorname{LN}_{\text{no-aff}}$):
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
-    \item \emph{Shared streamlined backbone:} Four adaptive TCN blocks (dilations $\{1, 2, 4, 8\}$), $D$-wide pooling and native hook-free tap heads, depthwise rFFT shells gated at $K \ge 25$, and one parallel residual MLP ($\mathbf{u}_m = z_{\text{ctx}} + \mathbf{p}_m \in \mathbb{R}^{32} \to \text{Linear}(32,64) \to \text{GELU} \to \text{LayerNorm}(64) \to \text{Linear}(64,32)$, returning $\operatorname{LN}_{\text{no-aff}}(\mathbf{u}_m + \Delta_m)$).
-    \item \emph{Operational $(3+1)D=128$ panel (\emph{Laminar-JEPA-Lite}):} Uses $M=3$ prefixes ($S_m \in \{16, 32, 64\}$, $96\times 96$ $\mathbf{\Omega}$) and keeps only the $96$ position dials $|\tilde{e}_{m,c}(t)|$ and $32$ drift dials $|\bar{e}_c(t)|$ under a single quorum $K_{\text{Lite}} = \max\bigl(1.12\,q_{0.995}(N_{128,\text{cal}}),\,3.5\bigr)$, removing fluctuation/endpoint dials and onset relays.
-    \item \emph{Diagnostic $7D=224$ panel (\emph{Laminar-JEPA}):} Uses $M=4$ prefixes ($S_m \in \{16, 32, 48, 64\}$, $128\times 128$ $\mathbf{\Omega}$) and expands errors into all $224$ dials plus $32$ onset relays (\ref{eq:panel_quorum}).
+    \item \emph{Operational $(3+1)D=128$ panel (\emph{Laminar-JEPA-Lite}):} Uses $M=3$ prefixes ($\{16, 32, 64\}$, $96\times 96$ $\mathbf{\Omega}$) and monitors $96$ position dials $|\tilde{e}_{m,c}(t)|$ plus $32$ drift dials $|\bar{e}_c(t)|$ under $K_{\text{Lite}} = \max\bigl(1.12\,q_{0.995}(N_{128,\text{cal}}),\,3.5\bigr)$, omitting fluctuation/endpoint dials and relays.
+    \item \emph{Diagnostic $7D=224$ panel (\emph{Laminar-JEPA}):} Uses $M=4$ prefixes ($\{16, 32, 48, 64\}$, $128\times 128$ $\mathbf{\Omega}$) with all $224$ continuous dials plus the $32$ excluded auxiliary relays (\ref{eq:panel_quorum}).
 \end{enumerate}
 
 \begin{algorithm}[t]
-\caption{Laminar-JEPA-Lite (128 Dials) and Laminar-JEPA (224 Dials)\label{alg:pipeline}}
+\caption{Laminar-JEPA-Lite (128 Dials) and Laminar-JEPA (224+32)\label{alg:pipeline}}
 \scriptsize
 \begin{algorithmic}[1]
 \Require Nominal $\mathbf{X}_{\text{nom}}$, test $\mathbf{X}_{\text{test}}$, tier $\in\{\text{Lite},\text{224-Bit}\}$, mode $\in\{\text{causal},\text{buffered}\}$.

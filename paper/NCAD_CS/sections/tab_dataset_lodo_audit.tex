@@ -3,39 +3,42 @@
 \scriptsize
 \setlength{\tabcolsep}{1.1pt}
 \renewcommand{\arraystretch}{0.95}
-\caption{Untouched Archive Dataset Breakdown ($n{=}118$) and 12-Fold LODO Audit ($n{=}141$, Causal)\label{tab:dataset_lodo_audit}}
+\caption{Untouched Archive Breakdown, Cohort Split, and Exclusion Sensitivity ($n{=}118$, Causal)\label{tab:dataset_lodo_audit}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l rr cc cc cc rrrr @{}}
 \toprule
 & & & \multicolumn{2}{c}{\textbf{ER (\%)}} & \multicolumn{2}{c}{\textbf{Pt-F1}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t}$}} & \multicolumn{4}{c}{\textbf{Lite FPR$_{\text{hold}}$ \& Drift}} \\
 \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13}
 \textbf{(a) Dataset} & {$n$} & {$K$} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Mean}} & {\textbf{p95}} & {\textbf{${\le}5\%$}} & {$\boldsymbol{D_{\text{KS}}}$} \\
 \midrule
-SMAP        & 40 & 25 & \textbf{74.3} & 73.1 & .088 & \textbf{.131} & \textbf{58}  & 91  & .076 & .66 & 92.5 & .20 \\
-SMD         & 18 & 38 & \textbf{23.5} & 18.8 & \textbf{.058} & .031 & \textbf{86}  & 146 & .013 & .04 & 94.4 & .16 \\
-Exathlon    & 17 & 20 & \textbf{90.2} & 63.8 & \textbf{.195} & .092 & \textbf{41}  & 289 & .171 & .73 & 64.7 & .53 \\
-Daphnet     & 15 & 9  & \textbf{85.3} & 56.4 & \textbf{.085} & .019 & \textbf{56}  & 147 & .073 & .33 & 80.0 & .15 \\
-MSL         & 13 & 55 & \textbf{57.3} & 53.8 & .038 & \textbf{.052} & \textbf{52}  & 70  & .011 & .03 & 92.3 & .18 \\
-OPPORT.     & 12 & 32 & \textbf{52.8} & 25.0 & .016 & \textbf{.046} & 111 & \textbf{87}  & .011 & .03 & 100  & .18 \\
-GECCO       & 1  & 9  & \textbf{31.5} & 4.5  & \textbf{.216} & .061 & \textbf{5}   & 48  & .001 & .00 & 100  & .13 \\
-PSM         & 1  & 26 & \textbf{23.1} & 0.0  & \textbf{.121} & .000 & \textbf{784} & {--}& .004 & .00 & 100  & .11 \\
-CreditCard  & 1  & 29 & \textbf{2.0}  & 0.4  & \textbf{.007} & .002 & 1   & \textbf{0}   & .004 & .00 & 100  & .02 \\
+SMAP             & 40 & 25 & \textbf{74.3} & 73.1 & .088 & \textbf{.131} & \textbf{58}  & 91  & .076 & .66 & 92.5 & .20 \\
+SMD$^*$          & 18 & 38 & \textbf{23.5} & 18.8 & \textbf{.058} & .031 & \textbf{86}  & 146 & .013 & .04 & 94.4 & .16 \\
+Exathlon$^*$     & 17 & 20 & \textbf{90.2} & 63.8 & \textbf{.195} & .092 & \textbf{41}  & 289 & .171 & .73 & 64.7 & .53 \\
+Daphnet          & 15 & 9  & \textbf{85.3} & 56.4 & \textbf{.085} & .019 & \textbf{56}  & 147 & .073 & .33 & 80.0 & .15 \\
+MSL              & 13 & 55 & \textbf{57.3} & 53.8 & .038 & \textbf{.052} & \textbf{52}  & 70  & .011 & .03 & 92.3 & .18 \\
+OPPORT.          & 12 & 32 & \textbf{52.8} & 25.0 & .016 & \textbf{.046} & 111 & \textbf{87}  & .011 & .03 & 100  & .18 \\
+GECCO$^\dagger$  & 1  & 9  & \textbf{31.5} & 4.5  & \textbf{.216} & .061 & \textbf{5}   & 48  & .001 & .00 & 100  & .13 \\
+PSM$^*$          & 1  & 26 & \textbf{23.1} & 0.0  & \textbf{.121} & .000 & \textbf{784} & {--}& .004 & .00 & 100  & .11 \\
+CreditCard$^*$   & 1  & 29 & \textbf{2.0}  & 0.4  & \textbf{.007} & .002 & 1   & \textbf{0}   & .004 & .00 & 100  & .02 \\
 \bottomrule
 \end{tabular*}
 
 \vspace{1.5pt}
-\setlength{\tabcolsep}{0.9pt}
+\setlength{\tabcolsep}{0.5pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r cc cc c @{}}
 \toprule
-\textbf{(b) Dropped Fold} & {$n_{\text{rem}}$} & {$\boldsymbol{\Delta}\textbf{ER (\%)}$} & {$\boldsymbol{p}_{\textbf{ER}}$} & {$\boldsymbol{\Delta}\textbf{Pt-F1}$} & {$\boldsymbol{p}_{\textbf{F1}}$} & {$\boldsymbol{\Delta}\textbf{FPR}$} \\
+\textbf{(b) Cohort / Exclusion Sensitivity} & {$n_{\text{eval}}$} & {$\boldsymbol{\Delta}\textbf{ER (\%)}$} & {$\boldsymbol{p}_{\textbf{ER}}$} & {$\boldsymbol{\Delta}\textbf{Pt-F1}$} & {$\boldsymbol{p}_{\textbf{F1}}$} & {$\boldsymbol{\Delta}\textbf{FPR}$} \\
 \midrule
-SMAP ($47$)        & 94  & $+17.9$ & ${<}10^{-4}$ & $+.035$ & ${<}10^{-6}$ & $+.029$ \\
-SMD ($18$)         & 123 & $+13.1$ & ${<}10^{-4}$ & $+.003$ & $.0082$      & $+.018$ \\
-MSL ($18$)         & 123 & $+12.7$ & ${<}10^{-4}$ & $+.008$ & $.0005$      & $+.019$ \\
-OPPORT.\ ($13$)    & 128 & $+10.6$ & $.0001$      & $+.010$ & $.0004$      & $+.018$ \\
-Exathlon ($17$)    & 124 & $+10.0$ & $.0007$      & $-.007$ & $.0554$      & $+.010$ \\
-Daphnet ($22$)     & 119 & $+8.9$  & $.0027$      & $-.002$ & $.0356$      & $+.012$ \\
-Other $6$ ($1$ ea.)& 140 & $+12.0$ & ${<}10^{-4}$ & $+.006$ & ${\le}.0013$ & $+.017$ \\
+Zero-tune unseen ($4$ sets)          & 37  & $+15.1$ & $.0004$      & $+.064$ & ${<}10^{-6}$ & $+.039$ \\
+Tuned-set unseen ($4$ sets)          & 80  & $+10.5$ & $.0080$      & $-.016$ & $.5542$      & $+.011$ \\
+Nested LODO ($9$ sets, $s{=}42$)     & 118 & $+16.7$ & $.0003$      & $+.018$ & $.0002$      & $+.029$ \\
+\addlinespace[1.5pt]
+Excl.\ SMAP ($40$ removed)           & 78  & $+17.8$ & ${<}10^{-5}$ & $+.038$ & ${<}10^{-5}$ & $+.034$ \\
+Excl.\ SMD ($18$ removed)            & 100 & $+13.5$ & $.0002$      & $+.008$ & $.0089$      & $+.022$ \\
+Excl.\ MSL ($13$ removed)            & 105 & $+13.2$ & ${<}10^{-4}$ & $+.014$ & $.0003$      & $+.022$ \\
+Excl.\ OPPORT.\ ($12$ removed)       & 106 & $+10.3$ & $.0002$      & $+.015$ & $.0004$      & $+.021$ \\
+Excl.\ Daphnet ($15$ removed)        & 103 & $+9.8$  & $.0019$      & $+.003$ & $.0205$      & $+.013$ \\
+Excl.\ Exathlon ($17$ removed)       & 101 & $+9.7$  & $.0022$      & $-.005$ & $.0650$      & $+.011$ \\
 \bottomrule
 \end{tabular*}\par\vspace{1pt}
-\parbox{\columnwidth}{\tiny\emph{Note:} Five-block archive, three-seed causal means. Lite = Laminar-JEPA-Lite; 1D = Multi-Horizon JEPA (1D); ${\le}5\%$ = $\%$ of streams with $\text{FPR}_{\text{hold}}{\le}5\%$; $D_{\text{KS}}$ = median quorum shift. In~(a), Lite leads 1D on ER in $9/9$ datasets ($p{=}0.0039$). In~(b), paired LODO differences ($\text{Lite}{-}\text{1D}$, two-sided Wilcoxon $p$); positive rank-sum persists when dropping Exathlon or Daphnet shifts unweighted mean $\Delta\text{Pt-F1}$ slightly below zero due to SMAP's $40$ long-fault streams.}\vspace{-5pt}
+\parbox{\columnwidth}{\tiny\emph{Note:} Five-block untouched archive ($n{=}118$, excluding the $23$ tuning streams); $3$-seed causal means except Nested LODO ($s{=}42$). $^*$ denotes zero-tuning unseen datasets ($n{=}37$; GECCO$^\dagger$ was excluded from tuning), with Lite leading ER in $9/9$ sets ($p{=}0.0039$). Single-stream exclusions ($n_{\text{eval}}{=}117$) yield ${+}12.0\%\text{--}12.2\%$ ER ($p{<}10^{-4}$).}\vspace{-5pt}
 \end{table}
