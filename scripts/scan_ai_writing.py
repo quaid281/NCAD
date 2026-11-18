@@ -124,7 +124,7 @@ P1_EM_DASH = {
 def extract_clean_sentences(text: str):
     """Segment prose into sentences, handling standard academic abbreviations."""
     # Remove LaTeX comments
-    text = re.sub(r"%.*$", "", text, flags=re.MULTILINE)
+    text = re.sub(r"(?<!\\)%.*$", "", text, flags=re.MULTILINE)
     # Remove LaTeX display environments (tables, figures, equations, algorithms)
     text = re.sub(r"\\begin\{(?:table|figure|equation|align|gather|tabular|algorithm)\*?\}.*?\\end\{(?:table|figure|equation|align|gather|tabular|algorithm)\*?\}", " ", text, flags=re.DOTALL)
     # Remove math display and inline blocks
@@ -181,7 +181,7 @@ def scan_file(file_path: Path):
     lines = content.splitlines()
     prose_lines = []
     for line in lines:
-        cleaned = re.sub(r"%.*$", "", line)
+        cleaned = re.sub(r"(?<!\\)%.*$", "", line)
         prose_lines.append(cleaned)
 
     prose = "\n".join(prose_lines)
@@ -240,6 +240,20 @@ def scan_file(file_path: Path):
                 "match": m.group(0),
                 "context": line.strip()[:120]
             })
+
+        # Check P2 Readability: nested prose parentheses e.g. (floor 6.0 median absolute deviation (MAD))
+        if not is_tabular_data:
+            line_no_math = re.sub(r"\$[^$]*\$", "MATH", line)
+            line_no_sub = re.sub(r"\((?:[a-d]|i{1,3}|1D|\d+|\\[a-zA-Z]+\{[^{}]*\})\)", "", line_no_math)
+            for m in re.finditer(r"\([^()]{4,}\([A-Za-z]{2,}\)[^()]*\)", line_no_sub):
+                issues.append({
+                    "file": file_path.name,
+                    "line": line_idx,
+                    "category": "P2 Readability",
+                    "label": "Nested prose parentheses ((...))",
+                    "match": m.group(0)[:60],
+                    "context": line.strip()[:120]
+                })
 
         # Check P1 Wall-of-math inline cramming (>= 3 inline math blocks containing \sum, \frac, or \int on one prose line)
         inline_math_blocks = re.findall(r"\$([^$]+)\$", line)
