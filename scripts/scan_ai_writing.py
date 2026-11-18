@@ -311,6 +311,56 @@ def scan_file(file_path: Path):
                     "context": s_text[:120]
                 })
 
+    # P2 Readability (Rules 14-16): bloated figure captions (>65 words), bloated \tiny footnotes (>85 words), and wall-of-text bullets (>155 words)
+    active_tabs = {
+        "tab_core_benchmark.tex",
+        "tab_operating_and_horizon.tex",
+        "tab_calibrator_comparison.tex",
+        "tab_dataset_lodo_audit.tex",
+        "tab_tail_audit.tex",
+    }
+    if not file_path.name.startswith("tab_") or file_path.name in active_tabs:
+        raw_text = file_path.read_text(encoding="utf-8")
+        for fig_m in re.finditer(r"\\begin\{figure\*?\}.*?\\end\{figure\*?\}", raw_text, re.DOTALL):
+            cap_m = re.search(r"\\caption\{(.*)\}", fig_m.group(0), re.DOTALL)
+            if cap_m:
+                cap_clean = re.sub(r"\\[a-zA-Z]+\*?|\$[^$]*\$|[{}_^~]", " ", cap_m.group(1))
+                cap_words = [w for w in cap_clean.split() if len(w) > 1]
+                if len(cap_words) > 65:
+                    issues.append({
+                        "file": file_path.name,
+                        "line": 1,
+                        "category": "P2 Readability",
+                        "label": f"Overlong figure caption ({len(cap_words)} words > 65)",
+                        "match": " ".join(cap_words[:10]) + "...",
+                        "context": cap_m.group(1).strip()[:120],
+                    })
+        for idx_l, raw_l in enumerate(raw_text.splitlines(), start=1):
+            if "\\tiny" in raw_l:
+                fn_clean = re.sub(r"\\[a-zA-Z]+\*?|\$[^$]*\$|[{}_^~&%]", " ", raw_l)
+                fn_words = [w for w in fn_clean.split() if any(ch.isalpha() for ch in w)]
+                if len(fn_words) > 85:
+                    issues.append({
+                        "file": file_path.name,
+                        "line": idx_l,
+                        "category": "P2 Readability",
+                        "label": f"Overlong table footnote ({len(fn_words)} words > 85)",
+                        "match": " ".join(fn_words[:10]) + "...",
+                        "context": raw_l.strip()[:120],
+                    })
+            if raw_l.lstrip().startswith("\\item "):
+                it_clean = re.sub(r"\\[a-zA-Z]+\*?|\$[^$]*\$|[{}_^~]", " ", raw_l)
+                it_words = it_clean.split()
+                if len(it_words) > 155:
+                    issues.append({
+                        "file": file_path.name,
+                        "line": idx_l,
+                        "category": "P2 Readability",
+                        "label": f"Wall-of-text bullet ({len(it_words)} words > 155)",
+                        "match": " ".join(it_words[:10]) + "...",
+                        "context": raw_l.strip()[:120],
+                    })
+
     return issues, word_count, em_dash_count, sentence_lengths
 
 def run_scan():
