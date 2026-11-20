@@ -51,17 +51,17 @@ Excl.\ Exathlon ($17$ removed)       & 101 & $+9.7$  & $.0022$      & $-.005$ & 
 \toprule
 \textbf{(c) LODO Cost Routing ($J(w)$)} & {\textbf{Acc.}} & {\textbf{ER $\uparrow$}} & {\textbf{Pt-F1 $\uparrow$}} & {\textbf{tFPR}} \\
 \midrule
-$w{=}0.5$ (recall-heavy)    & 111/118 & \textbf{.633} & .084 & .163 \\
-$w{=}1.0$ (moderate)        & 86/118  & \underline{.599} & .076 & .133 \\
-$w{\in}[2,4]$ (3-stage)     & 46/118  & .594 & \textbf{.091} & .100 \\
-$w{=}6.0$ (alarm-averse)    & 10/118  & .550 & \underline{.084} & \underline{.098} \\
-$w{\ge}20$ (1D SPOT)        & 0/118   & .525 & .076 & \textbf{.088} \\
+$w{\in}[0.5,4]$ (recall bias) & 46/118 & \textbf{.594} & \textbf{.091} & .100 \\
+$w{=}5.0$ (near slope)        & 40/118 & \underline{.581} & \underline{.084} & .101 \\
+$w{=}6.0$ (alarm-averse)      & 10/118 & .550 & \underline{.084} & .098 \\
+$w{\in}[8,15]$ (strict)       & 8/118  & .546 & .082 & \underline{.097} \\
+$w{\ge}20$ (1D SPOT)          & 0/118  & .525 & .076 & \textbf{.088} \\
 \addlinespace[1.5pt]
-\multicolumn{5}{@{}p{\linewidth}@{}}{\tiny \emph{Cost sensitivity:} Out-of-fold routing under $J(w){=}(1{-}\text{ER}){+}w\,\text{FPR}_{\text{test}}$. Break-even slope vs.\ 1D SPOT is $w{=}5.88$; slopes above 3-stage drop to $1.21$ (2-stage) and $0.63$ (unscreened).} \\
+\multicolumn{5}{@{}p{\linewidth}@{}}{\tiny \emph{Out-of-fold routing ($N_{\text{cal}}{\ge}500$ fixed):} Policies selected on eight labeled training sets need not minimize aggregate test $J(w)$ across rows (e.g., at $w{=}6$). Unrounded break-even vs.\ 1D is $w{=}5.92$ ($5.75$ rounded; $1.20$ vs.\ 2-stage).} \\
 \bottomrule
 \end{tabular*}
 \end{minipage}
 
 \par\vspace{1.5pt}
-\parbox{\textwidth}{\tiny\emph{Note:} Three-seed causal means ($37+1+80=118$), except nested LODO ($s{=}42$ in~(b)). In~(a,c), $N_{\text{cal}}{\ge}500$ is pre-archive fixed while ($\tau_{\text{F}},\tau_{\text{K}}$) are fold-optimized strictly on eight training sets per fold; only one stream with $D_{\text{KS}}{\le}0.50$ separates $.05$ vs.\ $.08$. In~(b), $p^{\text{str}}$ is stream-level Wilcoxon, while exact dataset sign-flip $p_{\text{clus}}$ gives $.125$ on $4/4$ zero-tuning sets$^*$ and $.0625$ with GECCO$^\dagger$. Across all nine sets, $p_{\text{clus}}$ equals $.0039$ on ER ($.117$ on F1) and $.0078$ across eight-fold exclusions.}\vspace{-5pt}
+\parbox{\textwidth}{\tiny\emph{Note:} Three-seed causal means ($37+1+80=118$), except LODO ($s{=}42$ in~(b)). In~(a,c), $N_{\text{cal}}{\ge}500$ stays fixed while ($\tau_{\text{F}},\tau_{\text{K}}$) optimize on eight labeled training sets; held-out test streams run label-free ($w{=}3$ in~(a), where one $D_{\text{KS}}{\le}0.50$ stream separates $.05$ vs.\ $.08$). In~(b), $p^{\text{str}}$ is stream-level Wilcoxon, while dataset sign-flip $p_{\text{clus}}$ gives $.125$ on $4/4$ zero-tuning sets$^*$ and $.0625$ with GECCO$^\dagger$. Nine sets give $p_{\text{clus}}{=}.0039$ on ER ($.117$ on F1) and $.0078$ across eight-fold exclusions.}\vspace{-5pt}
 \end{table*}
