@@ -26,15 +26,15 @@ Exathlon 8\_4\_1000000\_77   & 1121 & 549 & .49  & .11  & .00 & .00  & .80 \\
 \setlength{\tabcolsep}{1.0pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l c c c ccc @{}}
 \toprule
-\textbf{(b) Matched budgets} & \textbf{Lite} & \textbf{Fisher} & \textbf{Top-$k$} & \textbf{Max-$z$} & \textbf{1D} & \textbf{FPR$_{\text{hold}}$} \\
+\textbf{(b) Matched budgets} & \textbf{Lite} & \textbf{Fisher} & \textbf{Top-$k$} & \textbf{Max-$z$} & \textbf{1D} & \textbf{FPR (L/1D)} \\
 \midrule
-$r{=}0.5\%$ (healthy) & .676/.084 & .667/\textbf{.090} & .666/.084 & .662/\underline{.072} & \underline{.620}/.096 & .06--.09 \\
-$r{=}1\%$                  & .732/.096 & .715/\textbf{.099} & \underline{.711}/.096 & .738/\underline{.086} & .703/.109 & .07--.10 \\
-$r{=}2\%$                  & .791/.112 & \underline{.761}/.112 & .785/.111 & .819/.103 & .751/.120 & .08--.12 \\
-$r{=}5\%$                  & .863/.131 & \underline{.828}/.133 & .861/.130 & .873/.124 & \underline{.823}/.135 & .13--.17 \\
+$r{=}0.5\%$ (healthy) & .676/.084 & .667/\textbf{.090} & .666/.084 & .662/\underline{.072} & \underline{.620}/.096 & .073/.058 \\
+$r{=}1\%$                  & .732/.096 & .715/\textbf{.099} & \underline{.711}/.096 & .738/\underline{.086} & .703/.109 & .086/.067 \\
+$r{=}2\%$                  & .791/.112 & \underline{.761}/.112 & .785/.111 & .819/.103 & .751/.120 & .107/.083 \\
+$r{=}5\%$                  & .863/.131 & \underline{.828}/.133 & .861/.130 & .873/.124 & \underline{.823}/.135 & .160/.129 \\
 \addlinespace[1.5pt]
 $f{=}1\%$ (post hoc)       & .529/.049 & .525/\textbf{.054} & .533/\textbf{.049} & \textbf{.570}/.052 & .549/\textbf{.084} & -- \\
 $f{=}5\%$                  & .723/.099 & .719/\textbf{.107} & .727/.100 & \textbf{.785}/.099 & .754/.122 & -- \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Three-seed causal means. (a)~Ten highest \emph{Lite} $\text{FPR}_{\text{hold}}$ streams alongside block-permuted $\text{FPR}_{\text{hold}}$ (\textbf{Perm.}, block $\lceil 2\tau_{\text{int}}\rceil$). (b)~Causal ER / Point-F1 at matched $\mathbf{X}_{\text{cal}}$ rate $r$ or post-hoc test FPR $f$ (\textbf{bold}/\underline{underlined}: above/below \emph{Lite}, Wilcoxon $p{<}0.05$).} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Three-seed causal means. (a)~Ten highest \emph{Lite} $\text{FPR}_{\text{hold}}$ streams with block-permuted $\text{FPR}_{\text{hold}}$ (\textbf{Perm.}, block $\lceil 2\tau_{\text{int}}\rceil$). (b)~Causal ER / Point-F1 at matched $\mathbf{X}_{\text{cal}}$ rate $r$ or post-hoc test FPR $f$ (\textbf{bold}/\underline{underlined}: above/below \emph{Lite}, Wilcoxon $p{<}0.05$); L/1D = \emph{Lite} / 1D $\text{FPR}_{\text{hold}}$.} \\
 \end{tabular*}\par\vspace{-4pt}\end{table}

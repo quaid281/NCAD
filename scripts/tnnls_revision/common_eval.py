@@ -301,6 +301,7 @@ class FrozenLatentDriftMonitor:
         )
 
 
+from src.scoring.circuit_breaker_panel import stabilize_whitened_subblocks
 from src.scoring.laminar_lite_panel import build_position_drift_dials
 
 
@@ -402,15 +403,33 @@ def loco_channel_attribution(
     return np.maximum(0.0, trips[0] - trips[1:])
 
 
-def _damped_zca_sqrt_np(cov: np.ndarray, reg: float = 1e-3, eigen_basis: bool = False) -> np.ndarray:
-    """Compute damped precision square root in float64 (symmetric ZCA or eigenbasis PCA)."""
+def false_alarm_episodes_per_1k(healthy_preds: np.ndarray) -> tuple[float, float]:
+    """Count contiguous false-alarm episodes per 1,000 healthy steps and mean burst length."""
+    arr = (np.asarray(healthy_preds).reshape(-1) > 0.5).astype(np.int8)
+    n = int(arr.size)
+    if n == 0:
+        return 0.0, 0.0
+    n_active = int(arr.sum())
+    if n_active == 0:
+        return 0.0, 0.0
+    padded = np.empty(n + 1, dtype=np.int8)
+    padded[0] = 0
+    padded[1:] = arr
+    n_episodes = int(np.sum((padded[1:] == 1) & (padded[:-1] == 0)))
+    return (1000.0 * n_episodes) / float(n), float(n_active) / float(n_episodes)
+
+
+def _damped_whitening_factors(
+    cov: np.ndarray, reg: float = 1e-3, eigen_basis: bool = False
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return `(whitening_mat, evecs)` in float64 for symmetric ZCA or eigenbasis PCA."""
     sym = 0.5 * (cov + cov.T)
     evals, evecs = np.linalg.eigh(sym)
     pos = np.maximum(evals, 0.0)
     scales = np.sqrt(pos) / (pos + reg)
     if eigen_basis:
-        return evecs * scales[None, :]
-    return (evecs * scales[None, :]) @ evecs.T
+        return evecs * scales[None, :], evecs
+    return (evecs * scales[None, :]) @ evecs.T, evecs
 
 
 def fit_horizon_whitening_operator(
@@ -424,6 +443,8 @@ def fit_horizon_whitening_operator(
       - `"full_zca"`: Dense `(MD) x (MD)` symmetric ZCA square root (cross-horizon + cross-coord).
       - `"shared_kronecker_zca"`: Single shared `D x D` ZCA (`I_M (x) Omega_D^{1/2}`), zero
         cross-horizon mixing and exact commutation with horizon mean/fluctuation.
+      - `"shared_kronecker_pca"`: Shared `D x D` eigenbasis PCA (`I_M (x) U_D diag(...)`),
+        preserving horizon alignment across eigenmodes.
       - `"block_diag_zca"`: Independent `D x D` ZCA per horizon `m` (`(+)_{m=1}^M Omega_m^{1/2}`).
       - `"pre_dial_zca"`: Independent `D x D` ZCA per raw horizon `m` plus separate `D x D` ZCA
         on the unwhitened horizon-mean vector `mean_m(e_m - mu_m)`.
@@ -439,21 +460,22 @@ def fit_horizon_whitening_operator(
     if mode in ("full_zca", "pca_eigen"):
         flat = cent.reshape(n_fit, m_cnt * dim)
         cov = (flat.T @ flat) / max(n_fit - 1, 1)
-        w_mat = _damped_zca_sqrt_np(cov, reg=reg, eigen_basis=(mode == "pca_eigen"))
-        return {"mode": mode, "mu": mu, "w_mat": w_mat}
+        w_mat, u_mat = _damped_whitening_factors(cov, reg=reg, eigen_basis=(mode == "pca_eigen"))
+        return {"mode": mode, "mu": mu, "w_mat": w_mat, "u_mat": u_mat}
 
-    if mode == "shared_kronecker_zca":
+    if mode in ("shared_kronecker_zca", "shared_kronecker_pca"):
         pooled = cent.reshape(n_fit * m_cnt, dim)
         cov_d = (pooled.T @ pooled) / max(len(pooled) - 1, 1)
-        w_d = _damped_zca_sqrt_np(cov_d, reg=reg, eigen_basis=False)
-        return {"mode": mode, "mu": mu, "w_d": w_d}
+        w_d, u_d = _damped_whitening_factors(cov_d, reg=reg, eigen_basis=(mode == "shared_kronecker_pca"))
+        return {"mode": mode, "mu": mu, "w_d": w_d, "u_d": u_d}
 
     if mode == "block_diag_zca":
         w_blocks = []
         for m in range(m_cnt):
             cm = cent[:, m, :]
             cov_m = (cm.T @ cm) / max(n_fit - 1, 1)
-            w_blocks.append(_damped_zca_sqrt_np(cov_m, reg=reg, eigen_basis=False))
+            w_m, _ = _damped_whitening_factors(cov_m, reg=reg, eigen_basis=False)
+            w_blocks.append(w_m)
         return {"mode": mode, "mu": mu, "w_blocks": np.stack(w_blocks, axis=0)}
 
     if mode == "pre_dial_zca":
@@ -461,10 +483,11 @@ def fit_horizon_whitening_operator(
         for m in range(m_cnt):
             cm = cent[:, m, :]
             cov_m = (cm.T @ cm) / max(n_fit - 1, 1)
-            w_blocks.append(_damped_zca_sqrt_np(cov_m, reg=reg, eigen_basis=False))
+            w_m, _ = _damped_whitening_factors(cov_m, reg=reg, eigen_basis=False)
+            w_blocks.append(w_m)
         c_bar = cent.mean(axis=1)
         cov_bar = (c_bar.T @ c_bar) / max(n_fit - 1, 1)
-        w_bar = _damped_zca_sqrt_np(cov_bar, reg=reg, eigen_basis=False)
+        w_bar, _ = _damped_whitening_factors(cov_bar, reg=reg, eigen_basis=False)
         return {"mode": mode, "mu": mu, "w_blocks": np.stack(w_blocks, axis=0), "w_bar": w_bar}
 
     raise ValueError(f"Unsupported whitening mode: {mode!r}")
@@ -478,10 +501,41 @@ def apply_horizon_whitening_operator(raw: np.ndarray, op: dict[str, Any]) -> np.
     mode = str(op["mode"])
     if mode in ("full_zca", "pca_eigen"):
         return (cent.reshape(n_win, m_cnt * dim) @ op["w_mat"]).reshape(n_win, m_cnt, dim).astype(np.float32)
-    if mode == "shared_kronecker_zca":
+    if mode in ("shared_kronecker_zca", "shared_kronecker_pca"):
         return np.einsum("nmd,dk->nmk", cent, op["w_d"]).astype(np.float32)
     if mode in ("block_diag_zca", "pre_dial_zca"):
         return np.einsum("nmd,mdk->nmk", cent, op["w_blocks"]).astype(np.float32)
     raise ValueError(f"Unsupported whitening mode: {mode!r}")
+
+
+def project_raw_to_eigenbasis(raw: np.ndarray, op: dict[str, Any]) -> np.ndarray:
+    """Project centered `(N, M, D)` residuals onto the same eigenbasis used by `op`."""
+    r64 = np.asarray(raw, dtype=np.float64)
+    n_win, m_cnt, dim = r64.shape
+    cent = r64 - op["mu"]
+    mode = str(op["mode"])
+    if mode == "pca_eigen":
+        return (cent.reshape(n_win, m_cnt * dim) @ op["u_mat"]).reshape(n_win, m_cnt, dim).astype(np.float32)
+    if mode == "shared_kronecker_pca":
+        return np.einsum("nmd,dk->nmk", cent, op["u_d"]).astype(np.float32)
+    return cent.astype(np.float32)
+
+
+def stabilize_eigenbasis_residuals(
+    op: dict[str, Any],
+    q_raw: np.ndarray,
+    va_raw: np.ndarray,
+    te_raw: np.ndarray,
+    n_cal_w: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Internally consistent Eq. (3) shrinkage in the eigenbasis `U` of `op`."""
+    q_w = apply_horizon_whitening_operator(q_raw, op)
+    va_w = apply_horizon_whitening_operator(va_raw, op)
+    te_w = apply_horizon_whitening_operator(te_raw, op)
+    q_proj = project_raw_to_eigenbasis(q_raw, op)
+    va_proj = project_raw_to_eigenbasis(va_raw, op)
+    te_proj = project_raw_to_eigenbasis(te_raw, op)
+    return stabilize_whitened_subblocks(va_w, te_w, va_proj, te_proj, n_cal_w, adapt_white4=q_w, adapt_raw4=q_proj)
+
 
 

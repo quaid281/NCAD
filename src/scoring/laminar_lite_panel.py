@@ -85,19 +85,31 @@ class PositionDriftLitePanel:
         context_size: int = 256,
         suspect_size: int = 64,
         use_prefix_smear: bool = True,
+        scale_homogeneous_floor: bool = False,
     ):
         self.context_size = context_size
         self.suspect_size = suspect_size
         self.use_prefix_smear = use_prefix_smear
+        self.scale_homogeneous_floor = bool(scale_homogeneous_floor)
 
     def calibrate_and_trip_windows(
-        self, va_ew: np.ndarray, te_ew: np.ndarray, n_cal_w: int
+        self,
+        va_ew: np.ndarray,
+        te_ew: np.ndarray,
+        n_cal_w: int,
+        scale_homogeneous_floor: bool | None = None,
     ) -> dict[str, np.ndarray | int]:
         """Calibrate per-dial 98.5th-percentile switches on `va_ew[:n_cal_w]`."""
         _, num_horizons, _ = va_ew.shape
         va_pd = build_position_drift_dials(va_ew)
         te_pd = build_position_drift_dials(te_ew)
-        tau = np.percentile(va_pd[:n_cal_w], 98.5, axis=0, keepdims=True) + 1e-4
+        q_cal = np.percentile(va_pd[:n_cal_w], 98.5, axis=0, keepdims=True)
+        use_homog = (
+            self.scale_homogeneous_floor
+            if scale_homogeneous_floor is None
+            else bool(scale_homogeneous_floor)
+        )
+        tau = q_cal * (1.0 + 1e-4) if use_homog else q_cal + 1e-4
         return {
             "bits_pd_va": (va_pd > tau).astype(np.float32),
             "bits_pd_te": (te_pd > tau).astype(np.float32),

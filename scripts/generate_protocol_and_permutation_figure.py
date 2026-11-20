@@ -48,7 +48,7 @@ def draw_protocol_schematic(ax: plt.Axes) -> None:
     ax.text(33.3, y1 + h1 / 2, "Sel. $\\mathbf{X}_{\\mathrm{sel}}$\n(ckpt)",
             ha="center", va="center", fontsize=5.4, color="#0b3c68")
     ax.add_patch(Rectangle((40.1, y1), 13.9, h1, fc="#fff2cc", ec="#996515", lw=0.8))
-    ax.text(47.05, y1 + h1 / 2, "Adapt $\\mathbf{X}_q$\n($w_{m,c}$, Q1\u20134)",
+    ax.text(47.05, y1 + h1 / 2, "Adapt $\\mathbf{X}_q$\n(freeze $w_{m,c}$)",
             ha="center", va="center", fontsize=5.4, color="#664200", fontweight="bold")
     ax.plot([54.5, 54.5], [y1 - 1.4, y1 + h1 + 1.4], color="#a31d3d", lw=1.0, ls="--")
     ax.text(54.5, y1 - 1.9, "Freeze ($N_{\\mathrm{tr}}$)", ha="center", va="top", fontsize=5.2, color="#a31d3d", fontweight="bold")
@@ -63,7 +63,7 @@ def draw_protocol_schematic(ax: plt.Axes) -> None:
     ax.add_patch(Rectangle((0.0, y2), 17.5, h2, fc="#f4f4f4", ec="#666666", lw=0.7, ls="--"))
     ax.text(8.75, y2 + h2 / 2, "Warm-up\n$W{-}1{=}319$", ha="center", va="center", fontsize=5.4, color="#333333")
     ax.add_patch(Rectangle((18.0, y2), 31.5, h2, fc="#ccece6", ec="#00706b", lw=0.8))
-    ax.text(33.75, y2 + h2 / 2, "Untouched $\\mathbf{X}_{\\mathrm{cal}}$ $[0 : H)$\n(fit $\\tau_j, \\gamma_j$ & quorum $K$)", ha="center", va="center", fontsize=5.4, color="#004d49", fontweight="bold")
+    ax.text(33.75, y2 + h2 / 2, "Untouched $\\mathbf{X}_{\\mathrm{cal}}$ $[0 : H)$\n(fit $\\tau_j$ & quorum $K$)", ha="center", va="center", fontsize=5.4, color="#004d49", fontweight="bold")
     ax.add_patch(Rectangle((50.0, y2), 16.5, h2, fc="#fbe3e8", ec="#a31d3d", lw=0.8))
     ax.text(58.25, y2 + h2 / 2, "Gap $S{=}64$\n(or $W{=}320$)", ha="center", va="center", fontsize=5.5, color="#80112a", fontweight="bold")
     ax.add_patch(Rectangle((67.0, y2), 33.0, h2, fc="#e2d9f3", ec="#5c2d91", lw=0.8))
@@ -71,12 +71,12 @@ def draw_protocol_schematic(ax: plt.Axes) -> None:
 
     ax.text(
         50.0, 44.0,
-        "At gap $S{=}64$: suspect targets $\\mathbf{x}_{\\mathrm{tgt}}$ are $100\\%$ disjoint ($W{=}320$ check: $\\Delta\\mathrm{FPR} \\leq 0.002$).",
-        ha="center", va="center", fontsize=5.5, color="#333333"
+        "Gap $S{=}64$: target windows $\\mathbf{x}_{\\mathrm{tgt}}$ $100\\%$ disjoint ($W{=}320$: $\\Delta\\mathrm{F1}{=}{+}0.001$, $\\Delta\\mathrm{ER}{=}{+}0.0004$, $\\Delta\\mathrm{FPR}{=}{+}0.008$).",
+        ha="center", va="center", fontsize=5.0, color="#333333"
     )
 
-    # --- Row 3: Score-Emission Latency vs. Fault-Detection Delay ---
-    ax.text(0.0, 35.0, "3. Online Window Causality ($\\tau{=}t{+}S{-}1$): Emission Lag vs. Detection Delay:",
+    # --- Row 3: Target-Window Offset vs. Onset-to-Alarm Latency ---
+    ax.text(0.0, 35.0, "3. Online Window Causality ($\\tau{=}t{+}S{-}1$): Target Offset vs. Onset Latency:",
             fontsize=6.5, fontweight="bold", color="#222222")
     y3, h3 = 14.0, 10.5
     ax.add_patch(Rectangle((0.0, y3), 40.0, h3, fc="#d0e1f2", ec="#1d4e89", lw=0.75))
@@ -95,15 +95,15 @@ def draw_protocol_schematic(ax: plt.Axes) -> None:
 
     ax.plot([90.0, 90.0], [y3 - 10.5, y3 + h3 + 2.2], color="#5c2d91", lw=0.95, ls="-.")
     ax.scatter([90.0], [y3 + h3 / 2], marker="^", s=28, color="#5c2d91", zorder=5)
-    ax.text(90.0, y3 + h3 + 2.6, "1st Trip $t_{\\mathrm{alm}}$", ha="center", va="bottom", fontsize=5.5, color="#5c2d91", fontweight="bold")
+    ax.text(90.0, y3 + h3 + 2.6, "Alarm $\\tau_{\\mathrm{alm}}$", ha="center", va="bottom", fontsize=5.5, color="#5c2d91", fontweight="bold")
 
     ax.annotate("", xy=(68.0, y3 - 2.6), xytext=(40.0, y3 - 2.6),
                 arrowprops=dict(arrowstyle="<->", color="#00706b", lw=0.9))
-    ax.text(54.0, y3 - 6.0, "Emission lag $S{-}1{=}63$", ha="center", va="center", fontsize=5.5, color="#00706b", fontweight="bold")
+    ax.text(54.0, y3 - 6.0, "Target offset $S{-}1{=}63$", ha="center", va="center", fontsize=5.5, color="#00706b", fontweight="bold")
 
     ax.annotate("", xy=(90.0, y3 - 10.2), xytext=(51.0, y3 - 10.2),
                 arrowprops=dict(arrowstyle="<->", color="#5c2d91", lw=0.9))
-    ax.text(70.5, y3 - 13.8, "Detection delay $\\Delta t = t_{\\mathrm{alm}} - t^*$", ha="center", va="center", fontsize=5.5, color="#5c2d91", fontweight="bold")
+    ax.text(70.5, y3 - 13.8, "Onset latency $\\Delta t = \\tau_{\\mathrm{alm}} - t^*$", ha="center", va="center", fontsize=5.5, color="#5c2d91", fontweight="bold")
 
 
 def main() -> None:

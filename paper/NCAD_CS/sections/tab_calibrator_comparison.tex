@@ -36,9 +36,9 @@ Total untouched archive streams                       & 118 & 100.0 & .646 & .08
 Pass empirical cutoff ($N_{\text{cal}}{\ge}500$)      & 59  & 50.0  & .572 & .085 & .047 & .155 \\
 \quad Pass screen ($\text{FPR}_{\text{hold}}{\le}5\%$) & 52  & 44.1  & .543 & .076 & .009 & .110 \\
 \quad Fail screen ($\text{FPR}_{\text{hold}}{>}5\%$, fallback) & 7 & 5.9 & {--} & {--} & .330 & .489 \\
-\quad Optional $N_{\text{eff}}{\ge}50$ subset         & 35  & 29.7  & .564 & .091 & .009 & .145 \\
+\quad + Drift screen ($D_{\text{KS}}{\le}0.50$) & 46 & 39.0 & .498 & .068 & .009 & .068 \\
 Routed to 1D SPOT fallback ($59{+}7$)                 & 66  & 55.9  & .663 & .109 & .076 & .115 \\
 Complete 118-stream routed hybrid                     & 118 & 100.0 & .609 & .094 & .046 & .113 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Three-seed stream means; best \textbf{bold}, second \underline{underlined}; MH-1D = Multi-Horizon JEPA (1D); ${\le}5\%$ = percentage of streams with causal $\text{FPR}_{\text{hold}}{\le}5\%$. In Panel~(b), $\text{FPR}_{\text{test}}$ is measured on subsequent independent healthy test intervals ($3.9\%$ median on the $52$ accepted streams); the fail-screen row reports unrouted \emph{Lite} FPR before fallback.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Three-seed stream means; best \textbf{bold}, second \underline{underlined}; MH-1D = Multi-Horizon JEPA (1D); ${\le}5\%$ = share with causal $\text{FPR}_{\text{hold}}{\le}5\%$. Panel~(b) $\text{FPR}_{\text{test}}$ measures healthy test steps, keeping $53.8\%$ at or below $5\%$ for two-stage ($3.9\%$ median) vs.\ $60.9\%$ with drift screening ($2.9\%$ median). Fail-screen shows unrouted \emph{Lite} before fallback; three-stage hybrid yields $.594$ ER, $.091$ F1, $.100$ $\text{FPR}_{\text{test}}$.} \\
 \end{tabular*}\par\vspace{-4pt}\end{table}
