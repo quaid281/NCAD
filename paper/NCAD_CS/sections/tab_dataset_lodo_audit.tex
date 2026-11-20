@@ -57,7 +57,7 @@ $w{=}6.0$ (alarm-averse)      & 10/118 & .550 & \underline{.084} & .098 \\
 $w{\in}[8,15]$ (strict)       & 8/118  & .546 & .082 & \underline{.097} \\
 $w{\ge}20$ (1D SPOT)          & 0/118  & .525 & .076 & \textbf{.088} \\
 \addlinespace[1.5pt]
-\multicolumn{5}{@{}p{\linewidth}@{}}{\tiny \emph{Out-of-fold routing ($N_{\text{cal}}{\ge}500$ fixed):} Policies selected on eight labeled training sets need not minimize aggregate test $J(w)$ across rows (e.g., at $w{=}6$). Unrounded break-even vs.\ 1D is $w{=}5.92$ ($5.75$ rounded; $1.20$ vs.\ 2-stage).} \\
+\multicolumn{5}{@{}p{\linewidth}@{}}{\tiny \emph{Out-of-fold routing ($N_{\text{cal}}{\ge}500$ fixed):} Minimizing $J(w){=}(1{-}\text{ER}){+}w\,\text{FPR}_{\text{test}}$ on eight training sets need not minimize test $J(w)$ (e.g., at $w{=}6$). Break-even vs.\ 1D is $w{=}5.92$ ($5.75$ rounded; $1.20$ vs.\ 2-stage).} \\
 \bottomrule
 \end{tabular*}
 \end{minipage}
