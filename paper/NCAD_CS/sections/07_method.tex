@@ -3,8 +3,8 @@
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.86\textwidth]{figures/opentropy_jepa_architecture.pdf}
-\vspace{-7pt}
+\includegraphics[width=0.82\textwidth]{figures/opentropy_jepa_architecture.pdf}
+\vspace{-8pt}
 \caption{End-to-end streaming pipeline of \emph{Laminar-JEPA-Lite} ($128$ dials across $M{=}3$ prefixes) and the \emph{Laminar-JEPA} reference ($224$ dials plus $32$ onset relays across $M{=}4$ prefixes). Raw telemetry windows pass through online and EMA target encoders (Stage~1), parallel multi-horizon prediction and coordinate whitening (Stage~2), nonnegative position-plus-drift dial expansion (Stage~3), and a healthy-calibrated quorum alarm (Stage~4).\label{fig:triad_architecture}}
 \vspace{-7pt}
 \end{figure*}
@@ -134,7 +134,7 @@ Both archive tiers share the $32$D-head backbone (Table~\ref{tab:matched_alert}(
 \State Screen frozen $\text{FPR}_{\text{hold}}$ on $\mathbf{X}_{\text{hold}}$; if $N_{\text{cal}}{<}500$, $\text{FPR}_{\text{hold}}{>}0.05$, or (strict tier) $D_{\text{KS}}{>}0.50$, route stream to 1D SPOT fallback.
 \For{each stride-$1$ window $[t-C,\,t+S)$ on $\mathbf{X}_{\text{test}}$}
     \State Map trips $b_j(t){=}\mathbb{I}(d_j(t){>}\tau_j)$ to $\tau{=}t{+}S{-}1$ (causal) or $[t,t{+}S_m)$ (buffered); emit $\hat{y}(\tau)$ when active count exceeds quorum.
-    \State Monitor sliding $D_{\text{KS}}$; if $D_{\text{KS}}{\ge}0.50$, quarantine $400$ windows under frozen thresholds until mode switch is confirmed.
+    \State Monitor sliding $D_{\text{KS}}$; if $D_{\text{KS}}{\ge}0.50$, keep alarming under frozen thresholds while buffering $400$ passive windows; refit only $(\tau_j,K_{\text{Lite}})$ upon confirmed mode switch and reset $D_{\text{KS}}$ (else discard buffer).
 \EndFor
 \end{algorithmic}
 \end{algorithm}

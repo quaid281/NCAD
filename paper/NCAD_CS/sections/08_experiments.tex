@@ -31,7 +31,7 @@ Baselines span three tiers: \emph{matched-backbone controls} (TS-JEPA, Multi-Hor
 To distinguish pre-specified design from archive-informed policy, choices fall into three stages:
 (1)~\emph{Frozen before first archive run} ($23$ tuning streams and dev checks): backbone, $M{=}3$ prefixes, damping $10^{-3}$, (\ref{eq:stabilized_whitening}) cutoff $1.10$, and $N_{\text{cal}}{\ge}500$, alongside tripwire $q_{0.985}$, quorum ($\kappa{=}1.12$, floor $3.5$), and live monitor $D_{\text{KS}}{\ge}0.50$.
 (2)~\emph{Post-hoc archive diagnostics} (frozen detector unchanged): block permutation, matched budgets, eight-arm PCA/ZCA checks, $W{=}320$ gap checks, and multiplicative floors.
-(3)~\emph{Archive-informed routing policies} added after observing archive tail drift: pre-deployment $\text{FPR}_{\text{hold}}{\le}5\%$ and $D_{\text{KS}}{\le}0.50$ gates to 1D SPOT fallback, cross-checked via nine-fold nested LODO screening (Section~\ref{subsec:finite_sample_calibration}).
+(3)~\emph{Archive-informed routing policies} added after observing archive tail drift: pre-deployment $\text{FPR}_{\text{hold}}{\le}5\%$ and $D_{\text{KS}}{\le}0.50$ gates to 1D SPOT fallback. Holding $N_{\text{cal}}{\ge}500$ fixed, nine-fold nested LODO newly optimizes ($\tau_{\text{F}},\tau_{\text{K}}$) strictly on each fold's eight training sets under cost weighting (Table~\ref{tab:dataset_lodo_audit}(a,c)).
 
 \subsection{Metrics}
 \label{subsec:eval_metrics}

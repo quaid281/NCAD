@@ -126,8 +126,8 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Cohorts, Baseline Fairness, and Reproducibility}{6}{subsection.5.2}\protected@file@percent }
 \newlabel{subsec:cohort_repro}{{\mbox  {V-B}}{6}{Cohorts, Baseline Fairness, and Reproducibility}{subsection.5.2}{}}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {V-B}0a}Protocol Chronology and Archive Provenance}{6}{paragraph.5.2.0.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Metrics}{6}{subsection.5.3}\protected@file@percent }
-\newlabel{subsec:eval_metrics}{{\mbox  {V-C}}{6}{Metrics}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Metrics}{7}{subsection.5.3}\protected@file@percent }
+\newlabel{subsec:eval_metrics}{{\mbox  {V-C}}{7}{Metrics}{subsection.5.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VI}Ablation Studies and Analysis}{7}{section.6}\protected@file@percent }
 \newlabel{sec:ablations}{{VI}{7}{Ablation Studies and Analysis}{section.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Ablation 1: Dial Views, Single-Factor \emph  {Lite} Isolation, and Quenching}{7}{subsection.6.1}\protected@file@percent }
@@ -135,13 +135,15 @@
 \newlabel{subsec:factorial}{{\mbox  {VI-A}}{7}{Ablation 1: Dial Views, Single-Factor \emph {Lite} Isolation, and Quenching}{subsection.6.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Ablation 2: Sensor-Fault Taxonomy and Synthetic vs.\ Natural Failures}{7}{subsection.6.2}\protected@file@percent }
 \newlabel{subsec:gating_ablation}{{\mbox  {VI-B}}{7}{Ablation 2: Sensor-Fault Taxonomy and Synthetic vs.\ Natural Failures}{subsection.6.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Ablation 3: Multiscale Front-End and Latent vs.\ Observation Space}{7}{subsection.6.3}\protected@file@percent }
+\newlabel{subsec:dyadic_ablation}{{\mbox  {VI-C}}{7}{Ablation 3: Multiscale Front-End and Latent vs.\ Observation Space}{subsection.6.3}{}}
+\newlabel{subsec:controlled_backbone}{{\mbox  {VI-C}}{7}{Ablation 3: Multiscale Front-End and Latent vs.\ Observation Space}{subsection.6.3}{}}
+\citation{Hundman2018b}
+\citation{wu2023flawed}
 \@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Perspective Expansion Cache, Single-Factor Lite Isolation, and Matched-Backbone Study}}{8}{table.1}\protected@file@percent }
 \newlabel{tab:ablations}{{I}{8}{Perspective Expansion Cache, Single-Factor Lite Isolation, and Matched-Backbone Study}{table.1}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Detector-Bank Regimes and Architecture Specification}}{8}{table.2}\protected@file@percent }
 \newlabel{tab:matched_alert}{{II}{8}{Detector-Bank Regimes and Architecture Specification}{table.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Ablation 3: Multiscale Dyadic-Shell Front-End and Observation vs.\ Latent Space}{8}{subsection.6.3}\protected@file@percent }
-\newlabel{subsec:dyadic_ablation}{{\mbox  {VI-C}}{8}{Ablation 3: Multiscale Dyadic-Shell Front-End and Observation vs.\ Latent Space}{subsection.6.3}{}}
-\newlabel{subsec:controlled_backbone}{{\mbox  {VI-C}}{8}{Ablation 3: Multiscale Dyadic-Shell Front-End and Observation vs.\ Latent Space}{subsection.6.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}Computational Complexity and Real-Time Deployment Considerations}{8}{subsection.6.4}\protected@file@percent }
 \newlabel{subsec:computational_deployment}{{\mbox  {VI-D}}{8}{Computational Complexity and Real-Time Deployment Considerations}{subsection.6.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VII}Experimental Results}{8}{section.7}\protected@file@percent }
@@ -151,37 +153,35 @@
 \newlabel{subsec:causal_vs_buffered}{{\mbox  {VII-A}}{8}{Design-Stage Benchmark, Attribution Regimes, and Horizons}{subsection.7.1}{}}
 \newlabel{subsec:horizon_latency}{{\mbox  {VII-A}}{8}{Design-Stage Benchmark, Attribution Regimes, and Horizons}{subsection.7.1}{}}
 \newlabel{subsec:matched_operating}{{\mbox  {VII-A}}{8}{Design-Stage Benchmark, Attribution Regimes, and Horizons}{subsection.7.1}{}}
-\citation{Hundman2018b}
-\citation{wu2023flawed}
 \@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Primary 33-Stream Development Benchmark Across Attribution Regimes}}{9}{table.3}\protected@file@percent }
 \newlabel{tab:core_benchmark}{{III}{9}{Primary 33-Stream Development Benchmark Across Attribution Regimes}{table.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Target-horizon scaling, operating frontiers, and archive calibration length. \textbf  {(a)}\nobreakspace  {}Causal Point-F1 across target horizons $S\in \{1,\dots  ,64\}$ on five exploratory streams. \textbf  {(b)}\nobreakspace  {}Causal event recall versus realized test FPR across the $19$ development streams. \textbf  {(c)}\nobreakspace  {}Calibration length $N_{\text  {cal}}$ versus held-out $\text  {FPR}_{\text  {hold}}$ across all $118$ untouched archive streams, marking the $N_{\text  {cal}}{=}500$ and $5\%$ screening cutoffs.}}{9}{figure.3}\protected@file@percent }
+\newlabel{fig:operating_and_horizon}{{3}{9}{Target-horizon scaling, operating frontiers, and archive calibration length. \textbf {(a)}~Causal Point-F1 across target horizons $S\in \{1,\dots ,64\}$ on five exploratory streams. \textbf {(b)}~Causal event recall versus realized test FPR across the $19$ development streams. \textbf {(c)}~Calibration length $N_{\text {cal}}$ versus held-out $\text {FPR}_{\text {hold}}$ across all $118$ untouched archive streams, marking the $N_{\text {cal}}{=}500$ and $5\%$ screening cutoffs}{figure.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Sensitivity to Fault Onset Rate and Progressive Degradation}{9}{subsection.7.2}\protected@file@percent }
 \newlabel{subsec:slow_ramps}{{\mbox  {VII-B}}{9}{Sensitivity to Fault Onset Rate and Progressive Degradation}{subsection.7.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Latent Alarm Decomposition and Controlled Perturbation Attribution}{9}{subsection.7.3}\protected@file@percent }
 \newlabel{subsec:interpretability}{{\mbox  {VII-C}}{9}{Latent Alarm Decomposition and Controlled Perturbation Attribution}{subsection.7.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Target-horizon scaling, operating frontiers, and archive calibration length. \textbf  {(a)}\nobreakspace  {}Causal Point-F1 across target horizons $S\in \{1,\dots  ,64\}$ on five exploratory streams. \textbf  {(b)}\nobreakspace  {}Causal event recall versus realized test FPR across the $19$ development streams. \textbf  {(c)}\nobreakspace  {}Calibration length $N_{\text  {cal}}$ versus held-out $\text  {FPR}_{\text  {hold}}$ across all $118$ untouched archive streams, marking the $N_{\text  {cal}}{=}500$ and $5\%$ screening cutoffs.}}{10}{figure.3}\protected@file@percent }
-\newlabel{fig:operating_and_horizon}{{3}{10}{Target-horizon scaling, operating frontiers, and archive calibration length. \textbf {(a)}~Causal Point-F1 across target horizons $S\in \{1,\dots ,64\}$ on five exploratory streams. \textbf {(b)}~Causal event recall versus realized test FPR across the $19$ development streams. \textbf {(c)}~Calibration length $N_{\text {cal}}$ versus held-out $\text {FPR}_{\text {hold}}$ across all $118$ untouched archive streams, marking the $N_{\text {cal}}{=}500$ and $5\%$ screening cutoffs}{figure.3}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Alarm behavior across three telemetry fault regimes (shaded spans and dotted lines mark faults and onset $t^*$). Rows plot sensor traces, active ZCA-anchored block ($m{\in }\{1,2,3\}$) and drift ($|\bar  {e}_c|$) dials against $K_{\text  {Lite}}$, and threshold ratios ($>1{\times }$ fires) on \textbf  {(a)}\nobreakspace  {}an abrupt spike (\texttt  {GECCO}), \textbf  {(b)}\nobreakspace  {}a contextual fault (\texttt  {SMAP A-7}), and \textbf  {(c)}\nobreakspace  {}a slow ramp (\texttt  {GHL-44}).}}{10}{figure.4}\protected@file@percent }
 \newlabel{fig:panel_interpretability}{{4}{10}{Alarm behavior across three telemetry fault regimes (shaded spans and dotted lines mark faults and onset $t^*$). Rows plot sensor traces, active ZCA-anchored block ($m{\in }\{1,2,3\}$) and drift ($|\bar {e}_c|$) dials against $K_{\text {Lite}}$, and threshold ratios ($>1{\times }$ fires) on \textbf {(a)}~an abrupt spike (\texttt {GECCO}), \textbf {(b)}~a contextual fault (\texttt {SMAP A-7}), and \textbf {(c)}~a slow ramp (\texttt {GHL-44})}{figure.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Untouched Archive Generalization, External Baselines, and Nested LODO Audit}{10}{subsection.7.4}\protected@file@percent }
 \newlabel{subsec:calibration_realities}{{\mbox  {VII-D}}{10}{Untouched Archive Generalization, External Baselines, and Nested LODO Audit}{subsection.7.4}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Disjoint Five-Block Untouched Archive Benchmark ($n{=}118$)}}{10}{table.4}\protected@file@percent }
 \newlabel{tab:calibrator_comparison}{{IV}{10}{Disjoint Five-Block Untouched Archive Benchmark ($n{=}118$)}{table.4}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Untouched Archive Breakdown, Cohort Split, and Exclusion Sensitivity ($n{=}118$, Causal)}}{11}{table.5}\protected@file@percent }
-\newlabel{tab:dataset_lodo_audit}{{V}{11}{Untouched Archive Breakdown, Cohort Split, and Exclusion Sensitivity ($n{=}118$, Causal)}{table.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Untouched Archive Breakdown, Out-of-Fold Nested LODO Screening, Cohort Sensitivity, and Cost Routing ($n{=}118$, Causal)}}{11}{table.5}\protected@file@percent }
+\newlabel{tab:dataset_lodo_audit}{{V}{11}{Untouched Archive Breakdown, Out-of-Fold Nested LODO Screening, Cohort Sensitivity, and Cost Routing ($n{=}118$, Causal)}{table.5}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Archive False-Alarm and Operating-Point Audit ($n{=}118$, Causal)}}{11}{table.6}\protected@file@percent }
 \newlabel{tab:tail_audit}{{VI}{11}{Archive False-Alarm and Operating-Point Audit ($n{=}118$, Causal)}{table.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Characterization of False-Alarm Failure Modes Under Regime Shifts}{11}{subsection.7.5}\protected@file@percent }
 \newlabel{subsec:regime_shift_modes}{{\mbox  {VII-E}}{11}{Characterization of False-Alarm Failure Modes Under Regime Shifts}{subsection.7.5}{}}
 \bibstyle{IEEEtran}
 \bibdata{export}
-\bibcite{meng2019spacecraft}{1}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-F}}Finite-Sample Reliability and Two-Stage Deployment Funnel}{12}{subsection.7.6}\protected@file@percent }
-\newlabel{subsec:finite_sample_calibration}{{\mbox  {VII-F}}{12}{Finite-Sample Reliability and Two-Stage Deployment Funnel}{subsection.7.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-F}}Finite-Sample Reliability, Three-Stage Screening, and Hybrid Routing}{12}{subsection.7.6}\protected@file@percent }
+\newlabel{subsec:finite_sample_calibration}{{\mbox  {VII-F}}{12}{Finite-Sample Reliability, Three-Stage Screening, and Hybrid Routing}{subsection.7.6}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VIII}Discussion}{12}{section.8}\protected@file@percent }
 \newlabel{sec:discussion}{{VIII}{12}{Discussion}{section.8}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {IX}Conclusion and Future Work}{12}{section.9}\protected@file@percent }
 \newlabel{sec:conclusion}{{IX}{12}{Conclusion and Future Work}{section.9}{}}
+\bibcite{meng2019spacecraft}{1}
 \bibcite{chalapathy2019deep}{2}
 \bibcite{cuellar2024explainable}{3}
 \bibcite{Hundman2018b}{4}

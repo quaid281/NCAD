@@ -1,30 +1,32 @@
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{1.1pt}
+\setlength{\tabcolsep}{1.0pt}
 \renewcommand{\arraystretch}{0.95}
-\caption{Untouched Archive Breakdown, Cohort Split, and Exclusion Sensitivity ($n{=}118$, Causal)\label{tab:dataset_lodo_audit}}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l rr cc cc cc rrrr @{}}
+\caption{Untouched Archive Breakdown, Out-of-Fold Nested LODO Screening, Cohort Sensitivity, and Cost Routing ($n{=}118$, Causal)\label{tab:dataset_lodo_audit}}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l rr cc cc cc rrrr cccc @{}}
 \toprule
-& & & \multicolumn{2}{c}{\textbf{ER (\%)}} & \multicolumn{2}{c}{\textbf{Pt-F1}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t}$}} & \multicolumn{4}{c}{\textbf{Lite FPR$_{\text{hold}}$ \& Drift}} \\
-\cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13}
-\textbf{(a) Dataset} & {$n$} & {$K$} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Mean}} & {\textbf{p95}} & {\textbf{${\le}5\%$}} & {$\boldsymbol{D_{\text{KS}}}$} \\
+& & & \multicolumn{2}{c}{\textbf{ER (\%)}} & \multicolumn{2}{c}{\textbf{Pt-F1}} & \multicolumn{2}{c}{\textbf{Delay $\boldsymbol{\Delta t}$}} & \multicolumn{4}{c}{\textbf{Lite FPR$_{\text{hold}}$ \& Drift}} & \multicolumn{4}{c}{\textbf{Nested LODO ($w{=}3$)}} \\
+\cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13} \cmidrule(lr){14-17}
+\textbf{(a) Dataset} & {$n$} & {$K$} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Lite}} & {\textbf{1D}} & {\textbf{Mean}} & {\textbf{p95}} & {\textbf{${\le}5\%$}} & {$\boldsymbol{D_{\text{KS}}}$} & {\textbf{$\tau_{\text{F}}/\tau_{\text{K}}$}} & {\textbf{Acc.}} & {\textbf{ER/F1}} & {\textbf{tFPR}} \\
 \midrule
-SMAP             & 40 & 25 & \textbf{74.3} & 73.1 & .088 & \textbf{.131} & \textbf{58}  & 91  & .076 & .66 & 92.5 & .20 \\
-SMD$^*$          & 18 & 38 & \textbf{23.5} & 18.8 & \textbf{.058} & .031 & \textbf{86}  & 146 & .013 & .04 & 94.4 & .16 \\
-Exathlon$^*$     & 17 & 20 & \textbf{90.2} & 63.8 & \textbf{.195} & .092 & \textbf{41}  & 289 & .171 & .73 & 64.7 & .53 \\
-Daphnet          & 15 & 9  & \textbf{85.3} & 56.4 & \textbf{.085} & .019 & \textbf{56}  & 147 & .073 & .33 & 80.0 & .15 \\
-MSL              & 13 & 55 & \textbf{57.3} & 53.8 & .038 & \textbf{.052} & \textbf{52}  & 70  & .011 & .03 & 92.3 & .18 \\
-OPPORT.          & 12 & 32 & \textbf{52.8} & 25.0 & .016 & \textbf{.046} & 111 & \textbf{87}  & .011 & .03 & 100  & .18 \\
-GECCO$^\dagger$  & 1  & 9  & \textbf{31.5} & 4.5  & \textbf{.216} & .061 & \textbf{5}   & 48  & .001 & .00 & 100  & .13 \\
-PSM$^*$          & 1  & 26 & \textbf{23.1} & 0.0  & \textbf{.121} & .000 & \textbf{784} & {--}& .004 & .00 & 100  & .11 \\
-CreditCard$^*$   & 1  & 29 & \textbf{2.0}  & 0.4  & \textbf{.007} & .002 & 1   & \textbf{0}   & .004 & .00 & 100  & .02 \\
+SMAP             & 40 & 25 & \textbf{74.3} & 73.1 & .088 & \textbf{.131} & \textbf{58}  & 91  & .076 & .66 & 92.5 & .20 & .08/.50 & 0/40  & .731/.131 & .114 \\
+SMD$^*$          & 18 & 38 & \textbf{23.5} & 18.8 & \textbf{.058} & .031 & \textbf{86}  & 146 & .013 & .04 & 94.4 & .16 & .08/.50 & 17/18 & .225/.054 & .016 \\
+Exathlon$^*$     & 17 & 20 & \textbf{90.2} & 63.8 & \textbf{.195} & .092 & \textbf{41}  & 289 & .171 & .73 & 64.7 & .53 & .05/.50 & 5/17  & .704/.133 & .252 \\
+Daphnet          & 15 & 9  & \textbf{85.3} & 56.4 & \textbf{.085} & .019 & \textbf{56}  & 147 & .073 & .33 & 80.0 & .15 & .08/.50 & 8/15  & .742/.067 & .102 \\
+MSL              & 13 & 55 & \textbf{57.3} & 53.8 & .038 & \textbf{.052} & \textbf{52}  & 70  & .011 & .03 & 92.3 & .18 & .08/.50 & 1/13  & .538/.053 & .031 \\
+OPPORT.          & 12 & 32 & \textbf{52.8} & 25.0 & .016 & \textbf{.046} & 111 & \textbf{87}  & .011 & .03 & 100  & .18 & .08/.50 & 12/12 & .528/.016 & .045 \\
+GECCO$^\dagger$  & 1  & 9  & \textbf{31.5} & 4.5  & \textbf{.216} & .061 & \textbf{5}   & 48  & .001 & .00 & 100  & .13 & .08/.50 & 1/1   & .315/.216 & .071 \\
+PSM$^*$          & 1  & 26 & \textbf{23.1} & 0.0  & \textbf{.121} & .000 & \textbf{784} & {--}& .004 & .00 & 100  & .11 & .08/.50 & 1/1   & .231/.121 & .090 \\
+CreditCard$^*$   & 1  & 29 & \textbf{2.0}  & 0.4  & \textbf{.007} & .002 & 1   & \textbf{0}   & .004 & .00 & 100  & .02 & .08/.50 & 1/1   & .020/.007 & .007 \\
 \bottomrule
 \end{tabular*}
 
-\vspace{1.5pt}
-\setlength{\tabcolsep}{0.5pt}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r cc cc c @{}}
+\vspace{2.5pt}
+\begin{minipage}[t]{0.555\textwidth}
+\scriptsize
+\setlength{\tabcolsep}{0.6pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l r cc cc c @{}}
 \toprule
 \textbf{(b) Cohort / Exclusion Sensitivity} & {$n_{\text{eval}}$} & {$\boldsymbol{\Delta}\textbf{ER (\%)}$} & {$\boldsymbol{p}^{\text{str}}_{\textbf{ER}}$} & {$\boldsymbol{\Delta}\textbf{Pt-F1}$} & {$\boldsymbol{p}^{\text{str}}_{\textbf{F1}}$} & {$\boldsymbol{\Delta}\textbf{FPR}$} \\
 \midrule
@@ -40,6 +42,26 @@ Excl.\ OPPORT.\ ($12$ removed)       & 106 & $+10.3$ & $.0002$      & $+.015$ & 
 Excl.\ Daphnet ($15$ removed)        & 103 & $+9.8$  & $.0019$      & $+.003$ & $.0205$      & $+.013$ \\
 Excl.\ Exathlon ($17$ removed)       & 101 & $+9.7$  & $.0022$      & $-.005$ & $.0650$      & $+.011$ \\
 \bottomrule
-\end{tabular*}\par\vspace{1pt}
-\parbox{\columnwidth}{\tiny\emph{Note:} Three-seed causal means ($37+1+80=118$), except Nested LODO ($s{=}42$). $p^{\text{str}}$ reports stream-level Wilcoxon $p$-values; exact dataset sign-flip $p_{\text{clus}}$ equals $.125$ on $4/4$ zero-tuning sets$^*$ and $.0625$ with GECCO$^\dagger$. All nine datasets give $p_{\text{clus}}{=}.0039$ on ER ($p_{\text{clus}}{=}.117$ on Point-F1), and eight-fold exclusions give $p_{\text{clus}}{=}.0078$. Single-stream exclusions ($n_{\text{eval}}{=}117$) yield ${+}12.0\%\text{--}12.2\%$ ER.}\vspace{-5pt}
-\end{table}
+\end{tabular*}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.425\textwidth}
+\scriptsize
+\setlength{\tabcolsep}{0.6pt}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l r ccc @{}}
+\toprule
+\textbf{(c) LODO Cost Routing ($J(w)$)} & {\textbf{Acc.}} & {\textbf{ER $\uparrow$}} & {\textbf{Pt-F1 $\uparrow$}} & {\textbf{tFPR}} \\
+\midrule
+$w{=}0.5$ (recall-heavy)    & 111/118 & \textbf{.633} & .084 & .163 \\
+$w{=}1.0$ (moderate)        & 86/118  & \underline{.599} & .076 & .133 \\
+$w{\in}[2,4]$ (3-stage)     & 46/118  & .594 & \textbf{.091} & .100 \\
+$w{=}6.0$ (alarm-averse)    & 10/118  & .550 & \underline{.084} & \underline{.098} \\
+$w{\ge}20$ (1D SPOT)        & 0/118   & .525 & .076 & \textbf{.088} \\
+\addlinespace[1.5pt]
+\multicolumn{5}{@{}p{\linewidth}@{}}{\tiny \emph{Cost sensitivity:} Out-of-fold routing under $J(w){=}(1{-}\text{ER}){+}w\,\text{FPR}_{\text{test}}$. Break-even slope vs.\ 1D SPOT is $w{=}5.88$; slopes above 3-stage drop to $1.21$ (2-stage) and $0.63$ (unscreened).} \\
+\bottomrule
+\end{tabular*}
+\end{minipage}
+
+\par\vspace{1.5pt}
+\parbox{\textwidth}{\tiny\emph{Note:} Three-seed causal means ($37+1+80=118$), except nested LODO ($s{=}42$ in~(b)). In~(a,c), $N_{\text{cal}}{\ge}500$ is pre-archive fixed while ($\tau_{\text{F}},\tau_{\text{K}}$) are fold-optimized strictly on eight training sets per fold; only one stream with $D_{\text{KS}}{\le}0.50$ separates $.05$ vs.\ $.08$. In~(b), $p^{\text{str}}$ is stream-level Wilcoxon, while exact dataset sign-flip $p_{\text{clus}}$ gives $.125$ on $4/4$ zero-tuning sets$^*$ and $.0625$ with GECCO$^\dagger$. Across all nine sets, $p_{\text{clus}}$ equals $.0039$ on ER ($.117$ on F1) and $.0078$ across eight-fold exclusions.}\vspace{-5pt}
+\end{table*}
