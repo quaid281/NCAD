@@ -27,18 +27,19 @@ MH-1D, $N_{\text{cal}}{<}500$     & \textbf{.112} & .191 & .684 & .727 & \textbf
 \end{tabular*}
 
 \vspace{2pt}
-\setlength{\tabcolsep}{0.8pt}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r r cccc @{}}
+\setlength{\tabcolsep}{0.4pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r ccccc @{}}
 \toprule
-\textbf{(b) Eligibility \& Routing Stage (Causal)} & {$n$} & {\textbf{\% 118}} & {\textbf{ER $\uparrow$}} & {\textbf{Pt-F1 $\uparrow$}} & {\textbf{FPR$_{\text{hold}}$}} & {\textbf{FPR$_{\text{test}}$}} \\
+\textbf{(b) Screening \& Complete (Causal)} & {$n$} & {\textbf{ER $\uparrow$}} & {\textbf{Pt-F1 $\uparrow$}} & {\textbf{FPR$_{\text{hold}}$}} & {\textbf{FPR$_{\text{test}}$}} & {\textbf{Ep.$^\dagger$}} \\
 \midrule
-Total untouched archive streams                       & 118 & 100.0 & .646 & .086 & .064 & .170 \\
-Pass empirical cutoff ($N_{\text{cal}}{\ge}500$)      & 59  & 50.0  & .572 & .085 & .047 & .155 \\
-\quad Pass screen ($\text{FPR}_{\text{hold}}{\le}5\%$) & 52  & 44.1  & .543 & .076 & .009 & .110 \\
-\quad Fail screen ($\text{FPR}_{\text{hold}}{>}5\%$, fallback) & 7 & 5.9 & {--} & {--} & .330 & .489 \\
-\quad + Drift screen ($D_{\text{KS}}{\le}0.50$) & 46 & 39.0 & .498 & .068 & .009 & .068 \\
-Routed to 1D SPOT fallback ($59{+}7$)                 & 66  & 55.9  & .663 & .109 & .076 & .115 \\
-Complete 118-stream routed hybrid                     & 118 & 100.0 & .609 & .094 & .046 & .113 \\
+Pass cutoff ($N_{\text{cal}}{\ge}500$, \emph{Lite})      & 59  & .572 & .085 & .047 & .155 & 18.5 \\
+\quad + Held-out ($\text{FPR}_{\text{hold}}{\le}5\%$)    & 52  & .543 & .076 & .009 & .110 & 18.1 \\
+\quad + Drift ($D_{\text{KS}}{\le}0.50$)                  & 46  & .498 & .068 & .009 & .068 & 16.6 \\
+\addlinespace[1.5pt]
+Complete 1D SPOT (all $118$ 1D)                           & 118 & .525 & .076 & .044 & .088 & 8.8 \\
+3-stage hybrid ($46$ \emph{Lite} $+$ $72$ 1D)             & 118 & .594 & .091 & .046 & .100 & 12.9 \\
+2-stage hybrid ($52$ \emph{Lite} $+$ $66$ 1D)             & 118 & .609 & .094 & .046 & .113 & 13.6 \\
+Unscreened \emph{Lite} (all $118$ \emph{Lite})            & 118 & .646 & .086 & .064 & .170 & 16.8 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Three-seed stream means; best \textbf{bold}, second \underline{underlined}; MH-1D = Multi-Horizon JEPA (1D); ${\le}5\%$ = share with causal $\text{FPR}_{\text{hold}}{\le}5\%$. Panel~(b) $\text{FPR}_{\text{test}}$ measures healthy test steps, keeping $53.8\%$ at or below $5\%$ for two-stage ($3.9\%$ median) vs.\ $60.9\%$ with drift screening ($2.9\%$ median). Fail-screen shows unrouted \emph{Lite} before fallback; three-stage hybrid yields $.594$ ER, $.091$ F1, $.100$ $\text{FPR}_{\text{test}}$.} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Three-seed means; best \textbf{bold}, second \underline{underlined} in~(a); MH-1D = Multi-Horizon JEPA (1D); ${\le}5\%$ = share with causal $\text{FPR}_{\text{hold}}{\le}5\%$. Panel~(b) contrasts accepted subsets against complete $118$-stream systems, routing rejected streams to 1D SPOT. Two-stage ($3.9\%$ median $\text{FPR}_{\text{test}}$) keeps $53.8\%$ at or below $5\%$, vs.\ $60.9\%$ after drift screening ($2.9\%$ median). $^\dagger$Ep.\ = mean false-alarm episodes per $1{,}000$ healthy test steps in our three-seed rerun ($n{=}49$ for three-stage).} \\
 \end{tabular*}\par\vspace{-4pt}\end{table}

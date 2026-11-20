@@ -26,7 +26,7 @@ CreditCard$^*$   & 1  & 29 & \textbf{2.0}  & 0.4  & \textbf{.007} & .002 & 1   &
 \setlength{\tabcolsep}{0.5pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r cc cc c @{}}
 \toprule
-\textbf{(b) Cohort / Exclusion Sensitivity} & {$n_{\text{eval}}$} & {$\boldsymbol{\Delta}\textbf{ER (\%)}$} & {$\boldsymbol{p}_{\textbf{ER}}$} & {$\boldsymbol{\Delta}\textbf{Pt-F1}$} & {$\boldsymbol{p}_{\textbf{F1}}$} & {$\boldsymbol{\Delta}\textbf{FPR}$} \\
+\textbf{(b) Cohort / Exclusion Sensitivity} & {$n_{\text{eval}}$} & {$\boldsymbol{\Delta}\textbf{ER (\%)}$} & {$\boldsymbol{p}^{\text{str}}_{\textbf{ER}}$} & {$\boldsymbol{\Delta}\textbf{Pt-F1}$} & {$\boldsymbol{p}^{\text{str}}_{\textbf{F1}}$} & {$\boldsymbol{\Delta}\textbf{FPR}$} \\
 \midrule
 Zero-tune external ($4$ sets)        & 37  & $+15.1$ & $.0004$      & $+.064$ & ${<}10^{-6}$ & $+.039$ \\
 Archive-heldout GECCO ($1$ set)      & 1   & $+27.0$ & {--}         & $+.155$ & {--}         & $+.001$ \\
@@ -41,5 +41,5 @@ Excl.\ Daphnet ($15$ removed)        & 103 & $+9.8$  & $.0019$      & $+.003$ & 
 Excl.\ Exathlon ($17$ removed)       & 101 & $+9.7$  & $.0022$      & $-.005$ & $.0650$      & $+.011$ \\
 \bottomrule
 \end{tabular*}\par\vspace{1pt}
-\parbox{\columnwidth}{\tiny\emph{Note:} Three-seed causal means ($37+1+80=118$), except Nested LODO ($s{=}42$). $^*$Zero-tuning external datasets ($n{=}37$); $^\dagger$archive-heldout stream excluded from tuning; single-stream exclusions ($n_{\text{eval}}{=}117$) yield ${+}12.0\%\text{--}12.2\%$ ER ($p{<}10^{-4}$).}\vspace{-5pt}
+\parbox{\columnwidth}{\tiny\emph{Note:} Three-seed causal means ($37+1+80=118$), except Nested LODO ($s{=}42$). $p^{\text{str}}$ reports stream-level Wilcoxon $p$-values; exact dataset sign-flip $p_{\text{clus}}$ equals $.125$ on $4/4$ zero-tuning sets$^*$ and $.0625$ with GECCO$^\dagger$. All nine datasets give $p_{\text{clus}}{=}.0039$ on ER ($p_{\text{clus}}{=}.117$ on Point-F1), and eight-fold exclusions give $p_{\text{clus}}{=}.0078$. Single-stream exclusions ($n_{\text{eval}}{=}117$) yield ${+}12.0\%\text{--}12.2\%$ ER.}\vspace{-5pt}
 \end{table}

@@ -137,7 +137,7 @@ def make_figure():
 
     ax1.set_xticks(x_indices)
     ax1.set_xticklabels(x_labels, fontsize=7.0)
-    ax1.set_xlabel("Horizon $S$ (Causal Lag $S{-}1$)", labelpad=3.0)
+    ax1.set_xlabel("Horizon $S$ (Target-Window Offset $S{-}1$)", labelpad=3.0)
     ax1.set_ylabel("Causal Point-F1", labelpad=2.5)
     ax1.set_xlim(-0.44, 4.48)
     ax1.set_ylim(0.002, 0.103)
