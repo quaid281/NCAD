@@ -19,7 +19,7 @@ Stage~1 compresses each raw telemetry window into a bounded $32$-number summary 
 Following the Joint-Embedding Predictive Architecture (JEPA) \cite{lecun2022path}, an online encoder $E_\theta$ and an exponential moving average (EMA) target encoder $E_\phi$ map each window into $D=32$ latent coordinates without representation collapse \cite{grill2020bootstrap, assran2023self}. Each encoder summarizes temporal features using both level statistics (last step, max, mean) and variability statistics (spread, energy, and first differences), projects them through a compact head (Table~\ref{tab:matched_alert}(b)), and applies a final affine-free LayerNorm onto a fixed-radius sphere. Normalization suppresses heavy nominal tails ($\gamma_2$), though dividing by total variance dilutes isolated single-sensor flatlines across channels (Section~\ref{subsec:gating_ablation}). Two lightweight additions keep sharp transients intact and remove static offsets:
 \begin{enumerate}[leftmargin=*,nosep,itemsep=1pt]
     \item \emph{Multi-depth tapping:} Because deep convolutional layers can smooth out brief spikes, both encoders also tap shallow feature blocks directly and blend their last-step and root-mean-square (RMS) summaries into the output through a learned gate bounded at $0.5$.
-    \item \emph{Barycenter centering:} Subtracting a running healthy training mean $\bar{\bm{\mu}}_{\text{ctx}} \in \mathbb{R}^D$ before final LayerNorm removes static training offsets, though post-calibration regime shifts still require live drift monitoring.
+    \item \emph{Barycenter centering:} Subtracting the healthy training mean $\bar{\bm{\mu}}_{\text{ctx}} \in \mathbb{R}^D$ before final LayerNorm prevents an off-center bias from compressing trajectories into one patch of the sphere, spreading nominal states across all directions while leaving post-calibration regime shifts to live drift monitoring.
 \end{enumerate}
 
 \subsection{Stage 2: Multi-Horizon Prediction and Residual Whitening}
@@ -35,7 +35,7 @@ where $\operatorname{sg}(\cdot)$ stops gradients through $E_\phi$. Across each t
 \end{equation}
 avoiding collapse even at small batch size ($B=16 < D=32$) and raising effective rank $\operatorname{RankMe}(z_{\text{tgt}})$ \cite{garrido2023rankme} from $11.6$ to $19.8$.
 
-Raw prediction errors $\mathbf{e}_m(t) = z_{\text{tgt}}^{(m)}(t) - \hat{z}_{\text{tgt}}^{(m)}(t)$ across horizons have unequal scales and correlate across coordinates. Stage~2 centers and decorrelates the flattened error vector $\mathbf{e}_{\text{flat}}(t) \in \mathbb{R}^{MD}$ ($96$ entries for \emph{Lite}) using damped symmetric zero-phase component analysis (ZCA) whitening fitted on healthy training data $\mathbf{X}_{\text{fit}}$:
+Raw prediction errors $\mathbf{e}_m(t) = z_{\text{tgt}}^{(m)}(t) - \hat{z}_{\text{tgt}}^{(m)}(t)$ form an elongated, tilted ellipsoid across horizons and coordinates. Evaluating raw dimensions with independent one-dimensional thresholds discards their covariance structure, collapsing multivariate awareness into isolated scalar checks that miss coordinated off-axis shifts while letting one shared noise mode trip many correlated dials at once (Fig.~\ref{fig:zca_quorum_geometry}(a)). Stage~2 therefore incorporates the healthy covariance matrix first, reshaping the flattened error vector $\mathbf{e}_{\text{flat}}(t) \in \mathbb{R}^{MD}$ ($96$ entries for \emph{Lite}) into an isotropic sphere via damped symmetric zero-phase component analysis (ZCA) whitening on $\mathbf{X}_{\text{fit}}$ (Fig.~\ref{fig:zca_quorum_geometry}(b)):
 \begin{equation}
     \mathbf{e}^{\text{white}}(t) = \mathbf{\Omega}^{1/2}\bigl(\mathbf{e}_{\text{flat}}(t) - \bar{\bm{\mu}}_{\text{res}}\bigr),
 \end{equation}
@@ -47,6 +47,14 @@ where $\mathbf{\Omega}^{1/2}$ applies eigenvalue damping ($10^{-3}$) so unobserv
 \end{aligned}
 \label{eq:stabilized_whitening}
 \end{equation}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.90\textwidth]{figures/zca_quorum_geometry.pdf}
+\vspace{-6pt}
+\caption{Geometric illustration of exact symmetric ZCA whitening and quorum voting ($\sigma_1{=}1.9$, $\sigma_2{=}1.0$, $\rho{=}0.88$). (a)~On raw correlated residuals, a coordinated shift sits inside both the naive one-dimensional box and inflated scalar circle, while a hijacker false-alarms. (b)~ZCA whitening maps the ellipse to an isotropic circle, pushing the coordinated shift into the quorum zone while suppressing the one-dial hijacker.\label{fig:zca_quorum_geometry}}
+\vspace{-6pt}
+\end{figure*}
 
 \subsection{Stage 3: Reynolds Residual Decomposition and Dial Expansion}
 \label{subsec:reynolds_expansion}
@@ -74,7 +82,7 @@ Since $\sum_{j=1}^J (s_j u_{j,\text{cal}})^2 \ge (1+\eta^2)\sum_{j\in\mathcal{H}
 
 \noindent\emph{Concrete illustration:} Consider $J=32$ standard normal coordinates with $\alpha=0.005$, $\beta=0.015$, and $k=2$ hijackers scaled by $\eta=5$. Scalar calibration pushes $\tau_{\text{glob}}$ from $56.3$ to $252.4$, completely masking a $10$-coordinate $3.8\sigma$ fault ($144.4 < 252.4$). The quorum stays invariant at $K_q=3.5$ and detects all $10 > 3.5$ tripped coordinates.
 
-\noindent\emph{Practical scope limits:} In deployment, upstream LayerNorm, whitening, and horizon averaging couple sensors before dials form, so Proposition~\ref{prop:hijacker_isolation} applies to formed dials rather than raw channels. Post-calibration regime shifts also break invariance and require readiness screening and quarantined recalibration (Section~\ref{subsec:regime_shift_modes}).
+\noindent\emph{Practical scope limits:} In deployment, upstream LayerNorm, whitening, and horizon averaging couple sensors before dials form, so Proposition~\ref{prop:hijacker_isolation} applies to formed dials rather than raw channels. Although Stage~2 injects healthy covariance through ZCA whitening before per-dial checks, binarizing each dial at $\tau_j$ still trades continuous joint sensitivity for hijacker isolation: a subtle coordinated shift that keeps every whitened coordinate just below its $98.5$th percentile can pass without tripping a quorum. Post-calibration regime shifts also break invariance and require readiness screening and quarantined recalibration (Section~\ref{subsec:regime_shift_modes}).
 
 \subsection{Stage 4: Circuit-Breaker Panel and Quorum Voting}
 \label{subsec:scoring_function}
