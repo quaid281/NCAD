@@ -29,6 +29,7 @@ COMMON = {
 PROPER = {
     "SMAP", "MSL", "SMD", "GHL", "GECCO", "SWAN", "OPPORTUNITY", "CreditCard", "PSM", "TimesNet", "TranAD",
     "JEPA", "VICReg", "NCAD", "NCADCS", "OpEntropy", "TS", "CICIDS", "DCdetector",
+    "CATCH", "MOMENT", "DADA", "CST", "GL",
     "TimeEval", "SF", "PyTorch", "CUDA", "NVIDIA", "RTX", "BFGS",
     # Page headers, address and keyword macros that survive tag stripping.
     "FL", "SUBMISSION", "FOR", "REVIEW", "IEEEkeywords",

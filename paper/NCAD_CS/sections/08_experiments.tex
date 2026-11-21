@@ -13,7 +13,7 @@ To guarantee zero threshold leakage, each stream's healthy history $\mathbf{X}_{
 \end{enumerate}
 
 \paragraph{Statistical Inference}
-Random seeds are averaged within each stream first (seed standard deviation (SD) $\le 0.008$ on causal F1 and $\le 1.9\%$ on ER), keeping each telemetry stream as the unit of analysis. Because streams from the same facility share hardware, we pair $95\%$ dataset-clustered bootstrap confidence intervals (CIs) with exact dataset sign-flip tests, alongside stream-level paired Wilcoxon tests with Benjamini--Hochberg (BH) control \cite{benjamini1995controlling} across the four primary contrasts.
+Random seeds are averaged within each stream first, with seed standard deviation $\le 0.008$ on causal F1 and $\le 1.9\%$ on ER, keeping each telemetry stream as the unit of analysis. Because streams from the same facility share hardware, we pair $95\%$ dataset-clustered bootstrap confidence intervals (CIs) with exact dataset sign-flip tests, alongside stream-level paired Wilcoxon tests with Benjamini--Hochberg (BH) control \cite{benjamini1995controlling} across the four primary contrasts.
 
 \subsection{Cohorts, Baselines, and Provenance}
 \label{subsec:cohort_repro}
