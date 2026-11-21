@@ -52,7 +52,7 @@ where $\mathbf{\Omega}^{1/2}$ applies eigenvalue damping ($10^{-3}$) so unobserv
 \centering
 \includegraphics[width=0.90\textwidth]{figures/zca_quorum_geometry.pdf}
 \vspace{-6pt}
-\caption{Symmetric ZCA whitening and quorum voting on two correlated dials ($\sigma_1{=}1.9$, $\sigma_2{=}1.0$, $\rho{=}0.88$). (a)~On raw errors, a coordinated shift hides inside the naive 1D box and inflated scalar circle, while a hijacker false-alarms. (b)~ZCA yields unit-variance ($\sigma$) axes; dashed lines mark dynamic $98.5$th-percentile tripwires $\pm\tau_j$. Pink corners require $2/2$ dials, whereas the $128$-dial model sets count quorum $K_{\text{Lite}}$ dynamically per stream.\label{fig:zca_quorum_geometry}}
+\caption{Symmetric ZCA whitening ($\mathbf{\Omega}^{1/2}{=}\mathbf{\Sigma}^{-1/2}$) and quorum voting on two correlated dials ($\sigma_1{=}1.9$, $\sigma_2{=}1.0$, $\rho{=}0.88$). (a)~A coordinated shift hides inside the naive 1D box and scalar circle, while a correlated-mode hijacker false-alarms. (b)~ZCA yields $\sigma$-scaled axes with per-dial $q_{0.985}$ tripwires $\pm\tau_j$, catching the shift while suppressing the single whitened-dial hijacker. Here $2/2$ illustrates a $k$-of-$d$ quorum ($K_{\text{Lite}}{\ll}128$ dynamically per stream).\label{fig:zca_quorum_geometry}}
 \vspace{-6pt}
 \end{figure*}
 

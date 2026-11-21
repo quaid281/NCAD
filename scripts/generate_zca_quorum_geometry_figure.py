@@ -126,21 +126,21 @@ def build_figure(preview_png: Path | None = None) -> None:
         marker="D", s=58, color=COL_HIJACKER, edgecolor="white", lw=0.8, zorder=7,
     )
 
-    # Zero-overlap annotations in Panel (a)
+    # Zero-overlap annotations in Panel (a) — Coordinated Shift placed cleanly outside dotted circle
     ax1.annotate(
         "Coordinated Shift\n(Missed by 1D Box\n& Scalar Norm)",
         xy=(p_coord_raw[0], p_coord_raw[1]),
-        xytext=(-6.15, 4.18),
-        fontsize=8.3, fontweight="bold", color=COL_FAULT, ha="left", va="center",
+        xytext=(-6.45, 4.95),
+        fontsize=8.2, fontweight="bold", color=COL_FAULT, ha="left", va="center",
         arrowprops=dict(arrowstyle="->", color=COL_FAULT, lw=1.15, shrinkA=2, shrinkB=6),
         bbox=halo, zorder=8,
     )
 
     ax1.annotate(
-        "Hijacker\n(False Alarm)",
+        "Mode Hijacker\n(False Alarm)",
         xy=(p_hj_raw[0], p_hj_raw[1]),
-        xytext=(2.60, 4.42),
-        fontsize=8.3, fontweight="bold", color=COL_HIJACKER, ha="center", va="center",
+        xytext=(4.05, 5.20),
+        fontsize=8.1, fontweight="bold", color=COL_HIJACKER, ha="center", va="center",
         arrowprops=dict(arrowstyle="->", color=COL_HIJACKER, lw=1.1, shrinkA=2, shrinkB=5),
         bbox=halo, zorder=8,
     )
@@ -148,7 +148,7 @@ def build_figure(preview_png: Path | None = None) -> None:
     ax1.annotate(
         "Naive 1D Box",
         xy=(tau1_raw, -tau2_raw),
-        xytext=(1.70, -4.10),
+        xytext=(1.75, -4.25),
         fontsize=8.3, fontweight="bold", color=COL_BOX, ha="left", va="top",
         arrowprops=dict(arrowstyle="->", color=COL_BOX, lw=1.0, shrinkA=2, shrinkB=3),
         bbox=halo, zorder=8,
@@ -157,14 +157,14 @@ def build_figure(preview_png: Path | None = None) -> None:
     ax1.annotate(
         "Scalar Norm\n(Inflated by $e_1$)",
         xy=(-3.1, -3.75),
-        xytext=(-6.15, -4.85),
+        xytext=(-6.40, -5.00),
         fontsize=8.2, fontweight="bold", color=COL_SCALAR, ha="left", va="center",
         arrowprops=dict(arrowstyle="->", color=COL_SCALAR, lw=1.0, shrinkA=2, shrinkB=3),
         bbox=halo, zorder=8,
     )
 
-    ax1.set_xlim(-6.45, 6.45)
-    ax1.set_ylim(-6.05, 6.05)
+    ax1.set_xlim(-6.75, 6.75)
+    ax1.set_ylim(-6.20, 6.50)
     ax1.set_aspect("equal", adjustable="box")
     ax1.set_xlabel("Raw Residual $e_1$ (Noisy Dial)")
     ax1.set_ylabel("Raw Residual $e_2$ (Quiet Dial)")
@@ -264,8 +264,8 @@ def build_figure(preview_png: Path | None = None) -> None:
     )
     fig.patches.append(arrow)
     fig.text(
-        0.497, 0.495, "ZCA\nWhitening\n" + r"($\mathbf{\Omega}^{1/2}$)",
-        ha="center", va="bottom", fontsize=8.6, fontweight="bold", color=COL_SCALAR,
+        0.497, 0.495, "ZCA\nWhitening\n" + r"($\mathbf{\Omega}^{1/2}{=}\mathbf{\Sigma}^{-1/2}$)",
+        ha="center", va="bottom", fontsize=8.1, fontweight="bold", color=COL_SCALAR,
     )
 
     # Strict external frameless legend above both panels
