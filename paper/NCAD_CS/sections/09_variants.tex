@@ -66,10 +66,9 @@ Panel: 224B on $M{=}4$ Resid. & \underline{.095} & .235 & \textbf{.690} & \textb
 \midrule
 \textbf{Laminar-JEPA (224-Bit)} & 0.92 & 0.190 & 0.013 & 0.128 & 0.144 & \textbf{0.244} & \textbf{0.311} & \textbf{0.407} & \underline{0.673} & 0.795 & \underline{0.612} & 0.757 \\
 \textbf{Laminar-JEPA (w/o Quench)} & \underline{0.88} & 0.190 & 0.016 & 0.128 & 0.142 & 0.235 & \underline{0.304} & 0.381 & \textbf{0.695} & \underline{0.815} & \textbf{0.631} & \underline{0.765} \\
-\textbf{Laminar-JEPA-Lite (128-Bit)} & 2.33 & 0.182 & 0.010 & \underline{0.061} & 0.133 & \underline{0.242} & 0.301 & \underline{0.397} & 0.650 & 0.811 & 0.560 & \textbf{0.772} \\
+\textbf{Laminar-JEPA-Lite (128-Bit)} & 2.33 & \underline{0.182} & 0.010 & \underline{0.061} & 0.133 & \underline{0.242} & 0.301 & \underline{0.397} & 0.650 & 0.811 & 0.560 & \textbf{0.772} \\
 TS-JEPA (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & \underline{0.161} & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
-Multi-Horizon JEPA (1D) & 2.30 & \underline{0.179} & \textbf{0.006} & 0.078 & 0.050 & 0.148 & 0.259 & 0.331 & 0.478 & 0.752 & 0.562 & 0.698 \\
-Multi-Horizon JEPA ($\alpha_{\text{LT}}{=}0$, 1D) & 2.19 & 0.183 & \textbf{0.006} & 0.083 & 0.055 & 0.149 & 0.261 & 0.330 & 0.439 & 0.755 & 0.578 & 0.711 \\
+Multi-Horizon JEPA (1D) & 2.19 & 0.183 & \textbf{0.006} & 0.083 & 0.055 & 0.149 & 0.261 & 0.330 & 0.439 & 0.755 & 0.578 & 0.711 \\
 JEPA Context Autoencoder & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
 JEPA Frozen Target & 1.16 & \textbf{0.167} & \underline{0.009} & 0.098 & 0.146 & 0.235 & 0.273 & 0.328 & 0.503 & \textbf{0.816} & 0.398 & 0.600 \\
 TS-JEPA ($\ell_2$ Scoring) & 0.91 & 0.214 & 0.018 & 0.077 & 0.156 & 0.209 & 0.272 & 0.324 & 0.538 & 0.728 & 0.418 & 0.599 \\
@@ -99,11 +98,11 @@ TranAD & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 
 \label{subsec:factorial}
 Before turning to the untouched archive, we ask which parts of the detector earn their place and which can be removed (Tables~\ref{tab:ablations} and \ref{tab:matched_alert}).
 
-\noindent\emph{1) Which parts matter (Table~\ref{tab:ablations}(a,b)):} Monitoring coordinates separately drives the causal gain, and a lean configuration keeps all of it. On the $19$-stream cache, splitting the single score into $224$ dials raises causal Point-F1 from $0.013$ to $0.071$ ($p=0.0023$). Position and drift dials alone do even better, reaching $0.098$. In end-to-end retraining, four TCN blocks match five, and three prefixes match four while running $25.5\%$ faster. Predicting the prefixes one after another doubles causal test FPR, so \emph{Lite} predicts them in parallel.
+\noindent\emph{1) Which parts matter (Table~\ref{tab:ablations}(a,b)):} Monitoring coordinates separately drives the causal gain, and Reynolds residual decomposition delivers its sharpest jump with zero physics loss terms. On the $19$-stream cache, splitting the single score into $224$ dials raises causal Point-F1 from $0.013$ to $0.071$ ($p=0.0023$). Adding the $32$ Reynolds mean-drift dials on top of sub-horizon position dials jumps causal Point-F1 from $0.063$ to $0.098$ and cuts delay from $110.6$ to $74.8$ steps, whereas adding fluctuation and endpoint dials lowers causal F1. In end-to-end retraining, four TCN blocks match five, and three prefixes match four while running $25.5\%$ faster. Predicting the prefixes one after another doubles causal test FPR, so \emph{Lite} predicts them in parallel.
 
 \noindent\emph{2) Why a quorum (Table~\ref{tab:matched_alert}(a)):} Simpler per-coordinate rules either flood operators with alarms or go blind. Alarming whenever any of $128$ coordinates crosses its threshold fires on $40.6\%\text{--}66.5\%$ of healthy steps. Strict multiplicity corrections (\v{S}id\'{a}k, BH FDR) ask for p-values smaller than a short calibration set can produce, $(N_{\text{cal}}+1)^{-1}$, so they detect almost nothing. At a matched nominal rate, classical multivariate charts (Hotelling $T^2$, MEWMA, CUSUM) and a conformal minimum p-value still alarm on $21.1\%\text{--}58.6\%$ of healthy steps. Only the dial quorum and Fisher pooling combine useful F1 ($0.098$ and $0.109$) with held-out FPR near $1\%$.
 
-\noindent\emph{3) Whitening choices:} The cheaper whitening options cost nothing under causal scoring. Kronecker ZCA, which whitens each horizon separately, matches dense ZCA within its confidence interval (three seeds: $+0.014$ F1, CI $[-0.006,+0.029]$; single seed: $+0.010$, $p=0.76$). PCA whitening also matches ZCA ($0.087$ vs.\ $0.086$ F1, $p=0.60$), provided the shrinkage in (\ref{eq:stabilized_whitening}) runs in the same rotated basis. Mixing a PCA rotation with raw-axis shrinkage lowers causal F1 from $0.091$ to $0.071$. Dense ZCA keeps an edge only under buffered scoring ($0.166$ vs.\ $0.146$ F1, $p=0.005$).
+\noindent\emph{3) Whitening choices:} The cheaper whitening options cost nothing under causal scoring. Shared per-horizon whitening, which applies one $32\times 32$ covariance factor to each horizon separately instead of one full $96\times 96$ matrix, matches joint ZCA within its confidence interval (three seeds: $+0.014$ F1, CI $[-0.006,+0.029]$; single seed: $+0.010$, $p=0.76$). PCA whitening also matches ZCA ($0.087$ vs.\ $0.086$ F1, $p=0.60$), provided the shrinkage in (\ref{eq:stabilized_whitening}) runs in the same rotated basis. Mixing a PCA rotation with raw-axis shrinkage lowers causal F1 from $0.091$ to $0.071$. Joint ZCA keeps an edge only under buffered scoring ($0.166$ vs.\ $0.146$ F1, $p=0.005$).
 
 \noindent\emph{4) Sensitivity to settings:} Results change little across reasonable settings. \emph{Lite} beats the 1D baseline in ER at every latent width $D\in\{8,16,32,64\}$. Causal F1 stays within $0.080\text{--}0.093$ across damping $\lambda_{\text{damp}}\in[10^{-3},10^{-2}]$, dial quantile $q_{\text{dial}}\in[0.975,0.990]$, and quorum scale $\kappa\in[1.00,1.20]$. Editing predictor weights to suppress noisy coordinates (quenching) leaves F1 unchanged ($0.0901$ vs.\ $0.0904$), so \emph{Lite} omits it.
 
@@ -150,7 +149,7 @@ Before turning to the untouched archive, we ask which parts of the detector earn
 \cmidrule(lr){4-6}
 \textbf{(b) Suite Variant} & \textbf{Backbone ($d_{\text{model}}{=}48$)} & \textbf{Dials} & \textbf{Train.} & \textbf{EMA} & \textbf{Tot.\ MB} \\
 \midrule
-\textbf{Lite} (\ref{tab:core_benchmark},\ref{tab:calibrator_comparison}--\ref{tab:tail_audit}) & $32$D head, $4$-blk, par. & $128{+}0$ & 120--129 & 115--125 & .90--.97 \\
+\textbf{Lite} (\ref{tab:core_benchmark},\ref{tab:calibrator_comparison}--\ref{tab:dataset_lodo_audit}) & $32$D head, $4$-blk, par. & $128{+}0$ & 120--129 & 115--125 & .90--.97 \\
 \textbf{224B} (\ref{tab:calibrator_comparison}) & $32$D head, $4$-blk, par. & $224{+}32$ & 120--129 & 115--125 & .90--.97 \\
 \textbf{Lite-64D} (\ref{subsec:computational_deployment}) & $64$D head, $4$-blk, par. & $128{+}0$ & 142--152 & 137--147 & 1.06--1.14 \\
 \textbf{Factor} (\ref{tab:ablations}b) & $64$D, dense rFFT, par. & $128{+}0$ & 142--223 & 137--219 & 1.06--1.69 \\

@@ -3,9 +3,8 @@
 Validates:
 1. KinematicAdaptiveLatentJEPA (CMU AHEAD 2026)
 2. LatentDeliberationJEPA (DMLR & Monet CVPR 2026)
-3. SpectralPhysicsLatentJEPA (Polymathic AI NeurIPS 2025)
-4. MultiAgentConsensusLatentJEPA (Interlat ACL 2026)
-5. Model registry and builder integration across configurations.
+3. MultiAgentConsensusLatentJEPA (Interlat ACL 2026)
+4. Model registry and builder integration across configurations.
 """
 
 from __future__ import annotations
@@ -22,8 +21,6 @@ from src.models import (
     LatentDeliberationJEPAModel,
     MultiAgentConsensusLatentJEPA,
     MultiAgentConsensusLatentJEPAModel,
-    SpectralPhysicsLatentJEPA,
-    SpectralPhysicsLatentJEPAModel,
 )
 from src.models.registry import canonical_model_type, is_jepa_model, model_spec
 
@@ -124,45 +121,6 @@ class TestLatentDeliberationJEPA:
         assert model.precision_fitted.item() is True
 
 
-class TestSpectralPhysicsLatentJEPA:
-    """Test suite for SpectralPhysicsLatentJEPA."""
-
-    def test_spectral_psd_and_oscillators(self, dummy_batch):
-        ctx, tgt = dummy_batch
-        B, C_len, C = ctx.shape
-        H_len = tgt.shape[1]
-        latent_dim = 32  # divisible by 2
-
-        model = SpectralPhysicsLatentJEPAModel(
-            input_dim=C,
-            latent_dim=latent_dim,
-            hidden_dim=48,
-            dropout=0.0,
-        )
-
-        z_ctx, z_tgt, z_ctx_pred, z_sus_pred = model(ctx, tgt)
-        assert z_ctx.shape == (B, C_len, latent_dim)
-        assert z_tgt.shape == (B, H_len, latent_dim)
-        assert z_sus_pred.shape == (B, H_len, latent_dim)
-
-        loss, metrics = model.compute_objective(ctx, tgt)
-        assert torch.isfinite(loss)
-        assert "loss_spectral" in metrics
-        assert metrics["loss_spectral"] >= 0.0
-
-        loss.backward()
-        for name, param in model.named_parameters():
-            if param.requires_grad and not name.startswith("target_encoder"):
-                assert param.grad is not None, f"Missing grad for {name}"
-
-        scores = model.compute_predictive_discrepancy(ctx, tgt)
-        assert scores.shape == (B,)
-        assert torch.all(scores > 0)
-
-        model.fit_mahalanobis_covariance(ctx, tgt)
-        assert model.precision_fitted.item() is True
-
-
 class TestMultiAgentConsensusLatentJEPA:
     """Test suite for MultiAgentConsensusLatentJEPA."""
 
@@ -216,8 +174,6 @@ class TestRegistryAndBuilderIntegration:
             ("latent_deliberation_jepa", "latent_deliberation_jepa"),
             ("deliberation_jepa", "latent_deliberation_jepa"),
             ("monet_jepa", "latent_deliberation_jepa"),
-            ("spectral_physics_latent_jepa", "spectral_physics_latent_jepa"),
-            ("spectral_latent_jepa", "spectral_physics_latent_jepa"),
             ("multiagent_consensus_latent_jepa", "multiagent_consensus_latent_jepa"),
             ("interlat_jepa", "multiagent_consensus_latent_jepa"),
         ],
@@ -235,7 +191,6 @@ class TestRegistryAndBuilderIntegration:
         [
             "kinematic_adaptive_latent_jepa",
             "latent_deliberation_jepa",
-            "spectral_physics_latent_jepa",
             "multiagent_consensus_latent_jepa",
         ],
     )

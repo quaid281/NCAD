@@ -22,9 +22,6 @@ from src.models.geometric_layers import (
     MovingTangentProjection,
     ResolventPurification,
 )
-from src.models.jepa.reynolds_stress_jepa import ReynoldsStressJEPA
-from src.models.jepa.potential_flow_jepa import PotentialFlowJEPA
-from src.models.jepa.harmonic_spring_jepa import HarmonicSpringJEPA
 
 
 def test_moving_tangent_projection_orthogonality():
@@ -84,107 +81,6 @@ def test_resolvent_purification_spectral_bounds():
     assert not torch.isnan(L.grad).any()
 
 
-def test_reynolds_stress_jepa_resolvent_integration():
-    B, L_ctx, L_tgt, C = 4, 10, 5, 8
-    encoder = nn.Linear(C, 16)
-    
-    # Wrap linear encoder to accept (B, L, C) and pool
-    class MeanPoolEncoder(nn.Module):
-        def __init__(self, lin):
-            super().__init__()
-            self.lin = lin
-        def forward(self, x):
-            return self.lin(x).mean(dim=1)
-            
-    ctx_enc = MeanPoolEncoder(encoder)
-    model = ReynoldsStressJEPA(
-        context_encoder=ctx_enc,
-        latent_dim=16,
-        stress_dim=8,
-        alpha_stress=0.5,
-    )
-    
-    ctx = torch.randn(B, L_ctx, C)
-    tgt = torch.randn(B, L_tgt, C)
-    
-    total_loss, metrics = model.compute_objective(ctx, tgt)
-    assert isinstance(total_loss, torch.Tensor)
-    assert not torch.isnan(total_loss)
-    assert total_loss.item() > 0
-    # Cone defect must be identically 0 by construction
-    assert metrics["cone_defect"] == 0.0
-    assert "pred_loss" in metrics
-    assert "stress_loss" in metrics
-    
-    # Test predictive discrepancy
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert not torch.isnan(disc).any()
-
-
-def test_potential_flow_jepa_tangent_integration():
-    B, L_ctx, L_tgt, C = 4, 10, 5, 8
-    class MeanPoolEncoder(nn.Module):
-        def __init__(self, lin):
-            super().__init__()
-            self.lin = lin
-        def forward(self, x):
-            return self.lin(x).mean(dim=1)
-            
-    ctx_enc = MeanPoolEncoder(nn.Linear(C, 16))
-    model = PotentialFlowJEPA(
-        context_encoder=ctx_enc,
-        latent_dim=16,
-        predictor_hidden_dim=32,
-    )
-    
-    ctx = torch.randn(B, L_ctx, C)
-    tgt = torch.randn(B, L_tgt, C)
-    
-    total_loss, metrics = model.compute_objective(ctx, tgt)
-    assert isinstance(total_loss, torch.Tensor)
-    assert not torch.isnan(total_loss)
-    assert "loss_flow" in metrics
-    assert metrics["loss_flow"] > 0
-    
-    # Test discrepancy
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert not torch.isnan(disc).any()
-
-
-def test_harmonic_spring_jepa_resolvent_integration():
-    B, L_ctx, L_tgt, C = 4, 10, 5, 8
-    class MeanPoolEncoder(nn.Module):
-        def __init__(self, lin):
-            super().__init__()
-            self.lin = lin
-        def forward(self, x):
-            return self.lin(x).mean(dim=1)
-            
-    ctx_enc = MeanPoolEncoder(nn.Linear(C, 16))
-    model = HarmonicSpringJEPA(
-        context_encoder=ctx_enc,
-        latent_dim=16,
-        hidden_dim=32,
-        rank=4,
-    )
-    
-    ctx = torch.randn(B, L_ctx, C)
-    tgt = torch.randn(B, L_tgt, C)
-    
-    total_loss, metrics = model.compute_objective(ctx, tgt)
-    assert isinstance(total_loss, torch.Tensor)
-    assert not torch.isnan(total_loss)
-    assert "loss_energy" in metrics
-    assert metrics["loss_energy"] > 0
-    
-    # Test discrepancy
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert not torch.isnan(disc).any()
-
-
 def test_hankel_polynomial_filter_properties():
     B, L, C = 4, 32, 8
     degree = 3
@@ -215,74 +111,6 @@ def test_hankel_polynomial_filter_properties():
     # 4. Check moments computation
     moments = filter_layer.compute_hankel_moments(rand_signal)
     assert moments.shape == (B, degree + 1, C)
-
-
-def test_operator_entropy_jepa_resolvent_integration():
-    from src.models.jepa.operator_entropy_jepa import OperatorEntropyJEPA
-    B, L_ctx, L_tgt, C = 4, 10, 5, 8
-    class MeanPoolEncoder(nn.Module):
-        def __init__(self, lin):
-            super().__init__()
-            self.lin = lin
-        def forward(self, x):
-            return self.lin(x).mean(dim=1)
-
-    ctx_enc = MeanPoolEncoder(nn.Linear(C, 16))
-    model = OperatorEntropyJEPA(
-        context_encoder=ctx_enc,
-        latent_dim=16,
-        hidden_dim=32,
-    )
-    assert hasattr(model, "resolvent")
-
-    ctx = torch.randn(B, L_ctx, C)
-    tgt = torch.randn(B, L_tgt, C)
-
-    total_loss, metrics = model.compute_objective(ctx, tgt)
-    assert isinstance(total_loss, torch.Tensor)
-    assert not torch.isnan(total_loss)
-    assert metrics["pred_loss"] > 0
-    assert "vn_loss" in metrics
-    assert "gap_loss" in metrics
-
-    # Test discrepancy
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert not torch.isnan(disc).any()
-
-
-def test_tangent_harmonic_jepa_objective_simplification():
-    from src.models.jepa.tangent_harmonic_jepa import TangentHarmonicJEPA
-    B, L_ctx, L_tgt, C = 4, 10, 5, 8
-    class MeanPoolEncoder(nn.Module):
-        def __init__(self, lin):
-            super().__init__()
-            self.lin = lin
-        def forward(self, x):
-            return self.lin(x).mean(dim=1)
-
-    ctx_enc = MeanPoolEncoder(nn.Linear(C, 16))
-    model = TangentHarmonicJEPA(
-        context_encoder=ctx_enc,
-        latent_dim=16,
-        hidden_dim=32,
-    )
-
-    ctx = torch.randn(B, L_ctx, C)
-    tgt = torch.randn(B, L_tgt, C)
-
-    total_loss, metrics = model.compute_objective(ctx, tgt)
-    assert isinstance(total_loss, torch.Tensor)
-    assert not torch.isnan(total_loss)
-    assert metrics["harmonic_loss"] > 0
-    # Euclidean variance loss must default to 0.0 in simplified objective
-    assert metrics["std_loss"] == 0.0
-    assert metrics["cov_loss"] == 0.0
-
-    # Test discrepancy
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert not torch.isnan(disc).any()
 
 
 def test_resolvent_purification_bottleneck():

@@ -121,12 +121,9 @@ def test_hankel_moment_filter():
 
 
 def test_top_models_pure_objective():
-    """Verify that updated top models compute clean, pure objectives without auxiliary penalties."""
-    from src.models.jepa.reynolds_stress_jepa import ReynoldsStressJEPA
+    """Verify that active models compute clean, pure objectives without auxiliary penalties."""
     from src.models.jepa.causal_ssm_flow_jepa import CausalSSMFlowJEPA
-    from src.models.jepa.operator_entropy_jepa import OperatorEntropyJEPA
     from src.models.jepa.flow_ts_jepa import FlowTSJEPAModel
-    from src.models.jepa.harmonic_spring_jepa import HarmonicSpringJEPAModel
     from src.models.encoders.tcn_encoder import HybridTCNEncoder
 
     B, L_ctx, L_tgt, C, D = 4, 32, 16, 4, 16
@@ -135,37 +132,17 @@ def test_top_models_pure_objective():
     ctx = torch.randn(B, L_ctx, C)
     tgt = torch.randn(B, L_tgt, C)
 
-    # 1. ReynoldsStressJEPA with Hankel & Cohn-Elkies and Pure MSE
-    reynolds = ReynoldsStressJEPA(context_encoder=encoder, latent_dim=D)
-    loss1, diag1 = reynolds.compute_objective(ctx, tgt)
-    assert torch.isfinite(loss1)
-    loss1.backward()
-
-    # 2. CausalSSMFlowJEPA with GT Interlacing and Pure Flow Matching
+    # 1. CausalSSMFlowJEPA with GT Interlacing and Pure Flow Matching
     causal_flow = CausalSSMFlowJEPA(in_channels=C, latent_dim=D, hidden_dim=16, node_dim=16)
     loss2, diag2 = causal_flow.compute_objective(ctx, tgt)
     assert torch.isfinite(loss2)
     assert "cfm_loss" in diag2
-    # Confirms loss is purely CFM without added penalties: total_loss == cfm_loss
     assert abs(diag2["total_loss"] - diag2["cfm_loss"]) < 1e-6
     loss2.backward()
 
-    # 3. OperatorEntropyJEPA with Cohn-Elkies and Pure MSE
-    op_entropy = OperatorEntropyJEPA(context_encoder=encoder, latent_dim=D)
-    loss3, diag3 = op_entropy.compute_objective(ctx, tgt)
-    assert torch.isfinite(loss3)
-    loss3.backward()
-
-    # 4. FlowTSJEPAModel with MovingSubspaceProjector and Pure Flow Matching
+    # 2. FlowTSJEPAModel with MovingSubspaceProjector and Pure Flow Matching
     flow_jepa = FlowTSJEPAModel(context_encoder=encoder, latent_dim=D, predictor_hidden_dim=16)
     loss4, diag4 = flow_jepa.compute_objective(ctx, tgt)
     assert torch.isfinite(loss4)
     assert "flow_loss" in diag4
     loss4.backward()
-
-    # 5. HarmonicSpringJEPAModel with Hankel and Pure Potential Energy
-    spring = HarmonicSpringJEPAModel(context_encoder=encoder, latent_dim=D, hidden_dim=16)
-    loss5, diag5 = spring.compute_objective(ctx, tgt)
-    assert torch.isfinite(loss5)
-    assert "loss_energy" in diag5
-    loss5.backward()

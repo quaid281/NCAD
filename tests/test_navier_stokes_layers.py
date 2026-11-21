@@ -21,9 +21,7 @@ from src.models.geometric_layers import (
     RadialHeatExteriorBoundary,
 )
 from src.models.encoders.tcn_encoder import HybridTCNEncoder
-from src.models.jepa.reynolds_stress_jepa import ReynoldsStressJEPAModel, ReynoldsStressClosureHead
 from src.models.jepa.flow_ts_jepa import FlowTSJEPAModel, FlowLatentPredictor
-from src.models.jepa.operator_entropy_jepa import OperatorEntropyJEPAModel
 
 
 class TestNavierStokesLayers:
@@ -144,37 +142,7 @@ class TestNavierStokesLayers:
 
 
 class TestModelIntegrations:
-    """Test end-to-end forward passes and objectives for upgraded JEPA models."""
-
-    def test_reynolds_stress_jepa_integration(self):
-        """Verify ReynoldsStressJEPAModel with ShearingWaveletPulseBlock & AdmissibleStressConeProjection."""
-        B, T, C, D = 4, 32, 3, 16
-        encoder = HybridTCNEncoder(input_dim=C, latent_dim=D)
-        model = ReynoldsStressJEPAModel(
-            context_encoder=encoder,
-            latent_dim=D,
-            stress_dim=8,
-            use_shearing_pulses=True,
-            use_admissible_cone=True,
-        )
-
-        ctx = torch.randn(B, T, C)
-        tgt = torch.randn(B, T, C)
-
-        z_pred, z_tgt, stress_diff = model(ctx, tgt)
-        assert z_pred.shape == (B, D)
-        assert z_tgt.shape == (B, D)
-        assert stress_diff.shape == (B,)
-        assert torch.all(stress_diff >= 0.0)
-
-        loss, metrics = model.compute_objective(ctx, tgt)
-        assert not torch.isnan(loss) and loss.item() > 0
-        assert "pred_loss" in metrics
-
-        # Anomaly scoring
-        disc = model.compute_predictive_discrepancy(ctx, tgt)
-        assert disc.shape == (B,)
-        assert torch.all(disc >= 0.0)
+    """Test end-to-end forward passes and objectives for active JEPA models."""
 
     def test_flow_ts_jepa_stokes_curl_integration(self):
         """Verify FlowTSJEPAModel with StokesStreamCurlFilter."""
@@ -197,28 +165,6 @@ class TestModelIntegrations:
         assert disc.shape == (B,)
         assert torch.all(disc >= 0.0)
 
-    def test_operator_entropy_jepa_radial_heat_integration(self):
-        """Verify OperatorEntropyJEPAModel with RadialHeatExteriorBoundary."""
-        B, T, C, D = 4, 32, 2, 16
-        encoder = HybridTCNEncoder(input_dim=C, latent_dim=D)
-        model = OperatorEntropyJEPAModel(
-            context_encoder=encoder,
-            latent_dim=D,
-            use_radial_heat=True,
-        )
-
-        ctx = torch.randn(B, T, C)
-        tgt = torch.randn(B, T, C)
-
-        loss, metrics = model.compute_objective(ctx, tgt)
-        assert not torch.isnan(loss) and loss.item() > 0
-        assert "pred_loss" in metrics
-
-        disc = model.compute_predictive_discrepancy(ctx, tgt)
-        assert disc.shape == (B,)
-        assert torch.all(disc >= 0.0)
-
-
     def test_hybrid_tcn_reynolds_dual_moment_and_3mvp(self):
         """Verify 3-MVP statistical branch, K<=1 stem short-circuit, and exact Reynolds trajectory identity."""
         B, T, K, D, F_dim = 4, 32, 5, 16, 32
@@ -235,12 +181,3 @@ class TestModelIntegrations:
         assert z_traj.shape == (B, T, D)
         # Exact Reynolds decomposition identity: time-mean of Z_{1:T} equals macro z_bar
         assert torch.allclose(z_traj.mean(dim=1), z_bar, atol=1e-5)
-
-        model = ReynoldsStressJEPAModel(context_encoder=enc_multi, latent_dim=D, stress_dim=8)
-        model.cov_mode = "temporal"
-        tgt = torch.randn(B, 16, K)
-        z_tgt = model._extract_target(tgt)
-        sigma_obs = model.compute_observed_stress(z_tgt, target_windows=tgt)
-        assert sigma_obs.shape == (B, 8, 8)
-        evals = torch.linalg.eigvalsh(sigma_obs)
-        assert evals.min().item() >= 1e-3 - 1e-6

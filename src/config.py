@@ -57,26 +57,8 @@ class CSMConfig:
     device: str = "auto"
     mapping_method: str = "trailing"  # Causal trailing window alignment (zero lookahead)
     use_pa: bool = True
-    rank: int = 4  # Low-rank stiffness dimension for harmonic_spring_jepa
-    harmonic_alpha: float = 1.0  # Tangent projector weight for tangent_harmonic_jepa
-    harmonic_beta: float = 0.5  # Degree-2 Gegenbauer weight for tangent_harmonic_jepa
     use_mellin_damping: bool = False  # Two-shell Mellin damping for Flow-JEPA
     use_resolvent_covariance: bool = True  # Resolvent operator precision vs standard pinv
-
-    alpha_entropy: float = 0.5  # Operator entropy regularizer weight for operator_entropy_jepa
-    alpha_rep_entropy: float = 0.0  # Representation entropy regularizer weight for operator_entropy_jepa (0.0: decoupled)
-    beta_lyapunov: float = 0.02  # Discrete Lyapunov defect penalty weight for operator_entropy_jepa (0.02: activated)
-    use_koopman_matrix: bool = True  # Use explicit Koopman transition matrix for operator_entropy_jepa
-    use_cayley_operator: bool = False  # Use Cayley transform orthogonal-dissipative gate for operator_entropy_jepa
-    use_radial_heat: bool = False  # Inert math layer excised by default for operator_entropy_jepa
-    use_cohn_elkies: bool = False  # Inert math layer excised by default for operator_entropy_jepa
-
-    n_regimes: int = 4  # Number of Grassmannian discrete regime subspaces for potential_flow_jepa
-    subspace_dim: int = 8  # Dimension of each regime subspace for potential_flow_jepa
-    use_regimes: bool = True  # Whether to use discrete regime projections in potential_flow_jepa
-    grassmann_temperature: float = 0.1  # Softmax temperature for regime routing in potential_flow_jepa
-    grassmann_load_balance_weight: float = 0.0  # Switch-style regime load-balancing aux loss weight
-    grassmann_eval_hard_routing: bool = True  # If False, eval uses soft regime mixtures instead of argmax one-hot
     conformal_alpha: float = 0.01  # Target significance level (false alarm bound) for conformal thresholding
 
     _VALID_ENCODERS = {"hybrid_tcn", "multi_scale_tcn", "relational_gat", "selective_ssm", "ssm"}

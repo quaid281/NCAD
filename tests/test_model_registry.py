@@ -87,9 +87,6 @@ def test_build_ts_jepa_model_all_canonical_variants():
             latent_dim=16,
             filters=16,
             tcn_layers=2,
-            rank=2,
-            n_regimes=2,
-            subspace_dim=4,
         )
         model = build_ts_jepa_model(config, input_dim=input_dim, device=device)
         assert model is not None
@@ -107,14 +104,13 @@ def test_model_categories():
     baselines = sota_baseline_choices()
     ablations = ablation_model_choices()
 
-    assert "operator_entropy_jepa" in primaries
+    assert "laminar_jepa_lite" in primaries
     assert "ts_jepa" in primaries
 
     assert "timesnet" in baselines
     assert "tranad" in baselines
     assert "anomaly_transformer" in baselines
 
-    assert "reynolds_stress_jepa" in ablations
-    assert "potential_flow_jepa" in ablations
+    assert "delta_jepa" in ablations
 
 

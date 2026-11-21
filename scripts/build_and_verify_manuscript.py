@@ -184,7 +184,7 @@ def check_overfull_hboxes():
     return True
 
 
-MAX_TABLES = 6
+MAX_TABLES = 5
 
 
 def check_table_cap():
@@ -202,9 +202,9 @@ def check_table_cap():
     n_tables = len(re.findall(r"\\begin\{table\*?\}", text))
     print(f"  -> Active tables in manuscript: {n_tables} (Hard ceiling: {MAX_TABLES})")
     if n_tables > MAX_TABLES:
-        warn(f"Table count ({n_tables}) exceeds [INV-MAX-6-TABLES] cap of {MAX_TABLES}!")
+        warn(f"Table count ({n_tables}) exceeds [INV-MAX-5-TABLES] cap of {MAX_TABLES}!")
         return False
-    print(f"  [OK] Table count is within [INV-MAX-6-TABLES] ({n_tables}/{MAX_TABLES}).")
+    print(f"  [OK] Table count is within [INV-MAX-5-TABLES] ({n_tables}/{MAX_TABLES}).")
     return True
 
 def main():
@@ -248,7 +248,7 @@ def main():
     else:
         print(f"  [OK] {STANDALONE_PDF.name}: 0 rendered '??' or '[?]' issues.")
         
-    # Check page budget, zero margin spills, and <= 6 table cap
+    # Check page budget, zero margin spills, and <= 5 table cap
     budget_ok = check_page_budget()
     spill_ok = check_overfull_hboxes()
     table_ok = check_table_cap()
@@ -272,7 +272,7 @@ def main():
         if not budget_ok:
             print(f" [ACTION REQUIRED] Reduce text/figures to satisfy the <= {MAX_PAGE_BUDGET} page ceiling.")
         if not table_ok:
-            print(f" [ACTION REQUIRED] Reduce tables to satisfy [INV-MAX-6-TABLES] (<= {MAX_TABLES} tables).")
+            print(f" [ACTION REQUIRED] Reduce tables to satisfy [INV-MAX-5-TABLES] (<= {MAX_TABLES} tables).")
         if not ai_audit_ok:
             print(" [ACTION REQUIRED] Eliminate identified AI writing patterns per docs/SKILL.md.")
         if not acronym_ok:

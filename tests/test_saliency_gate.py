@@ -7,11 +7,7 @@ import torch.nn as nn
 
 from src.models.geometric_layers import CoordinateSaliencyGate, CausalChannelSaliencyGate
 from src.models.encoders.tcn_encoder import HybridTCNEncoder
-from src.models.jepa.reynolds_stress_jepa import ReynoldsStressJEPAModel
-from src.models.jepa.operator_entropy_jepa import OperatorEntropyJEPAModel
-from src.models.jepa.potential_flow_jepa import PotentialFlowJEPAModel
 from src.models.jepa.ts_jepa import TSJEPAModel
-from src.models.jepa.harmonic_spring_jepa import HarmonicSpringJEPAModel
 
 
 class DummyEncoder(nn.Module):
@@ -114,69 +110,13 @@ def test_saliency_gate_gradient_flow():
 
 
 # =============================================================================
-# Integration Tests Across Top 5 Models
+# Integration Tests Across Core JEPA Models
 # =============================================================================
-
-def test_reynolds_stress_jepa_saliency_discrepancy():
-    B, T_ctx, T_tgt, C, D = 2, 32, 16, 4, 16
-    encoder = DummyEncoder(in_features=C, latent_dim=D)
-    model = ReynoldsStressJEPAModel(context_encoder=encoder, latent_dim=D, stress_dim=8)
-    
-    ctx = torch.randn(B, T_ctx, C)
-    tgt = torch.randn(B, T_tgt, C)
-    
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert torch.all(torch.isfinite(disc))
-    assert torch.all(disc >= 0.0)
-
-
-def test_operator_entropy_jepa_saliency_discrepancy():
-    B, T_ctx, T_tgt, C, D = 2, 32, 16, 4, 16
-    encoder = DummyEncoder(in_features=C, latent_dim=D)
-    model = OperatorEntropyJEPAModel(context_encoder=encoder, latent_dim=D)
-    
-    ctx = torch.randn(B, T_ctx, C)
-    tgt = torch.randn(B, T_tgt, C)
-    
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert torch.all(torch.isfinite(disc))
-    assert torch.all(disc >= 0.0)
-
-
-def test_potential_flow_jepa_saliency_discrepancy():
-    B, T_ctx, T_tgt, C, D = 2, 32, 16, 4, 16
-    encoder = DummyEncoder(in_features=C, latent_dim=D)
-    model = PotentialFlowJEPAModel(context_encoder=encoder, latent_dim=D, predictor_layers=2)
-    
-    ctx = torch.randn(B, T_ctx, C)
-    tgt = torch.randn(B, T_tgt, C)
-    
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert torch.all(torch.isfinite(disc))
-    assert torch.all(disc >= 0.0)
-
 
 def test_ts_jepa_saliency_discrepancy():
     B, T_ctx, T_tgt, C, D = 2, 32, 16, 4, 16
     encoder = DummyEncoder(in_features=C, latent_dim=D)
     model = TSJEPAModel(context_encoder=encoder, latent_dim=D)
-    
-    ctx = torch.randn(B, T_ctx, C)
-    tgt = torch.randn(B, T_tgt, C)
-    
-    disc = model.compute_predictive_discrepancy(ctx, tgt)
-    assert disc.shape == (B,)
-    assert torch.all(torch.isfinite(disc))
-    assert torch.all(disc >= 0.0)
-
-
-def test_harmonic_spring_jepa_saliency_discrepancy():
-    B, T_ctx, T_tgt, C, D = 2, 32, 16, 4, 16
-    encoder = DummyEncoder(in_features=C, latent_dim=D)
-    model = HarmonicSpringJEPAModel(context_encoder=encoder, latent_dim=D)
     
     ctx = torch.randn(B, T_ctx, C)
     tgt = torch.randn(B, T_tgt, C)

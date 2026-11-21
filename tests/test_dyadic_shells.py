@@ -8,8 +8,7 @@ import torch.nn as nn
 from src.models.geometric_layers import LittlewoodPaleyDyadicBlock
 from src.models.encoders.tcn_encoder import HybridTCNEncoder
 from src.models.encoders.relational_gat_encoder import RelationalGATEncoder
-from src.models.jepa.reynolds_stress_jepa import ReynoldsStressJEPAModel
-from src.models.jepa.potential_flow_jepa import PotentialFlowJEPAModel
+from src.models.laminar_lite import LaminarJEPALiteModel, LaminarLiteEncoder
 
 
 def test_dyadic_partition_of_unity():
@@ -137,19 +136,19 @@ def test_relational_gat_encoder_dyadic_integration():
     assert torch.all(torch.isfinite(latent))
 
 
-def test_reynolds_stress_jepa_with_dyadic_encoder():
-    """Verify end-to-end forward pass and discrepancy computation for ReynoldsStressJEPA
-    using the Littlewood-Paley dyadic context encoder."""
-    B, T_ctx, T_tgt, C, D = 2, 128, 32, 4, 16
-    encoder = HybridTCNEncoder(input_dim=C, latent_dim=D, filters=32, tcn_layers=2, use_dyadic_shells=True)
-    model = ReynoldsStressJEPAModel(context_encoder=encoder, latent_dim=D, stress_dim=8)
-    
+def test_laminar_lite_with_dyadic_encoder():
+    """Verify end-to-end forward pass and discrepancy computation for LaminarJEPALiteModel
+    using the dyadic multiscale context encoder."""
+    B, T_ctx, T_tgt, C, D = 2, 128, 32, 25, 16
+    encoder = LaminarLiteEncoder(input_dim=C, latent_dim=D, filters=32, tcn_layers=2, dyadic_min_channels=25)
+    model = LaminarJEPALiteModel(context_encoder=encoder, latent_dim=D)
+
     ctx = torch.randn(B, T_ctx, C)
     tgt = torch.randn(B, T_tgt, C)
-    
+
     loss, metrics = model.compute_objective(ctx, tgt)
     assert torch.isfinite(loss)
-    
+
     disc = model.compute_predictive_discrepancy(ctx, tgt)
     assert disc.shape == (B,)
     assert torch.all(torch.isfinite(disc))
