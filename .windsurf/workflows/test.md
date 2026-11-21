@@ -1,1 +1,0 @@
-In this directory I want to build a notebook where we can visualize the telemetry 

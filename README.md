@@ -1,216 +1,136 @@
-# NCAD-CS: Neural Contextual Anomaly Detection with Counterfactual Successor Memory
+# Laminar-JEPA-Lite: Multi-Horizon JEPAs and Coordinate Circuit-Breaker Panels for Multivariate Time-Series Anomaly Detection
 
-[![Python](https://img.shields.io/badge/python-3.13%2B-blue.svg)](pyproject.toml)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Framework](https://img.shields.io/badge/architecture-TS--JEPA%20%2B%20VICReg-purple.svg)](src/models/jepa/ts_jepa.py)
-[![Version](https://img.shields.io/badge/version-5.0.0-blue.svg)](src/__init__.py)
+[![Framework](https://img.shields.io/badge/architecture-Laminar--JEPA--Lite-purple.svg)](src/models/laminar_lite.py)
 
-**NCAD-CS** is a non-contrastive self-supervised deep learning framework for unsupervised multivariate time-series anomaly detection. The core architecture is **TS-JEPA** (Time-Series Joint-Embedding Predictive Architecture), which predicts future system states directly in representation space rather than reconstructing raw noisy waveforms or relying on hand-crafted synthetic anomaly injections. This is extended with Flow Matching, Patch Tokenization, Multi-Scale prediction, Graph Attention, and Selective State-Space encoder variants.
-
----
-
-## Key Innovations
-
-1. **Latent World Model Dynamics (Zero Signal Reconstruction):**
-   Predicts future latent states from context embeddings via a non-contrastive VICReg (Invariance, Variance hinge, Covariance decorrelation) objective.
-
-2. **Conditional Flow Matching (OT-CFM) Variants:**
-   `FlowTSJEPA` and `PatchFlowJEPA` replace deterministic latent regression with continuous Optimal Transport Flow Matching, learning a neural velocity field that transports Gaussian prior noise to target latents along straight ODE paths.
-
-3. **Covariance-Whitened (Mahalanobis) Discrepancy Scoring:**
-   Normalizes prediction residuals through the learned empirical precision tensor, capturing directional uncertainty across multi-sensor axes and eliminating threshold collapse.
-
-4. **Extreme Value Theory (EVT / SPOT) Tail Calibration:**
-   Fits asymptotic Generalized Pareto Distributions (GPD) on normal latent predictive residuals to establish principled, false-alarm-free anomaly thresholds under the Pickands-Balkema-de Haan theorem.
-
-5. **Spatial-Temporal Relational Graph Attention:**
-   Optional multi-head graph attention layers (`RelationalGAT_JEPAModel`) to capture dynamic inter-sensor topological dependencies in multi-sensor networks.
-
-6. **Multi-Scale Hierarchical Prediction:**
-   `MultiScaleTSJEPA` predicts target representations at multiple horizons simultaneously, capturing both short-term and long-term dynamical structure.
+Official implementation and reproducible evaluation suite for the manuscript *"Multi-Horizon Joint-Embedding Predictive Architectures and Coordinate Circuit-Breaker Panels for Multivariate Time-Series Anomaly Detection"* (submitted to IEEE Transactions on Neural Networks and Learning Systems).
 
 ---
 
-## Model Variants
+## Overview
 
-| Model | Registry Name | Architecture | Encoder | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| **TS-JEPA** | `ts_jepa` | JEPA + VICReg | TCN | Primary model: latent predictive coding with VICReg loss |
-| **Patch-TS-JEPA** | `patch_ts_jepa` | JEPA + VICReg | Patch Transformer | Patch-tokenized Transformer encoder variant |
-| **GAT-JEPA** | `gat_jepa` | JEPA + VICReg | TCN + GAT | Relational graph-attention for inter-sensor dependencies |
-| **Flow-JEPA** | `flow_jepa` | OT-CFM + VICReg | TCN | Conditional Flow Matching with velocity field predictor |
-| **Patch-Flow-JEPA** | `patch_flow_jepa` | OT-CFM + VICReg | Patch Transformer | Patch-tokenized Flow Matching with cross-attention predictor |
-| **MultiScale-TS-JEPA** | `multiscale_ts_jepa` | JEPA + VICReg | Multi-Scale TCN | Multi-horizon hierarchical prediction heads |
-| **Tangent-Harmonic-JEPA** | `tangent_harmonic_jepa` | Tangent Harmonics + VICReg | TCN | Moving tangent-harmonic projection on S^{D-1} with Gegenbauer discrepancy |
-| **NCAD** | `ncad` | Contrastive | TCN | Legacy NCAD contrastive encoder baseline |
+**Laminar-JEPA-Lite** adapts fluid-mechanics residual diagnostics to self-supervised latent predictive anomaly detection without imposing physics-loss penalty terms on uncalibrated sensors:
 
-
-### SOTA Baselines (for comparison)
-
-| Baseline | Year | Architecture |
-| :--- | :--- | :--- |
-| **TranAD** | VLDB 2022 | Adversarial dual-decoder Transformer autoencoder |
-| **TimesNet** | ICLR 2023 | 2D temporal variation decomposition with Inception blocks |
-| **Anomaly Transformer** | ICLR 2022 | Association discrepancy with minimax attention |
-| **DCdetector** | KDD 2023 | Dual-attention contrastive representation learning |
+1. **Multi-Horizon Spherical Latent Forecasting (`src/models/laminar_lite.py`):**
+   A lightweight 4-block causal TCN with an rFFT dyadic-shell multiscale front-end (`LittlewoodPaleyDyadicBlock`) forecasts nested short-to-long future latent states trained strictly on nominal history via an EMA target encoder and VICReg-style regularization.
+2. **ZCA-Whitened Reynolds Decomposition (`src/scoring/laminar_lite_panel.py`):**
+   Nominal prediction residuals are whitened by the empirical precision operator and decomposed across horizons into sustained mean-flow drift and transient coordinate fluctuations.
+3. **Coordinate Circuit-Breaker Quorum Panel (`src/scoring/circuit_breaker_panel.py`):**
+   Instead of collapsing all latent coordinates into a single scalar score, each coordinate and drift channel maintains its own healthy-calibration tripwire and alarms when a coherent quorum trips together.
+4. **Label-Free Calibration & Readiness Check (`src/scoring/evt_calibrator.py`, `src/scoring/event_fusion.py`):**
+   Evaluated strictly without point adjustment under both strictly causal (`trailing`) and buffered (`smear`) window-to-point mappings, alongside Extreme Value Theory (SPOT/GPD), empirical quantile, conformal, and streaming calibrators.
 
 ---
 
-## Benchmark Datasets
+## Key Models & Baselines
 
-The `mTSBench_data/` directory contains 19 benchmark datasets spanning diverse physical, cyber-physical, and distributed domains:
-
-| Category | Datasets | Description |
-| :--- | :--- | :--- |
-| **IoT / Sensors** | CalIt2, cicids, Daphnet, GECCO, Genesis, GHL, metro, room-occupancy | Wearable sensors, building/traffic monitors, water quality, industrial pick-and-place, gas heating loop, metro train compressor, environmental |
-| **Remote Sensing** | MSL, SMAP, swan | Mars rover telemetry, satellite telemetry, solar flare observatory |
-| **IT / Server** | PSM, SMD, Exathlon | Pooled server metrics, server machine dataset, distributed cloud logs |
-| **Financial** | creditcard | Credit card fraud detection |
-| **Physiological** | MITDB, SVDB, OPPORTUNITY | ECG arrhythmia, supraventricular arrhythmia, wearable activity |
-| **Synthetic** | GutenTAG | Controlled synthetic time series with injected anomalies |
+| Model | Registry Name | Module | Role |
+| :--- | :--- | :--- | :--- |
+| **Laminar-JEPA-Lite (128-Dial)** | `laminar_jepa_lite` | `src/models/laminar_lite.py` | Primary 3-horizon spherical JEPA + P+D circuit-breaker panel |
+| **Laminar-JEPA (224-Dial)** | `laminar_jepa_224` / `soliton_reynolds_jepa` | `src/models/laminar_lite.py`, `src/models/jepa/alien_jepas.py` | 4-horizon 224-dial diagnostic tier |
+| **TS-JEPA** | `ts_jepa` | `src/models/jepa/ts_jepa.py` | Single-horizon scalar JEPA baseline |
+| **MultiScale-TS-JEPA** | `multiscale_ts_jepa` | `src/models/jepa/multiscale_ts_jepa.py` | Multi-horizon scalar JEPA baseline |
+| **NCAD** | `ncad` | `src/models/encoders/tcn_encoder.py` | Contrastive TCN + contextual anomaly injection baseline |
+| **TranAD / TimesNet / Anomaly Transformer / DCdetector** | `tranad`, `timesnet`, `anomaly_transformer`, `dcdetector` | `src/models/baselines/` | External SOTA reconstruction/attention baselines |
 
 ---
 
 ## Repository Structure
 
-```
+```text
 NCAD_CS/
-├── train.py                      # Root CLI entry point (delegates to src.cli)
-├── mTSBench_data/                # 19 benchmark datasets
-├── paper/                        # Manuscript LaTeX sources and figures
-├── references/                   # Research literature and baseline docs
-├── reports/                      # Benchmark CSVs and evaluation reports
-├── scripts/                      # Benchmark runners and visualization
-│   ├── run_modern_baselines.py       # SOTA benchmark (9 models, all datasets)
-│   ├── run_benchmark.py              # Unified multi-dataset benchmark
-│   ├── run_full_benchmark_suite.py   # Full cross-domain suite
-│   ├── run_jepa_ablations.py         # JEPA architectural ablations
-│   ├── visualize_attractor.py        # Phase-space attractor plotting
-│   └── ...
-├── src/
-│   ├── cli.py                    # CLI argument parsing and entry point
-│   ├── config.py                 # CSMConfig dataclass + validation
-│   ├── data/                     # Data loaders and pipeline
-│   ├── engine/                   # Training, evaluation, orchestration
-│   │   ├── trainer.py                # Encoder/model builders + training
-│   │   ├── evaluator.py              # Scoring + EVT calibration
-│   │   └── orchestrator.py           # Full experiment pipeline
-│   ├── features/                 # Feature extraction
-│   ├── models/
-│   │   ├── __init__.py               # Top-level model re-exports
-│   │   ├── _jepa_utils.py            # JEPABase mixin + covariance fitting
-│   │   ├── registry.py               # Central model type registry
-│   │   ├── baselines/                # SOTA baselines (TranAD, TimesNet, AT, DCdetector)
-│   │   ├── encoders/                 # Encoder backbones (TCN, MultiScale, GAT, SSM)
-│   │   ├── jepa/                     # JEPA-family models
-│   │   │   ├── ts_jepa.py                # Primary TS-JEPA + VICReg loss
-│   │   │   ├── patch_ts_jepa.py          # Patch Transformer JEPA
-│   │   │   ├── flow_ts_jepa.py           # Conditional Flow Matching JEPA
-│   │   │   ├── patch_flow_jepa.py        # Patch Flow Matching JEPA
-│   │   │   ├── multiscale_ts_jepa.py     # Multi-horizon hierarchical JEPA
-│   │   │   ├── gat_jepa.py               # Graph Attention JEPA
-│   │   │   └── ncad_jepa.py              # NCAD-JEPA variant
-│   │   ├── losses/                   # Anomaly injection + FEI-SigReg loss
-│   │   ├── memory/                   # Counterfactual successor memory
-│   │   └── legacy/                   # Backward-compat shims
-│   ├── scoring/                  # EVT calibration + event-level fusion
-│   │   ├── evt_calibrator.py         # GPD tail fitting (Grimshaw/numerical MLE)
-│   │   └── event_fusion.py           # Window aggregation, metrics, filtering
-│   ├── experimental/             # Research branches (Hopfield, causal, SSM)
-│   └── utils/                    # Logging + lazy plotting
-└── tests/                        # 125+ tests (pytest)
+├── train.py                          # Root CLI entry point (delegates to src.cli)
+├── app/                              # FastAPI interactive GPU stream explorer
+│   ├── server.py                     # Local API server (uvicorn app.server:app)
+│   ├── gpu_pipeline.py               # End-to-end Laminar-JEPA-Lite inference & panel trace
+│   └── static/index.html             # Single-page interactive visualization UI
+├── paper/NCAD_CS/                    # Self-contained IEEE TNNLS manuscript
+│   ├── NCAD_CS_standalone.tex        # Generated standalone LaTeX source
+│   ├── NCAD_CS_standalone.pdf        # Compiled manuscript (<= 13 pages)
+│   ├── export.bib                    # BibTeX references
+│   ├── sections/                     # Modular manuscript sections and active tables
+│   └── figures/                      # Publication-grade vector figures (.pdf, .svg)
+├── reports/                          # Stream manifests and canonical diagnostic CSVs
+├── scripts/                          # Reproducible benchmark, audit, and figure scripts
+│   ├── build_and_verify_manuscript.py  # Build + compile + verify page cap, spills, acronyms
+│   ├── tnnls_revision/               # Full-archive (118-stream) & TNNLS audit runners
+│   ├── reviewer_analyses/            # Matched-budget, horizon, calibration, and LODO audits
+│   ├── circuit_breaker_19stream/     # Perspective expansion ladder & component ablations
+│   └── run_multiseed_heldout_benchmark.py  # Core multi-seed held-out benchmark runner
+├── src/                              # Core library
+│   ├── cli.py & config.py            # CLI argument parser & validated CSMConfig
+│   ├── data/                         # Telemetry stream loaders & windowing pipeline
+│   ├── engine/                       # Model builder, trainer, evaluator, orchestrator
+│   ├── features/                     # Time-series feature utilities
+│   ├── models/                       # Laminar-JEPA-Lite, JEPA, geometric layers, baselines
+│   ├── scoring/                      # Circuit-breaker panels, EVT/SPOT, conformal & fusion
+│   ├── experimental/                 # Auxiliary 224-dial WSP & Legendre phase ablations
+│   └── utils/                        # Structured logging & lazy plotting helpers
+└── tests/                            # Modular pytest suite (laminar_lite, models, scoring, engine, archive)
+```
+
+---
+
+## Installation & Verification
+
+```bash
+pip install -e ".[dev]"
+
+# Lint check
+ruff check src tests
+
+# Run full test suite
+pytest tests/ -q
+
+# CLI smoke check
+python train.py --help
 ```
 
 ---
 
 ## Quick Start
 
-### 1. Training on a Telemetry Channel
+### 1. Train on a Telemetry Stream
+
+Place benchmark datasets under `mTSBench_data/<dataset>/` (stream lists are provided in `reports/streams_*.txt` and indexed in `reports/stream_manifest.csv`).
 
 ```bash
-# Train TS-JEPA on a target channel (e.g. SMAP A-1)
-python train.py --channel A-1 --encoder hybrid_tcn --epochs 15
+# Train Laminar-JEPA-Lite on a telemetry channel
+python train.py --channel A-1 --model-type laminar_jepa_lite --epochs 15
 
-# Train with the patch-tokenized Transformer JEPA variant
-python train.py --channel A-1 --model-type patch_ts_jepa --patch-size 16
-
-# Train with Flow Matching JEPA
-python train.py --channel A-1 --model-type flow_jepa --epochs 50
-
-# Train with MultiScale JEPA
-python train.py --channel A-1 --model-type multiscale_ts_jepa
-
-# Train with covariance-whitened (Mahalanobis) scoring
-python train.py --channel A-1 --scoring mahalanobis
+# Train scalar TS-JEPA with hybrid TCN encoder
+python train.py --channel A-1 --model-type ts_jepa --encoder hybrid_tcn --epochs 15
 ```
 
-### 2. Running SOTA Benchmarks
+### 2. Interactive GPU Explorer
 
 ```bash
-# Run all 9 models across IoT + remote sensing datasets
-python scripts/run_modern_baselines.py \
-  --dataset CalIt2 cicids Daphnet GECCO Genesis GHL metro room-occupancy MSL SMAP swan \
-  --models tranad timesnet anomaly_transformer dcdetector ncad ts_jepa patch_ts_jepa flow_jepa patch_flow_jepa \
-  --epochs 50 --batch_size 32 --device auto \
-  --output_csv reports/grand_sota_publication_benchmark.csv
-
-# Run on a single dataset
-python scripts/run_benchmark.py --dataset Daphnet --encoder tcn
-
-# Run full cross-domain benchmark
-python scripts/run_full_benchmark_suite.py --dataset all
-```
-
-### 3. Visualizing Phase-Space Attractors
-
-```bash
-python scripts/visualize_attractor.py --channel S01R01E1 --epochs 15
+uvicorn app.server:app --host 127.0.0.1 --port 8000
 ```
 
 ---
 
-## Testing
+## Reproducing Manuscript Tables, Figures & Diagnostics
 
-```bash
-# Run the full test suite (requires Pillow for EVT plotting tests)
-python -m pytest tests/ -q
-
-# Run without Pillow-dependent tests
-python -m pytest tests/ --ignore=tests/test_evt_calibrator.py --ignore=tests/test_evt_pipeline.py -q
-
-# Run focused audit tests
-python -m pytest tests/test_audit_fixes.py tests/test_baselines.py -v
-```
-
----
-
-## Reproducing the Manuscript's Tables
-
-Environment: `python` = the conda env at `C:/Users/andre/anaconda3/envs/alpha/python.exe`
-(torch required). Data lives in `mTSBench_data/<dataset>/`; stream lists in
-`reports/streams_*.txt`; the stream-to-split manifest is `reports/stream_manifest.csv`
-(regenerate via `scripts/build_stream_manifest.py`).
-
-| Paper artifact | Command | Output |
-| :-- | :-- | :-- |
-| Core + causal benchmarks (Tables II, III) | `python scripts/run_multiseed_heldout_benchmark.py --seeds 42 123 456 7 2024 --streams reports/streams_19_nonghl.txt --out reports/heldout.csv` (+ GHL stream lists) | `reports/heldout_*.csv` |
-| Statistical test map (Supp. Table) | `python scripts/build_test_map.py` | `reports/test_map.csv`, `sections/sup_test_map.tex` |
-| Calibrator comparison (Table IV) | `python scripts/analyze_multiseed.py --inputs reports/heldout_*.csv` | `reports/multiseed_summary.md` |
-| Matched-backbone controls (R3) | `python scripts/run_multiseed_heldout_benchmark.py --models TS-JEPA TCN-ObsRecon TCN-ObsPred JEPA-CtxRecon JEPA-NoEMA --dump-scores reports/score_dumps` | `reports/score_dumps/*.npz` |
-| Residual diagnostics (R3) | `python scripts/analyze_score_dumps.py` | `reports/residual_diagnostics.csv` |
-| Matched-FPR evaluation (R3) | `python scripts/run_matched_fpr_analysis.py` | `reports/matched_fpr_evaluation.csv` |
-| Controlled drift calibration (R3) | `python scripts/run_controlled_drift_calibration.py` | `reports/controlled_drift_calibration.csv` |
-| EVT failure decomposition | `python scripts/run_evt_failure_decomposition.py` | `reports/evt_failure_decomposition.csv` |
-| Timeline figure | `python scripts/generate_timeline_diagram.py` | `figures/timeline_inference_regimes.{pdf,png}` |
-| Manuscript | `python scripts/build_standalone.py`, then in `paper/NCAD_CS/`: `tectonic --keep-intermediates NCAD_CS_supplement.tex && tectonic NCAD_CS_standalone.tex` | `NCAD_CS_standalone.pdf` |
-
-Note: the supplement must be compiled *before* the standalone **with
-`--keep-intermediates`** so its `.aux` is written to disk — `\externaldocument`
-reads that file to resolve supplementary cross-references. Without the flag,
-Tectonic keeps intermediates internal and the standalone shows `??` markers.
+| Artifact | Command |
+| :--- | :--- |
+| Held-out 118-stream deployment benchmark | `python scripts/tnnls_revision/run_deployment_benchmark.py` |
+| Archive drift, MBB & readiness audit | `python scripts/tnnls_revision/run_archive_118_drift_and_mbb.py` |
+| External baselines & LODO audit | `python scripts/tnnls_revision/run_r2_archive_audit_and_baselines.py` |
+| Whitening & quorum structure audit | `python scripts/tnnls_revision/run_r3_whitening_structure_audit.py` |
+| Perspective ladder & component ablations | `python scripts/circuit_breaker_19stream/run_perspective_ladder.py` |
+| Core multi-seed held-out benchmark | `python scripts/run_multiseed_heldout_benchmark.py --seeds 42 123 456 7 2024 --streams reports/streams_19_nonghl.txt --out reports/heldout.csv` |
+| Aggregate paired statistics | `python scripts/analyze_multiseed.py --inputs reports/heldout_45stream.csv` |
+| Stream-to-split manifest | `python scripts/build_stream_manifest.py` |
+| Architecture diagram (Fig. 1) | `python scripts/generate_opentropy_architecture_diagram.py` |
+| ZCA-quorum geometry figure (Fig. 2) | `python scripts/generate_zca_quorum_geometry_figure.py` |
+| Operating & horizon tradeoffs figure (Fig. 3) | `python scripts/generate_horizon_operating_figure.py` |
+| Panel interpretability case studies (Fig. 4) | `python scripts/tnnls_revision/generate_panel_interpretability_figure.py` |
+| Build & verify standalone manuscript PDF | `python scripts/build_and_verify_manuscript.py` |
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License; see [LICENSE](LICENSE) for details.

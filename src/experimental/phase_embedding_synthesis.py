@@ -24,6 +24,7 @@ Synthesizes the $4 \\times D$ `subblock_embeddings` parameter tensor ($128$ floa
 from __future__ import annotations
 
 from dataclasses import dataclass
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -66,7 +67,7 @@ def _extract_subblock_latents(
     """Extract `(z_ctx [N, D], z_sub_tgt [N, M, D])` once to enable sub-millisecond phase synthesis."""
     model.eval()
     dev = next(model.parameters()).device
-    M, D = int(model.num_subblocks), int(model.latent_dim)
+    M = int(model.num_subblocks)
     z_ctx_list, z_sub_tgt_list = [], []
     for i in range(0, len(windows), 128):
         ch = torch.from_numpy(np.ascontiguousarray(windows[i : i + 128])).float().to(dev)
@@ -362,6 +363,7 @@ def apply_unified_wsp_soliton_program(
     subject to strict training quorum gate retention.
     """
     import copy
+
     from src.experimental.weight_space_programming import (
         WSPConfig,
         _eval_cal_gates_and_internal_split,

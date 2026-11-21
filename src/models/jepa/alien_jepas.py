@@ -15,6 +15,7 @@ from src.models._jepa_utils import JEPABase, fit_covariance_batched, whiten_resi
 from src.models.geometric_layers import CoordinateSaliencyGate
 from src.models.jepa.ts_jepa import LatentPredictor, _vicreg_branch_loss, jepa_vicreg_loss, log_det_whitening_loss
 
+
 def _disable_dropout(module: nn.Module) -> None:
     for m in module.modules():
         if isinstance(m, (nn.Dropout, nn.Dropout1d, nn.Dropout2d)):

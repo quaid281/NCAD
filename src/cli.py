@@ -72,7 +72,7 @@ def parse_args() -> argparse.Namespace:
         type=str,
         choices=list(canonical_model_choices()),
         default="ts_jepa",
-        help="Core model type (ts_jepa, patch_ts_jepa, gat_jepa, or legacy ncad).",
+        help="Core model type (e.g., laminar_jepa_lite, ts_jepa, multiscale_ts_jepa, or ncad).",
     )
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--no-plots", action="store_true")

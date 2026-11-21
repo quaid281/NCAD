@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ncad-cs"
 version = "5.0.0"
-description = "Neural Contextual Anomaly Detection with Counterfactual Successor Memory, Spatial-Temporal Relational GAT, and EVT/SPOT Tail Calibration"
+description = "Laminar-JEPA-Lite: Multi-Horizon Joint-Embedding Predictive Architectures and Coordinate Circuit-Breaker Panels for Multivariate Time-Series Anomaly Detection"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

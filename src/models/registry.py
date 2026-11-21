@@ -3,13 +3,13 @@
 This is the single source of truth for which model types are supported by the
 CLI, configuration validation, and the model builder. Keeping the choices in
 one place prevents drift between ``src/cli.py``, ``src/config.py``, and
-``src/engine/trainer.py``.
+``src/engine/builder.py``.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Dict, FrozenSet, Optional, Tuple
+from typing import Dict, FrozenSet, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -24,9 +24,26 @@ class ModelSpec:
     category: str = "ablation"
 
 
-# Canonical model registry. The first entry for each canonical name is the
-# primary spec; aliases are accepted by the builder and config validation.
 _MODEL_SPECS: Tuple[ModelSpec, ...] = (
+    ModelSpec(
+        canonical_name="laminar_jepa_lite",
+        aliases=("laminar_jepa", "laminar_lite", "reynolds_lite"),
+        is_jepa=True,
+        requires_patch_division=False,
+        description=(
+            "Primary streamlined 3-horizon spherical JEPA with depthwise K>=25 dyadic shells, "
+            "4-block TCN, hook-free native tap/barycenter readout, and 128-dial P+D panel."
+        ),
+        category="primary",
+    ),
+    ModelSpec(
+        canonical_name="laminar_jepa_224",
+        aliases=("laminar_224",),
+        is_jepa=True,
+        requires_patch_division=False,
+        description="Streamlined 4-horizon (224-dial) Laminar-JEPA diagnostic tier sharing the Lite encoder.",
+        category="ablation",
+    ),
     ModelSpec(
         canonical_name="ts_jepa",
         aliases=(),
@@ -36,25 +53,20 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         category="primary",
     ),
     ModelSpec(
-        canonical_name="patch_ts_jepa",
-        aliases=("patch_jepa",),
-        is_jepa=True,
-        requires_patch_division=True,
-        description="Patch-tokenized Transformer JEPA variant.",
-    ),
-    ModelSpec(
-        canonical_name="gat_jepa",
-        aliases=("relational_gat_jepa",),
+        canonical_name="multiscale_ts_jepa",
+        aliases=("multiscale_jepa",),
         is_jepa=True,
         requires_patch_division=False,
-        description="Relational graph-attention JEPA variant.",
+        description="Multi-horizon hierarchical TS-JEPA with parallel prediction heads.",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="ncad",
         aliases=(),
         is_jepa=False,
         requires_patch_division=False,
-        description="Legacy NCAD contrastive encoder (not a JEPA variant).",
+        description="NCAD contrastive encoder baseline.",
+        category="baseline",
     ),
     ModelSpec(
         canonical_name="anomaly_transformer",
@@ -89,158 +101,19 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         category="baseline",
     ),
     ModelSpec(
-        canonical_name="ncad_jepa",
-        aliases=("ncad_jepa_v1",),
+        canonical_name="soliton_reynolds_jepa",
+        aliases=("soliton_reynolds", "soliton_jepa", "lieb_thirring_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Fused NCAD + TS-JEPA with VICReg and contextual anomaly injection.",
-    ),
-    ModelSpec(
-        canonical_name="ncad_flow_jepa",
-        aliases=("ncad_flow_jepa_v1",),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Fused NCAD + Flow Matching TS-JEPA with OT-CFM velocity field and contextual anomaly injection.",
-    ),
-    ModelSpec(
-        canonical_name="flow_jepa",
-        aliases=("ts_jepa_flow",),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Conditional Flow Matching TS-JEPA with OT-CFM velocity field predictor.",
-    ),
-    ModelSpec(
-        canonical_name="patch_flow_jepa",
-        aliases=("ts_jepa_patch_flow",),
-        is_jepa=True,
-        requires_patch_division=True,
-        description="Patch-tokenized Flow Matching JEPA with cross-attention velocity predictor.",
-    ),
-    ModelSpec(
-        canonical_name="multiscale_ts_jepa",
-        aliases=("multiscale_jepa",),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Multi-horizon hierarchical TS-JEPA with parallel prediction heads.",
-    ),
-    ModelSpec(
-        canonical_name="causal_ssm_flow_jepa",
-        aliases=("causal_flow_jepa", "causal_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Causal State-Space Flow-Matching JEPA with Relational GAT and Selective SSM.",
-    ),
-    ModelSpec(
-        canonical_name="cosine_jepa",
-        aliases=("cos_jepa", "ts_jepa_cosine", "hyperspherical_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Cosine JEPA with hyperspherical unit-vector projection and angular discrepancy in [0, 2].",
-    ),
-    ModelSpec(
-        canonical_name="cycle_jepa",
-        aliases=("bidirectional_jepa", "ts_jepa_cycle"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Cycle JEPA with bidirectional forward-backward causal round-trip consistency.",
-    ),
-    ModelSpec(
-        canonical_name="cosine_cycle_jepa",
-        aliases=("cos_cycle_jepa", "ts_jepa_cosine_cycle"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Cosine-Cycle JEPA combining hyperspherical angle-invariance with bidirectional causal cycle consistency.",
-    ),
-    ModelSpec(
-        canonical_name="prototype_graph_jepa",
-        aliases=("prototype_jepa", "anchor_jepa", "graph_jepa", "markov_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Prototype-Graph Transition JEPA with learnable operating regime anchors and Markov transition surprise scoring.",
-    ),
-    ModelSpec(
-        canonical_name="transfer_function_jepa",
-        aliases=("transfer_jepa", "spectral_jepa", "bode_jepa", "frequency_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Transfer-Function Spectral Coherence JEPA decoupling magnitude gain spikes from phase desynchronization.",
-    ),
-    ModelSpec(
-        canonical_name="mdl_jepa",
-        aliases=("compression_jepa", "entropy_jepa", "kolmogorov_jepa", "bitrate_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Minimum Description Length (MDL) Neural Entropy Compressor JEPA scoring exact description length in bits.",
-    ),
-    ModelSpec(
-        canonical_name="granger_jepa",
-        aliases=("causal_jepa", "coupling_jepa", "granger_causal_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Granger Causal Cross-Channel JEPA detecting broken inter-sensor physical couplings via causal attention.",
-    ),
-    ModelSpec(
-        canonical_name="latent_world_jepa",
-        aliases=("world_jepa", "latent_recurrent_jepa", "latent_dynamics_jepa", "ts_latent_world_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Latent-Space World Model JEPA placing 100% of temporal recurrence and autonomous trajectory rollouts inside latent space.",
-    ),
-    ModelSpec(
-        canonical_name="multiscale_latent_world_jepa",
-        aliases=("multiscale_world_jepa", "dilated_latent_jepa", "pyramid_latent_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Multi-Scale Dilated Latent World Model JEPA with 3 parallel dilated temporal tracks (d=1, 4, 16).",
-    ),
-    ModelSpec(
-        canonical_name="selective_latent_world_jepa",
-        aliases=("selective_world_jepa", "mamba_latent_jepa", "gated_latent_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Selective Gated Memory Latent World Model JEPA with input-dependent timescale gating and memory retention.",
-    ),
-    ModelSpec(
-        canonical_name="memory_bank_latent_world_jepa",
-        aliases=("memory_bank_jepa", "cross_attention_latent_jepa", "episodic_latent_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Episodic Memory Bank Cross-Attention Latent World Model JEPA with lossless keyframe retrieval.",
-    ),
-    ModelSpec(
-        canonical_name="dual_timescale_latent_world_jepa",
-        aliases=("dual_timescale_jepa", "cerebellar_latent_jepa", "fast_slow_latent_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Dual-Timescale Cerebellar-Cortical Latent World Model JEPA separating fast reflexes from slow mode tracking.",
-    ),
-    ModelSpec(
-        canonical_name="kinematic_adaptive_latent_jepa",
-        aliases=("kinematic_latent_jepa", "ahead_jepa", "phase_space_latent_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Kinematic-Adaptive Latent World Model JEPA (CMU AHEAD 2026) with phase-space state and uncertainty dispersion.",
-    ),
-    ModelSpec(
-        canonical_name="latent_deliberation_jepa",
-        aliases=("deliberation_jepa", "monet_jepa", "dmlr_jepa", "thinking_latent_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Latent Deliberation World Model JEPA (DMLR & Monet CVPR 2026) with test-time thinking tokens and cognitive turbulence scoring.",
-    ),
-    ModelSpec(
-        canonical_name="multiagent_consensus_latent_jepa",
-        aliases=("multiagent_latent_jepa", "interlat_jepa", "consensus_latent_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Multi-Agent Consensus Latent World Model JEPA (Interlat ACL 2026) with continuous inter-sensor communication and consensus dissonance scoring.",
+        description="224-dial Soliton-Reynolds JEPA (6-block HybridTCN + sequential predictor).",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="delta_jepa",
         aliases=("delta", "fast_weight_delta_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Delta-JEPA with fast-weight matrix updates and local Fisher preconditioning.",
+        description="Delta-JEPA ablation with fast-weight matrix updates.",
         category="ablation",
     ),
     ModelSpec(
@@ -248,47 +121,31 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         aliases=("speculative", "speculative_alien_jepa", "spec_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Speculative-JEPA with multi-depth hierarchy probing, draft/verify rollout, and DPP coreset memory.",
-        category="primary",
+        description="Speculative-JEPA ablation with multi-depth hierarchy probing.",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="alien_dual_tower_jepa",
         aliases=("alien_dual_tower", "dual_tower_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Alien Dual-Tower JEPA with dynamical coherence tower and DPP coreset availability.",
-        category="primary",
+        description="Dual-Tower JEPA ablation with dynamical coherence tower.",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="eddy_delta_jepa",
         aliases=("eddy_delta", "solenoidal_eddy_jepa", "smagorinsky_eddy_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Eddy-Delta JEPA with solenoidal skew-symmetric wedge vorticity and Smagorinsky subgrid eddy-viscosity.",
-        category="primary",
+        description="Eddy-Delta JEPA ablation with solenoidal skew-symmetric vorticity.",
+        category="ablation",
     ),
     ModelSpec(
         canonical_name="anchored_stokes_jepa",
         aliases=("anchored_stokes", "stokes_jepa", "halpern_stokes_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Anchored Stokes JEPA with coercive Navier-Stokes operator and Halpern-anchored last-iterate rollout.",
-        category="primary",
-    ),
-    ModelSpec(
-        canonical_name="soliton_reynolds_jepa",
-        aliases=("soliton_reynolds", "soliton_jepa", "lieb_thirring_jepa"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Legacy 224-dial Soliton-Reynolds JEPA (6-block HybridTCN + sequential predictor).",
-        category="ablation",
-    ),
-    ModelSpec(
-        canonical_name="laminar_jepa_224",
-        aliases=("laminar_224",),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Streamlined 4-horizon (224-dial) Laminar-JEPA diagnostic tier sharing the Lite encoder.",
+        description="Anchored Stokes JEPA ablation with Halpern-anchored rollout.",
         category="ablation",
     ),
     ModelSpec(
@@ -296,28 +153,10 @@ _MODEL_SPECS: Tuple[ModelSpec, ...] = (
         aliases=("helmholtz_soliton", "helmholtz_jepa", "soliton_eddy_jepa"),
         is_jepa=True,
         requires_patch_division=False,
-        description="Unified Helmholtz-Soliton JEPA combining solenoidal vorticity curl, Lieb-Thirring soliton wavepackets, and LCS coreset null-space memory.",
+        description="Helmholtz-Soliton JEPA ablation.",
         category="ablation",
     ),
-    ModelSpec(
-        canonical_name="laminar_jepa_lite",
-        aliases=("laminar_jepa", "laminar_lite", "reynolds_lite"),
-        is_jepa=True,
-        requires_patch_division=False,
-        description="Primary streamlined 3-horizon spherical JEPA with depthwise K>=25 dyadic shells, 4-block TCN, hook-free native tap/barycenter readout, and 128-dial P+D panel.",
-        category="primary",
-    ),
 )
-
-
-
-
-
-
-
-
-
-
 
 
 def _build_alias_index() -> Dict[str, ModelSpec]:
@@ -389,4 +228,3 @@ def sota_baseline_choices() -> Tuple[str, ...]:
 def ablation_model_choices() -> Tuple[str, ...]:
     """Return canonical model names designated as secondary ablation variants."""
     return tuple(spec.canonical_name for spec in _MODEL_SPECS if spec.category == "ablation")
-

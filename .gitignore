@@ -7,11 +7,21 @@ __pycache__/
 .python-version
 .venv/
 venv/
+.conda/
 .env
 
-# VS Code / Jupyter
+# Coverage, linting, and test caches
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+pytest-of-*/
+
+# Editor and local tooling
 .vscode/
 .ipynb_checkpoints/
+.devin/
+torchinductor_*/
 
 # OS
 .DS_Store
@@ -20,6 +30,7 @@ Thumbs.db
 # Local datasets and generated artifacts
 /models/
 /mTSBench_data/
+archive/
 
 # Training artifacts
 *.pt
@@ -33,6 +44,11 @@ Thumbs.db
 !reports/lp_filterbank_diagnostics.csv
 !reports/lp_filterbank_frequency_responses.csv
 !reports/heldout_reynolds_covmodes.csv
+!reports/heldout_nonghl_seeds45.csv
+!reports/heldout_nonghl_seeds45_a.csv
+!reports/heldout_nonghl_seeds45_b.csv
+!reports/heldout_ghl_seeds45_a.csv
+!reports/heldout_ghl_seeds45_b.csv
 *.json
 
 # Logs
@@ -40,20 +56,12 @@ Thumbs.db
 
 # Generated results
 results/
-notebooks/**/results/
-.pytest_cache/
-pytest-of-*/
+
 # LaTeX build artifacts
 *.aux
-!paper/NCAD_CS/NCAD_CS_supplement.aux
-!paper/NCAD_CS/NCAD_CS_standalone.aux
 *.bbl
 *.blg
 *.out
-*.log
 *.synctex.gz
-!reports/heldout_nonghl_seeds45.csv
-!reports/heldout_nonghl_seeds45_a.csv
-!reports/heldout_nonghl_seeds45_b.csv
-!reports/heldout_ghl_seeds45_a.csv
-!reports/heldout_ghl_seeds45_b.csv
+*.fls
+*.fdb_latexmk
