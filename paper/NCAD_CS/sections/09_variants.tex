@@ -20,11 +20,11 @@
 \textbf{Perspective Expansion Stage} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
 1D Scalar Collapse (1 Dial) & .013 & .191 & \textbf{.315} & .413 & .459 & \textbf{.550} & 166.2 & 143.1 \\
-32-Bit Full Horizon ($m{=}4$) & .050 & .135 & .255 & .381 & .500 & .243 & 123.4 & 65.5 \\
-128-Bit Sub-Horizons ($m{=}1..4$) & .063 & \underline{.216} & .294 & \textbf{.449} & .556 & .462 & 110.6 & \textbf{38.8} \\
-160-Bit ($+32$ Horizon Drift) & \textbf{.098} & .198 & \underline{.304} & .429 & \textbf{.591} & \textbf{.550} & \textbf{74.8} & 108.3 \\
-192-Bit ($+32$ Horizon Fluc.) & .067 & .192 & .299 & .443 & \underline{.573} & .453 & \underline{79.1} & 101.6 \\
-\textbf{224-Bit ($+32$ Endpoint/Relays)} & \underline{.071}$^*$ & \textbf{.224} & .299 & \underline{.448} & .564 & .506 & 90.1 & 83.7 \\
+32-Dial Full Horizon ($m{=}4$) & .050 & .135 & .255 & .381 & .500 & .243 & 123.4 & 65.5 \\
+128-Dial Sub-Horizons ($m{=}1..4$) & .063 & \underline{.216} & .294 & \textbf{.449} & .556 & .462 & 110.6 & \textbf{38.8} \\
+160-Dial ($+32$ Horizon Drift) & \textbf{.098} & .198 & \underline{.304} & .429 & \textbf{.591} & \textbf{.550} & \textbf{74.8} & 108.3 \\
+192-Dial ($+32$ Horizon Fluc.) & .067 & .192 & .299 & .443 & \underline{.573} & .453 & \underline{79.1} & 101.6 \\
+\textbf{224-Dial ($+32$ Endpoint/Relays)} & \underline{.071}$^*$ & \textbf{.224} & .299 & \underline{.448} & .564 & .506 & 90.1 & 83.7 \\
 \bottomrule
 \multicolumn{9}{@{}p{\linewidth}@{}}{\tiny $^*$Fixed $M{=}4$ sequential cache ($3$ seeds); vs.\ 1D, causal $\Delta\text{F1}{=}{+}0.057$ ($p{=}0.0023$) and buffered $\Delta\text{F1}{=}{+}0.033$ ($p{=}0.53$).} \\
 \end{tabular*}%
@@ -43,7 +43,7 @@
 \textbf{Lite Base (4B, 64D, Par, $M{=}3$)} & .073 & .240 & .631 & .613 & .008 & .062 & 109.4 & 68.4 \\
 Encoder Depth: 5 Blocks & \textbf{.099} & \textbf{.251} & .648 & .573 & .008 & .057 & 69.4 & 64.0 \\
 Pooling Heads: 128D & .093 & \underline{.244} & .559 & .523 & \textbf{.006} & \textbf{.053} & \underline{66.4} & \textbf{59.5} \\
-Horizons: $M{=}4$ (160B P+D) & .086 & .239 & .636 & \underline{.630} & .011 & .068 & 88.1 & 111.2 \\
+Horizons: $M{=}4$ (160 Dials) & .086 & .239 & .636 & \underline{.630} & .011 & .068 & 88.1 & 111.2 \\
 Predictor: Seq.\ ($M{=}4$, 160B) & .077 & .195 & \underline{.667} & .577 & \underline{.008} & \underline{.055} & 98.1 & \underline{62.1} \\
 Panel: 224B on $M{=}4$ Resid. & \underline{.095} & .235 & \textbf{.690} & \textbf{.662} & .015 & .119 & \textbf{61.6} & 108.9 \\
 \bottomrule
@@ -64,9 +64,9 @@ Panel: 224B on $M{=}4$ Resid. & \underline{.095} & .235 & \textbf{.690} & \textb
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-13}
 \textbf{Architecture Arm} & $\gamma_2$ & $D_{\text{KS}}$ & Caus. & Buf. & Caus. & Buf. & Caus. & Buf. & Auto. & $q^*{=}0.05$ & $f^*{=}0.01$ & $f^*{=}0.05$ \\
 \midrule
-\textbf{Laminar-JEPA (224-Bit)} & 0.92 & 0.190 & 0.013 & 0.128 & 0.144 & \textbf{0.244} & \textbf{0.311} & \textbf{0.407} & \underline{0.673} & 0.795 & \underline{0.612} & 0.757 \\
+\textbf{Laminar-JEPA (224-Dial)} & 0.92 & 0.190 & 0.013 & 0.128 & 0.144 & \textbf{0.244} & \textbf{0.311} & \textbf{0.407} & \underline{0.673} & 0.795 & \underline{0.612} & 0.757 \\
 \textbf{Laminar-JEPA (w/o Quench)} & \underline{0.88} & 0.190 & 0.016 & 0.128 & 0.142 & 0.235 & \underline{0.304} & 0.381 & \textbf{0.695} & \underline{0.815} & \textbf{0.631} & \underline{0.765} \\
-\textbf{Laminar-JEPA-Lite (128-Bit)} & 2.33 & \underline{0.182} & 0.010 & \underline{0.061} & 0.133 & \underline{0.242} & 0.301 & \underline{0.397} & 0.650 & 0.811 & 0.560 & \textbf{0.772} \\
+\textbf{Laminar-JEPA-Lite (128-Dial)} & 2.33 & \underline{0.182} & 0.010 & \underline{0.061} & 0.133 & \underline{0.242} & 0.301 & \underline{0.397} & 0.650 & 0.811 & 0.560 & \textbf{0.772} \\
 TS-JEPA (Unconstrained) & 1.33 & 0.214 & 0.024 & 0.093 & \underline{0.161} & 0.206 & 0.278 & 0.331 & 0.487 & 0.730 & 0.395 & 0.584 \\
 Multi-Horizon JEPA (1D) & 2.19 & 0.183 & \textbf{0.006} & 0.083 & 0.055 & 0.149 & 0.261 & 0.330 & 0.439 & 0.755 & 0.578 & 0.711 \\
 JEPA Context Autoencoder & 2.59 & 0.203 & 0.017 & 0.108 & 0.112 & 0.188 & 0.235 & 0.256 & 0.542 & 0.795 & 0.431 & 0.573 \\
@@ -161,13 +161,13 @@ Before turning to the untouched archive, we ask which parts of the detector earn
 {\tiny (a)~$19$ streams $\times 3$ seeds, causal means. (b)~All variants use latent $D{=}32$; top three use depthwise $K{\ge}25$ rFFT shells; Dials = continuous${+}$onset relays ($M{=}3$ at $128$; $M{=}4$ at $224$); total stored params = Train.${+}$EMA ($235\text{k}\text{--}545\text{k}$; $+36.6\,\text{KB}$ buffers gives $1.10\text{--}1.18\,\text{MB}$ on \textbf{Lite-64D}).}\vspace{-6pt}
 \end{table}
 
-\subsection{Ablation 2: Sensor-Fault Taxonomy and Single-Sensor Limits}
+\subsection{Sensor-Fault Taxonomy and Single-Sensor Limits}
 \label{subsec:gating_ablation}
 The panel catches faults that disturb many sensors together but largely misses faults confined to one sensor. Cross-channel inconsistencies, abrupt transients, and in-range phase shifts move many latent coordinates at once and trip the quorum. A single frozen, saturated, or biased channel barely moves the $32$D summary, because the $K-1$ healthy channels dilute it by about $1/K$ and LayerNorm spreads what remains across all coordinates. On \texttt{SMAP P-3}, a flatline trips $12.5$ dials, compared with $62.1$ for a harmonic flip.
 
 A separate per-channel guard closes this gap on synthetic faults, raising recall on injected freezing, saturation, shock, ramp, and bias faults to $80.7\%\text{--}96.5\%$. It also raises clean test FPR from $1.5\%$ to $6.8\%\text{--}19.4\%$, so we leave it disabled.
 
-\subsection{Ablation 3: Multiscale Front-End and Latent vs.\ Observation Tails}
+\subsection{Multiscale Front-End and Latent vs.\ Observation Tails}
 \label{subsec:dyadic_ablation}
 \label{subsec:controlled_backbone}
 The frequency-shell front end helps high-channel spacecraft data but not low-channel data. On \texttt{MSL M-1}, it raises F1 from $0.085$ to $0.410$, yet it lowers F1 on the nine-channel \texttt{Daphnet} and \texttt{GECCO} streams. We therefore enable it only when $K \ge 25$, an empirical rule rather than a principled cutoff. Separately, scoring in latent space tames heavy-tailed noise (Table~\ref{tab:ablations}(c)). Observation-space reconstructors show calibration kurtosis near $6.2$ and drift near $D_{\text{KS}}=0.45$. Adding LayerNorm alone brings reconstructor kurtosis down to $0.91$, and latent residuals roughly halve the drift ($D_{\text{KS}}=0.179\text{--}0.214$, $p\le 0.001$).

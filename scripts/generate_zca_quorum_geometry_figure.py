@@ -195,6 +195,12 @@ def build_figure(preview_png: Path | None = None) -> None:
         ax2.axvline(t_val, color=COL_BOX, lw=1.35, ls="--", zorder=4)
         ax2.axhline(t_val, color=COL_BOX, lw=1.35, ls="--", zorder=4)
 
+    # Explicit dynamic tripwire labels (+/- tau_j) so ticks (-4, 0, 4) are never mistaken for quorum
+    ax2.text(tau_w + 0.14, 5.18, r"$+\tau_1$", fontsize=8.0, fontweight="bold", color=COL_BOX, ha="left", va="top", zorder=6)
+    ax2.text(-tau_w + 0.14, 5.18, r"$-\tau_1$", fontsize=8.0, fontweight="bold", color=COL_BOX, ha="left", va="top", zorder=6)
+    ax2.text(5.22, tau_w + 0.16, r"$+\tau_2$", fontsize=8.0, fontweight="bold", color=COL_BOX, ha="right", va="bottom", zorder=6)
+    ax2.text(-5.22, -tau_w - 0.16, r"$-\tau_2$", fontsize=8.0, fontweight="bold", color=COL_BOX, ha="left", va="top", zorder=6)
+
     ax2.scatter(
         [p_coord_w[0]], [p_coord_w[1]],
         marker="*", s=160, color=COL_FAULT, edgecolor="white", lw=0.8, zorder=7,
@@ -205,10 +211,10 @@ def build_figure(preview_png: Path | None = None) -> None:
     )
 
     ax2.annotate(
-        "Quorum Fires!\n(Both Dials Trip)",
+        "Quorum Fires!\n(2/2 Dials Trip)",
         xy=(p_coord_w[0], p_coord_w[1]),
         xytext=(-1.45, 4.18),
-        fontsize=8.4, fontweight="bold", color=COL_FAULT, ha="left", va="center",
+        fontsize=8.3, fontweight="bold", color=COL_FAULT, ha="left", va="center",
         arrowprops=dict(arrowstyle="->", color=COL_FAULT, lw=1.15, shrinkA=2, shrinkB=6),
         bbox=halo, zorder=8,
     )
@@ -223,7 +229,7 @@ def build_figure(preview_png: Path | None = None) -> None:
     )
 
     ax2.text(
-        -3.95, -4.00, "Quorum\nZone", fontsize=8.3, fontweight="bold",
+        -3.95, -4.18, "Quorum\n(2/2 Dials)", fontsize=8.0, fontweight="bold",
         color=COL_FAULT, ha="center", va="center", zorder=6,
     )
     ax2.text(
@@ -234,8 +240,8 @@ def build_figure(preview_png: Path | None = None) -> None:
     ax2.set_xlim(-lim_w, lim_w)
     ax2.set_ylim(-lim_w, lim_w)
     ax2.set_aspect("equal", adjustable="box")
-    ax2.set_xlabel(r"Whitened Dial $\tilde{e}_1$")
-    ax2.set_ylabel(r"Whitened Dial $\tilde{e}_2$")
+    ax2.set_xlabel(r"Whitened Dial $\tilde{e}_1$ ($\sigma$ units)")
+    ax2.set_ylabel(r"Whitened Dial $\tilde{e}_2$ ($\sigma$ units)")
     ax2.set_xticks([-4, 0, 4])
     ax2.set_yticks([-4, 0, 4])
 
