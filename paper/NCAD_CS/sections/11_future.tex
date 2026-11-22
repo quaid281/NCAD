@@ -1,16 +1,14 @@
 \vspace{-4pt}
 \section{Discussion}
 \label{sec:discussion}
-The results point to a simple deployment rule. The quorum panel does not rank anomalies better than a scalar JEPA score; it wins by setting a better label-free alarm threshold when scalar calibration under-triggers ($49.8\%$ vs.\ $32.1\%$ ER on the $46$ screened streams). That threshold needs enough stable healthy history, so streams below $N_{\text{cal}}=500$, including all $40$ SMAP and $12$ of $13$ MSL streams, fall back to 1D SPOT scalar calibration, and alarms stay active during the $400$-window quarantine.
-
-The cost model in Table~\ref{tab:dataset_lodo_audit}(c) turns this into an explicit choice: when missed faults cost more than false alarms ($w\le 5.92$), the hybrid is preferable, whereas strict false-alarm aversion ($w\ge 6$) favors 1D SPOT. Practical deployment therefore spans three tiers: (1)~the \emph{standalone panel} on streams passing readiness screening; (2)~\emph{complementary guards} for diluted flatlines, slow ramps, and mode switches; and (3)~\emph{scalar calibration} on short or drifting streams.
+Because the quorum needs enough stable healthy history to calibrate, deployment should follow the label-free readiness check of Section~\ref{subsec:finite_sample_calibration}, with the cost weight $w$ in Table~\ref{tab:dataset_lodo_audit}(c) setting how readily streams are routed to the panel. Practical deployment therefore spans three tiers: (1)~the \emph{standalone panel} on streams passing readiness screening; (2)~\emph{complementary guards} for diluted flatlines, slow ramps, and mode switches; and (3)~\emph{scalar calibration} on short or drifting streams.
 
 \vspace{-4pt}
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 Evaluations across $33$ development and $118$ untouched archive streams support three main conclusions:
 \begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
-    \item \emph{Fluid-inspired residual diagnostics without physics loss:} Separating sustained cross-horizon drift from short-horizon errors via Reynolds residual algebra drives our largest causal detection and latency gains, while avoiding the gradient stiffness and domain mismatch of physics-informed loss penalties.
+    \item \emph{Fluid-inspired residual diagnostics:} Treating healthy latent trajectories as a steady laminar baseline, Reynolds residual algebra isolates sustained cross-horizon drift without the stiffness of physics-informed loss penalties. On the $19$-stream cache, adding these drift dials lifts causal Point-F1 from $0.063$ to $0.098$ and cuts delay from $110.6$ to $74.8$ steps.
     \item \emph{Replacing single-scalar thresholding:} Moving from one scalar threshold to per-coordinate tripwires and a healthy-calibrated quorum shifts the label-free operating point upward when scalar calibration under-triggers. Across $118$ untouched streams, standalone \emph{Laminar-JEPA-Lite} lifts causal ER from $52.5\%$ to $64.6\%$ ($p_{\text{clus}}=0.0039$) and cuts shared-fault delay by $41.4$ steps, while raising prospective test FPR from $8.8\%$ to $17.0\%$ and keeping ranking parity with 1D JEPA. Waveform reconstructors (TimesNet, TranAD) achieve higher raw F1 only near $25\%$ held-out FPR.
     \item \emph{Chronological drift and readiness-gated deployment:} Shuffling healthy blocks breaks chronological order and cuts archive FPR by $92.3\%$, confirming operating-mode drift as the primary source of false alarms. Pairing \emph{Lite} with pre-deployment readiness screening and mode-confirmed quarantine across all $118$ streams achieves $59.4\%$ ER ($p_{\text{clus}}=0.0156$) and $0.091$ Point-F1 at $10.0\%$ test FPR versus $52.5\%$ ER and $0.076$ F1 at $8.8\%$ test FPR for 1D SPOT.
 \end{enumerate}
