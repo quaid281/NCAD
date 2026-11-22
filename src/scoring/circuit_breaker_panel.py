@@ -13,7 +13,6 @@ coordinate (7 x 32 = 224 switches) plus 32 fast right-edge onset relays:
 from __future__ import annotations
 
 from dataclasses import dataclass
-
 import numpy as np
 import torch
 import torch.nn as nn
