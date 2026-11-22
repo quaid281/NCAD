@@ -372,7 +372,7 @@ def layer_entropy_contraction_loss(attentions: list[torch.Tensor], margin: float
 
     potentials = [compute_layer_entropy_potential(att) for att in attentions]
     loss = torch.tensor(0.0, device=potentials[0].device)
-    for layer_idx in range(len(potentials) - 1):
-        loss = loss + F.relu(potentials[layer_idx + 1] - potentials[layer_idx] + margin)
+    for l in range(len(potentials) - 1):
+        loss = loss + F.relu(potentials[l + 1] - potentials[l] + margin)
     return loss
 

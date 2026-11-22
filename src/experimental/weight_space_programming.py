@@ -23,7 +23,6 @@ Weight-Space Programming (Takehi, Teoh, Zhang, & Khattab, MIT CSAIL):
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
 import numpy as np
 import torch
 import torch.nn as nn
