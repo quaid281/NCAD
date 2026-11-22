@@ -1,10 +1,10 @@
-# Laminar-JEPA-Lite: Multi-Horizon JEPAs and Coordinate Circuit-Breaker Panels for Multivariate Time-Series Anomaly Detection
+# Laminar-JEPA-Lite: Quorum Voting over Latent Prediction Residuals for Label-Free Anomaly Detection in Multivariate Time Series
 
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Framework](https://img.shields.io/badge/architecture-Laminar--JEPA--Lite-purple.svg)](src/models/laminar_lite.py)
 
-Official implementation and reproducible evaluation suite for the manuscript *"Multi-Horizon Joint-Embedding Predictive Architectures and Coordinate Circuit-Breaker Panels for Multivariate Time-Series Anomaly Detection"* (submitted to IEEE Transactions on Neural Networks and Learning Systems).
+Official implementation and reproducible evaluation suite for the manuscript *"Quorum Voting over Latent Prediction Residuals for Label-Free Anomaly Detection in Multivariate Time Series"* (submitted to IEEE Transactions on Neural Networks and Learning Systems).
 
 ---
 
