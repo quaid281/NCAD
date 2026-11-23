@@ -17,4 +17,9 @@ Evaluations across $33$ development and $118$ untouched archive streams support 
     \item \emph{Chronological drift and readiness-gated deployment:} Shuffling healthy blocks breaks chronological order and cuts archive FPR by $92.3\%$, confirming operating-mode drift as the primary source of false alarms. Pairing \emph{Lite} with pre-deployment readiness screening and mode-confirmed quarantine across all $118$ streams achieves $59.4\%$ ER ($p_{\text{clus}}=0.0156$) and $0.091$ Point-F1 at $10.0\%$ test FPR versus $52.5\%$ ER and $0.076$ F1 at $8.8\%$ test FPR for 1D SPOT.
 \end{enumerate}
 
-\noindent\emph{Future Work:} Four gaps guide next steps. Perturbation attribution needs field root-cause validation beyond synthetic injections, paired with low-FPR univariate flatline monitors for single-sensor faults diluted across many channels. Lightweight online whitening updates after confirmed mode switches can replace $400$-window buffers, while control-conditioned drift monitors can curb slow-ramp wander.
+\noindent\emph{Future Work:} Three empirical limits guide follow-on work:
+\begin{enumerate}[leftmargin=*, nosep, itemsep=1pt]
+    \item \emph{Cross-stream calibration:} Half of the archive streams have fewer than $500$ calibration windows (about $65$ independent samples). Pooling healthy covariance and tripwire priors across similar assets via hierarchical shrinkage could let multi-dial voting run on short histories without inflating false alarms.
+    \item \emph{Regime-aware adaptation:} Mode switches triple residual covariance shift and require operator confirmation plus a $400$-window buffer. Conditioning whitening on known command modes, or updating a small per-regime covariance bank online after confirmed shifts, could cut downtime without absorbing faults.
+    \item \emph{Multi-rate and single-channel guards:} Sliding windows miss ramps slower than four contexts and dilute single-sensor flatlines by $1/K$. Adding a control-conditioned slow-drift tracker and univariate flatline checks under one shared false-alarm budget would close both blind spots.
+\end{enumerate}
