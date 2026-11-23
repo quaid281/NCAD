@@ -26,7 +26,7 @@
 192-Dial ($+32$ Horizon Fluc.) & .067 & .192 & .299 & .443 & \underline{.573} & .453 & \underline{79.1} & 101.6 \\
 \textbf{224-Dial ($+32$ Endpoint/Relays)} & \underline{.071}$^*$ & \textbf{.224} & .299 & \underline{.448} & .564 & .506 & 90.1 & 83.7 \\
 \bottomrule
-\multicolumn{9}{@{}p{\linewidth}@{}}{\tiny $^*$Fixed $M{=}4$ sequential cache ($3$ seeds); vs.\ 1D, causal $\Delta\text{F1}{=}{+}0.057$ ($p{=}0.0023$) and buffered $\Delta\text{F1}{=}{+}0.033$ ($p{=}0.53$).} \\
+\multicolumn{9}{@{}p{\linewidth}@{}}{\tiny $^*$Fixed $M{=}4$ sequential cache ($3$ seeds); vs.\ 1D, causal $\Delta\text{F1}{=}{+}0.057$ ($p{=}0.0023$) and buffered $\Delta\text{F1}{=}{+}0.033$ ($p{=}0.53$). The 1D row collapses this cache's residuals into one score, unlike the separately trained Multi-Horizon JEPA (1D) in~(c).} \\
 \end{tabular*}%
 \endgroup%
 &
@@ -40,14 +40,15 @@
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
 \textbf{Single-Factor Arm} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} \\
 \midrule
-\textbf{Lite Base (4-Blk, 64D, Par, $M{=}3$)} & .073 & .240 & .631 & .613 & \underline{.008} & .062 & 109.4 & 68.4 \\
-Encoder Depth: 5 Blocks & \textbf{.099} & \textbf{.251} & .648 & .573 & \underline{.008} & .057 & 69.4 & 64.0 \\
-Pooling Heads: 128D & .093 & \underline{.244} & .559 & .523 & \textbf{.006} & \textbf{.053} & \underline{66.4} & \textbf{59.5} \\
-Horizons: $M{=}4$ (160 Dials) & .086 & .239 & .636 & \underline{.630} & .011 & .068 & 88.1 & 111.2 \\
-Predictor: Seq.\ ($M{=}4$, 160 Dials) & .077 & .195 & \underline{.667} & .577 & \underline{.008} & \underline{.055} & 98.1 & \underline{62.1} \\
-Panel: 224 Dials, $M{=}4$ & \underline{.095} & .235 & \textbf{.690} & \textbf{.662} & .015 & .119 & \textbf{61.6} & 108.9 \\
+\textbf{Lite Base (32D, 4-Blk, Par, $M{=}3$)} & .106 & .212 & .604 & .583 & \underline{.007} & .046 & 89.4 & \textbf{61.6} \\
+Drift Dials Muted (96 Position) & .092 & .193 & \underline{.620} & .581 & \textbf{.006} & \textbf{.026} & 89.4 & 123.8 \\
+Encoder Depth: 5 Blocks & .102 & \underline{.227} & .602 & .546 & .008 & .052 & \underline{80.3} & 150.8 \\
+Head: 64D & .081 & .218 & .566 & .570 & \underline{.007} & .043 & \textbf{74.2} & 101.7 \\
+Horizons: $M{=}4$ (160 Dials) & \underline{.109} & \textbf{.238} & .598 & \underline{.596} & \textbf{.006} & .054 & 133.4 & \underline{84.9} \\
+Predictor: Seq.\ ($M{=}4$, 160 Dials) & .057 & .179 & .568 & .564 & \textbf{.006} & \underline{.039} & 152.7 & 97.6 \\
+Panel: 224 Dials, $M{=}4$ & \textbf{.110} & .226 & \textbf{.694} & \textbf{.650} & .009 & .104 & 86.7 & 127.6 \\
 \bottomrule
-\multicolumn{9}{@{}p{\linewidth}@{}}{\tiny Disjoint $4$-block retraining ($3$ seeds) flipping one factor at a time from \textbf{Lite Base} ($188.4\text{k}$ mean trainable params; specs in Table~\ref{tab:matched_alert}(b)).} \\
+\multicolumn{9}{@{}p{\linewidth}@{}}{\tiny Disjoint $4$-block retraining ($3$ seeds) flipping one factor at a time from the deployed \textbf{Lite Base} ($124.8\text{k}$ mean trainable params; $146.5\text{k}$--$148.2\text{k}$ for the 64D head and 5-block arms).} \\
 \end{tabular*}%
 \endgroup%
 \\
@@ -95,9 +96,9 @@ TranAD & 5.64 & 0.459 & 0.222 & 0.307 & 0.140 & 0.130 & 0.248 & 0.287 & 0.533 & 
 \label{subsec:factorial}
 Before turning to the untouched archive, we ask which parts of the detector earn their place and which can be removed (Tables~\ref{tab:ablations} and \ref{tab:matched_alert}).
 
-\noindent\emph{1) Which parts matter (Table~\ref{tab:ablations}(a,b)):} Monitoring coordinates separately drives the causal gain, and Reynolds residual decomposition delivers the sharpest single jump. On the $19$-stream cache, splitting the single score into $224$ dials raises causal Point-F1 from $0.013$ to $0.071$ ($p=0.0023$). Adding the $32$ Reynolds mean-drift dials on top of sub-horizon position dials jumps causal Point-F1 from $0.063$ to $0.098$ and cuts delay from $110.6$ to $74.8$ steps, whereas adding fluctuation and endpoint dials lowers causal F1. In single-factor retraining (Table~\ref{tab:ablations}(b)), a fifth TCN block raises causal Point-F1 from $0.073$ to $0.099$ at the same held-out FPR, so the four-block \emph{Lite} gives up some development accuracy for a smaller model. A fourth prefix adds less ($0.086$), three prefixes run $25.5\%$ faster than four, and sequential prefix prediction gives no consistent gain, so \emph{Lite} predicts three prefixes in parallel.
+\noindent\emph{1) Which parts matter (Table~\ref{tab:ablations}(a,b)):} Monitoring coordinates separately drives most of the causal gain; the Reynolds drift dials help less, and mainly on the larger cache. On the $M{=}4$ sequential cache, splitting the single score into $32$ full-horizon dials raises causal Point-F1 from $0.013$ to $0.050$ and cuts delay by $42.8$ steps, and the full $224$-dial panel reaches $0.071$ ($p=0.0023$). Adding $32$ mean-drift dials to the $128$ sub-horizon position dials is the second-largest step ($0.063$ to $0.098$ F1, $35.8$ steps faster), whereas fluctuation and endpoint dials lower causal F1. On the deployed \emph{Lite} (Table~\ref{tab:ablations}(b)), muting the drift dials lowers causal Point-F1 only from $0.106$ to $0.092$ ($p=0.42$) with no ER loss; under buffered scoring they add $0.019$ F1 ($p=0.043$) and cut delay by $19$ steps, but nearly double held-out FPR. No single change beats the base on causal F1: a fifth block, a $64$D head, and sequential prediction lower it, and a fourth parallel prefix ($0.109$) adds $44$ steps of delay. The $224$-dial panel on $M{=}4$ residuals raises causal ER from $59.8\%$ to $69.4\%$ ($p=0.008$) at higher held-out FPR, so it remains the high-recall reference.
 
-\noindent\emph{2) Why a quorum (Table~\ref{tab:matched_alert}(a)):} Simpler per-coordinate rules either flood operators with alarms or go blind. Alarming whenever any of $128$ coordinates crosses its threshold fires on $40.6\%\text{--}66.5\%$ of healthy steps. Strict multiplicity corrections (\v{S}id\'{a}k, BH FDR) ask for p-values smaller than a short calibration set can produce, $(N_{\text{cal}}+1)^{-1}$, so they detect almost nothing. At a matched nominal rate, classical multivariate charts (Hotelling $T^2$, MEWMA, CUSUM) and a conformal minimum p-value still alarm on $21.1\%\text{--}58.6\%$ of held-out healthy steps. Only the dial quorum and Fisher pooling combine useful F1 ($0.098$ and $0.109$) with held-out FPR near $1\%$.
+\noindent\emph{2) Why a quorum (Table~\ref{tab:matched_alert}(a)):} Simpler per-coordinate rules either flood operators with alarms or go blind. All rows here reuse the $M{=}4$ sequential cache. Alarming whenever any of its $128$ position coordinates crosses its threshold fires on $40.6\%\text{--}66.5\%$ of healthy steps. Strict multiplicity corrections (\v{S}id\'{a}k, BH FDR) ask for p-values smaller than a short calibration set can produce, $(N_{\text{cal}}+1)^{-1}$, so they detect almost nothing. At a matched nominal rate, classical multivariate charts (Hotelling $T^2$, MEWMA, CUSUM) and a conformal minimum p-value still alarm on $21.1\%\text{--}58.6\%$ of held-out healthy steps. Only the $160$-dial position-and-drift quorum and $224$-dial Fisher pooling combine useful F1 ($0.098$ and $0.109$) with held-out FPR near $1\%$.
 
 \noindent\emph{3) Whitening choices:} Cheaper whitening costs no measurable causal F1. Applying one shared $32\times 32$ covariance factor independently to each horizon matches full joint ZCA within its $95\%$ CI ($+0.014$ causal F1, $[-0.006, +0.029]$). Standard PCA whitening also matches ZCA ($0.087$ vs.\ $0.086$ F1, $p=0.60$) as long as the shrinkage in (\ref{eq:stabilized_whitening}) runs in the same rotated basis; mixing PCA rotation with raw-axis shrinkage drops causal F1 to $0.071$. Joint ZCA retains an advantage only under retrospective buffered scoring ($0.166$ vs.\ $0.146$ F1, $p=0.005$).
 
@@ -114,7 +115,7 @@ Before turning to the untouched archive, we ask which parts of the detector earn
 {\textbf{(a) Detector \& Calibration Regime}} & {Pt-F1 $\uparrow$} & {ER $\uparrow$} & {$\mathrm{FPR}_{\rm hold}\downarrow$} & {$\mathrm{FPR}_{\rm test}\downarrow$} \\
 \midrule
 \multicolumn{5}{@{}l}{\textit{Multi-horizon circuit-breaker panels (nominal quorum)}} \\
-\quad 160-dial pos.+drift (single quorum) & .098 & .591 & .0055 & .0087 \\
+\quad 160-dial pos.+drift ($M{=}4$, one quorum) & .098 & .591 & .0055 & .0087 \\
 \quad 224-dial panel (3-quorum ref.) & .071 & .564 & .0076 & .0150 \\
 \quad 224-dial single quorum (no relay) & .063 & .564 & .0055 & .0088 \\
 \addlinespace[1.5pt]
@@ -146,31 +147,30 @@ Before turning to the untouched archive, we ask which parts of the detector earn
 \toprule
 & & & \multicolumn{3}{c}{\textbf{Parameters ($\times 10^3$) \& FP32}} \\
 \cmidrule(lr){4-6}
-\textbf{(b) Suite Variant} & \textbf{Backbone ($d_{\text{model}}{=}48$)} & \textbf{Dials} & \textbf{Train.} & \textbf{EMA} & \textbf{Tot.\ MB} \\
+\textbf{(b) Suite Variant} & \textbf{Backbone ($d_{\text{model}}{=}48$)} & \textbf{Dials} & \textbf{Train.} & \textbf{EMA} & \textbf{Tot.\ MiB} \\
 \midrule
-\textbf{Lite} (\ref{tab:core_benchmark},\ref{tab:calibrator_comparison}--\ref{tab:dataset_lodo_audit}) & $32$D head, $4$-blk, par. & $128{+}0$ & 120--129 & 115--125 & .90--.97 \\
+\textbf{Lite} (\ref{tab:ablations}b,\ref{tab:core_benchmark},\ref{tab:calibrator_comparison}--\ref{tab:dataset_lodo_audit}) & $32$D head, $4$-blk, par. & $128{+}0$ & 120--129 & 115--125 & .90--.97 \\
 \textbf{224-Dial} (\ref{tab:calibrator_comparison}) & $32$D head, $4$-blk, par. & $224{+}32$ & 120--129 & 115--125 & .90--.97 \\
 \textbf{Lite-64D} (\ref{subsec:computational_deployment}) & $64$D head, $4$-blk, par. & $128{+}0$ & 142--152 & 137--147 & 1.06--1.14 \\
-\textbf{Factor} (\ref{tab:ablations}b) & $64$D, dense rFFT, par. & $128{+}0$ & 142--223 & 137--219 & 1.06--1.69 \\
 \textbf{Seq-224-Dial} (\ref{tab:matched_alert}a, \ref{tab:core_benchmark}) & $128$D, $5$-blk, seq. & $224{+}32$ & 274--277 & 265--268 & 2.06--2.08 \\
 \bottomrule
 \end{tabular*}
 \endgroup
 \par\vspace{1pt}
-{\tiny (a)~$19$ streams $\times 3$ seeds, causal means. (b)~All variants use latent $D{=}32$, $32$-bit floating-point (FP32) weights, and kilobytes (KB) for buffers; top three use depthwise $K{\ge}25$ rFFT shells; Dials = continuous${+}$onset relays ($M{=}3$ at $128$; $M{=}4$ at $224$); total stored params = Train.${+}$EMA ($235\text{k}\text{--}545\text{k}$; $+36.6\,\text{KB}$ buffers gives $1.10\text{--}1.18\,\text{MB}$ on \textbf{Lite-64D}).}\vspace{-6pt}
+{\tiny (a)~$19$ streams $\times 3$ seeds, causal means, all on the $M{=}4$ sequential cache of Table~\ref{tab:ablations}(a); ``128 coords'' are its $4{\times}32$ position dials. (b)~All variants use latent $D{=}32$, $32$-bit floating-point (FP32) weights, and kilobytes (KB) for buffers; top three use depthwise $K{\ge}25$ rFFT shells; Dials = continuous${+}$onset relays ($M{=}3$ at $128$; $M{=}4$ at $224$); total stored params = Train.${+}$EMA ($235\text{k}\text{--}545\text{k}$; $+36.6\,\text{KB}$ buffers gives $1.10\text{--}1.18\,\text{MiB}$ on \textbf{Lite-64D}).}\vspace{-6pt}
 \end{table}
 
 \subsection{Sensor-Fault Taxonomy and Single-Sensor Limits}
 \label{subsec:gating_ablation}
 The panel catches faults that disturb many sensors together but largely misses faults confined to one sensor. Cross-channel inconsistencies, abrupt transients, and in-range phase shifts move many latent coordinates at once and trip the quorum. A single frozen, saturated, or biased channel barely moves the $32$D summary, because the $K-1$ healthy channels dilute it by about $1/K$ and LayerNorm spreads what remains across all coordinates. On \texttt{SMAP P-3}, a flatline trips $12.5$ dials, compared with $62.1$ for a harmonic flip.
 
-A separate per-channel guard closes this gap on synthetic faults, raising recall on injected freezing, saturation, shock, ramp, and bias faults to $80.7\%\text{--}96.5\%$. It also raises clean test FPR from $1.5\%$ to $6.8\%\text{--}19.4\%$, so we leave it disabled.
+A separate per-channel guard closes this gap on synthetic faults injected into the $19$ development streams, raising recall on injected freezing, saturation, shock, ramp, and bias faults to $80.7\%\text{--}96.5\%$. It also raises clean test FPR from $1.5\%$ to $6.8\%\text{--}19.4\%$, so we leave it disabled.
 
 \subsection{Multiscale Front-End and Latent vs.\ Observation Tails}
 \label{subsec:dyadic_ablation}
 \label{subsec:controlled_backbone}
-The frequency-shell front end helps high-channel spacecraft data but not low-channel data. On \texttt{MSL M-1}, it raises F1 from $0.085$ to $0.410$, yet it lowers F1 on the nine-channel \texttt{Daphnet} and \texttt{GECCO} streams. We therefore enable it only when $K \ge 25$, an empirical rule rather than a principled cutoff. Separately, scoring in latent space tames heavy-tailed noise (Table~\ref{tab:ablations}(c)). Observation-space reconstructors show calibration kurtosis near $6.2$ and drift near $D_{\text{KS}}=0.45$. Adding LayerNorm alone brings reconstructor kurtosis down to $0.91$, and latent residuals roughly halve the drift ($D_{\text{KS}}=0.182\text{--}0.214$, $p\le 0.001$).
+The frequency-shell front end helps high-channel spacecraft data but not low-channel data. On \texttt{MSL M-1}, it raises F1 from $0.085$ to $0.410$, yet it lowers F1 on the nine-channel \texttt{Daphnet} and \texttt{GECCO} case-study streams. We therefore enable it only when $K \ge 25$, an empirical rule rather than a principled cutoff; because GECCO shaped this rule, its archive result is design-informed rather than held out. Separately, scoring in latent space tames heavy-tailed noise (Table~\ref{tab:ablations}(c)). Observation-space reconstructors show calibration kurtosis near $6.2$ and drift near $D_{\text{KS}}=0.45$. Adding LayerNorm alone brings reconstructor kurtosis down to $0.91$, and latent residuals roughly halve the drift ($D_{\text{KS}}=0.182\text{--}0.214$, $p\le 0.001$).
 
 \subsection{Computational Footprint and Sensor Dropouts}
 \label{subsec:computational_deployment}
-\emph{Lite} is compact and keeps pace with live sensor rates on commodity hardware. The canonical model occupies under $1\,\text{MB}$ ($0.90\text{--}0.97\,\text{MB}$ FP32; Table~\ref{tab:matched_alert}(b)). Even the larger $64$D-head variant needs only $7.1\text{--}10.8\,\text{ms}$ per window on one CPU thread ($93\text{--}141$ windows/s, over twice Daphnet's $64\,\text{Hz}$ rate). On a batched GPU, latency drops to $0.16\text{--}0.25\,\text{ms}$ with $44\text{--}128\,\text{KB}$ of streaming state. When sensors drop out without warning and are mean-imputed, ER falls only slightly ($54.7\%\text{--}55.9\%$ vs.\ $58.9\%$), while test FPR rises from $1.5\%$ to $3.4\%\text{--}7.9\%$.
+\emph{Lite} is compact and keeps pace with live sensor rates on commodity hardware. The canonical model occupies under $1\,\text{MiB}$ ($0.90\text{--}0.97\,\text{MiB}$ FP32; Table~\ref{tab:matched_alert}(b)). Even the larger $64$D-head variant needs only $7.1\text{--}10.8\,\text{ms}$ per window on one CPU thread ($93\text{--}141$ windows/s, $1.5\text{--}2.2$ times Daphnet's $64\,\text{Hz}$ rate). On a batched GPU, latency drops to $0.16\text{--}0.25\,\text{ms}$ with $44\text{--}128\,\text{KB}$ of streaming state. On the $19$ development streams, when sensors drop out without warning and are mean-imputed, \emph{Lite-64D} ER falls only slightly ($54.7\%\text{--}55.9\%$ vs.\ $58.9\%$), while test FPR rises from $1.5\%$ to $3.4\%\text{--}7.9\%$.

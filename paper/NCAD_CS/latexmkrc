@@ -1,4 +1,3 @@
-# latexmkrc for Overleaf: compile both supplement and standalone to resolve xr / xr-hyper references
+# latexmkrc for Overleaf: compile the sectioned master document only.
 $pdf_mode = 1;
-push @default_files, 'NCAD_CS_supplement.tex';
-push @default_files, 'NCAD_CS_standalone.tex';
+@default_files = ('NCAD_CS.tex');

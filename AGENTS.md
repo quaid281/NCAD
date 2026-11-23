@@ -7,18 +7,18 @@
   Standard full paper length is 10 pages; over-length charge is $200/page
   beyond 10 pages up to a 15-page cap. The author budget allows at most 3
   extra pages, setting a hard ceiling of 13 pages total. Before committing
-  manuscript changes, compile `paper/NCAD_CS/NCAD_CS_standalone.tex` and verify
+  manuscript changes, compile `paper/NCAD_CS/NCAD_CS.tex` (the sectioned master that Overleaf also builds) and verify
   page count. If over budget, condense elsewhere — tighten prose, shrink
   tables, or prune secondary discussions. Everything must fit and be addressed
   directly in the main manuscript.
-- **Table cap (`[INV-MAX-5-TABLES]`): the manuscript must contain at most 5 tables total.** Do not exceed 5 `\begin{table}` / `\begin{table*}` environments in the compiled manuscript (`paper/NCAD_CS/NCAD_CS_standalone.tex`). Consolidate secondary breakdowns into existing multi-panel tables or summarize them concisely in prose before adding a new table.
+- **Table cap (`[INV-MAX-5-TABLES]`): the manuscript must contain at most 5 tables total.** Do not exceed 5 `\begin{table}` / `\begin{table*}` environments in the compiled manuscript (`paper/NCAD_CS/NCAD_CS.tex` and its `sections/` inputs). Consolidate secondary breakdowns into existing multi-panel tables or summarize them concisely in prose before adding a new table.
 - **No supplementary papers (fully self-contained manuscript):** There must be
   no companion supplement paper (no `NCAD_CS_supplement.tex` or external
   S-sections). Reviewers evaluate the main paper alone; central claims, causal
   vs. buffered evaluation tables, drift analyses, baseline comparisons
   (including NCAD), and core ablations must never depend on an external
   supplement. All claims, evidence, methodology, and proofs must be addressed
-  directly within the main manuscript (`paper/NCAD_CS/NCAD_CS_standalone.tex`
+  directly within the main manuscript (`paper/NCAD_CS/NCAD_CS.tex`
   built from `sections/`) while strictly respecting the 13-page ceiling. Never
   defer reviewer-facing findings to a supplement. Non-manuscript artifacts and
   raw diagnostic logs belong in repository `reports/`, not in a submitted
@@ -110,7 +110,7 @@ Key requirements:
 ## Key Commands
 
 ```bash
-# Rebuild, compile, and verify manuscript (builds standalone,
+# Compile and verify manuscript (compiles paper/NCAD_CS/NCAD_CS.tex, which \input's sections/;
 # scans for unresolved '??' / '[?]' markers, audits SKILL.md anti-AI rules, and enforces <= 13-page budget)
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_and_verify_manuscript.py
 
@@ -119,9 +119,6 @@ C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/audit_acronyms.py
 
 # Audit manuscript prose against anti-AI writing patterns (docs/SKILL.md)
 C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/scan_ai_writing.py
-
-# Regenerate standalone manuscript from sections/
-C:/Users/andre/anaconda3/envs/alpha/python.exe scripts/build_standalone.py
 
 # Primary held-out benchmark (adds rows per stream x seed x model x
 # mapping x calibrator; checkpoints CSV after each stream)

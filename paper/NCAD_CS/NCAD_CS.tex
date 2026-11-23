@@ -1,4 +1,5 @@
-% Master document for NCAD-CS split sections
+% NCAD-CS manuscript master file (IEEE TNNLS).
+% Compile this file directly (Overleaf main document). All content lives in sections/.
 \documentclass[journal]{IEEEtran}
 
 % Preamble (packages, settings)
@@ -23,9 +24,9 @@
 \input{sections/11_future.tex}
 
 % Bibliography
-\def\IEEEbibitemsep{0.5pt plus 0.5pt}
-{\scriptsize
+\def\IEEEbibitemsep{0pt}
+\def\BIBdecl{\fontsize{7.0pt}{8.0pt}\selectfont\setlength{\itemsep}{-2.0pt plus 0.2pt minus 0.1pt}\setlength{\parsep}{0pt}}
 \bibliographystyle{IEEEtran}
-\bibliography{export}}
+\bibliography{export}
 
 \end{document}

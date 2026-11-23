@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit acronym definitions in the standalone manuscript (IEEE style).
+"""Audit acronym definitions in the sectioned manuscript (IEEE style).
 
 IEEE convention: spell out a term at first use and put the acronym in
 parentheses, then use the acronym alone. This script flags acronyms whose
@@ -17,7 +17,8 @@ from collections import OrderedDict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-STANDALONE = ROOT / "paper" / "NCAD_CS" / "NCAD_CS_standalone.tex"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from manuscript_source import expanded_source  # noqa: E402
 
 # Universally understood in IEEE venues; no definition required.
 COMMON = {
@@ -79,7 +80,8 @@ def first_use(text: str):
 
 def run_audit(verbose: bool = True) -> bool:
     """Return True when every acronym is defined at first use."""
-    full = STANDALONE.read_text(encoding="utf-8")
+    # Section files inlined; nested table inputs stay out, matching the reading-order prose audit.
+    full = expanded_source(recursive=False)
     abstract, body = split_regions(full)
     bad = 0
     for name, region in (("ABSTRACT", strip_tex(abstract)), ("BODY", strip_tex(body))):

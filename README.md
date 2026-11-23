@@ -46,8 +46,8 @@ NCAD_CS/
 │   ├── gpu_pipeline.py               # End-to-end Laminar-JEPA-Lite inference & panel trace
 │   └── static/index.html             # Single-page interactive visualization UI
 ├── paper/NCAD_CS/                    # Self-contained IEEE TNNLS manuscript
-│   ├── NCAD_CS_standalone.tex        # Generated standalone LaTeX source
-│   ├── NCAD_CS_standalone.pdf        # Compiled manuscript (<= 13 pages)
+│   ├── NCAD_CS.tex                   # Master file (Overleaf main doc); \inputs sections/
+│   ├── NCAD_CS.pdf                   # Compiled manuscript (<= 13 pages)
 │   ├── export.bib                    # BibTeX references
 │   ├── sections/                     # Modular manuscript sections and active tables
 │   └── figures/                      # Publication-grade vector figures (.pdf, .svg)
@@ -127,7 +127,7 @@ uvicorn app.server:app --host 127.0.0.1 --port 8000
 | ZCA-quorum geometry figure (Fig. 2) | `python scripts/generate_zca_quorum_geometry_figure.py` |
 | Operating & horizon tradeoffs figure (Fig. 3) | `python scripts/generate_horizon_operating_figure.py` |
 | Panel interpretability case studies (Fig. 4) | `python scripts/tnnls_revision/generate_panel_interpretability_figure.py` |
-| Build & verify standalone manuscript PDF | `python scripts/build_and_verify_manuscript.py` |
+| Compile & verify manuscript PDF (NCAD_CS.tex) | `python scripts/build_and_verify_manuscript.py` |
 
 ---
 

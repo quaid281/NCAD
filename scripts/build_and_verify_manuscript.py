@@ -1,5 +1,5 @@
 """
-build_and_verify_manuscript.py - Build standalone manuscript, compile with tectonic,
+build_and_verify_manuscript.py - Compile the sectioned manuscript (NCAD_CS.tex) with tectonic,
 and exhaustively scan for unresolved cross-references (??), missing citations ([?]),
 and page-budget violations.
 """
@@ -14,10 +14,9 @@ from pathlib import Path
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 PAPER_DIR = WORKSPACE_ROOT / "paper" / "NCAD_CS"
 SECTIONS_DIR = PAPER_DIR / "sections"
-STANDALONE_TEX = PAPER_DIR / "NCAD_CS_standalone.tex"
-SUPPLEMENT_TEX = PAPER_DIR / "NCAD_CS_supplement.tex"
-STANDALONE_PDF = PAPER_DIR / "NCAD_CS_standalone.pdf"
-SUPPLEMENT_PDF = PAPER_DIR / "NCAD_CS_supplement.pdf"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from manuscript_source import MAIN_TEX, MAIN_PDF, MAIN_LOG, expanded_source, input_files  # noqa: E402
+
 BIB_FILE = PAPER_DIR / "export.bib"
 
 MAX_PAGE_BUDGET = 13
@@ -31,10 +30,14 @@ def warn(msg):
 def err(msg):
     print(f"  [x] ERROR: {msg}")
 
-def build_standalone():
-    step("1. Reconstructing NCAD_CS_standalone.tex from sections/...")
-    from build_standalone import build as build_latex
-    build_latex()
+def check_section_inputs():
+    step("1. Checking that NCAD_CS.tex inputs every numbered section file...")
+    used = {p.name for p in input_files()}
+    missing = sorted(p.name for p in SECTIONS_DIR.glob("[0-9]*.tex") if p.name not in used)
+    if missing:
+        warn(f"Section files not reached from {MAIN_TEX.name}: {', '.join(missing)}")
+    else:
+        print(f"  [OK] {MAIN_TEX.name} reaches all {len(used) - 1} section/table files.")
 
 def run_tectonic(target_file):
     import shutil
@@ -48,8 +51,8 @@ def run_tectonic(target_file):
     return True
 
 def compile_documents():
-    step("2. Compiling the self-contained standalone manuscript via Tectonic (--keep-intermediates)...")
-    if not run_tectonic(STANDALONE_TEX.name):
+    step(f"2. Compiling {MAIN_TEX.name} from sections/ via Tectonic (--keep-intermediates)...")
+    if not run_tectonic(MAIN_TEX.name):
         return False
     return True
 
@@ -81,21 +84,12 @@ def scan_bib_keys():
         keys.add(match.group(1).strip())
     return keys
 
-def _is_manuscript_section(path):
-    """True for section files that belong to the self-contained manuscript (not legacy sup_*/unused tab_* files)."""
-    if path.name.startswith("sup_"):
-        return False
-    if path.name.startswith("tab_"):
-        used = "".join(p.read_text(encoding="utf-8") for p in SECTIONS_DIR.glob("[0-9]*.tex"))
-        return f"sections/{path.name}" in used
-    return True
-
 def scan_tex_crossrefs():
     step("3. Scanning .tex files for unresolved labels, citations, and placeholders...")
     
     # 1. Collect all labels
     labels = set()
-    tex_files = [f for f in SECTIONS_DIR.glob("*.tex") if _is_manuscript_section(f)] + [STANDALONE_TEX]
+    tex_files = input_files()
     
     label_def_pattern = re.compile(r"\\label\{([^}]+)\}")
     ref_pattern = re.compile(r"\\(ref|eqref|cref|autoref)\{([^}]+)\}")
@@ -152,7 +146,7 @@ def scan_tex_crossrefs():
 def check_page_budget():
     step("4. Checking page count against IEEE TNNLS budget...")
     import pypdf
-    reader = pypdf.PdfReader(str(STANDALONE_PDF))
+    reader = pypdf.PdfReader(str(MAIN_PDF))
     page_count = len(reader.pages)
     print(f"  -> Manuscript page count: {page_count} pages (Hard ceiling: {MAX_PAGE_BUDGET} pages)")
     
@@ -165,9 +159,9 @@ def check_page_budget():
 
 def check_overfull_hboxes():
     step("4b. Checking LaTeX log for formula or table margin spills (Overfull \\hbox)...")
-    log_path = PAPER_DIR / "NCAD_CS_standalone.log"
+    log_path = MAIN_LOG
     if not log_path.exists():
-        warn("NCAD_CS_standalone.log not found; skipping Overfull \\hbox check.")
+        warn(f"{MAIN_LOG.name} not found; skipping Overfull \\hbox check.")
         return True
     log_text = log_path.read_text(encoding="utf-8", errors="ignore")
     spills = []
@@ -189,16 +183,8 @@ MAX_TABLES = 5
 
 def check_table_cap():
     step(f"4c. Checking manuscript table cap (<= {MAX_TABLES} tables)...")
-    standalone_tex = PAPER_DIR / "NCAD_CS_standalone.tex"
-    if not standalone_tex.exists():
-        warn("NCAD_CS_standalone.tex not found; skipping table cap check.")
-        return True
-    text = standalone_tex.read_text(encoding="utf-8", errors="ignore")
-    # Expand any remaining \input{sections/...} includes so every active table is counted
-    for inc in re.findall(r"\\input\{([^}]+)\}", text):
-        inc_path = PAPER_DIR / (inc if inc.endswith(".tex") else f"{inc}.tex")
-        if inc_path.exists():
-            text += "\n" + inc_path.read_text(encoding="utf-8", errors="ignore")
+    # Inline every \input{sections/...} include (comments removed) so each active table counts once
+    text = re.sub(r"(?m)(?<!\\)%.*$", "", expanded_source(recursive=True))
     n_tables = len(re.findall(r"\\begin\{table\*?\}", text))
     print(f"  -> Active tables in manuscript: {n_tables} (Hard ceiling: {MAX_TABLES})")
     if n_tables > MAX_TABLES:
@@ -212,7 +198,7 @@ def main():
     print(" NCAD-CS Manuscript Build, Reference Scanner & Quality Verifier")
     print("=" * 70)
     
-    build_standalone()
+    check_section_inputs()
     
     # Pre-compilation static check
     tex_errors, tex_warnings = scan_tex_crossrefs()
@@ -237,16 +223,16 @@ def main():
         
     # Post-compilation PDF scan
     step("5. Scanning generated PDFs for rendered '??' and '[?]' markers...")
-    standalone_issues = scan_pdf_for_markers(STANDALONE_PDF)
+    pdf_issues = scan_pdf_for_markers(MAIN_PDF)
     
     has_pdf_issues = False
-    if standalone_issues:
+    if pdf_issues:
         has_pdf_issues = True
-        err(f"Found {len(standalone_issues)} rendered reference issues in {STANDALONE_PDF.name}:")
-        for issue in standalone_issues:
+        err(f"Found {len(pdf_issues)} rendered reference issues in {MAIN_PDF.name}:")
+        for issue in pdf_issues:
             print(f"    {issue}")
     else:
-        print(f"  [OK] {STANDALONE_PDF.name}: 0 rendered '??' or '[?]' issues.")
+        print(f"  [OK] {MAIN_PDF.name}: 0 rendered '??' or '[?]' issues.")
         
     # Check page budget, zero margin spills, and <= 5 table cap
     budget_ok = check_page_budget()

@@ -331,7 +331,7 @@ def _draw_stage2(
     # Training Objective box at bottom of Stage 2
     _rbox(ax, 5.14, 0.24, 2.70, 0.78, C_OBJ_BG, "#5D7690", lw=1.4, r=0.07, zorder=4)
     ax.text(6.49, 0.78, "Training Objective (Eq. 1)", ha="center", va="center", fontsize=13.5, fontweight="bold", color=C_NAVY, zorder=5)
-    ax.text(6.49, 0.45, r"MSE + Anti-Collapse ($\boldsymbol{\Delta}_\gamma$)", ha="center", va="center", fontsize=13.0, color=C_TEXT, zorder=5)
+    ax.text(6.49, 0.45, r"MSE + Anti-Collapse ($\mathcal{R}_\gamma$)", ha="center", va="center", fontsize=13.0, color=C_TEXT, zorder=5)
     # Clean dotted connector from subtraction node to objective box
     ax.plot([5.58, 5.78, 5.78], [2.04, 1.80, 1.02], color="#7A8FA3", lw=1.3, ls=":", zorder=3)
 
