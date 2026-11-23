@@ -29,16 +29,15 @@
 \midrule
 \multicolumn{13}{@{}l}{\textit{Multi-horizon coordinate circuit-breaker architectures}} \\
 \quad \textbf{Laminar-JEPA (224-Dial)}       & 0.115             & \underline{0.232} & \textbf{0.402}   & \textbf{0.656}   & 100.3             & 0.012             & \underline{0.165} & \textbf{0.701}   & \textbf{58.9}     & 0.005             & 0.000             & \underline{0.130} \\
-\quad \textbf{Laminar-JEPA-Lite (128-Dial)}  & \underline{0.047} & \textbf{0.253}    & \underline{0.389} & \underline{0.613} & \underline{61.8}  & \underline{0.007} & 0.142             & \underline{0.622} & \underline{67.9}  & 0.009             & 0.001             & \textbf{0.172}   \\
+\quad \textbf{Laminar-JEPA-Lite (128-Dial)}  & \bfseries 0.047   & \textbf{0.253}    & \underline{0.389} & \underline{0.613} & \underline{61.8}  & \underline{0.007} & 0.142             & \underline{0.622} & \underline{67.9}  & 0.009             & 0.001             & \textbf{0.172}   \\
 \addlinespace[2.0pt]
 \multicolumn{13}{@{}l}{\textit{1D scalar-scored latent predictive baselines (JEPAs)}} \\
-\quad TS-JEPA (unconstrained 1D)            & 0.093             & 0.206             & 0.331             & 0.477             & 110.3             & 0.024             & \underline{0.161} & 0.487             & 124.0             & 0.004             & 0.000             & 0.115             \\
-\quad Multi-Horizon JEPA (1D)               & 0.083             & 0.149             & 0.330             & 0.462             & 113.3             & \bfseries 0.006   & 0.055             & 0.439             & 138.4             & \bfseries 0.002   & 0.000             & 0.074             \\
+\quad TS-JEPA (1D)                          & 0.093             & 0.206             & 0.331             & 0.477             & 110.3             & 0.024             & 0.161             & 0.487             & 124.0             & \underline{0.004} & 0.000             & 0.115             \\
+\quad Multi-Horizon JEPA (1D)               & \underline{0.083}            & 0.149             & 0.330             & 0.462             & 113.3             & \bfseries 0.006   & 0.055             & 0.439             & 138.4             & \bfseries 0.002   & 0.000             & 0.074             \\
 \addlinespace[2.0pt]
-\multicolumn{13}{@{}l}{\textit{Observation-space reconstructive and linear baselines}} \\
-\quad TimesNet                              & 0.300             & 0.197             & 0.329             & 0.583             & \bfseries 48.5    & 0.243             & \bfseries 0.209   & 0.588             & \bfseries 62.2    & 0.061             & \bfseries 0.022   & 0.100             \\
+\multicolumn{13}{@{}l}{\textit{Observation-space reconstructive baselines}} \\
+\quad TimesNet                              & 0.300             & 0.197             & 0.329             & 0.583             & \bfseries 48.5    & 0.243             & \bfseries 0.209   & 0.588             & \underline{62.2}  & 0.061             & \bfseries 0.022   & 0.100             \\
 \quad TranAD                                & 0.307             & 0.130             & 0.287             & 0.490             & 234.4             & 0.222             & 0.140             & 0.533             & 241.0             & 0.046             & \underline{0.020} & 0.069             \\
-\quad Linear AR Forecaster                  & \bfseries 0.005   & 0.051             & 0.255             & 0.432             & 87.8              & {--}              & {--}              & {--}              & {--}              & \bfseries 0.002   & 0.000             & 0.038             \\
 \bottomrule
 \end{tabular*}
 
@@ -50,14 +49,14 @@
 \cmidrule(lr){2-6} \cmidrule(lr){7-11} \cmidrule(lr){12-16}
 \textbf{Dataset} & {$n$} & {$K$} & {$E$} & {$\pi$} & {$\text{F1}_{\text{all}}$} & {\textbf{Lam.}} & {\textbf{Lite}} & {\textbf{TS-JEPA}} & {\textbf{TimesNet}} & {\textbf{TranAD}} & {\textbf{Lam.}} & {\textbf{Lite}} & {\textbf{TS-JEPA}} & {\textbf{TimesNet}} & {\textbf{TranAD}} \\
 \midrule
-Daphnet & 6  & 9  & 72   & 0.148 & 0.256 & \textbf{0.242}    & 0.178             & 0.145             & \underline{0.229} & 0.144             & \textbf{.008/.065}    & \underline{.005/.048} & .030/.091             & .291/.313          & .250/.298 \\
-GHL     & 14 & 16 & 26   & 0.013 & 0.026 & 0.000             & 0.001             & 0.000             & \textbf{0.022}    & \underline{0.020} & .005/.006             & .009/.010             & \underline{.004/.004} & .056/.061          & .040/.046 \\
-Genesis & 1  & 18 & 2    & 0.003 & 0.006 & \underline{0.042} & \textbf{0.151}    & 0.000             & 0.000             & 0.000             & .012/.059             & .004/.004             & \underline{.004/.017} & \textbf{.000/.000} & \textbf{.000/.000} \\
+Daphnet & 6  & 9  & 72   & 0.148 & 0.256 & \textbf{0.242}    & 0.178             & 0.145             & \underline{0.229} & 0.144             & \underline{.008/.065} & \textbf{.005/.048}    & .030/.091             & .291/.313          & .250/.298 \\
+GHL     & 14 & 16 & 26   & 0.013 & 0.026 & 0.000             & 0.001             & 0.000             & \textbf{0.022}    & \underline{0.020} & \underline{.005/.006} & .009/.010             & \textbf{.004/.004}    & .056/.061          & .040/.046 \\
+Genesis & 1  & 18 & 2    & 0.003 & 0.006 & \underline{0.042} & \textbf{0.151}    & 0.000             & 0.000             & 0.000             & .012/.059             & \underline{.004/.004} & .004/.017             & \textbf{.000/.000} & \textbf{.000/.000} \\
 MSL     & 4  & 55 & 6    & 0.255 & 0.381 & \textbf{0.235}    & \underline{0.216} & 0.161             & 0.158             & 0.151             & \underline{.010}/.138 & \textbf{.007/.071}    & .054/\underline{.095} & .161/.133          & .132/.241 \\
 SMAP    & 6  & 25 & 7    & 0.150 & 0.236 & 0.318             & \textbf{0.415}    & \underline{0.379} & 0.289             & 0.167             & .020/.197             & \textbf{.013/.052}    & \underline{.014/.135} & .333/.549          & .360/.513 \\
-Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & 0.000             & 0.000             & \textbf{0.001}    & 0.000             & \textbf{.000/.000}    & .001/\textbf{.000}    & .008/.014             & \textbf{.000/.000} & \textbf{.000/.000} \\
+Metro   & 1  & 5  & 25   & 0.001 & 0.003 & 0.000             & 0.000             & 0.000             & \textbf{0.001}    & 0.000             & \textbf{.000/.000}    & \underline{.001}/\textbf{.000} & .008/.014             & \textbf{.000/.000} & \textbf{.000/.000} \\
 SWAN    & 1  & 38 & 6615 & 0.279 & 0.437 & 0.069             & \textbf{0.242}    & \underline{0.119} & 0.000             & 0.000             & \textbf{.000/.000}    & \textbf{.000/.000}    & \textbf{.000/.000}    & \textbf{.000/.000} & \textbf{.000/.000} \\
 \bottomrule
 \end{tabular*}\par\vspace{2pt}\noindent
-\parbox{\textwidth}{\tiny\emph{Note:} Five seeds on $19$ non-GHL streams and three seeds on $14$ GHL streams; best \textbf{bold}, second \underline{underlined}. AR = autoregressive; $\Delta t$ = mean end-to-end delay over detected events; $\text{DS-F1}$ = $7$-dataset macro buffered Point-F1; $E$ = events; $\pi$ = anomalous-step fraction; $\text{F1}_{\text{all}} = \text{mean}_i[2\pi_i/(1+\pi_i)]$ (per-stream all-positive baseline).}\vspace{-7pt}
+\parbox{\textwidth}{\tiny\emph{Note:} Five seeds on $19$ non-GHL streams and three seeds on $14$ GHL streams; best \textbf{bold}, second \underline{underlined}. $\Delta t$ = mean end-to-end delay over detected events; $\text{DS-F1}$ = $7$-dataset macro buffered Point-F1; $E$ = events; $\pi$ = anomalous-step fraction; $\text{F1}_{\text{all}} = \text{mean}_i[2\pi_i/(1+\pi_i)]$ (per-stream all-positive baseline). On high-$\pi$ sets (Daphnet, MSL, SWAN), alarming on every step exceeds every detector's buffered Point-F1 at $100\%$ FPR \cite{chicco2020advantages}, so Point-F1 must be read alongside FPR and ER \cite{garg2022evaluation}.}\vspace{-7pt}
 \end{table*}

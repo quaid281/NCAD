@@ -5,7 +5,7 @@
 \caption{Disjoint Five-Block Untouched Archive Benchmark ($n{=}118$)\label{tab:calibrator_comparison}}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l cc cc cc cccc @{}}
 \toprule
-& \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{FPR$_{\text{hold}}$}} & \multicolumn{4}{c}{\textbf{Caus.\ FPR Tail}} \\
+& \multicolumn{2}{c}{\textbf{Pt-F1 $\uparrow$}} & \multicolumn{2}{c}{\textbf{ER $\uparrow$}} & \multicolumn{2}{c}{\textbf{FPR$_{\text{hold}} \downarrow$}} & \multicolumn{4}{c}{\textbf{Caus.\ FPR Tail}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-11}
 \textbf{(a) Archive ($n{=}118$)} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Caus.} & \textbf{Buf.} & \textbf{Med.} & \textbf{p90} & \textbf{p95} & \textbf{${\le}5\%$} \\
 \midrule
@@ -14,9 +14,9 @@ TranAD (SPOT)                     & \underline{.157} & \underline{.166} & .629 &
 TimesNet (SPOT)                   & \textbf{.175} & \textbf{.179} & \underline{.654} & .662 & .256 & .303 & .063 & .861 & 1.00 & 47.5 \\
 \addlinespace[1.5pt]
 TS-JEPA (1D)                      & .057 & .134 & .414 & .459 & \underline{.042} & \underline{.110} & \underline{.004} & .070 & \underline{.209} & 88.1 \\
-Multi-Horiz.\ 1D                  & .076 & .143 & .525 & .590 & .044 & .195 & \underline{.004} & .068 & .237 & \underline{89.0} \\
-\textbf{Laminar-JEPA (224B)}      & .091 & \underline{.166} & \textbf{.694} & \underline{.668} & .070 & .210 & .014 & .096 & .493 & 84.7 \\
-\textbf{Laminar-Lite (128B)}      & .086 & .158 & .646 & \textbf{.677} & .064 & .133 & .009 & \underline{.061} & .647 & 88.1 \\
+MH-1D                             & .076 & .143 & .525 & .590 & .044 & .195 & \underline{.004} & .068 & .237 & \underline{89.0} \\
+\textbf{Laminar-JEPA (224-Dial)} & .091 & \underline{.166} & \textbf{.694} & \underline{.668} & .070 & .210 & .014 & .096 & .493 & 84.7 \\
+\textbf{Lite (128-Dial)}         & .086 & .158 & .646 & \textbf{.677} & .064 & .133 & .009 & \underline{.061} & .647 & 88.1 \\
 \addlinespace[1.5pt]
 \multicolumn{11}{@{}l@{}}{\textit{Adequate ($N_{\text{cal}}{\ge}500$, $n{=}59$)} vs.\ \textit{short ($N_{\text{cal}}{<}500$, $n{=}59$) histories}} \\
 MH-1D, $N_{\text{cal}}{\ge}500$   & .040 & .096 & .368 & .457 & \textbf{.020} & .133 & \textbf{.002} & \textbf{.009} & \textbf{.086} & \textbf{93.2} \\
@@ -30,7 +30,7 @@ MH-1D, $N_{\text{cal}}{<}500$     & \textbf{.112} & .191 & .684 & .727 & \textbf
 \setlength{\tabcolsep}{0.4pt}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} l r ccccc @{}}
 \toprule
-\textbf{(b) Screening \& Complete (Causal)} & {$n$} & {\textbf{ER $\uparrow$}} & {\textbf{Pt-F1 $\uparrow$}} & {\textbf{FPR$_{\text{hold}}$}} & {\textbf{FPR$_{\text{test}}$}} & {\textbf{Ep.$^\dagger$}} \\
+\textbf{(b) Screening \& Complete (Causal)} & {$n$} & {\textbf{ER $\uparrow$}} & {\textbf{Pt-F1 $\uparrow$}} & {\textbf{FPR$_{\text{hold}}$}$\downarrow$} & {\textbf{FPR$_{\text{test}}$}$\downarrow$} & {\textbf{Ep.$^\dagger$}} \\
 \midrule
 Pass cutoff ($N_{\text{cal}}{\ge}500$, \emph{Lite})      & 59  & .572 & .085 & .047 & .155 & 18.5 \\
 \quad + Held-out ($\text{FPR}_{\text{hold}}{\le}5\%$)    & 52  & .543 & .076 & .009 & .110 & 18.1 \\
@@ -41,5 +41,5 @@ Complete 1D SPOT (all $118$ 1D)                           & 118 & .525 & .076 & 
 2-stage hybrid ($52$ \emph{Lite} $+$ $66$ 1D)             & 118 & .609 & .094 & .046 & .113 & 13.6 \\
 Unscreened \emph{Lite} (all $118$ \emph{Lite})            & 118 & .646 & .086 & .064 & .170 & 16.8 \\
 \bottomrule
-\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Three-seed means; best \textbf{bold}, second \underline{underlined} in~(a); MH-1D = Multi-Horizon JEPA (1D); ${\le}5\%$ = share with $\text{FPR}_{\text{hold}}{\le}5\%$. Panel~(b) contrasts accepted subsets against complete $118$-stream systems routing rejected streams to 1D SPOT. Two-stage ($3.9\%$ median $\text{FPR}_{\text{test}}$) keeps $53.8\%$ within $5\%$, vs.\ $60.9\%$ after drift ($2.9\%$ median). $^\dagger$Ep.\ = mean false-alarm episodes per $1{,}000$ test steps across the same $n$ streams in our rerun; all complete-system rows evaluate all $118$ streams ($49$ accepted in rerun three-stage).} \\
+\multicolumn{7}{@{}p{\columnwidth}@{}}{\tiny Three-seed means; best \textbf{bold}, second \underline{underlined} in the upper block of~(a), and bold marks the better of each MH-1D/\emph{Lite} pair in the lower block; MH-1D = Multi-Horizon JEPA (1D); ${\le}5\%$ = share with $\text{FPR}_{\text{hold}}{\le}5\%$. Panel~(b) contrasts accepted subsets against complete $118$-stream systems routing rejected streams to 1D SPOT. Two-stage ($3.9\%$ median $\text{FPR}_{\text{test}}$) keeps $53.8\%$ within $5\%$, vs.\ $60.9\%$ after drift ($2.9\%$ median). $^\dagger$Ep.\ = mean false-alarm episodes per $1{,}000$ test steps across the same $n$ streams in our rerun; all complete-system rows evaluate all $118$ streams ($49$ accepted in rerun three-stage).} \\
 \end{tabular*}\par\vspace{-4pt}\end{table}
