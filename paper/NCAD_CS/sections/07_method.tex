@@ -52,13 +52,13 @@ where $\bar{\bm{\mu}}_{\text{res}} \in \mathbb{R}^{MD}$ is the healthy mean resi
 \centering
 \includegraphics[width=0.90\textwidth]{figures/zca_quorum_geometry.pdf}
 \vspace{-6pt}
-\caption{Symmetric ZCA whitening ($\mathbf{\Omega}^{1/2}{=}\mathbf{\Sigma}^{-1/2}$) and quorum voting on two correlated dials ($\sigma_1{=}1.9$, $\sigma_2{=}1.0$, $\rho{=}0.88$). (a)~A coordinated shift hides inside the raw 1D box and scalar circle, whereas a correlated spike false-alarms. (b)~ZCA aligns $\sigma$-scaled tripwires $\pm\tau_j$, catching the shift while suppressing the single-dial spike.\label{fig:zca_quorum_geometry}}
+\caption{Symmetric ZCA whitening ($\mathbf{\Omega}^{1/2}{=}\mathbf{\Sigma}^{-1/2}$) and quorum voting on two correlated dials ($\sigma_1{=}1.9$, $\sigma_2{=}1.0$, $\rho{=}0.88$). (a)~A coordinated shift hides inside the raw 1D box and scalar circle, whereas a correlated spike causes false alarms. (b)~ZCA aligns $\sigma$-scaled tripwires $\pm\tau_j$, catching the shift while suppressing the single-dial spike.\label{fig:zca_quorum_geometry}}
 \vspace{-6pt}
 \end{figure*}
 
 \subsection{Stage 3: Reynolds Residual Decomposition and Dial Expansion}
 \label{subsec:reynolds_expansion}
-Applying Reynolds averaging \cite{reynolds1895dynamical} as post-hoc residual algebra separates sustained cross-horizon drift from short-lived fluctuations. The intuition is simple: if the short, medium, and long forecasts all miss in the same direction, the error is persistent and signals sustained drift; if they disagree, the miss is a brief fluctuation. For every latent coordinate $c$, we split the stabilized multi-horizon error $\tilde{e}_{m,c}(t)$ into its cross-horizon mean flow $\bar{e}_c(t)$ and fluctuation $F_{m,c}(t)$:
+Applying Reynolds averaging \cite{reynolds1895dynamical} as post-hoc residual algebra separates sustained cross-horizon drift from short-lived fluctuations. The intuition is simple: if the short, medium, and long forecasts all miss in the same direction, the error is persistent, and signals sustained drift; if they disagree, the miss is a brief fluctuation. For every latent coordinate $c$, we split the stabilized multi-horizon error $\tilde{e}_{m,c}(t)$ into its cross-horizon mean flow $\bar{e}_c(t)$ and fluctuation $F_{m,c}(t)$:
 \begin{equation}
     \tilde{e}_{m,c}(t) = \bar{e}_c(t) + F_{m,c}(t), \qquad \bar{e}_c(t) = \frac{1}{M}\sum_{m=1}^M \tilde{e}_{m,c}(t).
 \end{equation}
